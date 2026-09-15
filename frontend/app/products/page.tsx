@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ProductsPageModule } from "@/modules/catalog/components/ProductsPageModule";
 
 export const metadata = {
@@ -6,5 +7,9 @@ export const metadata = {
 };
 
 export default function ProductsPage() {
-  return <ProductsPageModule />;
+  return (
+    <Suspense fallback={<div className="w-full min-h-screen bg-white" />}>
+      <ProductsPageModule />
+    </Suspense>
+  );
 }

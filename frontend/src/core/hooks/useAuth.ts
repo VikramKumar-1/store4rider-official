@@ -3,13 +3,11 @@ import { apiClient } from "../api/client";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useCartStore } from "@/stores/useCartStore";
 import { toast } from "sonner";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export function useLogin() {
   const setAuth = useAuthStore((state) => state.setAuth);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectTarget = searchParams?.get("redirect") || "/";
 
   return useMutation({
     mutationFn: async (credentials: any) => {
@@ -21,6 +19,9 @@ export function useLogin() {
         setAuth(data.data.user, data.data.accessToken);
       }
       toast.success("Successfully logged in!");
+      
+      const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+      const redirectTarget = searchParams?.get("redirect") || "/";
       router.push(redirectTarget);
     },
     onError: (error: any) => {
@@ -32,8 +33,6 @@ export function useLogin() {
 export function useRegister() {
   const setAuth = useAuthStore((state) => state.setAuth);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectTarget = searchParams?.get("redirect") || "/";
 
   return useMutation({
     mutationFn: async (userData: any) => {
@@ -44,6 +43,9 @@ export function useRegister() {
       if (data?.data?.user && data?.data?.accessToken) {
         setAuth(data.data.user, data.data.accessToken);
       }
+
+      const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+      const redirectTarget = searchParams?.get("redirect") || "/";
 
       // If user registered normally from homepage (not during checkout), start with clean fresh cart
       if (redirectTarget !== "/checkout") {

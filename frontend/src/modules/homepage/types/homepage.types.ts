@@ -14,6 +14,8 @@ export interface NavLinkItem {
   hasDropdown?: boolean;
 }
 
+export type NavItem = NavLinkItem;
+
 /**
  * Props for the TopBanner component.
  */
@@ -38,6 +40,8 @@ export interface NavbarProps {
   onSearch?: (query: string) => void;
   /** Callback triggered when user clicks account icon */
   onAccountClick?: () => void;
+  /** Visual theme of the navbar */
+  theme?: "light" | "dark";
 }
 
 /**

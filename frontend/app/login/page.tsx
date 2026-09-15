@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import { AuthModule } from "@/modules/auth";
 
 export default function LoginPage() {
-  return <AuthModule type="login" />;
+  return (
+    <Suspense fallback={<div className="w-full h-screen bg-white" />}>
+      <AuthModule type="login" />
+    </Suspense>
+  );
 }

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useCartStore } from "./useCartStore";
+import { IUserAddress } from "@store4riders/shared-types";
 
 interface User {
   id?: string;
@@ -10,6 +11,8 @@ interface User {
   email: string;
   phone?: string;
   role?: string;
+  addresses?: IUserAddress[];
+  [key: string]: any;
 }
 
 interface AuthState {
