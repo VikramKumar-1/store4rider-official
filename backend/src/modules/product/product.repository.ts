@@ -9,19 +9,32 @@
  * @layer Repository (Data Access)
  */
 
+/**
+ * @class ProductRepository
+ * @description Direct database access layer for Products.
+ * Keeps Mongoose specifics completely hidden from the Service layer.
+ */
 import { ProductModel } from "./product.model";
 import { IProduct } from "@store4riders/shared-types";
 
 export class ProductRepository {
   /**
    * Retrieves a paginated list of products.
+   * Uses a projection to exclude heavy fields (description, configurableVariations)
+   * that are not needed for product listing cards.
    * @param filters - Query filters (categoryId, etc)
    * @param skip - Number of documents to skip
    * @param limit - Maximum number of documents to return
-   * @returns Array of plain product objects
+   * @returns Array of plain product objects (without heavy fields)
    */
   static async findAll(filters: Record<string, unknown>, skip: number, limit: number): Promise<IProduct[]> {
-    return ProductModel.find(filters).skip(skip).limit(limit).lean().exec() as unknown as IProduct[];
+    return ProductModel.find(filters)
+      .select("-description -configurableVariations -shortDescription -metaDescription -metaKeywords")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .exec() as unknown as IProduct[];
   }
 
   /**
@@ -45,6 +58,11 @@ export class ProductRepository {
     return ProductModel.findById(id).lean().exec() as unknown as IProduct | null;
   }
 
+  static async findBySkus(skus: string[]): Promise<IProduct[]> {
+    if (!skus || skus.length === 0) return [];
+    return ProductModel.find({ sku: { $in: skus } }).lean().exec() as unknown as IProduct[];
+  }
+
   /**
    * Creates a new product.
    */
@@ -58,6 +76,17 @@ export class ProductRepository {
    */
   static async update(id: string, data: Partial<IProduct>): Promise<IProduct | null> {
     return ProductModel.findByIdAndUpdate(id, data, { new: true }).lean().exec() as unknown as IProduct | null;
+  }
+
+  /**
+   * Atomically decrements product stock to prevent overselling and concurrency race conditions.
+   */
+  static async decrementStock(productId: string, quantity: number, session?: any): Promise<boolean> {
+    const result = await ProductModel.updateOne(
+      { _id: productId, stock: { $gte: quantity } },
+      { $inc: { stock: -quantity } }
+    ).session(session || null).exec();
+    return result.modifiedCount > 0;
   }
 
   /**

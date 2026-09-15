@@ -2,7 +2,14 @@ import { ReviewRepository } from "./review.repository";
 import { IReview } from "@store4riders/shared-types";
 import { ConflictError } from "../../core/errors/AppError";
 
+/**
+ * @class ReviewService
+ * @description Core business logic for Product Reviews.
+ * Highlights:
+ * - Prevents users from reviewing the same product twice.
+ */
 export class ReviewService {
+  
   static async addReview(userId: string, data: Partial<IReview>): Promise<IReview> {
     const existing = await ReviewRepository.findByUserAndProduct(userId, data.productId!);
     if (existing) {

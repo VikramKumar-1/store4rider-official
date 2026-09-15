@@ -3,7 +3,6 @@
 import { memo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { formatPrice } from "@store4riders/shared-utils";
 import { ShoppingCart, Check, Star, ShieldCheck } from "lucide-react";
 import { useCartStore } from "@/stores/useCartStore";
@@ -39,6 +38,9 @@ const ProductCard = ({ product }: ProductCardProps) => {
     ? `${rawUrl.split("?")[0]}?q=75&w=600&auto=format&fit=crop`
     : rawUrl;
 
+  const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?q=75&w=600&auto=format&fit=crop";
+  const [imgSrc, setImgSrc] = useState(imageUrl);
+
   const price = product.basePrice || product.price || 0;
   const originalPrice = Math.round(price * 1.25);
 
@@ -47,16 +49,17 @@ const ProductCard = ({ product }: ProductCardProps) => {
       <div 
         className="group relative flex flex-col rounded-2xl bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-slate-200 overflow-hidden h-full"
       >
-        {/* Top Section: Image (Edge-to-Edge) */}
-        <div className="relative aspect-[4/3] sm:aspect-square w-full overflow-hidden bg-[#f8fafc]">
+        {/* Top Section: Image */}
+        <div className="relative aspect-square w-full overflow-hidden bg-neutral-50">
           <Image
-            src={imageUrl}
+            src={imgSrc}
             alt={product.name}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             placeholder="blur"
             blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PC9zdmc+"
-            className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out mix-blend-multiply"
+            className="object-contain p-3 group-hover:scale-105 transition-transform duration-700 ease-out"
+            onError={() => setImgSrc(FALLBACK_IMAGE)}
           />
           
           {/* Review Badge over Image */}

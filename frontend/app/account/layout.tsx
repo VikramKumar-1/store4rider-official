@@ -1,11 +1,10 @@
-"use client";
-import { AccountSidebar } from "@/modules/account/components/AccountSidebar";
+import { AccountLayoutModule } from "@/modules/account/components/AccountLayoutModule";
 
-export default function AccountLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="container mx-auto px-4 py-12 flex flex-col md:flex-row gap-8">
-      <AccountSidebar />
-      <main className="flex-1">{children}</main>
-    </div>
-  );
+export const metadata = {
+  title: "My Account | Store4Riders",
+  description: "My Account page.",
+};
+
+export default function AccountLayoutWrapper({ children }: { children: React.ReactNode }) {
+  return <AccountLayoutModule>{children}</AccountLayoutModule>;
 }

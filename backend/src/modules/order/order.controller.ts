@@ -1,61 +1,65 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { OrderService } from "./order.service";
 import { OrderRepository } from "./order.repository";
+import { OrderValidator } from "./order.validator";
 import { ApiResponse } from "../../core/response/ApiResponse";
-import { extractUserFromAuth } from "../../core/middlewares/auth";
-import { createOrderSchema, verifyPaymentSchema } from "@store4riders/shared-validation";
-import { sendEmail } from "../../core/email/ses";
-import { UserRepository } from "../user/user.repository";
 
+/**
+ * @class OrderController
+ * @description Minimal HTTP controller for Orders and Payments.
+ * Responsibilities:
+ * 1. Extract payloads via OrderValidator.
+ * 2. Delegate to OrderService.
+ * 3. Return standardized API responses.
+ */
 export class OrderController {
+  
   static async create(req: NextRequest) {
-    const userId = extractUserFromAuth(req);
-    const body = await req.json();
-    const validatedData = createOrderSchema.parse(body);
-
-    const result = await OrderService.createOrder(userId, validatedData.shippingAddressId);
+    const { userId, data } = await OrderValidator.validateCreate(req);
+    const result = await OrderService.createOrder(userId, data.shippingAddressId);
     return ApiResponse.success(result, "Order created", 201);
   }
 
   static async verify(req: NextRequest) {
-    const userId = extractUserFromAuth(req);
-    const body = await req.json();
-    const validatedData = verifyPaymentSchema.parse(body);
-
+    const { userId, data } = await OrderValidator.validateVerify(req);
     await OrderService.verifyPayment(
-      validatedData.razorpayOrderId,
-      validatedData.paymentId,
-      validatedData.signature
+      userId,
+      data.razorpayOrderId,
+      data.paymentId,
+      data.signature
     );
-
-    // Find the order to update it. In real world we might find by razorpayOrderId directly.
-    // For this example, we'll assume the payment implies success and we update via some logic.
-    // We would need to add a repository method to find by razorpayOrderId.
-    // Assuming we do:
-    // const order = await OrderRepository.findByRazorpayOrderId(validatedData.razorpayOrderId);
-    // await OrderRepository.updateStatus(order._id, "processing", ...);
-
-    // Send email
-    const user = await UserRepository.findById(userId);
-    if (user) {
-      await sendEmail(user.email, "Order Confirmed", `Your payment of ${validatedData.paymentId} was successful.`);
-    }
-
-    return ApiResponse.success(null, "Payment verified");
+    return ApiResponse.success(null, "Payment verified successfully");
   }
 
   static async myOrders(req: NextRequest) {
-    const userId = extractUserFromAuth(req);
+    const userId = OrderValidator.extractUserId(req);
     const orders = await OrderRepository.findByUserId(userId);
-    return ApiResponse.success(orders);
+    return ApiResponse.success(orders, "Orders fetched successfully");
   }
 
   static async getById(req: NextRequest, id: string) {
-    const userId = extractUserFromAuth(req);
+    const userId = OrderValidator.extractUserId(req);
     const order = await OrderRepository.findById(id);
     if (!order || order.userId !== userId) {
       return ApiResponse.error("Order not found", 404);
     }
-    return ApiResponse.success(order);
+    return ApiResponse.success(order, "Order fetched successfully");
+  }
+
+  static async webhook(req: NextRequest) {
+    const signature = req.headers.get("x-razorpay-signature");
+    if (!signature) {
+      return ApiResponse.error("Missing Razorpay signature", 400);
+    }
+    
+    // CRITICAL: Must read raw text for HMAC validation. Do not parse JSON yet.
+    const rawBody = await req.text();
+    
+    try {
+      await OrderService.handleWebhook(rawBody, signature);
+      return ApiResponse.success(null, "Webhook processed");
+    } catch (err: any) {
+      return ApiResponse.error(err.message, err.statusCode || 500);
+    }
   }
 }

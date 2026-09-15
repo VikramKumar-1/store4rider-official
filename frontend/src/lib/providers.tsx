@@ -3,7 +3,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Toaster } from "sonner";
-import { SmoothScrollProvider } from "./SmoothScrollProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -11,7 +10,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000,
+            staleTime: 60 * 1000,         // 1 minute — fast navigation but fresh enough for stock
+            gcTime: 5 * 60 * 1000,        // 5 minutes — keep in memory for back-navigation speed
             retry: 1,
             refetchOnWindowFocus: false,
           },
@@ -21,10 +21,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SmoothScrollProvider>
-        {children}
-        <Toaster position="top-center" richColors />
-      </SmoothScrollProvider>
+      {children}
+      <Toaster position="top-center" richColors />
     </QueryClientProvider>
   );
 }

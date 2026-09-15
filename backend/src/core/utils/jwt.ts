@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
+import { ENV } from "../config/env";
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "fallback_access_secret";
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "fallback_refresh_secret";
+const ACCESS_SECRET = ENV.JWT_ACCESS_SECRET;
+const REFRESH_SECRET = ENV.JWT_REFRESH_SECRET;
 
 /**
  * Generates an access token and a refresh token for the user.

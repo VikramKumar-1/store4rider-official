@@ -14,9 +14,14 @@ const config: Config = {
           dark: "#8c1107",
           light: "#d11d0f",
         },
+        banner: {
+          DEFAULT: "#FF5429", // Vibrant coral orange from Figma banner
+          text: "#FFFFFF",
+        },
       },
       fontFamily: {
-        sans: ["var(--font-inter)"],
+        sans: ["var(--font-inter)", "sans-serif"],
+        serif: ["Georgia", "Cambria", "Times New Roman", "serif"],
       },
     },
   },

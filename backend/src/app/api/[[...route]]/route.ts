@@ -5,6 +5,8 @@ import { applySecurityHeaders } from "@/core/middlewares/security";
 import { applyRequestId } from "@/core/middlewares/requestId";
 import { errorHandler } from "@/core/middlewares/errorHandler";
 import { connectToDatabase } from "@/core/database/connection";
+import { logger } from "@/core/utils/logger";
+import { checkGeneralApiRateLimit } from "@/core/middlewares/rateLimiter";
 
 const applyHeaders = (response: NextResponse, req: NextRequest): NextResponse => {
   applyCors(req, response);
@@ -21,13 +23,26 @@ const handleRequest = async (
     await connectToDatabase();
     
     const resolvedParams = await props.params;
-    const routePath = resolvedParams?.route || [];
+    let routePath = resolvedParams?.route || [];
+    
+    // API Versioning Support (/api/v1/...)
+    if (routePath[0] === "v1") {
+      routePath = routePath.slice(1);
+    }
+    
+    // Request Logger
+    logger.info(`[${req.method}] ${req.nextUrl.pathname}`);
+
     
     // Handle OPTIONS (Preflight)
     if (req.method === "OPTIONS") {
       const res = new NextResponse(null, { status: 204 });
       return applyHeaders(res, req);
     }
+
+    // Global Baseline Rate Limiter (Protects ALL endpoints from DDoS / scraping)
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "127.0.0.1";
+    await checkGeneralApiRateLimit(ip);
     
     // Route to Central Router
     let res = await centralRouter(req, routePath);

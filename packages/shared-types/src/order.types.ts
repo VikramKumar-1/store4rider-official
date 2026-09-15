@@ -1,4 +1,4 @@
-export type IOrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+export type IOrderStatus = "pending" | "paid" | "processing" | "shipped" | "delivered" | "cancelled" | "failed" | "refunded";
 export interface IOrderItem {
   id: string;
   productId: string;

@@ -2,18 +2,37 @@ import bcrypt from "bcryptjs";
 import { UserRepository } from "../user/user.repository";
 import { generateTokens, verifyToken } from "../../core/utils/jwt";
 import { UnauthorizedError, ConflictError } from "../../core/errors/AppError";
-import { setCache, deleteCache } from "../../core/cache/redis";
+import { setCache } from "../../core/cache/redis";
 import { RegisterInput, LoginInput } from "@store4riders/shared-validation";
 
+/**
+ * @class AuthService
+ * @description Core business logic for user authentication.
+ * Handles bcrypt password hashing, credential verification, JWT generation, 
+ * and secure token refresh flows. Interacts with UserRepository.
+ */
 export class AuthService {
+  
   static async register(data: RegisterInput) {
     const existing = await UserRepository.findByEmail(data.email);
     if (existing) throw new ConflictError("Email already in use");
 
     const hashedPassword = await bcrypt.hash(data.password, 12);
     const user = await UserRepository.create({ ...data, password: hashedPassword });
+    const userId = (user as any)._id?.toString() || user.id;
+    const tokens = generateTokens(userId);
     
-    return generateTokens((user as any)._id?.toString() || user.id);
+    return {
+      tokens,
+      user: {
+        id: userId,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        role: user.role || "customer",
+      }
+    };
   }
 
   static async login(data: LoginInput) {
@@ -23,7 +42,20 @@ export class AuthService {
     const isMatch = await bcrypt.compare(data.password, user.password);
     if (!isMatch) throw new UnauthorizedError("Invalid credentials");
 
-    return generateTokens((user as any)._id?.toString() || user.id);
+    const userId = (user as any)._id?.toString() || user.id;
+    const tokens = generateTokens(userId);
+
+    return {
+      tokens,
+      user: {
+        id: userId,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        role: user.role || "customer",
+      }
+    };
   }
 
   static async refreshToken(oldToken: string) {
@@ -36,7 +68,7 @@ export class AuthService {
   }
 
   static async logout(userId: string) {
-    // Optionally blacklist refresh tokens in Redis
+    // Blacklist refresh tokens in Redis
     await setCache(`blacklist:${userId}`, "true", 7 * 24 * 60 * 60);
   }
 }

@@ -1,22 +1,27 @@
 import { NextRequest } from "next/server";
 import { CartService } from "./cart.service";
+import { CartValidator } from "./cart.validator";
 import { ApiResponse } from "../../core/response/ApiResponse";
-import { extractUserFromAuth } from "../../core/middlewares/auth";
-import { cartItemSchema } from "@store4riders/shared-validation";
-import { ICartItem } from "@store4riders/shared-types";
 
+/**
+ * @class CartController
+ * @description Minimal HTTP controller for Shopping Cart.
+ * Responsibilities:
+ * 1. Extract user info and payloads via CartValidator.
+ * 2. Delegate to CartService.
+ * 3. Return standardized API responses.
+ */
 export class CartController {
+  
   static async get(req: NextRequest) {
-    const userId = extractUserFromAuth(req);
+    const userId = CartValidator.extractUserId(req);
     const cart = await CartService.getCart(userId);
-    return ApiResponse.success(cart);
+    return ApiResponse.success(cart, "Cart fetched successfully");
   }
 
   static async addItem(req: NextRequest) {
-    const userId = extractUserFromAuth(req);
-    const body = await req.json();
-    const validatedData = cartItemSchema.parse(body) as ICartItem;
-    const cart = await CartService.addItem(userId, validatedData);
+    const { userId, data } = await CartValidator.validateAddItem(req);
+    const cart = await CartService.addItem(userId, data as any);
     return ApiResponse.success(cart, "Item added to cart");
   }
 }

@@ -1,18 +1,26 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { CategoryService } from "./category.service";
+import { CategoryValidator } from "./category.validator";
 import { ApiResponse } from "../../core/response/ApiResponse";
-import { createCategorySchema } from "@store4riders/shared-validation";
 
+/**
+ * @class CategoryController
+ * @description Minimal HTTP controller for Category operations.
+ * Responsibilities:
+ * 1. Extract request data via CategoryValidator.
+ * 2. Delegate business logic to CategoryService.
+ * 3. Return standardized API responses.
+ */
 export class CategoryController {
+  
   static async getTree(req: NextRequest) {
     const tree = await CategoryService.getCategoryTree();
-    return ApiResponse.success(tree);
+    return ApiResponse.success(tree, "Category tree fetched successfully");
   }
 
   static async create(req: NextRequest) {
-    const body = await req.json();
-    const validatedData = createCategorySchema.parse(body);
+    const validatedData = await CategoryValidator.validateCreate(req);
     const category = await CategoryService.createCategory(validatedData);
-    return ApiResponse.success(category, "Category created", 201);
+    return ApiResponse.success(category, "Category created successfully", 201);
   }
 }

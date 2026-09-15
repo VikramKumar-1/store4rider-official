@@ -1,3 +1,8 @@
+/**
+ * @class CategoryRepository
+ * @description Direct database access layer for Categories.
+ * Keeps Mongoose specifics completely hidden from the Service layer.
+ */
 import { CategoryModel } from "./category.model";
 import { ICategory } from "@store4riders/shared-types";
 

@@ -4,7 +4,16 @@ import { getCache, setCache, deleteCache } from "../../core/cache/redis";
 
 const CACHE_KEY = "category_tree";
 
+/**
+ * @class CategoryService
+ * @description Pure business logic for Category management.
+ * Highlights:
+ * - Operates completely independent of HTTP context.
+ * - Auto-caches the category tree in Redis for 1 hour.
+ * - Auto-invalidates the cache whenever a new category is created.
+ */
 export class CategoryService {
+  
   static async getCategoryTree() {
     const cached = await getCache(CACHE_KEY);
     if (cached) return cached;

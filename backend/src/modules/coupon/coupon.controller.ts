@@ -1,27 +1,27 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { CouponService } from "./coupon.service";
+import { CouponValidator } from "./coupon.validator";
 import { ApiResponse } from "../../core/response/ApiResponse";
-import { createCouponSchema, validateCouponSchema } from "@store4riders/shared-validation";
 
+/**
+ * @class CouponController
+ * @description Minimal HTTP controller for Coupons.
+ * Responsibilities:
+ * 1. Extract payloads via CouponValidator.
+ * 2. Delegate validation rules to CouponService.
+ * 3. Return standardized API responses.
+ */
 export class CouponController {
+  
   static async validate(req: NextRequest) {
-    const body = await req.json();
-    const validatedData = validateCouponSchema.parse(body);
-    // In a real app we'd fetch cart total from DB based on userId
-    // For this route, we assume cartTotal is passed, or we just validate it exists.
-    const cartTotal = body.cartTotal || 0; 
-    
-    const result = await CouponService.validateCoupon(validatedData.code, cartTotal);
-    return ApiResponse.success(result, "Coupon applied");
+    const { code, cartTotal } = await CouponValidator.validateApplyCoupon(req);
+    const result = await CouponService.validateCoupon(code, cartTotal);
+    return ApiResponse.success(result, "Coupon applied successfully");
   }
 
   static async create(req: NextRequest) {
-    const body = await req.json();
-    const validatedData = createCouponSchema.parse(body);
-    const coupon = await CouponService.createCoupon({
-      ...validatedData,
-      expiryDate: new Date(validatedData.expiryDate),
-    } as any);
-    return ApiResponse.success(coupon, "Coupon created", 201);
+    const data = await CouponValidator.validateCreate(req);
+    const coupon = await CouponService.createCoupon(data as any);
+    return ApiResponse.success(coupon, "Coupon created successfully", 201);
   }
 }

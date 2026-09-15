@@ -1,30 +1,33 @@
 import { NextRequest } from "next/server";
 import { UserService } from "./user.service";
+import { UserValidator } from "./user.validator";
 import { ApiResponse } from "../../core/response/ApiResponse";
-import { extractUserFromAuth } from "../../core/middlewares/auth";
-import { updateProfileSchema, addressSchema } from "@store4riders/shared-validation";
-import { IUserAddress } from "@store4riders/shared-types";
 
+/**
+ * @class UserController
+ * @description Minimal HTTP controller for User profiles and addresses.
+ * Responsibilities:
+ * 1. Extract and validate payloads via UserValidator.
+ * 2. Delegate to UserService.
+ * 3. Return standardized API responses.
+ */
 export class UserController {
+  
   static async getProfile(req: NextRequest) {
-    const userId = extractUserFromAuth(req);
+    const userId = UserValidator.extractUserId(req);
     const user = await UserService.getProfile(userId);
-    return ApiResponse.success(user);
+    return ApiResponse.success(user, "Profile fetched successfully");
   }
 
   static async updateProfile(req: NextRequest) {
-    const userId = extractUserFromAuth(req);
-    const body = await req.json();
-    const validatedData = updateProfileSchema.parse(body);
-    const user = await UserService.updateProfile(userId, validatedData);
+    const { userId, data } = await UserValidator.validateUpdateProfile(req);
+    const user = await UserService.updateProfile(userId, data);
     return ApiResponse.success(user, "Profile updated successfully");
   }
 
   static async addAddress(req: NextRequest) {
-    const userId = extractUserFromAuth(req);
-    const body = await req.json();
-    const validatedData = addressSchema.parse(body) as IUserAddress;
-    const user = await UserService.addAddress(userId, validatedData);
+    const { userId, data } = await UserValidator.validateAddAddress(req);
+    const user = await UserService.addAddress(userId, data);
     return ApiResponse.success(user, "Address added successfully");
   }
 }

@@ -114,26 +114,40 @@ async function runMigration() {
                 const weightNum = parseFloat(row.weight);
                 const stockStatusNum = parseInt(row.is_in_stock || "0", 10);
                 
-                // Extract all images accurately and map to absolute S3 URLs
+                // Extract all images accurately and map to S3 URLs
+                // Images are stored FLAT in S3 bucket root (no subdirectories)
                 const imagesArray = [];
+                const S3_REGION = process.env.S3_REGION || "ap-south-2";
+                const S3_BUCKET = process.env.S3_BUCKET || "store4riders";
+                const S3_BASE = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
                 const formatUrl = (imgStr: string) => {
-                  let cleanUrl = imgStr.trim();
-                  if (cleanUrl && !cleanUrl.startsWith("http")) {
-                    cleanUrl = `https://store4riders.com/media/catalog/product${cleanUrl}`;
+                  let cleanPath = imgStr.trim();
+                  if (!cleanPath) return "";
+                  // If already a full URL, extract filename
+                  if (cleanPath.startsWith("http")) {
+                    const parts = cleanPath.split("/");
+                    cleanPath = parts[parts.length - 1];
+                  } else {
+                    // Magento path like "/f/r/frml-1-_5_.jpg" → extract filename
+                    const parts = cleanPath.split("/");
+                    cleanPath = parts[parts.length - 1];
                   }
-                  return cleanUrl;
+                  return cleanPath ? `${S3_BASE}/${cleanPath}` : "";
                 };
 
                 if (row.base_image) {
-                  imagesArray.push({ url: formatUrl(row.base_image), altText: name });
+                  const baseLabel = (row.base_image_label || name).trim();
+                  imagesArray.push({ url: formatUrl(row.base_image), altText: baseLabel });
                 }
                 
                 if (row.additional_images) {
                   const extraImages = row.additional_images.split(",");
-                  for (const extra of extraImages) {
-                    const cleanUrl = formatUrl(extra);
+                  const extraLabels = (row.additional_image_labels || "").split(",");
+                  for (let i = 0; i < extraImages.length; i++) {
+                    const cleanUrl = formatUrl(extraImages[i]);
+                    const label = (extraLabels[i] || "").trim() || `${name} - view ${i + 1}`;
                     if (cleanUrl && !imagesArray.find(img => img.url === cleanUrl)) {
-                      imagesArray.push({ url: cleanUrl, altText: `${name} - additional view` });
+                      imagesArray.push({ url: cleanUrl, altText: label });
                     }
                   }
                 }

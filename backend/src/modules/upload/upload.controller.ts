@@ -1,27 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getPresignedUrl } from "../../core/storage/s3";
+import { NextRequest } from "next/server";
+import { UploadService } from "./upload.service";
+import { UploadValidator } from "./upload.validator";
 import { ApiResponse } from "../../core/response/ApiResponse";
-import { extractUserFromAuth } from "../../core/middlewares/auth";
-import { AppError } from "../../core/errors/AppError";
 
+/**
+ * @class UploadController
+ * @description Minimal HTTP controller for File Uploads.
+ * Responsibilities:
+ * 1. Extract and validate payloads via UploadValidator.
+ * 2. Delegate to UploadService.
+ * 3. Return standardized API responses.
+ */
 export class UploadController {
+  
   static async getPresignedUrl(req: NextRequest) {
-    // Requires Auth
-    extractUserFromAuth(req);
-
-    const body = await req.json();
-    const { fileName, fileType } = body;
-
-    if (!fileName || !fileType) {
-      throw new AppError("fileName and fileType are required", 400);
-    }
-
-    const validTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!validTypes.includes(fileType)) {
-      throw new AppError("Invalid file type. Only jpg, png, and webp are allowed.", 400);
-    }
-
-    const url = await getPresignedUrl(fileName, fileType);
-    return ApiResponse.success({ url });
+    const { fileName, fileType } = await UploadValidator.validatePresignedUrl(req);
+    const url = await UploadService.generatePresignedUrl(fileName, fileType);
+    return ApiResponse.success({ url }, "Presigned URL generated successfully");
   }
 }

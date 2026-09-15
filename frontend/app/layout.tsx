@@ -2,14 +2,15 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
-import MainNav from "@/components/layout/main-nav";
-import Footer from "@/components/layout/footer";
+import { NavigationProgress } from "@/components/NavigationProgress";
+import { BlinkitFloatingCart } from "@/components/ui/BlinkitFloatingCart";
+import { CartDrawer } from "@/components/ui/CartDrawer";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Store4Riders | Premium Motorcycle Gear",
-  description: "Enterprise e-commerce platform for motorcycle riding gear & accessories.",
+  title: "Store4Riders | Premium Motorcycle Riding Gear",
+  description: "Riding gear that keeps you safe. Explore jackets, suits, helmets & accessories.",
 };
 
 export default function RootLayout({
@@ -19,13 +20,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="antialiased bg-slate-50 text-slate-900">
+      <body className="antialiased bg-slate-50 text-slate-900 min-h-screen">
         <Providers>
-          <MainNav />
+          <NavigationProgress />
           <main className="min-h-screen">
             {children}
           </main>
-          <Footer />
+          <BlinkitFloatingCart />
+          <CartDrawer />
         </Providers>
       </body>
     </html>

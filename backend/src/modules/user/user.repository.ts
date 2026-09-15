@@ -1,3 +1,8 @@
+/**
+ * @class UserRepository
+ * @description Direct database access layer for Users.
+ * Keeps Mongoose specifics completely hidden from the Service layer.
+ */
 import { UserModel } from "./user.model";
 import { IUser } from "@store4riders/shared-types";
 

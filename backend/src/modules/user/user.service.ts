@@ -2,7 +2,15 @@ import { UserRepository } from "./user.repository";
 import { IUser, IUserAddress } from "@store4riders/shared-types";
 import { NotFoundError } from "../../core/errors/AppError";
 
+/**
+ * @class UserService
+ * @description Core business logic for managing user profiles.
+ * Highlights:
+ * - Completely isolated from HTTP.
+ * - Auto-manages address defaults (if a new address is set to default, others are set to false).
+ */
 export class UserService {
+  
   static async getProfile(userId: string): Promise<IUser> {
     const user = await UserRepository.findById(userId);
     if (!user) throw new NotFoundError("User");
@@ -15,14 +23,16 @@ export class UserService {
     return user;
   }
 
-  static async addAddress(userId: string, address: IUserAddress): Promise<IUser> {
+  static async addAddress(userId: string, data: Omit<IUserAddress, 'id'>): Promise<IUser> {
     const user = await this.getProfile(userId);
-    address.id = crypto.randomUUID();
+    const address: IUserAddress = { ...data, id: crypto.randomUUID() };
+    
     if (address.isDefault) {
       user.addresses.forEach(a => (a.isDefault = false));
     } else if (user.addresses.length === 0) {
       address.isDefault = true;
     }
+    
     user.addresses.push(address);
     return await this.updateProfile(userId, { addresses: user.addresses });
   }

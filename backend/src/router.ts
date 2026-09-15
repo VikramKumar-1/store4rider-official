@@ -9,11 +9,15 @@ import { reviewRouter } from "./modules/review/review.route";
 import { wishlistRouter } from "./modules/wishlist/wishlist.route";
 import { couponRouter } from "./modules/coupon/coupon.route";
 import { uploadRouter } from "./modules/upload/upload.route";
+import { docsRouter } from "./modules/docs/docs.route";
+import { healthRouter } from "./modules/health/health.route";
 
 export async function centralRouter(req: NextRequest, routePath: string[]) {
   const [module, ...rest] = routePath;
   
   switch (module) {
+    case "docs": return docsRouter(req, rest);
+    case "health": return healthRouter(req, rest);
     case "products": return productRouter(req, rest);
     case "users": return userRouter(req, rest);
     case "auth": return authRouter(req, rest);

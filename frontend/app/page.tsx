@@ -1,29 +1,26 @@
-import { HeroSection } from "@/modules/home/components/HeroSection";
-import { BrandMarquee, BrandLogoMarquee } from "@/modules/home/components/BrandMarquee";
-import { FeaturedCategories } from "@/modules/home/components/FeaturedCategories";
-import dynamic from 'next/dynamic';
+import HomepageModule from "@/modules/homepage";
 
-const FeaturedProductsSection = dynamic(() => import('@/modules/home/components/FeaturedProductsSection').then(mod => ({ default: mod.FeaturedProductsSection })));
-const PromoBanner = dynamic(() => import('@/modules/home/components/PromoBanner').then(mod => ({ default: mod.PromoBanner })));
-const RidingStylesSection = dynamic(() => import('@/modules/home/components/RidingStylesSection').then(mod => ({ default: mod.RidingStylesSection })));
-const NewArrivalsSection = dynamic(() => import('@/modules/home/components/NewArrivalsSection').then(mod => ({ default: mod.NewArrivalsSection })));
-const BrandTrustSection = dynamic(() => import('@/modules/home/components/BrandTrustSection').then(mod => ({ default: mod.BrandTrustSection })));
+/**
+ * Home Page Route
+ * 
+ * Clean, lightweight page component that strictly imports and renders
+ * the HomepageModule UI. All UI component logic is cleanly modularized
+ * under src/modules/homepage.
+ */
+export default async function Home() {
+  let backendProducts = [];
+  try {
+    // Fetch products from our backend API
+    const res = await fetch('http://localhost:4000/api/v1/products', { 
+      next: { revalidate: 10 } // Revalidate every 10 seconds
+    });
+    if (res.ok) {
+      const data = await res.json();
+      backendProducts = data?.data?.items || [];
+    }
+  } catch (error) {
+    console.error("Failed to fetch products for homepage:", error);
+  }
 
-export default function Home() {
-  return (
-    <div className="flex flex-col min-h-screen">
-      <HeroSection />
-      <BrandMarquee />
-      <FeaturedCategories />
-      
-      <FeaturedProductsSection />
-      <PromoBanner />
-      <RidingStylesSection />
-      
-      <BrandLogoMarquee />
-      
-      <NewArrivalsSection />
-      <BrandTrustSection />
-    </div>
-  );
+  return <HomepageModule backendProducts={backendProducts} />;
 }

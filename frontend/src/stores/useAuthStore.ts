@@ -1,18 +1,50 @@
 import { create } from "zustand";
-import { IUser } from "@store4riders/shared-types";
+import { persist } from "zustand/middleware";
+import { useCartStore } from "./useCartStore";
+
+interface User {
+  id?: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  phone?: string;
+  role?: string;
+}
 
 interface AuthState {
-  user: IUser | null;
+  user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
-  setUser: (user: IUser | null) => void;
-  login: (user?: any, token?: string) => void;
+  setAuth: (user: User, token: string) => void;
+  setUser: (user: User | null) => void;
   logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  isAuthenticated: false,
-  setUser: (user) => set({ user, isAuthenticated: !!user }),
-  login: (user = { id: "1", email: "user@store4riders.com", firstName: "Rider", lastName: "User" }, token?: string) => set({ user, isAuthenticated: true }),
-  logout: () => set({ user: null, isAuthenticated: false }),
-}));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      setAuth: (user, token) => {
+        const userId = user.id || user.email;
+        useCartStore.getState().switchUserCart(userId);
+        set({ user, token, isAuthenticated: true });
+      },
+      setUser: (user) => {
+        if (user) {
+          useCartStore.getState().switchUserCart(user.id || user.email);
+        }
+        set({ user, isAuthenticated: !!user });
+      },
+      logout: () => {
+        useCartStore.getState().switchUserCart(null);
+        set({ user: null, token: null, isAuthenticated: false });
+      },
+    }),
+    {
+      name: "auth-storage", // stores auth state in localStorage
+    }
+  )
+);

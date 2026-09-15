@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ENV } from "../config/env";
 import { logger } from "../utils/logger";
 
 const MONGODB_URI = process.env.MONGODB_URI as string;
@@ -32,8 +33,21 @@ export async function connectToDatabase() {
     };
 
     logger.info("Connecting to MongoDB...");
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then(async (mongoose) => {
       logger.info("Successfully connected to MongoDB");
+      
+      // Initialize Background Workers and Cron Jobs ONLY when DB connects successfully
+      if (process.env.NODE_ENV !== "test") {
+        try {
+          const { initCronJobs } = await import("../cron/order.cron");
+          await import("../queue/email.worker");
+          initCronJobs();
+          logger.info("Enterprise Background Workers and Cron Jobs successfully initialized!");
+        } catch (workerErr) {
+          logger.error("Failed to initialize background workers:", workerErr);
+        }
+      }
+
       return mongoose;
     });
   }

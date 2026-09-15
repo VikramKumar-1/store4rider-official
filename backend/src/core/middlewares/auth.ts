@@ -8,7 +8,15 @@ import { UnauthorizedError } from "../errors/AppError";
  * Throws UnauthorizedError if invalid or missing.
  */
 export const extractUserFromAuth = (req: NextRequest): string => {
-  const token = req.cookies.get("accessToken")?.value;
+  // First, check the Authorization header (used by Mobile Apps & Swagger UI)
+  const authHeader = req.headers.get("authorization");
+  let token = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+
+  // Fallback to HttpOnly Cookie (used by Web Frontend)
+  if (!token) {
+    token = req.cookies.get("accessToken")?.value || null;
+  }
+
   if (!token) {
     throw new UnauthorizedError("No access token provided");
   }

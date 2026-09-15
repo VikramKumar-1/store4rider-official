@@ -1,9 +1,19 @@
 import { CartRepository } from "./cart.repository";
 import { ProductRepository } from "../product/product.repository";
+import { SettingRepository } from "../settings/setting.repository";
 import { ICart, ICartItem } from "@store4riders/shared-types";
 import { calculateTax } from "@store4riders/shared-utils";
 
+/**
+ * @class CartService
+ * @description Core business logic for Shopping Cart.
+ * Highlights:
+ * - Upserts carts automatically for new users.
+ * - Auto-merges items if the same variant is added twice.
+ * - Dynamically recalculates totals, 18% GST tax, and shipping on every action.
+ */
 export class CartService {
+  
   static async getCart(userId: string): Promise<ICart> {
     let cart = await CartRepository.findByUserId(userId);
     if (!cart) {
@@ -20,7 +30,6 @@ export class CartService {
     if (existingIndex > -1) {
       cart.items[existingIndex].quantity += item.quantity;
     } else {
-      // Must generate an ID for the item (in a real app, use UUID)
       item.id = crypto.randomUUID();
       cart.items.push(item);
     }
@@ -44,8 +53,13 @@ export class CartService {
       }
     }
 
-    const tax = calculateTax(subtotal, 18); // 18% GST
-    const shipping = subtotal > 0 && subtotal < 999 ? 49 : 0; // Free above 999
+    const settings = await SettingRepository.getSettings();
+    const taxRate = settings.taxRate;
+    const freeShippingThreshold = settings.freeShippingThreshold;
+    const shippingCost = settings.shippingCost;
+
+    const tax = calculateTax(subtotal, taxRate);
+    const shipping = subtotal > 0 && subtotal < freeShippingThreshold ? shippingCost : 0;
     const total = subtotal + tax + shipping;
 
     cart.summary = { subtotal, tax, shipping, total };

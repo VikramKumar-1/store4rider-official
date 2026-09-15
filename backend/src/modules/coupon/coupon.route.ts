@@ -7,6 +7,29 @@ export async function couponRouter(req: NextRequest, routePath: string[]): Promi
   const method = req.method;
   const pathLen = routePath.length;
 
+  /**
+   * @swagger
+   * /coupon/validate:
+   *   post:
+   *     summary: Validate a coupon code
+   *     tags: [Coupons]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               code:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Coupon is valid
+   *       400:
+   *         description: Invalid or expired coupon
+   */
   if (method === "POST" && pathLen === 1 && routePath[0] === "validate") {
     // Requires Auth
     extractUserFromAuth(req);
