@@ -11,7 +11,9 @@ export default async function Home() {
   let backendProducts = [];
   try {
     // Fetch products from our backend API
-    const res = await fetch('http://localhost:4000/api/v1/products', { 
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+    const fetchUrl = baseUrl.includes('/v1') ? `${baseUrl}/products` : `${baseUrl}/v1/products`;
+    const res = await fetch(fetchUrl, { 
       next: { revalidate: 10 } // Revalidate every 10 seconds
     });
     if (res.ok) {
