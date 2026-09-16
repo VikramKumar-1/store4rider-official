@@ -41,8 +41,11 @@ const handleRequest = async (
     }
 
     // Global Baseline Rate Limiter (Protects ALL endpoints from DDoS / scraping)
+    // Exclude GET /products from global rate limit to allow Next.js SSG to build without failing
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "127.0.0.1";
-    await checkGeneralApiRateLimit(ip);
+    if (req.method !== 'GET' || !routePath.includes('products')) {
+      await checkGeneralApiRateLimit(ip);
+    }
     
     // Route to Central Router
     let res = await centralRouter(req, routePath);
