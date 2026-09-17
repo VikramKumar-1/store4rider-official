@@ -39,6 +39,13 @@ export async function wishlistRouter(req: NextRequest, routePath: string[]): Pro
    * /wishlist/toggle:
    *   post:
    *     summary: Toggle product in wishlist
+   *     description: |
+   *       ### ❤️ What is the purpose of this API?
+   *       This is a "Smart API". Instead of having separate add and remove APIs, this single endpoint acts as a toggle. If the product is not in the wishlist, it adds it. If it is already there, it removes it.
+   *       
+   *       ### 🛍️ Real-World Business Cases:
+   *       - **Heart Icon Logic:** When a user clicks the "Heart" icon on a product card, the frontend simply calls this API without needing to calculate whether it should be added or removed.
+   *       - **Data Cleanup:** When an item is removed, it automatically deletes the reference to save database space.
    *     tags: [Wishlist]
    *     security:
    *       - bearerAuth: []

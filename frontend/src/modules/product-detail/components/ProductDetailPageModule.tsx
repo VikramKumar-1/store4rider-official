@@ -249,6 +249,18 @@ const mapProductToPDP = (
   upSellProducts: KitProduct[],
   reviews: any[]
 ): PDPData => {
+  // --- UI TESTING FALLBACK ---
+  // If the database product doesn't have related/upsell products yet, we provide dummy data so you can see the UI layout.
+  const dummyKitProducts: KitProduct[] = [
+    { id: "k1", name: "Premium Leather Jacket", category: "Jacket", priceFormatted: "₹ 12,999", imageUrl: "https://images.unsplash.com/photo-1520975954732-57dd22299614?auto=format&fit=crop&w=400&q=80", productUrl: "#" },
+    { id: "k2", name: "Carbon Fiber Helmet", category: "Helmet", priceFormatted: "₹ 8,499", imageUrl: "https://images.unsplash.com/photo-1558981420-c532902e58b4?auto=format&fit=crop&w=400&q=80", productUrl: "#" },
+    { id: "k3", name: "Armored Riding Gloves", category: "Gloves", priceFormatted: "₹ 3,200", imageUrl: "https://images.unsplash.com/photo-1514316454349-750a7fd3da3a?auto=format&fit=crop&w=400&q=80", productUrl: "#" },
+    { id: "k4", name: "Riding Pants with Knee Guards", category: "Pants", priceFormatted: "₹ 6,500", imageUrl: "https://images.unsplash.com/photo-1605389656254-20993510e97d?auto=format&fit=crop&w=400&q=80", productUrl: "#" }
+  ];
+
+  const finalKitProducts = kitProducts && kitProducts.length > 0 ? kitProducts : dummyKitProducts;
+  // ---------------------------
+
   const hasDiscount = product.specialPrice && product.specialPrice < product.basePrice;
   const displayPrice = hasDiscount ? product.specialPrice! : product.basePrice;
   const priceFormatted = formatINR(displayPrice);
@@ -269,9 +281,7 @@ const mapProductToPDP = (
   const plainTextDesc = product.shortDescription
     ? stripHtml(product.shortDescription)
     : stripHtml(product.description || "");
-  const shortDescription = plainTextDesc
-    ? (plainTextDesc.length > 180 ? plainTextDesc.substring(0, 180) + "..." : plainTextDesc)
-    : "Premium riding gear built for safety and comfort.";
+  const shortDescription = plainTextDesc || "Premium riding gear built for safety and comfort.";
 
   const { colors: colorNames, sizes } = parseVariations(product.configurableVariations);
   const mappedColors = colorNames.length > 0
@@ -296,9 +306,21 @@ const mapProductToPDP = (
     images: gallery,
     colors: mappedColors,
     sizes: sizes.length > 0 ? sizes : ["One Size"],
-    kitProducts,
-    storeReviews: [],
-    productReviews: reviews,
+    kitProducts: finalKitProducts,
+    // TODO: Replace with real Google reviews from API
+    storeReviews: [
+      { id: "sr1", author: "Rahul Sharma", rating: 5, date: "2 weeks ago", text: "Amazing quality riding boots! Waterproofing works perfectly in Mumbai rains." },
+      { id: "sr2", author: "Ankit Patel", rating: 5, date: "1 month ago", text: "Best riding gear store in India. Fast delivery and genuine products." },
+      { id: "sr3", author: "Priya Singh", rating: 4, date: "1 month ago", text: "Great customer service. They helped me pick the right size." },
+      { id: "sr4", author: "Vikram Joshi", rating: 5, date: "2 months ago", text: "Bought gloves and jacket. Premium quality, worth every rupee." },
+      { id: "sr5", author: "Deepak Kumar", rating: 5, date: "3 months ago", text: "1 year damage cover is a game changer. Highly recommended!" },
+    ],
+    productReviews: reviews && reviews.length > 0 ? reviews : [
+      { id: "pr1", author: "Aman V.", rating: 5, date: "15 Oct 2023", text: "The D3O protection on these boots is amazing. Feels very sturdy yet comfortable enough for short walks off the bike." },
+      { id: "pr2", author: "Karthik Reddy", rating: 4, date: "02 Sep 2023", text: "Waterproofing works exactly as advertised. Used it during heavy monsoon rides and my feet stayed completely dry. Deducting one star because they take a little time to break in." },
+      { id: "pr3", author: "Siddharth S.", rating: 5, date: "28 Aug 2023", text: "Looks just like a regular high-top sneaker but has all the protection of a proper riding boot. Extremely satisfied with this purchase!" },
+      { id: "pr4", author: "Rohit K.", rating: 4, date: "10 Aug 2023", text: "Good grip on the pegs and the ankle support is solid. The side zip makes it very easy to wear." },
+    ],
     upSellProducts,
   };
 };

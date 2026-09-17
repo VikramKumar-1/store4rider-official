@@ -1,3 +1,8 @@
+---
+name: store4riders-coding-standards
+description: Strict enterprise coding standards, UI separation, and backend business logic rules.
+trigger: always_on
+---
 # Store4Riders — Enterprise Coding Standards & Architecture Rules
 
 > **⚠️ MANDATORY: Every agent MUST read this ENTIRE file before writing ANY code.**

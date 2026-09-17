@@ -10,6 +10,10 @@ import TopBanner from "@/modules/homepage/components/TopBanner";
 import Navbar from "@/modules/homepage/components/Navbar";
 import Footer from "@/modules/homepage/components/Footer";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { CheckoutPersonalInfo } from "./CheckoutPersonalInfo";
+import { CheckoutStepper } from "./CheckoutStepper";
+import { CheckoutShippingDelivery, CourierOption, COURIER_OPTIONS } from "./CheckoutShippingDelivery";
+import { CheckoutConfirmation } from "./CheckoutConfirmation";
 import { 
   UserIcon, 
   TruckIcon, 
@@ -31,42 +35,6 @@ const INDIAN_STATES = [
   "Gujarat", "Haryana", "Himachal Pradesh", "Jammu & Kashmir", "Jharkhand", 
   "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Odisha", "Punjab", 
   "Rajasthan", "Tamil Nadu", "Telangana", "Uttar Pradesh", "Uttarakhand", "West Bengal"
-];
-
-interface CourierOption {
-  id: string;
-  name: string;
-  logoText: string;
-  badgeBg?: string;
-  badgeText?: string;
-  cost: number;
-}
-
-const COURIER_OPTIONS: CourierOption[] = [
-  {
-    id: "delhivery",
-    name: "JNE / Delhivery Surface",
-    logoText: "DELHIVERY",
-    badgeBg: "bg-red-600",
-    badgeText: "text-white",
-    cost: 49,
-  },
-  {
-    id: "bluedart",
-    name: "TIKI / BlueDart Express Air",
-    logoText: "BLUEDART",
-    badgeBg: "bg-blue-700",
-    badgeText: "text-white",
-    cost: 149,
-  },
-  {
-    id: "dhl",
-    name: "DHL Express Delivery",
-    logoText: "DHL",
-    badgeBg: "bg-yellow-400",
-    badgeText: "text-red-700",
-    cost: 299,
-  },
 ];
 
 declare global {
@@ -304,69 +272,11 @@ export const CheckoutPageModule = () => {
           /* ========================================================================= */
           <>
             {/* Stepper Progress Bar */}
-            <div className="flex items-center gap-3 sm:gap-8 mb-8 pb-4 max-w-xl">
-              {/* Step 1: Personal Info */}
-              <button 
-                onClick={() => setCurrentStep(1)}
-                className="flex items-center gap-2.5 text-left group"
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                  currentStep === 1 
-                    ? "bg-[#78350F] text-white shadow-sm" 
-                    : currentStep > 1 
-                    ? "bg-emerald-600 text-white" 
-                    : "bg-neutral-100 text-neutral-400"
-                }`}>
-                  {currentStep > 1 ? <CheckIcon className="w-4 h-4 stroke-[3]" /> : <UserIcon className="w-4 h-4 stroke-[2]" />}
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-neutral-400 font-semibold uppercase">Step 1</span>
-                  <span className={`text-xs font-bold uppercase tracking-wider ${
-                    currentStep === 1 ? "text-[#78350F]" : currentStep > 1 ? "text-neutral-800" : "text-neutral-400"
-                  }`}>
-                    PERSONAL INFO
-                  </span>
-                </div>
-              </button>
-
-              <div className="w-8 sm:w-16 h-[1.5px] bg-neutral-200 shrink-0" />
-
-              {/* Step 2/3: Shipping Delivery / Confirmation */}
-              {currentStep < 3 ? (
-                <button 
-                  onClick={() => validateStep1() && setCurrentStep(2)}
-                  className="flex items-center gap-2.5 text-left group"
-                >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                    currentStep === 2 
-                      ? "bg-[#78350F] text-white shadow-sm" 
-                      : "bg-neutral-100 text-neutral-400"
-                  }`}>
-                    <TruckIcon className="w-4 h-4 stroke-[2]" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-neutral-400 font-semibold uppercase">Step 2</span>
-                    <span className={`text-xs font-bold uppercase tracking-wider ${
-                      currentStep === 2 ? "text-[#78350F]" : "text-neutral-400"
-                    }`}>
-                      SHIPPING DELIVERY
-                    </span>
-                  </div>
-                </button>
-              ) : (
-                <div className="flex items-center gap-2.5 text-left">
-                  <div className="w-8 h-8 rounded-full bg-[#78350F] text-white flex items-center justify-center shadow-sm">
-                    <CreditCardIcon className="w-4 h-4 stroke-[2]" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-neutral-400 font-semibold uppercase">Step 2</span>
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#78350F]">
-                      CONFIRMATION
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
+            <CheckoutStepper 
+              currentStep={currentStep} 
+              setCurrentStep={setCurrentStep as (step: 1 | 2 | 3) => void} 
+              validateStep1={validateStep1} 
+            />
 
             {/* Two Column Layout */}
             <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
@@ -378,353 +288,39 @@ export const CheckoutPageModule = () => {
                 {/* SCREEN 1: CHECKOUT FORM (Contact Person + Address Detail) */}
                 {/* ------------------------------------------------------------- */}
                 {currentStep === 1 && (
-                  <form onSubmit={handleContinueToShipping} className="flex flex-col gap-8 animate-in fade-in duration-300">
-                    
-                    {/* Section 1: Contact Person */}
-                    <div className="flex flex-col gap-4">
-                      <h2 className="font-sans font-bold text-lg md:text-xl text-neutral-900 tracking-tight uppercase">
-                        CONTACT PERSON
-                      </h2>
-
-                      {/* Name */}
-                      <div className="flex flex-col gap-1.5">
-                        <label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-neutral-700">
-                          NAME
-                        </label>
-                        <input
-                          id="name"
-                          name="name"
-                          type="text"
-                          required
-                          placeholder="Eg: John Doe"
-                          value={formData.name}
-                          onChange={handleInputChange}
-                          className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none transition-colors"
-                        />
-                      </div>
-
-                      {/* Phone Number with Flag selector */}
-                      <div className="flex flex-col gap-1.5">
-                        <label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-neutral-700">
-                          PHONE NUMBER
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <div className="relative shrink-0">
-                            <select
-                              name="countryCode"
-                              value={formData.countryCode}
-                              onChange={handleInputChange}
-                              className="appearance-none bg-white border border-neutral-300 rounded-none pl-3 pr-8 py-3 text-sm text-neutral-800 focus:outline-none focus:border-[#78350F]"
-                            >
-                              <option value="+91">🇮🇳 (+91)</option>
-                              <option value="+1">🇺🇸 (+1)</option>
-                              <option value="+44">🇬🇧 (+44)</option>
-                              <option value="+971">🇦🇪 (+971)</option>
-                            </select>
-                            <ChevronDownIcon className="w-3 h-3 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                          </div>
-                          <input
-                            id="phone"
-                            name="phone"
-                            type="tel"
-                            required
-                            placeholder="111-2222-33333"
-                            value={formData.phone}
-                            onChange={handleInputChange}
-                            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none transition-colors"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Alternate Phone Number matching Screen 1 */}
-                      <div className="flex flex-col gap-1.5">
-                        <label htmlFor="altPhone" className="text-xs font-bold uppercase tracking-wider text-neutral-700">
-                          ALTERNATE PHONE NUMBER
-                        </label>
-                        <input
-                          id="altPhone"
-                          name="altPhone"
-                          type="tel"
-                          placeholder="111-2222-33333"
-                          value={formData.altPhone}
-                          onChange={handleInputChange}
-                          className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none transition-colors"
-                        />
-                      </div>
-
-                      {/* Email */}
-                      <div className="flex flex-col gap-1.5">
-                        <label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-neutral-700">
-                          EMAIL
-                        </label>
-                        <input
-                          id="email"
-                          name="email"
-                          type="email"
-                          required
-                          placeholder="Eg: example@example.com"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none transition-colors"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Section 2: Address Detail */}
-                    <div className="flex flex-col gap-4 pt-4 border-t border-neutral-100">
-                      <h2 className="font-sans font-bold text-lg md:text-xl text-neutral-900 tracking-tight uppercase">
-                        ADDRESS DETAIL
-                      </h2>
-
-                      {/* Address */}
-                      <div className="flex flex-col gap-1.5">
-                        <label htmlFor="address" className="text-xs font-bold uppercase tracking-wider text-neutral-700">
-                          ADDRESS
-                        </label>
-                        <input
-                          id="address"
-                          name="address"
-                          type="text"
-                          required
-                          placeholder="Eg: ABC Street 12A, West Java, Indonesia"
-                          value={formData.address}
-                          onChange={handleInputChange}
-                          className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none transition-colors"
-                        />
-                      </div>
-
-                      {/* State */}
-                      <div className="flex flex-col gap-1.5">
-                        <label htmlFor="state" className="text-xs font-bold uppercase tracking-wider text-neutral-700">
-                          STATE
-                        </label>
-                        <div className="relative">
-                          <select
-                            id="state"
-                            name="state"
-                            required
-                            value={formData.state}
-                            onChange={handleInputChange}
-                            className="w-full appearance-none bg-white border border-neutral-300 rounded-none px-4 py-3 text-sm text-neutral-800 focus:outline-none focus:border-[#78350F]"
-                          >
-                            <option value="">--Choose State--</option>
-                            {INDIAN_STATES.map((st) => (
-                              <option key={st} value={st}>{st}</option>
-                            ))}
-                          </select>
-                          <ChevronDownIcon className="w-4 h-4 text-neutral-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        </div>
-                      </div>
-
-                      {/* City & Pin Code Row */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="flex flex-col gap-1.5">
-                          <label htmlFor="city" className="text-xs font-bold uppercase tracking-wider text-neutral-700">
-                            CITY
-                          </label>
-                          <input
-                            id="city"
-                            name="city"
-                            type="text"
-                            placeholder="--Choose City--"
-                            value={formData.city}
-                            onChange={handleInputChange}
-                            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none transition-colors"
-                          />
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                          <label htmlFor="pinCode" className="text-xs font-bold uppercase tracking-wider text-neutral-700">
-                            PIN CODE
-                          </label>
-                          <input
-                            id="pinCode"
-                            name="pinCode"
-                            type="text"
-                            required
-                            placeholder="--Choose PIN Code--"
-                            value={formData.pinCode}
-                            onChange={handleInputChange}
-                            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none transition-colors"
-                          />
-                        </div>
-                      </div>
-
-                    </div>
-
-                    {/* Section 3: Terms & Conditions Accordion matching Screen 1 */}
-                    <div className="border border-neutral-200 rounded-none p-4 mt-2">
-                      <button
-                        type="button"
-                        onClick={() => setIsTermsOpen(!isTermsOpen)}
-                        className="w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider text-neutral-800"
-                      >
-                        <span>TERMS AND CONDITIONS ACCORDION</span>
-                        {isTermsOpen ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
-                      </button>
-                      {isTermsOpen && (
-                        <div className="mt-3 text-xs text-neutral-500 leading-relaxed border-t border-neutral-100 pt-3">
-                          By placing this order, you agree to our 100% genuine motorcycle gear guarantee, standard dispatch policy within 24-48 business hours, and 7-day hassle-free return/exchange terms.
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Submit Button */}
-                    <div className="pt-2">
-                      <button
-                        type="submit"
-                        className="bg-banner hover:bg-orange-600 text-white font-bold tracking-widest text-xs uppercase px-10 py-4 rounded-none shadow-md transition-all active:scale-[0.99]"
-                      >
-                        CONTINUE TO SHIPPING
-                      </button>
-                    </div>
-
-                  </form>
+                  <CheckoutPersonalInfo 
+                    formData={formData}
+                    handleInputChange={handleInputChange}
+                    handleContinueToShipping={handleContinueToShipping}
+                  />
                 )}
 
                 {/* ------------------------------------------------------------- */}
                 {/* SCREEN 2: CHECKOUT/SHIPPING (Shipping Delivery) */}
                 {/* ------------------------------------------------------------- */}
                 {currentStep === 2 && (
-                  <div className="flex flex-col gap-8 animate-in fade-in duration-300">
-                    <h2 className="font-sans font-bold text-lg md:text-xl text-neutral-900 tracking-tight uppercase">
-                      SHIPPING DELIVERY
-                    </h2>
-
-                    <div className="flex flex-col gap-4">
-                      {COURIER_OPTIONS.map((courier) => {
-                        const isSelected = selectedCourier?.id === courier.id;
-
-                        return (
-                          <div
-                            key={courier.id}
-                            onClick={() => {
-                              setSelectedCourier(courier);
-                              if (errorMessage) setErrorMessage("");
-                            }}
-                            className={`border rounded-none p-5 cursor-pointer transition-all flex items-center justify-between ${
-                              isSelected
-                                ? "border-[#78350F] bg-amber-50/20 ring-1 ring-[#78350F]"
-                                : "border-neutral-300 hover:border-neutral-400 bg-white"
-                            }`}
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                isSelected ? "border-[#78350F]" : "border-neutral-300"
-                              }`}>
-                                {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#78350F]" />}
-                              </div>
-
-                              <div className="flex items-center gap-3">
-                                <span className={`px-2.5 py-1 text-[11px] font-black tracking-wider rounded-xs uppercase ${courier.badgeBg} ${courier.badgeText}`}>
-                                  {courier.logoText}
-                                </span>
-                                <span className="font-sans font-bold text-sm text-neutral-900">
-                                  {courier.name}
-                                </span>
-                              </div>
-                            </div>
-
-                            <span className="font-sans font-medium text-sm text-neutral-900">
-                              {formatPrice(courier.cost)}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="flex items-center gap-4 pt-4">
-                      <button
-                        type="button"
-                        onClick={() => setCurrentStep(1)}
-                        className="text-xs uppercase font-bold text-neutral-500 hover:text-neutral-900 px-2 py-3"
-                      >
-                        ← Back to Personal Info
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleContinueToConfirmation}
-                        className="bg-[#78350F] hover:bg-[#5E2B0C] text-white font-bold tracking-widest text-xs uppercase px-10 py-4 rounded-none shadow-md transition-all ml-auto"
-                      >
-                        CONTINUE TO PAYMENT
-                      </button>
-                    </div>
-                  </div>
+                  <CheckoutShippingDelivery
+                    selectedCourier={selectedCourier}
+                    setSelectedCourier={setSelectedCourier}
+                    setErrorMessage={setErrorMessage}
+                    errorMessage={errorMessage}
+                    setCurrentStep={setCurrentStep as (step: 1 | 2 | 3) => void}
+                    handleContinueToConfirmation={handleContinueToConfirmation}
+                  />
                 )}
 
                 {/* ------------------------------------------------------------- */}
                 {/* SCREEN 3: CHECKOUT/CONFIRMATION (Confirmation & I Agree to Pay) */}
                 {/* ------------------------------------------------------------- */}
                 {currentStep === 3 && (
-                  <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-                    
-                    {/* Order Number */}
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs text-neutral-400 font-semibold uppercase">Order Number</span>
-                      <span className="font-mono text-base font-bold text-neutral-900">
-                        {generatedOrderNumber}
-                      </span>
-                    </div>
-
-                    {/* Payment Information Disclaimer matching Screen 3 */}
-                    <div className="flex flex-col gap-2 pt-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-neutral-800">
-                        Payment Information
-                      </span>
-                      <p className="text-xs text-neutral-500 leading-relaxed font-sans max-w-lg">
-                        Upon confirming your order here, you will receive a payment confirmation result. This result will contain essential information about the items you have purchased and the total amount that needs to be paid.
-                      </p>
-                    </div>
-
-                    {/* Payment Method Selector */}
-                    <div className="flex flex-col gap-3 pt-2">
-                      <label
-                        onClick={() => setPaymentOption("razorpay")}
-                        className={`flex items-center justify-between p-4 border rounded-none cursor-pointer transition-all ${
-                          paymentOption === "razorpay"
-                            ? "border-banner bg-orange-50/20 ring-1 ring-banner"
-                            : "border-neutral-300 hover:border-neutral-400"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="radio"
-                            name="paymentOption"
-                            checked={paymentOption === "razorpay"}
-                            onChange={() => setPaymentOption("razorpay")}
-                            className="accent-orange-600 w-4 h-4"
-                          />
-                          <div className="flex flex-col">
-                            <span className="font-bold text-sm text-neutral-900">
-                              Online Payment (UPI, Cards, NetBanking, EMI)
-                            </span>
-                            <span className="text-[11px] text-neutral-500">Google Pay, PhonePe, Paytm, Visa, Mastercard</span>
-                          </div>
-                        </div>
-                        <ShieldCheckIcon className="w-5 h-5 text-green-600" />
-                      </label>
-                    </div>
-
-                    {/* Big Orange Button matching Screen 3: I AGREE TO PAY */}
-                    <div className="flex items-center gap-4 pt-4">
-                      <button
-                        type="button"
-                        onClick={() => setCurrentStep(2)}
-                        className="text-xs uppercase font-bold text-neutral-500 hover:text-neutral-900 px-2 py-3"
-                      >
-                        ← Back
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleAgreeToPay}
-                        disabled={isProcessing}
-                        className="bg-banner hover:bg-orange-600 text-white font-bold tracking-widest text-xs uppercase px-12 py-4 rounded-none shadow-md transition-all ml-auto disabled:opacity-50 active:scale-[0.99]"
-                      >
-                        {isProcessing ? "PROCESSING..." : "I AGREE TO PAY"}
-                      </button>
-                    </div>
-
-                  </div>
+                  <CheckoutConfirmation
+                    generatedOrderNumber={generatedOrderNumber}
+                    paymentOption={paymentOption}
+                    setPaymentOption={setPaymentOption}
+                    setCurrentStep={setCurrentStep as (step: 1 | 2 | 3) => void}
+                    handleAgreeToPay={handleAgreeToPay}
+                    isProcessing={isProcessing}
+                  />
                 )}
 
               </div>

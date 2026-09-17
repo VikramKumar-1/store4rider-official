@@ -133,7 +133,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
 
       {/* Short Description */}
       <div className="mt-2 pt-2 border-t border-neutral-100">
-        <p className={`text-neutral-500 text-sm leading-relaxed md:text-base font-sans ${!isExpanded ? "line-clamp-3" : ""}`}>
+        <p className={`text-neutral-500 text-sm leading-relaxed md:text-base font-sans ${!isExpanded ? "line-clamp-4" : ""}`}>
           {shortDescription}
         </p>
         

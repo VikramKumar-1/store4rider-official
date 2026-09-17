@@ -22,7 +22,7 @@ const Thumbnail: React.FC<{
     <button
       onClick={onClick}
       className={`relative w-20 sm:w-24 aspect-square shrink-0 border-2 rounded-sm overflow-hidden bg-neutral-100 transition-all ${
-        isActive ? "border-brand" : "border-neutral-200 opacity-70 hover:opacity-100"
+        isActive ? "border-brand" : "border-neutral-200 hover:border-neutral-300"
       }`}
     >
       <Image
@@ -111,34 +111,101 @@ export const ProductGallery: React.FC<{
     [images]
   );
 
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [position, setPosition] = useState({ x: 50, y: 50 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setPosition({ x, y });
+  };
+
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = 200;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   if (!images || images.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 relative">
       {/* Main Large Image */}
-      <div className="relative aspect-square w-full max-h-[500px] bg-neutral-100 overflow-hidden rounded-md border border-neutral-200">
+      <div 
+        className="relative aspect-square w-full max-h-[500px] bg-white overflow-hidden rounded-md border border-neutral-200 cursor-crosshair"
+        onMouseEnter={() => setIsZoomed(true)}
+        onMouseLeave={() => setIsZoomed(false)}
+        onMouseMove={handleMouseMove}
+      >
+        {/* Base Image (Always visible) */}
         <Image
           src={mainSrc}
           alt={images[activeIndex]?.altText || "Product image"}
           fill
-          className="object-contain p-4"
+          className="p-4 object-contain"
           priority
           sizes="(max-width: 768px) 100vw, 50vw"
           onError={() => setMainSrc(FALLBACK_IMAGE)}
         />
+
+        {/* Circular Magnifying Glass - Visible only on desktop on hover */}
+        {isZoomed && (
+          <div 
+            className="absolute z-20 pointer-events-none border-2 border-neutral-100 shadow-xl rounded-full hidden lg:block bg-white"
+            style={{
+              left: `${position.x}%`,
+              top: `${position.y}%`,
+              width: "200px",
+              height: "200px",
+              transform: "translate(-50%, -50%)",
+              backgroundImage: `url(${mainSrc})`,
+              backgroundPosition: `${position.x}% ${position.y}%`,
+              backgroundSize: "300%", // Zoom level inside the glass
+              backgroundRepeat: "no-repeat",
+            }}
+          />
+        )}
       </div>
 
-      {/* Thumbnails Row */}
-      <div className="flex gap-2 sm:gap-4 overflow-x-auto hide-scrollbar pb-2">
-        {images.map((img, idx) => (
-          <Thumbnail
-            key={idx}
-            img={img}
-            idx={idx}
-            isActive={activeIndex === idx}
-            onClick={() => handleSelect(idx)}
-          />
-        ))}
+      {/* Thumbnails Row with Arrows */}
+      <div className="relative flex items-center group">
+        <button 
+          onClick={() => scroll('left')}
+          className="absolute left-0 z-10 bg-white shadow-md border border-neutral-200 rounded-full p-1.5 hover:bg-neutral-50 transition-all -ml-3 hidden md:flex opacity-0 group-hover:opacity-100"
+          aria-label="Scroll left"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+
+        <div 
+          ref={scrollRef}
+          className="flex gap-2 sm:gap-4 overflow-x-auto hide-scrollbar pb-2 px-1 w-full"
+        >
+          {images.map((img, idx) => (
+            <Thumbnail
+              key={idx}
+              img={img}
+              idx={idx}
+              isActive={activeIndex === idx}
+              onClick={() => handleSelect(idx)}
+            />
+          ))}
+        </div>
+
+        <button 
+          onClick={() => scroll('right')}
+          className="absolute right-0 z-10 bg-white shadow-md border border-neutral-200 rounded-full p-1.5 hover:bg-neutral-50 transition-all -mr-3 hidden md:flex opacity-0 group-hover:opacity-100"
+          aria-label="Scroll right"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
       </div>
     </div>
   );

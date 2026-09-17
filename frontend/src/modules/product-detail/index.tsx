@@ -90,17 +90,21 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
 
       {/* 2. Main Product Hero Area */}
       <main className="max-w-[1400px] w-full mx-auto px-4 md:px-6 pt-2 md:pt-4">
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
           
-          {/* Left: Gallery (40% width on large screens) */}
+          {/* Left: Gallery & Reviews (40% width on large screens) */}
           <div className="w-full lg:w-[40%] max-w-xl mx-auto lg:mx-0">
             <ProductGallery 
               images={product.images} 
               selectedColor={selectedColor}
             />
+            
+            <div className="mt-12 hidden lg:block">
+              <StoreReviews reviews={product.storeReviews} />
+            </div>
           </div>
 
-          {/* Right: Info & Actions (60% width on large screens) */}
+          {/* Right: Info & Kit (60% width on large screens) */}
           <div className="w-full lg:w-[60%] flex flex-col pt-4 lg:pt-0">
             <ProductInfo 
               category={product.category}
@@ -117,16 +121,25 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
               onColorChange={setSelectedColor}
               onSizeChange={setSelectedSize}
             />
-            <CompleteKitSlider products={product.kitProducts} />
-            <StoreReviews reviews={product.storeReviews} />
+            
+            <div className="mt-10 border-t border-neutral-100 pt-6">
+              <CompleteKitSlider products={product.kitProducts} />
+            </div>
+            
+            {/* Show reviews here on mobile, so it comes after the product details */}
+            <div className="mt-10 block lg:hidden">
+              <StoreReviews reviews={product.storeReviews} />
+            </div>
           </div>
         </div>
 
         {/* 3. Bottom Detail Areas */}
-        <DetailAndReviews 
-          fullDescription={product.fullDescription} 
-          reviews={product.productReviews} 
-        />
+        <div className="mt-16 w-full">
+          <DetailAndReviews 
+            fullDescription={product.fullDescription} 
+            reviews={product.productReviews} 
+          />
+        </div>
         
         <UpSellProducts products={product.upSellProducts} />
 

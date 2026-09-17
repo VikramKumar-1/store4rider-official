@@ -9,7 +9,7 @@ export const UpSellProducts: React.FC<{ products: KitProduct[] }> = ({ products 
   if (!products || products.length === 0) return null;
 
   return (
-    <div className="w-full mt-16 md:mt-24 mb-32 md:mb-40">
+    <div className="w-full mt-10 md:mt-12 mb-32 md:mb-40 border-t-2 border-neutral-100 pt-8 md:pt-10">
       <h2 className="text-sm font-bold uppercase tracking-widest text-neutral-800 mb-8 px-4 md:px-0">
         UP SELL PRODUCTS
       </h2>
@@ -21,12 +21,12 @@ export const UpSellProducts: React.FC<{ products: KitProduct[] }> = ({ products 
             href={product.productUrl}
             className="group flex flex-col gap-3"
           >
-            <div className="relative aspect-[3/4] w-full bg-neutral-100 overflow-hidden rounded-sm">
+            <div className="relative aspect-square w-full bg-neutral-100 overflow-hidden rounded-sm">
               <Image
                 src={product.imageUrl}
                 alt={product.name}
                 fill
-                className="object-cover group-hover:scale-105 transition-transform duration-500"
+                className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
                 sizes="(max-width: 768px) 50vw, 25vw"
               />
               <div className="absolute top-2 right-2 bg-banner text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm shadow-sm">

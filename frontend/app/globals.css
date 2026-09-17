@@ -52,22 +52,22 @@ html {
  * PRODUCT DESCRIPTION — CLEAN MINIMAL STYLING
  * ==========================================*/
 .magento-layout {
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.8125rem;
-  line-height: 1.7;
-  color: #525252;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: #334155;
 }
 
 .magento-layout h2,
 .magento-layout h3 {
-  font-size: 0.75rem;
+  font-size: 1.1rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #171717;
-  margin: 1.25rem 0 0.375rem;
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid #e5e5e5;
+  letter-spacing: 0.05em;
+  color: #0f172a;
+  margin: 2rem 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .magento-layout h3:first-child,
@@ -76,44 +76,49 @@ html {
 }
 
 .magento-layout p {
-  margin: 0.125rem 0;
-  font-size: 0.8125rem;
-  color: #525252;
+  margin-bottom: 1rem;
+}
+
+.magento-layout p:has(> strong:only-child) {
+  font-size: 1.05rem;
+  color: #0f172a;
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.25rem;
+}
+
+.magento-layout strong {
+  color: #1e293b;
+  font-weight: 600;
 }
 
 .magento-layout ul {
   list-style: none;
   padding: 0;
-  margin: 0.25rem 0 0.75rem;
+  margin: 1rem 0;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 0.5rem;
 }
 
 .magento-layout li {
-  font-size: 0.8125rem;
-  color: #404040;
-  padding: 0.375rem 0;
-  border-bottom: 1px solid #fafafa;
+  color: #475569;
   position: relative;
-  padding-left: 0.75rem;
+  padding-left: 1.25rem;
 }
 
 .magento-layout li::before {
   content: "•";
   position: absolute;
-  left: 0;
-  color: #f97316;
+  left: 0.25rem;
+  color: #ab1509; /* Brand color */
   font-weight: bold;
 }
 
-.magento-layout li:last-child {
-  border-bottom: none;
-}
-
 .magento-layout li strong {
-  color: #171717;
-  font-weight: 600;
+  color: #0f172a;
 }
 
 /* Hide legacy Magento table & broken images (source files not available) */
@@ -122,4 +127,61 @@ html {
   display: none !important;
 }
 
+/* ==========================================
+ * ACCORDION DESCRIPTION — Inside accordion cards
+ * ==========================================*/
+.magento-layout-accordion {
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
 
+.magento-layout-accordion p {
+  margin-bottom: 0.625rem;
+  color: #475569;
+}
+
+.magento-layout-accordion p:last-child {
+  margin-bottom: 0;
+}
+
+.magento-layout-accordion strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.magento-layout-accordion em {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.magento-layout-accordion ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.magento-layout-accordion li {
+  color: #475569;
+  position: relative;
+  padding-left: 1.25rem;
+}
+
+.magento-layout-accordion li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: #ab1509;
+  font-weight: bold;
+  font-size: 0.875rem;
+}
+
+.magento-layout-accordion li strong {
+  color: #0f172a;
+}
+
+.magento-layout-accordion table,
+.magento-layout-accordion img {
+  display: none !important;
+}

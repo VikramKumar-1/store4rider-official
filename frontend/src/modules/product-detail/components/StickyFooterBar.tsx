@@ -78,8 +78,20 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = ({
         {/* Right/Mobile Full: Selectors & CTA */}
         <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto justify-between md:justify-end">
           
-          {/* Color Selector */}
-          <div className="flex flex-col gap-1">
+          {/* Mobile: Show selected color & size as text only */}
+          <div className="flex items-center gap-3 md:hidden">
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-5 rounded-full border-2 border-neutral-300" style={{ background: colors.find(c => c.name === activeColor)?.background || '#000' }} />
+              <span className="text-[10px] font-bold text-neutral-700 uppercase">{activeColor}</span>
+            </div>
+            <span className="text-neutral-300">|</span>
+            <span className="text-[10px] font-bold text-neutral-700">EU {activeSize}</span>
+            <span className="text-neutral-300">|</span>
+            <span className="text-xs font-extrabold text-banner">{priceFormatted}</span>
+          </div>
+
+          {/* Desktop: Full Color Selector */}
+          <div className="hidden md:flex flex-col gap-1">
             <div className="flex items-center gap-1.5 text-[9px] uppercase font-semibold text-neutral-500">
               <span>COLOR:</span>
               <span className="text-neutral-900 font-bold">{activeColor || "Select"}</span>
@@ -91,7 +103,7 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = ({
                   <button
                     key={`color-${idx}-${colorObj.name}`}
                     onClick={() => handleColorClick(colorObj.name)}
-                    className={`w-6 h-6 md:w-8 md:h-8 rounded-full border-2 transition-all relative ${
+                    className={`w-8 h-8 rounded-full border-2 transition-all relative ${
                       isSelected
                         ? "border-orange-600 scale-110 ring-2 ring-orange-400/40 ring-offset-1 z-10"
                         : "border-neutral-300 hover:border-neutral-500 opacity-85 hover:opacity-100"
@@ -105,15 +117,15 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = ({
             </div>
           </div>
 
-          {/* Size Selector */}
-          <div className="flex flex-col gap-1 border-l border-neutral-200 pl-2 md:pl-4">
-            <span className="text-[8px] uppercase font-semibold text-neutral-400 hidden md:block">SIZE</span>
+          {/* Desktop: Full Size Selector */}
+          <div className="hidden md:flex flex-col gap-1 border-l border-neutral-200 pl-4">
+            <span className="text-[8px] uppercase font-semibold text-neutral-400">SIZE</span>
             <div className="flex items-center gap-1">
               {sizes.map(size => (
                 <button
                   key={size}
                   onClick={() => handleSizeClick(size)}
-                  className={`w-7 h-7 md:w-9 md:h-9 text-xs md:text-sm font-semibold border ${activeSize === size ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-200 text-neutral-600 bg-white hover:border-neutral-400'}`}
+                  className={`w-9 h-9 text-sm font-semibold border ${activeSize === size ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-200 text-neutral-600 bg-white hover:border-neutral-400'}`}
                 >
                   {size}
                 </button>
@@ -124,30 +136,32 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = ({
           {/* CTA Buttons: ADD TO CART and/or VIEW CART */}
           <div className="flex items-center gap-2 ml-auto md:ml-4">
             {hasAdded ? (
-              <div className="flex items-center gap-2 animate-in zoom-in-95 duration-200">
+              <div className="flex items-center gap-1.5 md:gap-2 animate-in zoom-in-95 duration-200">
                 <button
                   onClick={handleAddToCartClick}
-                  className="bg-neutral-100 hover:bg-neutral-200 text-neutral-800 px-3 md:px-4 py-2.5 md:py-3 rounded-sm font-bold text-xs uppercase tracking-wider border border-neutral-300 transition-colors"
+                  className="bg-neutral-100 hover:bg-neutral-200 text-neutral-800 px-2 md:px-4 py-2.5 md:py-3 rounded-sm font-bold text-[10px] md:text-xs uppercase tracking-wider border border-neutral-300 transition-colors"
                   title="Add another unit"
                 >
-                  +1 ADD
+                  +1
                 </button>
                 <button
                   onClick={() => router.push("/cart")}
-                  className="bg-[#0C831F] hover:bg-[#0A721B] text-white px-5 md:px-7 py-2.5 md:py-3 rounded-sm font-black tracking-widest text-xs md:text-sm flex items-center gap-2 shadow-[0_4px_14px_rgba(12,131,31,0.4)] transition-all whitespace-nowrap active:scale-95 animate-pulse"
+                  className="bg-[#0C831F] hover:bg-[#0A721B] text-white px-3 md:px-7 py-2.5 md:py-3 rounded-sm font-black tracking-widest text-[11px] md:text-sm flex items-center gap-1.5 md:gap-2 shadow-[0_4px_14px_rgba(12,131,31,0.4)] transition-all whitespace-nowrap active:scale-95"
                 >
                   <CheckIcon className="w-4 h-4 stroke-[3]" />
-                  <span>VIEW CART</span>
-                  <ArrowRightIcon className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">VIEW CART</span>
+                  <span className="md:hidden">CART</span>
+                  <ArrowRightIcon className="w-3 h-3 hidden md:block" />
                 </button>
               </div>
             ) : (
               <button 
                 onClick={handleAddToCartClick}
-                className="bg-banner hover:bg-orange-600 text-white px-5 md:px-8 py-2.5 md:py-3 rounded-sm font-bold tracking-widest text-xs md:text-sm flex items-center gap-2 shadow-md transition-all whitespace-nowrap active:scale-95"
+                className="bg-banner hover:bg-orange-600 text-white px-3 md:px-8 py-2.5 md:py-3 rounded-sm font-bold tracking-wider md:tracking-widest text-[11px] md:text-sm flex items-center gap-1.5 md:gap-2 shadow-md transition-all whitespace-nowrap active:scale-95"
               >
-                <span>ADD TO CART</span>
                 <ShoppingCartIcon className="w-4 h-4" />
+                <span className="hidden md:inline">ADD TO CART</span>
+                <span className="md:hidden">ADD</span>
               </button>
             )}
           </div>

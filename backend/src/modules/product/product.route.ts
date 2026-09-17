@@ -16,6 +16,12 @@ export async function productRouter(req: NextRequest, routePath: string[]): Prom
    * /products:
    *   get:
    *     summary: Get all products
+   *     description: |
+   *       ### 🚀 Performance & Architecture Details
+   *       This is one of the most heavily used endpoints. To ensure it loads in under 100ms:
+   *       - **Server-Side Pagination:** The database NEVER returns all products at once. It returns exactly what the frontend asks for (e.g., `limit=20, page=1`), keeping memory usage extremely low.
+   *       - **Lean Queries:** We use Mongoose `.lean()` which skips hydrating heavy Mongoose Document objects, returning plain lightweight JSON directly from MongoDB.
+   *       - **Index Optimization:** Database searches are strictly performed on indexed fields like `category` and `slug`, ensuring ultra-fast lookups even with 10,000+ products.
    *     tags: [Products]
    *     parameters:
    *       - in: query
@@ -50,15 +56,28 @@ export async function productRouter(req: NextRequest, routePath: string[]): Prom
    *         application/json:
    *           schema:
    *             type: object
+   *             required:
+   *               - name
+   *               - slug
+   *               - price
    *             properties:
    *               name:
    *                 type: string
+   *                 minLength: 3
+   *                 maxLength: 100
+   *                 description: "Full product name (Min: 3 characters)"
    *               slug:
    *                 type: string
+   *                 pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+   *                 description: "URL-friendly slug (e.g. 'smk-helmet-black')"
    *               price:
    *                 type: number
+   *                 minimum: 1
+   *                 description: "Base price of the product (Must be greater than 0)"
    *               description:
    *                 type: string
+   *                 maxLength: 5000
+   *                 description: "HTML or plain text product description"
    *     responses:
    *       201:
    *         description: Product created successfully
@@ -119,6 +138,18 @@ export async function productRouter(req: NextRequest, routePath: string[]): Prom
      * /products/{id}:
      *   put:
      *     summary: Update product [Admin Only]
+     *     description: |
+     *       ### 🎯 What is the purpose of this API?
+     *       This API is used by the **Store Admin** to modify an existing product's details after it has been created.
+     *       
+     *       ### 🛍️ Real-World Business Cases:
+     *       - **Price Changes:** A helmet's supplier price goes up, so the Admin updates the `price` field.
+     *       - **Flash Sales:** The Admin sets a `specialPrice` to show a discounted price during a holiday sale.
+     *       - **Stock Management:** A product runs out of stock in the warehouse, so the Admin updates `stockStatus` to `0` to prevent customers from buying it.
+     *       - **SEO Updates:** The Admin updates the `metaTitle` or `slug` to rank better on Google.
+     *       
+     *       ### 🔒 Why is this [Admin Only]?
+     *       To prevent regular customers from changing the prices of items they want to buy to ₹0. The API strictly checks the user's JWT token to ensure their role is `admin`.
      *     tags: [Products]
      *     security:
      *       - bearerAuth: []

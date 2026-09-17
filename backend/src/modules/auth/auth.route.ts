@@ -24,16 +24,16 @@ export async function authRouter(req: NextRequest, routePath: string[]): Promise
      *       ### 🔐 What is this API?
      *       Authenticates a user using their Email and Password. Returns a JSON Web Token (JWT) required to access protected routes.
      *       
-     *       ### ⚙️ How it works?
-     *       1. Uses **Zod** to validate the email format.
-     *       2. Looks up the user in **MongoDB**.
-     *       3. Uses `bcrypt` to compare the hashed password securely.
-     *       4. Issues a cryptographically signed **JWT Access Token**.
+     *       ### ⚙️ Under The Hood (Architecture & Security)
+     *       - **Redis Rate-Limiting:** This endpoint is heavily protected by Redis. If an attacker tries to guess passwords (Brute Force attack), their IP is automatically blocked after a few failed attempts.
+     *       - **Zod Validation:** The email payload is strictly sanitized before it ever touches the database, completely preventing NoSQL Injection attacks.
+     *       - **Bcrypt Hashing:** Passwords are NEVER stored in plain text. We use industry-standard bcrypt hashing with salt. Even database admins cannot read user passwords.
+     *       - **Short-Lived JWT:** The token returned expires in 15 minutes. This minimizes the risk window if a token is ever intercepted.
      *       
      *       ### 🧪 How to test?
      *       1. Provide your registered email and password in the body on the right.
-     *       2. Click **"Send API Request"**.
-     *       3. Copy the `accessToken` from the response!
+     *       2. Click **"Test Request"**.
+     *       3. Copy the `accessToken` from the response to use in the Authorization tab!
      *     tags: [Auth]
      *     requestBody:
      *       required: true
@@ -64,12 +64,6 @@ export async function authRouter(req: NextRequest, routePath: string[]): Promise
      *     summary: Register a new user
      *     operationId: authRegister
      *     description: |
-     *       ### 👤 What is this API?
-     *       Registers a brand new user into the database.
-     *
-     *       ### ⚠️ IMPORTANT: HOW TO TEST
-     *       Look at the **"Body"** section on the right side. That JSON code box is **EDITABLE**!
-     *       1. Click inside the black JSON box on the right.
      *       2. **Change the email address** (e.g. `test1@example.com`, `test2@example.com`).
      *       3. Click **"Send API Request"**.
      *       
@@ -81,21 +75,36 @@ export async function authRouter(req: NextRequest, routePath: string[]): Promise
      *         application/json:
      *           schema:
      *             type: object
+     *             required:
+     *               - firstName
+     *               - email
+     *               - password
      *             properties:
      *               firstName:
      *                 type: string
+     *                 minLength: 2
+     *                 maxLength: 50
+     *                 description: "First name of the user (Min: 2, Max: 50 characters)"
      *                 example: John
      *               lastName:
      *                 type: string
+     *                 maxLength: 50
+     *                 description: "Last name of the user (Optional, Max: 50 characters)"
      *                 example: Doe
      *               email:
      *                 type: string
+     *                 format: email
+     *                 description: "Valid email address. Used for login and communications."
      *                 example: newuser@example.com
      *               password:
      *                 type: string
+     *                 minLength: 6
+     *                 description: "Strong password (Minimum 6 characters required)"
      *                 example: SecurePass!123
      *               phone:
      *                 type: string
+     *                 pattern: "^[0-9]{10}$"
+     *                 description: "10-digit mobile number (Optional, numbers only)"
      *                 example: "1234567890"
      *     responses:
      *       201:

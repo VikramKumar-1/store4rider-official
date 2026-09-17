@@ -14,6 +14,16 @@ export async function userRouter(req: NextRequest, routePath: string[]): Promise
    * /user/me:
    *   get:
    *     summary: Get my profile
+   *     description: |
+   *       ### 👤 What is the purpose of this API?
+   *       Returns the logged-in user's complete profile, including their saved shipping addresses.
+   *       
+   *       ### 🛍️ Real-World Business Cases:
+   *       - **Checkout Autocomplete:** When a user goes to the Checkout page, the frontend calls this API to pre-fill their saved addresses, saving them from typing it all over again.
+   *       - **Account Dashboard:** Used to display the user's name and details in the "My Account" section.
+   *       
+   *       ### 🔒 Security Layers:
+   *       - **Strict Authorization:** This API does not take an ID in the URL. It strictly extracts the user ID directly from the secure JWT token. This makes it impossible for "User A" to hack the URL and view "User B's" profile.
    *     tags: [Users]
    *     security:
    *       - bearerAuth: []

@@ -9,9 +9,9 @@ export const CompleteKitSlider: React.FC<{ products: KitProduct[] }> = ({ produc
   if (!products || products.length === 0) return null;
 
   return (
-    <div className="mt-10">
-      <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-800 mb-6">
-        COMPLETE YOUR KIT | 1 PRODUCT FROM EACH RIDING GEAR CATEGORY
+    <div className="w-full">
+      <h3 className="text-[11px] md:text-xs font-bold uppercase tracking-wider text-neutral-800 mb-5">
+        COMPLETE YOUR KIT ( 1 PRODUCT FROM EACH RIDING GEAR CATEGORY )
       </h3>
       
       <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-4 snap-x snap-mandatory">
@@ -21,12 +21,12 @@ export const CompleteKitSlider: React.FC<{ products: KitProduct[] }> = ({ produc
             href={product.productUrl}
             className="group shrink-0 w-[140px] md:w-[160px] snap-start flex flex-col gap-2"
           >
-            <div className="relative aspect-[3/4] w-full bg-neutral-100 overflow-hidden rounded-sm">
+            <div className="relative aspect-square w-full bg-neutral-100 overflow-hidden rounded-sm">
               <Image
                 src={product.imageUrl}
                 alt={product.name}
                 fill
-                className="object-cover group-hover:scale-105 transition-transform duration-500"
+                className="object-contain p-2 group-hover:scale-105 transition-transform duration-500"
                 sizes="(max-width: 768px) 140px, 160px"
               />
             </div>
