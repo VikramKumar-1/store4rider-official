@@ -179,7 +179,7 @@ export const CartPageModule = () => {
             <div className="w-20 h-20 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400 mb-6">
               <ShoppingBag className="w-9 h-9" />
             </div>
-            <h2 className="font-serif text-2xl md:text-3xl text-neutral-900 mb-3">Your Cart is Empty</h2>
+            <h2 className="font-sans font-extrabold text-2xl md:text-3xl text-neutral-900 mb-3 uppercase tracking-wide">Your Cart is Empty</h2>
             <p className="text-sm text-neutral-500 mb-8 leading-relaxed">
               Looks like you haven't added any riding gear to your bag yet. Explore our collection of premium motorcycle boots, jackets, and armor.
             </p>

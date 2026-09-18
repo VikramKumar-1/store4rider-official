@@ -31,7 +31,7 @@ export const AuthModule: React.FC<{ type: "login" | "register" }> = ({ type }) =
         
         {/* Brand Logo inside image */}
         <div className="absolute top-6 left-6 lg:top-10 lg:left-10 z-10">
-          <Link href="/" className="font-serif text-2xl lg:text-3xl tracking-widest text-white flex items-center hover:opacity-90 transition-opacity">
+          <Link href="/" className="font-sans font-black text-2xl lg:text-3xl tracking-widest text-white flex items-center hover:opacity-90 transition-opacity">
             <span className="text-banner">S</span>tore4Riders
           </Link>
         </div>
@@ -42,7 +42,7 @@ export const AuthModule: React.FC<{ type: "login" | "register" }> = ({ type }) =
         
         {/* Mobile Logo */}
         <div className="w-full mb-6 md:hidden">
-          <Link href="/" className="font-serif text-2xl tracking-widest text-neutral-900 flex items-center">
+          <Link href="/" className="font-sans font-black text-2xl tracking-widest text-neutral-900 flex items-center">
             <span className="text-banner">S</span>tore4Riders
           </Link>
         </div>
@@ -50,7 +50,7 @@ export const AuthModule: React.FC<{ type: "login" | "register" }> = ({ type }) =
         <div className="w-full max-w-sm lg:max-w-md flex flex-col gap-6 my-auto">
           {/* Header */}
           <div className="flex flex-col gap-1">
-            <h1 className="font-serif text-3xl lg:text-4xl text-neutral-800 tracking-wide uppercase">
+            <h1 className="font-sans font-black text-3xl lg:text-4xl text-neutral-900 tracking-wide uppercase">
               {isLogin ? "HEY RIDER!" : "JOIN THE PACK"}
             </h1>
             <p className="text-xs lg:text-sm text-neutral-500 font-medium">
@@ -65,12 +65,12 @@ export const AuthModule: React.FC<{ type: "login" | "register" }> = ({ type }) =
           
           {/* Switch link preserving checkout redirect query */}
           <div className="pt-2 text-left">
-            <span className="text-neutral-500 font-serif text-sm lg:text-base">
+            <span className="text-neutral-500 font-sans text-sm lg:text-base">
               {isLogin ? "Don't have an account? " : "Already have an account? "}
             </span>
             <Link 
               href={isLogin ? `/register${redirectQuery}` : `/login${redirectQuery}`} 
-              className="font-serif text-sm lg:text-base text-neutral-900 font-bold underline decoration-1 underline-offset-4 hover:text-banner transition-colors"
+              className="font-sans text-sm lg:text-base text-neutral-900 font-bold underline decoration-1 underline-offset-4 hover:text-banner transition-colors"
             >
               {isLogin ? "Register here" : "Login here"}
             </Link>

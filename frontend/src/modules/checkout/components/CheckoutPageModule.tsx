@@ -250,8 +250,8 @@ export const CheckoutPageModule = () => {
               <CheckIcon className="w-9 h-9 stroke-[3]" />
             </div>
 
-            {/* Grand Serif Heading: PAYMENT SUCCESS! */}
-            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-normal text-neutral-900 tracking-tight uppercase mb-4">
+            {/* Modern Heading: PAYMENT SUCCESS! */}
+            <h1 className="font-sans text-3xl sm:text-4xl lg:text-5xl font-extrabold text-neutral-900 tracking-wide uppercase mb-4">
               PAYMENT SUCCESS!
             </h1>
 

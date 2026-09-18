@@ -141,7 +141,7 @@ export const CartDrawer: React.FC = () => {
                 <div className="w-16 h-16 rounded-full bg-neutral-100 text-neutral-400 flex items-center justify-center mb-4">
                   <ShoppingBagIcon className="w-8 h-8 stroke-[1.5]" />
                 </div>
-                <h3 className="font-serif text-lg text-neutral-800 mb-1">Your cart is empty</h3>
+                <h3 className="font-sans font-bold text-base text-neutral-800 mb-1">Your cart is empty</h3>
                 <p className="text-xs text-neutral-500 max-w-xs mb-6">
                   Add riding boots, jackets, and accessories to your cart.
                 </p>

@@ -24,61 +24,41 @@ export interface ProductCardProps {
  */
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
-  imagePosition = "left",
   className = "",
 }) => {
-  const isImageLeft = imagePosition === "left";
+  return (
+    <Link
+      href={product.ctaUrl}
+      className={`bg-white/90 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl p-3 flex items-center gap-4 w-[260px] md:w-[300px] group transition-transform duration-300 hover:-translate-y-1 will-change-transform border border-white/60 ${className}`}
+    >
+      {/* Clean Square Image Thumbnail */}
+      <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden bg-neutral-100 flex-shrink-0 shadow-inner">
+        <Image
+          src={product.imageUrl}
+          alt={product.title}
+          fill
+          sizes="100px"
+          className="object-cover group-hover:scale-105 transition-transform duration-300 will-change-transform"
+        />
+      </div>
 
-  const imageSection = (
-    <div className="w-1/2 relative bg-neutral-100 min-h-[140px] overflow-hidden flex items-center justify-center p-2">
-      <Image
-        src={product.imageUrl}
-        alt={product.title}
-        fill
-        sizes="(max-width: 768px) 150px, 200px"
-        className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
-      />
-    </div>
-  );
-
-  const contentSection = (
-    <div className="w-1/2 p-5 flex flex-col justify-between text-neutral-800 bg-white">
-      <div>
-        <h3 className="font-serif text-base md:text-lg font-normal tracking-wide text-neutral-900 leading-snug">
+      {/* Content Area */}
+      <div className="flex-1 py-1">
+        <h3 className="font-sans font-bold text-sm md:text-[15px] text-neutral-900 leading-tight line-clamp-2">
           {product.title}
         </h3>
-        <p className="text-xs text-neutral-500 font-sans mt-2 tracking-wider">
+        <p className="text-banner font-extrabold text-xs md:text-sm mt-1.5">
           {product.priceFormatted}
         </p>
+        
+        <div className="mt-2 flex items-center gap-1 text-[10px] md:text-xs font-bold text-neutral-500 uppercase tracking-wider group-hover:text-neutral-900 transition-colors">
+          <span>{product.ctaText}</span>
+          <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
       </div>
-
-      <div className="mt-4">
-        <Link
-          href={product.ctaUrl}
-          className="inline-block text-xs font-semibold text-neutral-900 uppercase tracking-widest border-b border-neutral-900 pb-0.5 hover:text-amber-800 hover:border-amber-800 transition-colors"
-        >
-          {product.ctaText}
-        </Link>
-      </div>
-    </div>
-  );
-
-  return (
-    <div
-      className={`bg-white shadow-xl rounded-none overflow-hidden flex w-[320px] md:w-[360px] group transition-all duration-300 hover:shadow-2xl ${className}`}
-    >
-      {isImageLeft ? (
-        <>
-          {imageSection}
-          {contentSection}
-        </>
-      ) : (
-        <>
-          {contentSection}
-          {imageSection}
-        </>
-      )}
-    </div>
+    </Link>
   );
 };
 

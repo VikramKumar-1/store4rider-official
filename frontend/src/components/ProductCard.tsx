@@ -50,7 +50,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         className="group relative flex flex-col rounded-2xl bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-slate-200 overflow-hidden h-full"
       >
         {/* Top Section: Image */}
-        <div className="relative aspect-square w-full overflow-hidden bg-neutral-50">
+        <div className="relative aspect-square w-full overflow-hidden bg-[#f4f4f4]">
           <Image
             src={imgSrc}
             alt={product.name}
@@ -58,14 +58,16 @@ const ProductCard = ({ product }: ProductCardProps) => {
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             placeholder="blur"
             blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PC9zdmc+"
-            className="object-contain p-3 group-hover:scale-105 transition-transform duration-700 ease-out"
+            className="object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500 ease-out will-change-transform"
             onError={() => setImgSrc(FALLBACK_IMAGE)}
           />
           
-          {/* Review Badge over Image */}
-          <div className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-1 shadow-sm border border-slate-200/50">
-            <span className="text-[10px] font-black text-slate-900 leading-none mt-0.5">4.9</span>
-            <Star size={10} fill="currentColor" className="text-amber-500 mb-0.5" />
+          {/* Sleek Liquid Glassmorphism Rating Badge */}
+          <div className="absolute top-2.5 right-2.5 bg-white/40 backdrop-blur-md border border-white/50 shadow-[0_4px_12px_rgba(0,0,0,0.05)] text-neutral-900 text-[10px] md:text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 z-10 transition-transform hover:scale-105">
+            <svg className="w-2.5 h-2.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <span>4.9</span>
           </div>
         </div>
 

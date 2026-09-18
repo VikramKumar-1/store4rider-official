@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { apiClient } from "../api/client";
 
 /**
@@ -43,15 +43,51 @@ export interface IBackendProduct {
   updatedAt?: string;
 }
 
-export function useProducts() {
+export function useProducts(params?: { 
+  category?: string; 
+  brand?: string; 
+  search?: string; 
+  page?: number; 
+  limit?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: string;
+}) {
   return useQuery({
-    queryKey: ["products"],
+    queryKey: ["products", params],
     queryFn: async () => {
-      const response = await apiClient.get<{ data: { items: IBackendProduct[] } }>("/products");
-      return response.data.data.items;
+      const queryParams = new URLSearchParams();
+      if (params?.category) queryParams.append("category", params.category);
+      if (params?.brand) queryParams.append("brand", params.brand);
+      if (params?.search) queryParams.append("search", params.search);
+      if (params?.page) queryParams.append("page", params.page.toString());
+      if (params?.limit) queryParams.append("limit", params.limit.toString());
+      if (params?.minPrice !== undefined) queryParams.append("minPrice", params.minPrice.toString());
+      if (params?.maxPrice !== undefined) queryParams.append("maxPrice", params.maxPrice.toString());
+      if (params?.sort) queryParams.append("sort", params.sort);
+      
+      const queryString = queryParams.toString() ? `?${queryParams.toString()}` : "";
+      
+      interface PaginatedResponse {
+        items: IBackendProduct[];
+        totalCount: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }
+      
+      const response = await apiClient.get<{ data: PaginatedResponse }>(`/products${queryString}`);
+      return { 
+        items: response.data.data.items, 
+        totalCount: response.data.data.totalCount || 0,
+        page: response.data.data.page,
+        limit: response.data.data.limit,
+        totalPages: response.data.data.totalPages
+      };
     },
     staleTime: 1000 * 60 * 3, // 3 minutes instant cache
     gcTime: 1000 * 60 * 10,    // 10 minutes memory
+    placeholderData: keepPreviousData,
   });
 }
 

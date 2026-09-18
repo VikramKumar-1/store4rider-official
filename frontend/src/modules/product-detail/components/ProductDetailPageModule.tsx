@@ -283,7 +283,38 @@ const mapProductToPDP = (
     : stripHtml(product.description || "");
   const shortDescription = plainTextDesc || "Premium riding gear built for safety and comfort.";
 
-  const { colors: colorNames, sizes } = parseVariations(product.configurableVariations);
+  let colorNames: string[] = [];
+  let sizes: string[] = [];
+
+  // Prefer extracting from actual child variants if they exist (more accurate)
+  if (product.variants && product.variants.length > 0) {
+    const colorSet = new Set<string>();
+    const sizeSet = new Set<string>();
+    
+    product.variants.forEach(variant => {
+      if (variant.attributes) {
+        // Handle Mongoose Map or POJO
+        const attrs = variant.attributes instanceof Map 
+          ? Object.fromEntries(variant.attributes)
+          : variant.attributes;
+          
+        Object.entries(attrs).forEach(([key, value]) => {
+          const k = key.toLowerCase();
+          const v = String(value).trim();
+          if (k === 'color') colorSet.add(v);
+          else if (k.includes('size') || k.includes('eu_size')) sizeSet.add(v);
+        });
+      }
+    });
+    colorNames = Array.from(colorSet);
+    sizes = Array.from(sizeSet);
+  } else {
+    // Fallback to parsing the legacy Magento string
+    const parsed = parseVariations(product.configurableVariations);
+    colorNames = parsed.colors;
+    sizes = parsed.sizes;
+  }
+
   const mappedColors = colorNames.length > 0
     ? colorNames.map(name => ({
         name,
@@ -319,9 +350,14 @@ const mapProductToPDP = (
       { id: "pr1", author: "Aman V.", rating: 5, date: "15 Oct 2023", text: "The D3O protection on these boots is amazing. Feels very sturdy yet comfortable enough for short walks off the bike." },
       { id: "pr2", author: "Karthik Reddy", rating: 4, date: "02 Sep 2023", text: "Waterproofing works exactly as advertised. Used it during heavy monsoon rides and my feet stayed completely dry. Deducting one star because they take a little time to break in." },
       { id: "pr3", author: "Siddharth S.", rating: 5, date: "28 Aug 2023", text: "Looks just like a regular high-top sneaker but has all the protection of a proper riding boot. Extremely satisfied with this purchase!" },
-      { id: "pr4", author: "Rohit K.", rating: 4, date: "10 Aug 2023", text: "Good grip on the pegs and the ankle support is solid. The side zip makes it very easy to wear." },
     ],
     upSellProducts,
+    rawVariants: product.variants?.map(v => ({
+      sku: v.sku,
+      price: v.price,
+      stock: v.stock,
+      attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : (v.attributes || {})
+    })),
   };
 };
 

@@ -12,6 +12,7 @@ export interface NavLinkItem {
   label: string;
   href: string;
   hasDropdown?: boolean;
+  megaMenuItems?: { group: string; items: { label: string; href: string }[] }[];
 }
 
 export type NavItem = NavLinkItem;
@@ -64,8 +65,10 @@ export interface HeroSectionProps {
   subtitle: string;
   /** Main hero banner headline */
   title: string;
-  /** Background image URL */
+  /** Background image URL (fallback) */
   bgImageUrl: string;
+  /** Array of background image URLs for slider */
+  bgImageUrls?: string[];
   /** List of products to display as floating cards */
   featuredProducts: HeroProductCardData[];
 }
@@ -103,4 +106,8 @@ export interface TestimonialData {
   rating: number;
   content: string;
   avatarUrl?: string;
+  bikeModel?: string;
+  purchasedProduct?: string;
+  verified?: boolean;
+  location?: string;
 }

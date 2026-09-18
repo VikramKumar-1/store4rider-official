@@ -2,10 +2,10 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { logger } from "../utils/logger";
 
-const REGION = process.env.S3_REGION || "ap-south-2";
-const BUCKET = process.env.S3_BUCKET || "store4riders";
-const ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID;
-const SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY;
+const REGION = process.env.AWS_REGION || process.env.S3_REGION || "ap-south-2";
+const BUCKET = process.env.AWS_S3_BUCKET || process.env.S3_BUCKET || "store4riders";
+const ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY_ID;
+const SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || process.env.S3_SECRET_ACCESS_KEY;
 
 let s3Client: S3Client | null = null;
 

@@ -12,148 +12,115 @@ import { RocketLaunchIcon, PlayIcon, VideoCameraIcon, ChevronLeftIcon, ChevronRi
  * - Right: Split into two stacked blocks (Image banner and a feature card)
  */
 export const SocialMediaSection: React.FC = () => {
-  const sliderRef = useRef<HTMLDivElement>(null);
-
-  // Placeholder images for the reels slider
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
   const reelImages = [
-    "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=400&h=700&q=80",
-    "https://images.unsplash.com/photo-1518972553187-573b983a54dc?auto=format&fit=crop&w=400&h=700&q=80",
-    "https://images.unsplash.com/photo-1520975954732-57dd22299614?auto=format&fit=crop&w=400&h=700&q=80",
-    "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=400&h=700&q=80",
-    "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=400&h=700&q=80",
+    "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=400&h=600&q=80",
+    "https://images.unsplash.com/photo-1518972553187-573b983a54dc?auto=format&fit=crop&w=400&h=600&q=80",
+    "https://images.unsplash.com/photo-1520975954732-57dd22299614?auto=format&fit=crop&w=400&h=600&q=80",
+    "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=400&h=600&q=80",
+    "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=400&h=600&q=80",
   ];
 
-  const scroll = (direction: "left" | "right") => {
-    if (sliderRef.current) {
-      const { scrollLeft, clientWidth } = sliderRef.current;
-      const scrollAmount = clientWidth * 0.7; // Scroll by 70% of container width
-      sliderRef.current.scrollTo({
-        left: direction === "left" ? scrollLeft - scrollAmount : scrollLeft + scrollAmount,
-        behavior: "smooth",
-      });
-    }
+  const scrollLeft = () => {
+    if (scrollRef.current) scrollRef.current.scrollBy({ left: -250, behavior: 'smooth' });
+  };
+
+  const scrollRight = () => {
+    if (scrollRef.current) scrollRef.current.scrollBy({ left: 250, behavior: 'smooth' });
   };
 
   return (
-    <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 py-8 md:py-10 bg-white">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 lg:min-h-[650px]">
+    <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 py-12 md:py-16 bg-neutral-100">
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         
-        {/* --- LEFT COLUMN: Insta Reels Slider --- */}
-        <div className="bg-banner p-4 md:p-6 rounded-sm flex flex-col overflow-hidden h-auto lg:h-full relative group/slider">
-          <div className="flex items-center gap-3 mb-6 text-white px-2">
-            <VideoCameraIcon className="w-8 h-8 opacity-90" />
-            <h2 className="font-serif text-3xl tracking-wide drop-shadow-sm">Insta Reels</h2>
+        {/* Left: Instagram Reels Horizontal Slider (Col Span 2) */}
+        <div className="lg:col-span-2 bg-white rounded-lg p-6 shadow-sm border border-neutral-200 flex flex-col">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="font-sans text-xl md:text-2xl font-extrabold uppercase tracking-wide text-neutral-900 flex items-center gap-3">
+              INSTA REELS
+            </h2>
+            <div className="flex gap-2">
+              <button onClick={scrollLeft} className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center hover:bg-brand hover:text-white transition-colors text-neutral-600">
+                <ChevronLeftIcon className="w-5 h-5" />
+              </button>
+              <button onClick={scrollRight} className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center hover:bg-brand hover:text-white transition-colors text-neutral-600">
+                <ChevronRightIcon className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-
-          {/* Slider Navigation Arrows (Premium glassy style) */}
-          <button 
-            onClick={() => scroll('left')}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover/slider:opacity-100 hover:bg-white/30 transition-all duration-300 shadow-xl"
-            aria-label="Scroll left"
-          >
-            <ChevronLeftIcon className="w-6 h-6 text-white" />
-          </button>
           
-          <button 
-            onClick={() => scroll('right')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover/slider:opacity-100 hover:bg-white/30 transition-all duration-300 shadow-xl"
-            aria-label="Scroll right"
-          >
-            <ChevronRightIcon className="w-6 h-6 text-white" />
-          </button>
-
-          {/* Horizontal scrollable slider for videos */}
           <div 
-            ref={sliderRef}
-            className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory hide-scrollbar px-2"
+            ref={scrollRef}
+            className="flex overflow-x-auto gap-4 snap-x snap-mandatory hide-scrollbar pb-4 flex-1 items-stretch"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {reelImages.map((src, idx) => (
               <div 
                 key={idx} 
-                className="relative shrink-0 w-[180px] sm:w-[240px] lg:w-[260px] aspect-[9/16] bg-neutral-900 rounded-lg overflow-hidden snap-center group cursor-pointer shadow-2xl border border-white/10"
+                className="relative min-w-[200px] md:min-w-[220px] aspect-[4/5] bg-neutral-900 rounded-lg group cursor-pointer overflow-hidden snap-start flex-shrink-0"
               >
                 <Image
                   src={src}
                   alt={`Reel ${idx + 1}`}
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  sizes="(max-width: 768px) 180px, 260px"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100"
+                  sizes="(max-width: 768px) 50vw, 250px"
                 />
                 
-                {/* Gradient overlay for text legibility */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-
-                {/* Play Button Overlay */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                   <div className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
-                     <PlayIcon className="w-6 h-6 fill-white text-white ml-1" />
-                   </div>
+                {/* Hover Play Button */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/20 transition-all duration-300">
+                  <div className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center scale-75 group-hover:scale-100 transition-transform duration-300">
+                    <PlayIcon className="w-5 h-5 text-white ml-0.5" />
+                  </div>
                 </div>
 
-                {/* View count */}
-                <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-white text-sm font-medium drop-shadow-md">
-                  <PlayIcon className="w-4 h-4 fill-white" />
-                  <span>{[24.5, 12.8, 56.2, 8.9, 102.4][idx % 5]}K</span>
+                <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-white text-xs font-semibold drop-shadow-md z-10">
+                  <PlayIcon className="w-4 h-4" />
+                  <span>{[1.2, 45, 12, 8.9, 102][idx % 5]}K</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* --- RIGHT COLUMN --- */}
-        <div className="flex flex-col gap-4 md:gap-6 h-auto lg:h-full">
+        {/* Right: Two Stacked Banners (Col Span 1) */}
+        <div className="lg:col-span-1 flex flex-col gap-6">
           
-          {/* Top Block: Image 1 */}
-          <div className="bg-banner flex-1 min-h-[250px] lg:min-h-[300px] relative rounded-sm overflow-hidden group cursor-pointer">
-             <Image 
-                src="https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=800&q=80" 
-                alt="Image 1" 
-                fill 
-                className="object-cover group-hover:scale-105 transition-transform duration-700" 
-             />
-             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-500" />
-             <div className="absolute top-6 left-6">
-                <span className="text-white text-2xl font-serif tracking-wider drop-shadow-md">image 1</span>
-             </div>
+          {/* Top Banner: Image Offer */}
+          <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden group cursor-pointer shadow-sm border border-neutral-200">
+            <Image
+              src="https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80"
+              alt="Promo Banner"
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6">
+              <span className="text-brand font-bold text-sm tracking-widest mb-1">NEW ARRIVAL</span>
+              <h3 className="text-white font-sans font-bold text-xl uppercase tracking-wide leading-tight">TOURING<br/>ESSENTIALS</h3>
+            </div>
           </div>
 
-          {/* Bottom Block: Feature Card */}
-          <div className="bg-banner flex-1 min-h-[250px] lg:min-h-[300px] p-6 flex items-center justify-center rounded-sm">
-            <div className="bg-white w-full max-w-lg p-8 md:p-10 flex flex-col sm:flex-row items-start gap-6 shadow-2xl rounded-sm">
-               
-               {/* Rocket Icon Container */}
-               <div className="w-14 h-14 rounded-full bg-banner text-white flex items-center justify-center shrink-0 shadow-md">
-                 <RocketLaunchIcon className="w-6 h-6 fill-white text-white" />
-               </div>
-               
-               {/* Text Content */}
-               <div className="flex flex-col gap-3">
-                 <h3 className="font-serif text-2xl md:text-3xl text-neutral-800">
-                   image 2
-                 </h3>
-                 <p className="text-[13px] md:text-sm text-neutral-500 leading-relaxed font-sans">
-                   Lorem ipsum dolor sit amet consectetur. Suspendisse laoreet scelerisque morbi 
-                   vulputate. Quisque bibendum eget id diam elementum fringilla duis.
-                 </p>
-               </div>
-
+          {/* Bottom Banner: Feature Card */}
+          <div className="bg-[#f25b22] rounded-lg p-6 flex flex-col justify-center items-start text-white shadow-sm flex-1 relative overflow-hidden group cursor-pointer border border-[#e04f1a]">
+            {/* Background Icon */}
+            <RocketLaunchIcon className="absolute -bottom-4 -right-4 w-32 h-32 text-white/10 group-hover:scale-110 transition-transform duration-500" />
+            
+            <div className="relative z-10">
+              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-4 backdrop-blur-sm">
+                <RocketLaunchIcon className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="font-bold text-xl mb-1">Free Shipping</h3>
+              <p className="text-white/90 text-sm max-w-[80%] leading-relaxed">
+                On all orders across India above ₹1000. Upgrade your gear today.
+              </p>
             </div>
           </div>
 
         </div>
 
       </div>
-      
-      {/* Custom styles to hide scrollbar for webkit and standard browsers */}
-      <style dangerouslySetInnerHTML={{__html: `
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}} />
     </section>
   );
 };

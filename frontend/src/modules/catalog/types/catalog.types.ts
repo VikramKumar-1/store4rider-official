@@ -10,4 +10,8 @@ export interface CatalogProduct {
 
 export interface CatalogProps {
   products: CatalogProduct[];
+  totalCount?: number;
+  isLoading?: boolean;
+  isFetching?: boolean;
 }
+

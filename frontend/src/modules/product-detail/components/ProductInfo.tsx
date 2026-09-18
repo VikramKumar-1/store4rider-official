@@ -16,6 +16,8 @@ interface ProductInfoProps {
   sizes?: string[];
   selectedColor?: string;
   selectedSize?: string;
+  disabledColors?: string[];
+  disabledSizes?: string[];
   onColorChange?: (color: string) => void;
   onSizeChange?: (size: string) => void;
 }
@@ -32,11 +34,11 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
   sizes,
   selectedColor,
   selectedSize,
+  disabledColors = [],
+  disabledSizes = [],
   onColorChange,
   onSizeChange,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
   return (
     <div className="flex flex-col gap-4">
       {/* Header: Category & Rating */}
@@ -72,9 +74,9 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
         </span>
       </div>
 
-      {/* Color Selector (Desktop & In-page) */}
+      {/* Color Selector (Mobile only, hidden on desktop since it's in the sticky bar) */}
       {colors && colors.length > 0 && (
-        <div className="flex flex-col gap-2 pt-2 border-t border-neutral-100">
+        <div className="flex md:hidden flex-col gap-2 pt-2 border-t border-neutral-100">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-neutral-600">
             <span>Color:</span>
             <span className="text-neutral-900 font-extrabold">{selectedColor || colors[0].name}</span>
@@ -82,28 +84,36 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
           <div className="flex items-center gap-2 flex-wrap">
             {colors.map((colorObj, idx) => {
               const isSelected = selectedColor === colorObj.name;
+              const isDisabled = disabledColors.includes(colorObj.name);
               return (
                 <button
                   key={`info-color-${idx}-${colorObj.name}`}
-                  onClick={() => onColorChange && onColorChange(colorObj.name)}
+                  onClick={() => !isDisabled && onColorChange && onColorChange(colorObj.name)}
+                  disabled={isDisabled}
                   className={`w-8 h-8 rounded-full border-2 transition-all relative ${
                     isSelected
                       ? "border-orange-600 scale-110 ring-2 ring-orange-400/40 ring-offset-2 z-10"
                       : "border-neutral-300 hover:border-neutral-500 opacity-80 hover:opacity-100"
-                  }`}
+                  } ${isDisabled ? "opacity-30 cursor-not-allowed hover:border-neutral-300 hover:opacity-30" : ""}`}
                   style={{ background: colorObj.background }}
-                  title={colorObj.name}
+                  title={isDisabled ? `${colorObj.name} - Out of Stock` : colorObj.name}
                   aria-label={colorObj.name}
-                />
+                >
+                  {isDisabled && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-full h-0.5 bg-neutral-400 rotate-45 transform origin-center" />
+                    </div>
+                  )}
+                </button>
               );
             })}
           </div>
         </div>
       )}
 
-      {/* Size Selector (Desktop & In-page) */}
+      {/* Size Selector (Mobile only, hidden on desktop since it's in the sticky bar) */}
       {sizes && sizes.length > 0 && sizes[0] !== "One Size" && (
-        <div className="flex flex-col gap-2 pt-2">
+        <div className="flex md:hidden flex-col gap-2 pt-2">
           <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-neutral-600">
             <div className="flex items-center gap-2">
               <span>Size (EU):</span>
@@ -113,12 +123,17 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
           <div className="flex items-center gap-2 flex-wrap">
             {sizes.map((size) => {
               const isSelected = selectedSize === size;
+              const isDisabled = disabledSizes.includes(size);
               return (
                 <button
                   key={`info-size-${size}`}
-                  onClick={() => onSizeChange && onSizeChange(size)}
+                  onClick={() => !isDisabled && onSizeChange && onSizeChange(size)}
+                  disabled={isDisabled}
+                  title={isDisabled ? "Out of stock for this color" : ""}
                   className={`min-w-[40px] h-9 px-3 text-xs font-bold rounded-sm border transition-all ${
-                    isSelected
+                    isDisabled 
+                      ? "border-neutral-200 text-neutral-400 bg-neutral-100/50 cursor-not-allowed line-through"
+                      : isSelected
                       ? "border-neutral-900 bg-neutral-900 text-white shadow-sm"
                       : "border-neutral-200 text-neutral-700 bg-white hover:border-neutral-400 hover:bg-neutral-50"
                   }`}
@@ -132,18 +147,13 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
       )}
 
       {/* Short Description */}
-      <div className="mt-2 pt-2 border-t border-neutral-100">
-        <p className={`text-neutral-500 text-sm leading-relaxed md:text-base font-sans ${!isExpanded ? "line-clamp-4" : ""}`}>
-          {shortDescription}
-        </p>
-        
-        <button 
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="mt-2 text-banner font-bold text-xs tracking-wider hover:underline underline-offset-4 uppercase"
-        >
-          {isExpanded ? "SHOW LESS" : "READ MORE"}
-        </button>
-      </div>
+      {shortDescription && (
+        <div className="mt-2 pt-2 border-t border-neutral-100">
+          <p className="text-neutral-600 text-sm leading-relaxed md:text-[14.5px] font-sans">
+            {shortDescription}
+          </p>
+        </div>
+      )}
     </div>
   );
 };

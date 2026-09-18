@@ -6,7 +6,12 @@ import { NavigationProgress } from "@/components/NavigationProgress";
 import { BlinkitFloatingCart } from "@/components/ui/BlinkitFloatingCart";
 import { CartDrawer } from "@/components/ui/CartDrawer";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+// Ultra-fast, SEO-friendly zero-layout-shift font optimization
+const inter = Inter({ 
+  subsets: ["latin"], 
+  display: "swap", 
+  variable: "--font-inter" 
+});
 
 export const metadata: Metadata = {
   title: "Store4Riders | Premium Motorcycle Riding Gear",
@@ -19,11 +24,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="antialiased bg-slate-50 text-slate-900 min-h-screen">
+    <html lang="en" className={`${inter.variable} font-sans`}>
+      <body className="antialiased bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans">
         <Providers>
           <NavigationProgress />
-          <main className="min-h-screen">
+          <main className="flex-1">
             {children}
           </main>
           <BlinkitFloatingCart />

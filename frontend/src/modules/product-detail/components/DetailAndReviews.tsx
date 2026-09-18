@@ -59,18 +59,31 @@ interface DescriptionSection {
   icon: React.ReactNode;
 }
 
+const cleanHtml = (html: string): string => {
+  if (!html) return "";
+  return html
+    .replace(
+      /\{\{media\s+url="([^"]+)"\}\}/g,
+      (_match, p1) => `https://store4riders.s3.ap-south-2.amazonaws.com/${encodeURI(p1.trim())}`
+    )
+    .replace(/(<p>\s*(&nbsp;|\s)*<\/p>\s*){2,}/gi, "<p>&nbsp;</p>")
+    .replace(/(<br\s*\/?>\s*){3,}/gi, "<br/><br/>")
+    .replace(/(<p>\s*(&nbsp;|\s)*<\/p>\s*)+$/gi, "")
+    .trim();
+};
+
 const parseDescriptionToSections = (html: string): { intro: string; sections: DescriptionSection[] } => {
   if (!html) return { intro: "", sections: [] };
   const parts = html.split(/<p>\s*<strong>([^<]+)<\/strong>\s*<\/p>/gi);
-  if (parts.length <= 1) return { intro: html, sections: [] };
+  if (parts.length <= 2) return { intro: "", sections: [] };
 
-  const intro = parts[0] || "";
+  const intro = parts[0]?.trim() || "";
   const sections: DescriptionSection[] = [];
   for (let i = 1; i < parts.length; i += 2) {
     const title = parts[i]?.trim();
     const content = parts[i + 1]?.trim();
-    if (title) {
-      sections.push({ title, htmlContent: content || "", icon: getIconForTitle(title) });
+    if (title && content) {
+      sections.push({ title, htmlContent: content, icon: getIconForTitle(title) });
     }
   }
   return { intro, sections };
@@ -79,21 +92,18 @@ const parseDescriptionToSections = (html: string): { intro: string; sections: De
 /**
  * DetailAndReviews Component
  *
- * Matches client mockup structure (brand bar + 2-column)
- * with premium UI (accordions, icons, review cards).
+ * Clean, modern e-commerce specifications & reviews module.
+ * No clunky see-more/less clamping — rich typography and full readability.
  */
 export const DetailAndReviews: React.FC<{ fullDescription: string; reviews: ReviewData[] }> = ({ fullDescription, reviews }) => {
-  const [openSections, setOpenSections] = React.useState<Set<number>>(new Set([0]));
-  const [showAllReviews, setShowAllReviews] = React.useState(false);
-
-  const parsedDescription = fullDescription
-    ? fullDescription.replace(
-        /\{\{media\s+url="([^"]+)"\}\}/g,
-        (_match, p1) => `https://store4riders.s3.ap-south-2.amazonaws.com/${encodeURI(p1.trim())}`
-      )
-    : "";
-
+  const parsedDescription = cleanHtml(fullDescription);
   const { intro, sections } = parseDescriptionToSections(parsedDescription);
+
+  // Default all sections open so user can read everything directly without clicking
+  const [openSections, setOpenSections] = React.useState<Set<number>>(
+    () => new Set(sections.map((_, i) => i))
+  );
+  const [showAllReviews, setShowAllReviews] = React.useState(false);
 
   const toggleSection = (idx: number) => {
     setOpenSections((prev) => {
@@ -105,16 +115,16 @@ export const DetailAndReviews: React.FC<{ fullDescription: string; reviews: Revi
   };
 
   return (
-    <div className="w-full mt-10 md:mt-14">
+    <div className="w-full">
 
-      {/* ── Full-width Brand Bar — Desktop Only (2 columns visible) ── */}
-      <div className="hidden lg:block w-full bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 py-3.5 px-8">
-        <div className="max-w-[1400px] mx-auto grid grid-cols-[1fr_1fr] gap-4">
-          <h2 className="font-sans text-base font-bold uppercase tracking-[0.2em] text-white flex items-center gap-3">
-            <span className="w-8 h-[2px] bg-[#ab1509]" />
-            Product Details
+      {/* ── Section Header Bar ── */}
+      <div className="w-full bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950 py-3.5 px-6 sm:px-8 rounded-xl shadow-xs">
+        <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <h2 className="font-sans text-sm md:text-base font-bold uppercase tracking-[0.2em] text-white flex items-center gap-3">
+            <span className="w-6 md:w-8 h-[2px] bg-[#ab1509]" />
+            Product Specifications
           </h2>
-          <h2 className="font-sans text-base font-bold uppercase tracking-[0.2em] text-white flex items-center gap-3">
+          <h2 className="hidden lg:flex font-sans text-sm md:text-base font-bold uppercase tracking-[0.2em] text-white items-center gap-3">
             <span className="w-8 h-[2px] bg-[#ab1509]" />
             Customer Reviews
           </h2>
@@ -122,94 +132,101 @@ export const DetailAndReviews: React.FC<{ fullDescription: string; reviews: Revi
       </div>
 
       {/* ── 2-Column Content ── */}
-      <div className="max-w-[1400px] mx-auto px-4 md:px-6 pt-8 md:pt-10 pb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-10 lg:gap-14">
+      <div className="max-w-[1400px] mx-auto px-1 sm:px-2 pt-6 md:pt-8 pb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-12 items-start">
 
-          {/* ─── LEFT: Product Details (Accordion) ─── */}
-          <div>
-            {/* Mobile section heading */}
-            <div className="lg:hidden w-full bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 py-3 px-4 -mx-4 mb-6 rounded-sm">
-              <h2 className="font-sans text-xs font-bold uppercase tracking-[0.15em] text-white flex items-center gap-2">
-                <span className="w-5 h-[2px] bg-[#ab1509]" />
-                Product Details
-              </h2>
+          {/* ─── LEFT: Product Details Card ─── */}
+          <div className="bg-white border border-neutral-200/90 rounded-2xl p-5 sm:p-7 shadow-xs">
+            {/* Inner Header */}
+            <div className="flex items-center gap-3 pb-4 mb-6 border-b border-neutral-100">
+              <span className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-100/80 flex items-center justify-center text-[#ab1509]">
+                <LayersIcon />
+              </span>
+              <div>
+                <h3 className="font-sans text-sm md:text-base font-extrabold text-neutral-900 uppercase tracking-wide">
+                  Features & Specifications
+                </h3>
+                <p className="text-[11px] text-neutral-400 font-medium">
+                  Technical gear details & rider ergonomics
+                </p>
+              </div>
             </div>
+
+            {/* Intro paragraph if extracted */}
             {intro && (
               <div
-                className="magento-layout text-neutral-700 text-[15px] leading-relaxed border-l-[3px] border-[#ab1509] pl-4 py-1.5 mb-6"
+                className="magento-layout text-neutral-700 text-[14.5px] leading-relaxed border-l-[3px] border-[#ab1509] pl-4 py-2 mb-6 bg-neutral-50/70 rounded-r-lg"
                 dangerouslySetInnerHTML={{ __html: intro }}
               />
             )}
 
-            {/* Accordion Sections */}
+            {/* Parsed Sections or Clean Full Description */}
             {sections.length > 0 ? (
-              <div className="flex flex-col gap-2.5">
-                {sections.map((section, idx) => (
-                  <div
-                    key={idx}
-                    className={`border rounded-lg overflow-hidden transition-all duration-200 ${
-                      openSections.has(idx) ? "border-neutral-300 shadow-sm bg-white" : "border-neutral-200 bg-neutral-50/60 hover:border-neutral-300"
-                    }`}
-                  >
-                    <button
-                      onClick={() => toggleSection(idx)}
-                      className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left"
+              <div className="flex flex-col gap-3">
+                {sections.map((section, idx) => {
+                  const isOpen = openSections.has(idx);
+                  return (
+                    <div
+                      key={idx}
+                      className={`border rounded-xl overflow-hidden transition-all duration-200 ${
+                        isOpen
+                          ? "border-neutral-300/90 shadow-xs bg-white"
+                          : "border-neutral-200 bg-neutral-50/50 hover:border-neutral-300"
+                      }`}
                     >
-                      <span className={`flex-shrink-0 p-1.5 rounded-md transition-colors ${
-                        openSections.has(idx) ? "bg-[#ab1509]/10 text-[#ab1509]" : "bg-neutral-100 text-neutral-500"
-                      }`}>
-                        {section.icon}
-                      </span>
-                      <span className="flex-1 font-semibold text-neutral-900 text-[14px]">{section.title}</span>
-                      <span className={openSections.has(idx) ? "text-[#ab1509]" : "text-neutral-400"}>
-                        <ChevronIcon open={openSections.has(idx)} />
-                      </span>
-                    </button>
-                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                      openSections.has(idx) ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
-                    }`}>
-                      <div className="px-4 pb-4 pl-[3.5rem]">
-                        <div
-                          className="magento-layout-accordion text-neutral-600 text-[14px] leading-[1.75]"
-                          dangerouslySetInnerHTML={{ __html: section.htmlContent }}
-                        />
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleSection(idx)}
+                        className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left select-none cursor-pointer"
+                      >
+                        <span
+                          className={`flex-shrink-0 p-2 rounded-lg transition-colors ${
+                            isOpen ? "bg-[#ab1509]/10 text-[#ab1509]" : "bg-neutral-100 text-neutral-500"
+                          }`}
+                        >
+                          {section.icon}
+                        </span>
+                        <span className="flex-1 font-bold text-neutral-900 text-[14px] tracking-tight">
+                          {section.title}
+                        </span>
+                        <span className={isOpen ? "text-[#ab1509]" : "text-neutral-400"}>
+                          <ChevronIcon open={isOpen} />
+                        </span>
+                      </button>
+                      {isOpen && (
+                        <div className="px-5 pb-5 pt-1 pl-[3.75rem] border-t border-neutral-100/80 bg-neutral-50/30">
+                          <div
+                            className="magento-layout-accordion text-neutral-700 text-[14px] leading-[1.8]"
+                            dangerouslySetInnerHTML={{ __html: section.htmlContent }}
+                          />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              <div
-                className="magento-layout"
-                dangerouslySetInnerHTML={{ __html: parsedDescription || "<p class='text-neutral-400 italic'>No description available.</p>" }}
-              />
-            )}
-            
-            {/* ── Trust Badges (Moved here to balance columns) ── */}
-            <div className="mt-8 bg-neutral-50 border border-neutral-200 rounded-lg p-5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-4">Why Store4Riders?</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  { icon: <ShieldIcon />, title: "CE Certified Safety", desc: "International safety standards" },
-                  { icon: <AwardIcon />, title: "1 Year Damage Cover", desc: "Free replacement on accidents" },
-                  { icon: <TruckIcon />, title: "Fast & Free Shipping", desc: "Across India, no hidden charges" },
-                  { icon: <DropletIcon />, title: "100% Genuine Products", desc: "Authentic gear, zero knockoffs" },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <span className="text-[#ab1509] flex-shrink-0 p-1.5 bg-[#ab1509]/5 rounded-md mt-0.5">{item.icon}</span>
-                    <div>
-                      <p className="text-sm font-semibold text-neutral-800 leading-tight">{item.title}</p>
-                      <p className="text-xs text-neutral-400 mt-1">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
+              <div className="magento-layout text-neutral-700 text-[14.5px] leading-[1.85]">
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html:
+                      parsedDescription ||
+                      "<p class='text-neutral-400 italic'>Detailed specifications will be updated shortly.</p>",
+                  }}
+                />
               </div>
-            </div>
-
+            )}
           </div>
 
-          {/* ─── RIGHT: Reviews + Trust Badges ─── */}
-          <div className="flex flex-col gap-5">
+          {/* ─── RIGHT: Reviews ─── */}
+          <div className="flex flex-col gap-5 lg:sticky lg:top-24 lg:self-start">
+            {/* Mobile Reviews Heading */}
+            <div className="lg:hidden w-full bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950 py-3 px-4 rounded-xl mt-4 mb-1">
+              <h2 className="font-sans text-xs font-bold uppercase tracking-[0.15em] text-white flex items-center gap-2">
+                <span className="w-5 h-[2px] bg-[#ab1509]" />
+                Customer Reviews
+              </h2>
+            </div>
 
             {/* Rating Summary Card */}
             <div className="bg-white border border-neutral-200 rounded-lg p-5">

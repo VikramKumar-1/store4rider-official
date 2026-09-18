@@ -19,14 +19,32 @@ const PRODUCT_DETAIL_TTL = 300; // 5 minutes
  */
 export class ProductService {
   
-  static async getProducts(filters: Record<string, unknown>, page: number, limit: number) {
-    const cacheKey = `products_list_${page}_${limit}_${JSON.stringify(filters)}`;
+  static async getProducts(
+    filters: Record<string, unknown>, 
+    page: number, 
+    limit: number,
+    sort: Record<string, 1 | -1> = { createdAt: -1, _id: -1 }
+  ) {
+    // Deterministic serialization helper for cache key that preserves RegExp and nested objects
+    const serializeFilter = (obj: any): string => {
+      if (!obj || typeof obj !== "object") return String(obj);
+      if (obj instanceof RegExp) return obj.toString();
+      if (Array.isArray(obj)) return `[${obj.map(serializeFilter).join(",")}]`;
+      return Object.entries(obj)
+        .map(([k, v]) => `${k}:${serializeFilter(v)}`)
+        .sort()
+        .join(";");
+    };
+
+    const cacheKey = `products_v6_${page}_${limit}_${serializeFilter(filters)}_${serializeFilter(sort)}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
     const skip = (page - 1) * limit;
-    const items = await ProductRepository.findAll(filters, skip, limit);
-    const totalCount = await ProductRepository.count(filters);
+    const [items, totalCount] = await Promise.all([
+      ProductRepository.findAll(filters, skip, limit, sort),
+      ProductRepository.count(filters),
+    ]);
     const result = { items, totalCount };
 
     await setCache(cacheKey, result, PRODUCT_LIST_TTL);

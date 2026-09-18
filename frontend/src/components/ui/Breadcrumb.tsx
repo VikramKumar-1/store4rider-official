@@ -90,7 +90,8 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
   const schemaJsonLd = useMemo(() => {
     if (!enableSchemaJsonLd || breadcrumbItems.length <= 1) return null;
 
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://store4riders.com";
+    // Use deterministic canonical origin to strictly prevent SSR/Client React hydration mismatch
+    const origin = process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
 
     const itemListElement = breadcrumbItems.map((item, index) => ({
       "@type": "ListItem",
@@ -114,6 +115,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
       {schemaJsonLd && (
         <script
           type="application/ld+json"
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJsonLd) }}
         />
       )}

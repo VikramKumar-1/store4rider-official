@@ -14,8 +14,8 @@ import { ProductValidator } from "./product.validator";
 export class ProductController {
   
   static async list(req: NextRequest) {
-    const { filters, page, limit } = ProductValidator.validateListQuery(req);
-    const { items, totalCount } = await ProductService.getProducts(filters, page, limit);
+    const { filters, page, limit, sort } = ProductValidator.validateListQuery(req);
+    const { items, totalCount } = await ProductService.getProducts(filters, page, limit, sort);
     return ApiResponse.paginated(items, totalCount, page, limit);
   }
 

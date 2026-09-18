@@ -44,6 +44,12 @@ export interface PDPData {
   storeReviews: ReviewData[];
   productReviews: ReviewData[];
   upSellProducts: KitProduct[];
+  rawVariants?: Array<{
+    sku: string;
+    price: number;
+    stock: number;
+    attributes?: Record<string, string>;
+  }>;
 }
 
 export interface ProductDetailProps {

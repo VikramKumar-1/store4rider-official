@@ -10,12 +10,12 @@ import HomepageModule from "@/modules/homepage";
 export default async function Home() {
   let backendProducts = [];
   try {
-    // Fetch products from our backend API
+    // Fetch products from our backend API with sufficient limit for all homepage sections
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
     const fetchUrl = baseUrl.includes('/v1') ? `${baseUrl}/products` : `${baseUrl}/v1/products`;
     console.log("Building homepage, fetching products from:", fetchUrl);
     
-    const res = await fetch(fetchUrl, { 
+    const res = await fetch(`${fetchUrl}?limit=50`, { 
       next: { revalidate: 10 } // Revalidate every 10 seconds
     });
     

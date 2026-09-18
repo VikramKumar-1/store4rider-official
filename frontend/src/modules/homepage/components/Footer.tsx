@@ -17,7 +17,7 @@ export const Footer: React.FC = () => {
         
         {/* Column 1: Brand & Contact */}
         <div className="flex flex-col gap-6">
-          <h2 className="font-serif text-4xl tracking-tight font-bold">Store4Riders</h2>
+          <h2 className="font-sans text-3xl md:text-4xl tracking-tight font-black uppercase">Store4Riders</h2>
           <div className="flex flex-col gap-3 text-sm md:text-[15px] font-sans text-white/90">
             <div className="grid grid-cols-[80px_1fr] gap-2">
               <span className="font-medium">WhatsApp</span>

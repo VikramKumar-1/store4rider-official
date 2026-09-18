@@ -27,10 +27,15 @@ export class ProductRepository {
    * @param limit - Maximum number of documents to return
    * @returns Array of plain product objects (without heavy fields)
    */
-  static async findAll(filters: Record<string, unknown>, skip: number, limit: number): Promise<IProduct[]> {
+  static async findAll(
+    filters: Record<string, unknown>, 
+    skip: number, 
+    limit: number,
+    sort: Record<string, 1 | -1> = { createdAt: -1, _id: -1 }
+  ): Promise<IProduct[]> {
     return ProductModel.find(filters)
       .select("-description -configurableVariations -shortDescription -metaDescription -metaKeywords")
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .skip(skip)
       .limit(limit)
       .lean()
