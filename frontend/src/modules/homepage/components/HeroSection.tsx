@@ -56,7 +56,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       </div>
 
       {/* Hero Body Content matching Figma */}
-      <div className="relative z-10 flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 md:px-12 flex flex-col items-center justify-between pb-10 pt-24 md:pt-32 lg:pb-20">
+      <div className="relative z-10 flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 md:px-12 flex flex-col items-center justify-between pb-10 pt-10 md:pt-16 lg:pb-16">
         
         {/* Left Side Main Typography */}
         <div className="w-full text-center lg:text-left mt-4 lg:mt-auto pt-4 lg:pt-0">
