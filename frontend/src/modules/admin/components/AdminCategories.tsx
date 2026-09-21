@@ -2,9 +2,9 @@
 
 import React, { useState, useMemo } from "react";
 import { useCategoryTree, useCreateCategory, useUpdateCategory, useDeleteCategory, ICategoryTree } from "@/core/hooks/useCategories";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Modal } from "@/components/ui/Modal";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Modal from "@/components/ui/Modal";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";

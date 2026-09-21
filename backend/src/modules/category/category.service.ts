@@ -58,7 +58,7 @@ export class CategoryService {
       .filter(c => c.parentId === parentId)
       .map(c => ({
         ...c,
-        children: this.buildTree(categories, c.id),
+        children: this.buildTree(categories, c._id),
       }));
   }
 }
