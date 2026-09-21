@@ -83,6 +83,12 @@ export class ProductRepository {
     return ProductModel.findByIdAndUpdate(id, data, { new: true }).lean().exec() as unknown as IProduct | null;
   }
 
+  static async updateBySku(sku: string, data: Partial<IProduct>, session?: any): Promise<IProduct | null> {
+    const query = ProductModel.findOneAndUpdate({ sku }, data, { new: true });
+    if (session) query.session(session);
+    return query.lean().exec() as unknown as IProduct | null;
+  }
+
   /**
    * Atomically decrements product stock to prevent overselling and concurrency race conditions.
    */

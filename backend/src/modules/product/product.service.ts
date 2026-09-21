@@ -112,4 +112,63 @@ export class ProductService {
       await deleteCache(`product_slug_${slug}`);
     }
   }
+
+  static async bulkUpdateFromCsv(csvContent: string): Promise<{ successCount: number; errorRows: any[] }> {
+    const Papa = (await import("papaparse")).default;
+    const mongoose = (await import("mongoose")).default;
+    
+    return new Promise((resolve, reject) => {
+      Papa.parse(csvContent, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results: any) => {
+          const rows = results.data as any[];
+          let successCount = 0;
+          const errorRows: any[] = [];
+          
+          const session = await mongoose.startSession();
+          session.startTransaction();
+
+          try {
+            for (let i = 0; i < rows.length; i++) {
+              const row = rows[i];
+              const { sku, basePrice, specialPrice, stockStatus } = row;
+              
+              if (!sku) {
+                errorRows.push({ row: i + 2, reason: "SKU is required" });
+                continue;
+              }
+
+              const updateData: Partial<IProduct> = {};
+              if (basePrice !== undefined && basePrice !== "") updateData.basePrice = Number(basePrice);
+              if (specialPrice !== undefined && specialPrice !== "") updateData.specialPrice = Number(specialPrice);
+              if (stockStatus !== undefined && stockStatus !== "") updateData.stockStatus = Number(stockStatus);
+
+              const product = await ProductRepository.updateBySku(sku, updateData, session);
+              
+              if (!product) {
+                errorRows.push({ row: i + 2, reason: `Product with SKU ${sku} not found` });
+              } else {
+                successCount++;
+                // Sync search index asynchronously
+                indexProduct(product).catch(console.error);
+                await this.invalidateProductCache(product.slug);
+              }
+            }
+            
+            await session.commitTransaction();
+            session.endSession();
+            resolve({ successCount, errorRows });
+          } catch (error: any) {
+            await session.abortTransaction();
+            session.endSession();
+            reject(error);
+          }
+        },
+        error: (error: any) => {
+          reject(error);
+        }
+      });
+    });
+  }
 }

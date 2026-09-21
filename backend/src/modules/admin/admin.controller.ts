@@ -39,4 +39,16 @@ export class AdminController {
     const chart = await AdminService.getRevenueChart();
     return ApiResponse.success(chart, "Revenue chart fetched successfully");
   }
+
+  static async bulkUpdateProducts(req: NextRequest) {
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
+    if (!file) {
+      return ApiResponse.error("CSV file is required", 400);
+    }
+    const csvContent = await file.text();
+    const { ProductService } = await import("../product/product.service");
+    const report = await ProductService.bulkUpdateFromCsv(csvContent);
+    return ApiResponse.success(report, "Bulk update processed");
+  }
 }

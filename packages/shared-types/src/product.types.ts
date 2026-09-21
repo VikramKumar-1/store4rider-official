@@ -23,6 +23,12 @@ export interface IProduct {
   upsellSkus?: string[];
   brand?: string;
   configurableVariations?: string;
+  status?: "draft" | "published" | "archived";
+  isFeatured?: boolean;
+  tags?: string[];
+  videoUrl?: string;
+  documents?: { name: string; url: string }[];
+  salesCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }

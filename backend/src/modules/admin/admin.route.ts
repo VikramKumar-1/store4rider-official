@@ -53,5 +53,11 @@ export async function adminRouter(req: NextRequest, routePath: string[]): Promis
     }
   }
 
+  if (method === "POST" && pathLen === 2 && routePath[0] === "products" && routePath[1] === "bulk-update") {
+    const userId = extractUserFromAuth(req);
+    await checkPermission(userId, PermissionAction.MANAGE_PRODUCTS, UserService.getRole);
+    return await AdminController.bulkUpdateProducts(req);
+  }
+
   return null;
 }

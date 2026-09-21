@@ -19,6 +19,11 @@ export const createProductSchema = z.object({
   basePrice: z.number().min(0),
   images: z.array(productImageSchema).min(1),
   variants: z.array(productVariantSchema).default([]),
+  status: z.enum(["draft", "published", "archived"]).default("draft"),
+  isFeatured: z.boolean().default(false),
+  tags: z.array(z.string()).default([]),
+  videoUrl: z.string().url().optional(),
+  documents: z.array(z.object({ name: z.string(), url: z.string().url() })).default([]),
 });
 
 export const updateProductSchema = createProductSchema.partial();

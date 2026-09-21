@@ -38,6 +38,17 @@ const productSchema = new Schema<IProduct>(
         attributes: { type: Map, of: String },
       },
     ],
+    status: { type: String, enum: ["draft", "published", "archived"], default: "draft" },
+    isFeatured: { type: Boolean, default: false },
+    tags: [{ type: String }],
+    videoUrl: { type: String },
+    documents: [
+      {
+        name: { type: String },
+        url: { type: String },
+      },
+    ],
+    salesCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

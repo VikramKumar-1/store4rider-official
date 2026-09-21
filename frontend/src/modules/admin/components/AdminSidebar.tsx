@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Home, Users, Box, ShoppingCart, Settings, LogOut } from "lucide-react";
+import { Home, Users, Box, ShoppingCart, Settings, LogOut, Tags, FolderTree } from "lucide-react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -7,6 +7,8 @@ const navItems = [
   { name: "Dashboard", href: "/admin", icon: Home },
   { name: "Users", href: "/admin/users", icon: Users },
   { name: "Products", href: "/admin/products", icon: Box },
+  { name: "Categories", href: "/admin/categories", icon: FolderTree },
+  { name: "Brands", href: "/admin/brands", icon: Tags },
   { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ];

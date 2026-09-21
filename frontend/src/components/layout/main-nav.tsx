@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Search, ShoppingCart, User, Menu, ChevronDown, Sparkles } from "lucide-react";
 import { useCartStore } from "@/stores/useCartStore";
 import { useUIStore } from "@/stores/useUIStore";
-import { STORE_CATEGORIES } from "@/modules/home/data/categories";
+import { STORE_CATEGORIES } from "@/modules/homepage/data/categories";
 
 const MainNav = () => {
   const cartItems = useCartStore((state) => state.items);

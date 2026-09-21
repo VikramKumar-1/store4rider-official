@@ -205,7 +205,7 @@ These rules apply to **every query, component, and API call** you write:
 | Phase | Name | Modules Covered | Status |
 |---|---|---|---|
 | 1 | Foundation & Admin Shell | Admin Dashboard, Roles & Permissions | ✅ COMPLETED |
-| 2 | Product & Catalog Enhancement | Product Catalogue, Brand Mgmt, Category | ⬜ NOT STARTED |
+| 2 | Product & Catalog Enhancement | Product Catalogue, Brand Mgmt, Category | 🔄 IN PROGRESS |
 | 3 | Search & Discovery | Search & Filter (Meilisearch) | ⬜ NOT STARTED |
 | 4 | Payment Gateways | Payment Module (PayU, CCavenue, Snapmint, COD) | ⬜ NOT STARTED |
 | 5 | Shipping & Logistics | Shipping (Shiprocket, Delhivery, Xpressbees) | ⬜ NOT STARTED |
@@ -279,21 +279,21 @@ These rules apply to **every query, component, and API call** you write:
 
 ## Phase 2 — Product & Catalog Enhancement
 
-**Status:** ⬜ NOT STARTED
+**Status:** 🔄 IN PROGRESS
 **Modules:** Product Catalogue (2), Category (4), Brand Management
 **Depends on:** Phase 1 (admin UI to manage products)
 
 ### Backend Tasks
 
-- [ ] **2.1** Build `brand` module (6-file DDD pattern)
+- [x] **2.1** Build `brand` module (6-file DDD pattern)
   - `brand.model.ts` — `name`, `slug`, `logo`, `description`, `isActive`
   - Full CRUD: `GET /brands`, `POST /brands`, `PUT /brands/:id`, `DELETE /brands/:id`
   - Add to `packages/shared-types/src/brand.types.ts` — `IBrand` interface
-- [ ] **2.2** Enhance Product model
+- [x] **2.2** Enhance Product model
   - Add fields: `status` (draft/published/archived), `isFeatured`, `tags[]`, `videoUrl`, `documents[]` (array of `{name, url}`)
   - Update `packages/shared-types/src/product.types.ts`
   - Update `packages/shared-validation/src/product.schema.ts`
-- [ ] **2.3** Build CSV bulk stock/pricing update
+- [x] **2.3** Build CSV bulk stock/pricing update
   - `POST /admin/products/bulk-update` — accepts CSV upload
   - CSV columns: `sku`, `basePrice`, `specialPrice`, `stockStatus`
   - Returns validation report: success count, error rows with reasons
@@ -307,14 +307,14 @@ These rules apply to **every query, component, and API call** you write:
 
 ### Frontend Tasks
 
-- [ ] **2.6** Build admin product management UI
+- [x] **2.6** Build admin product management UI
   - Product list page with search, filters (status, category, brand), bulk actions
   - Product create/edit form (all fields including new ones)
   - CSV upload page for bulk stock/pricing update with preview & error report
 - [ ] **2.7** Build admin category management UI
   - Category tree view with drag-to-reorder
   - Category create/edit form with banner upload, SEO fields
-- [ ] **2.8** Build admin brand management UI
+- [x] **2.8** Build admin brand management UI
   - Brand list, create/edit form with logo upload
 - [ ] **2.9** Build frontend category landing pages
   - `/category/[slug]` route with banner, description, filtered products
