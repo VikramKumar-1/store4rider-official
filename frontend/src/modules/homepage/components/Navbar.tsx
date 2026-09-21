@@ -84,9 +84,28 @@ export const Navbar: React.FC<NavbarProps> = ({
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [hoveredMenuId, setHoveredMenuId] = useState<string | null>(null);
   const [hoveredNavId, setHoveredNavId] = useState<string | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Optimized, zero-jitter 60/120fps scroll listener using requestAnimationFrame
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setIsScrolled(window.scrollY > 20);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
@@ -120,16 +139,27 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
-  const isLight = theme === "light";
+  // Adaptive theme: On light pages, always light. On dark/transparent pages (Homepage), transparent at top and liquid glassmorphism on scroll.
+  const isLight = theme === "light" || isScrolled;
   const activeNavItems = (navItems && navItems.length > 0) ? navItems : DEFAULT_NAV_ITEMS;
 
   return (
-    <header className={`w-full z-50 transition-all duration-300 ${
-      isLight 
-        ? "sticky top-0 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 shadow-[0_1px_8px_rgba(0,0,0,0.04)]" 
-        : "sticky top-0 bg-neutral-900/95 backdrop-blur-md border-b border-neutral-800 text-white"
+    <header className={`w-full z-50 ${
+      theme === "light" 
+        ? "sticky top-0" 
+        : `fixed left-0 right-0 transition-all duration-300 ${isScrolled ? "top-0" : "top-[32px]"}`
     }`}>
-      <nav className="relative w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+      {/* Smooth fading liquid glassmorphic backdrop */}
+      <div 
+        className={`absolute inset-0 transition-all duration-500 ease-out pointer-events-none ${
+          theme === "light"
+            ? "bg-white/95 backdrop-blur-md border-b border-neutral-200/80 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"
+            : isScrolled
+              ? "opacity-100 bg-white/85 backdrop-blur-xl border-b border-neutral-200/60 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06)]"
+              : "opacity-0 bg-transparent border-b border-transparent"
+        }`} 
+      />
+      <nav className="relative z-10 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
         
         {/* 1. Left Side: Brand Logo */}
         <div className="flex items-center">
@@ -175,7 +205,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className={`relative flex items-center gap-1.5 text-[11px] xl:text-[12px] font-sans font-bold tracking-widest uppercase px-3.5 py-2 rounded-full transition-colors duration-200 z-10 ${
                     isLight
                       ? isHovered ? "text-neutral-950" : "text-neutral-700 hover:text-neutral-950"
-                      : isHovered ? "text-white" : "text-white/85 hover:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+                      : isHovered ? "text-white" : "text-white/90 hover:text-white drop-shadow-sm"
                   }`}
                 >
                   {/* Apple Liquid Spring Sliding Pill */}
@@ -215,7 +245,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {item.hasDropdown && (
                       <ChevronDownIcon 
                         className={`w-3 h-3 transition-transform duration-300 stroke-[2.5] ${
-                          hoveredMenuId === item.id ? "rotate-180 text-neutral-900" : "text-neutral-400"
+                          hoveredMenuId === item.id ? "rotate-180 text-neutral-900" : isLight ? "text-neutral-400" : "text-white/70"
                         }`} 
                       />
                     )}

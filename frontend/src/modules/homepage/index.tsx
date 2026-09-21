@@ -239,15 +239,15 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
 
       {/* Main Content Area */}
       <main className="flex-1 w-full">
-        {/* 2. Header Navigation */}
-        <Navbar
-          logoText="Store4Riders"
-          navItems={navItems}
-          theme="light"
-        />
-
-        {/* Hero Container */}
+        {/* Hero Container with Header overlay */}
         <div className="relative w-full bg-neutral-200">
+          {/* 2. Header Navigation */}
+          <Navbar
+            logoText="Store4Riders"
+            navItems={navItems}
+            theme="dark"
+          />
+
           <HeroSection
             subtitle="BROWSE THE COLLECTION"
             title="RIDING GEAR THAT KEEPS YOU SAFE"

@@ -1,8 +1,10 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Toaster } from "sonner";
+
+import { useCartStore } from "@/stores/useCartStore";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -18,6 +20,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
       })
   );
+
+  useEffect(() => {
+    try {
+      const authData = localStorage.getItem("auth-storage");
+      let initialUserId: string | null = null;
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        initialUserId = parsed?.state?.user?.id || parsed?.state?.user?.email || null;
+      }
+      useCartStore.getState().switchUserCart(initialUserId);
+    } catch (e) {}
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

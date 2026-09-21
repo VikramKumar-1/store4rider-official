@@ -16,13 +16,15 @@ if (!ENV.RAZORPAY_KEY_ID || !ENV.RAZORPAY_KEY_SECRET) {
 }
 
 let razorpay: Razorpay;
-try {
-  razorpay = new Razorpay({
-    key_id: ENV.RAZORPAY_KEY_ID || "dummy_key",
-    key_secret: ENV.RAZORPAY_KEY_SECRET || "dummy_secret",
-  });
-} catch (error) {
-  logger.warn("Razorpay SDK initialization failed. Payments will not work.");
+if (ENV.RAZORPAY_KEY_ID && ENV.RAZORPAY_KEY_SECRET) {
+  try {
+    razorpay = new Razorpay({
+      key_id: ENV.RAZORPAY_KEY_ID,
+      key_secret: ENV.RAZORPAY_KEY_SECRET,
+    });
+  } catch (error) {
+    logger.warn("Razorpay SDK initialization failed. Payments will not work.");
+  }
 }
 
 export class OrderService {

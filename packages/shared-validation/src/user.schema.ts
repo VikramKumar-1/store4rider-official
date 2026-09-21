@@ -1,5 +1,21 @@
 import { z } from "zod";
 
+const USER_ROLES = [
+  "super_admin",
+  "admin",
+  "product_manager",
+  "order_manager",
+  "marketing_manager",
+  "customer_support",
+  "customer"
+] as const;
+
+export const userRoleSchema = z.enum(USER_ROLES);
+
+export const updateUserRoleSchema = z.object({
+  role: userRoleSchema,
+});
+
 export const addressSchema = z.object({
   street: z.string().min(3),
   city: z.string().min(2),
@@ -31,4 +47,5 @@ export const updateProfileSchema = z.object({
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
 export type AddressInput = z.infer<typeof addressSchema>;

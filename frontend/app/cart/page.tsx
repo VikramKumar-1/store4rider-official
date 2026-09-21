@@ -1,10 +1,12 @@
+import type { Metadata } from "next";
 import { CartPageModule } from "@/modules/cart/components/CartPageModule";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Shopping Cart | Store4Riders",
-  description: "Shopping Cart page.",
+  description: "Review your selected motorcycle riding gear, helmets, and accessories in your cart before checkout.",
 };
 
 export default function CartPageWrapper() {
   return <CartPageModule />;
 }
+

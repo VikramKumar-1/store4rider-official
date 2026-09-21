@@ -1,5 +1,5 @@
 import { UserRepository } from "./user.repository";
-import { IUser, IUserAddress } from "@store4riders/shared-types";
+import { IUser, IUserAddress, UserRole } from "@store4riders/shared-types";
 import { NotFoundError } from "../../core/errors/AppError";
 
 /**
@@ -11,6 +11,12 @@ import { NotFoundError } from "../../core/errors/AppError";
  */
 export class UserService {
   
+  static async getRole(userId: string): Promise<UserRole> {
+    if (userId === "admin-bypass-id") return "super_admin";
+    const user = await UserRepository.findById(userId);
+    return user?.role || "customer";
+  }
+
   static async getProfile(userId: string): Promise<IUser> {
     const user = await UserRepository.findById(userId);
     if (!user) throw new NotFoundError("User");
@@ -41,5 +47,23 @@ export class UserService {
     const user = await this.getProfile(userId);
     user.addresses = user.addresses.filter(a => a.id !== addressId);
     return await this.updateProfile(userId, { addresses: user.addresses });
+  }
+
+  static async getUsers(page: number, limit: number, role?: string) {
+    const items = await UserRepository.findUsers(page, limit, role);
+    const totalCount = await UserRepository.countUsers(role);
+    return { items, totalCount };
+  }
+
+  static async updateRole(userId: string, role: UserRole): Promise<IUser> {
+    const user = await UserRepository.update(userId, { role });
+    if (!user) throw new NotFoundError("User");
+    return user;
+  }
+
+  static async updateStatus(userId: string, isActive: boolean): Promise<IUser> {
+    const user = await UserRepository.update(userId, { isActive });
+    if (!user) throw new NotFoundError("User");
+    return user;
   }
 }

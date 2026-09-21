@@ -27,4 +27,19 @@ export class UserRepository {
   static async update(id: string, data: Partial<IUser>): Promise<IUser | null> {
     return UserModel.findByIdAndUpdate(id, data, { new: true }).lean().exec() as unknown as IUser | null;
   }
+
+  static async findUsers(page: number, limit: number, role?: string): Promise<IUser[]> {
+    const query = role ? { role } : {};
+    return UserModel.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean()
+      .exec() as unknown as IUser[];
+  }
+
+  static async countUsers(role?: string): Promise<number> {
+    const query = role ? { role } : {};
+    return UserModel.countDocuments(query).exec();
+  }
 }

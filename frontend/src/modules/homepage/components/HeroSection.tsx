@@ -33,7 +33,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   }, [images.length]);
 
   return (
-    <section className="relative w-full min-h-[70vh] sm:min-h-[80vh] lg:min-h-[90vh] flex flex-col justify-between overflow-hidden bg-neutral-200">
+    <section className="relative w-full min-h-[70vh] sm:min-h-[75vh] lg:min-h-[80vh] flex flex-col justify-between overflow-hidden bg-neutral-200">
       {/* Background Image Slider with subtle warm overlay */}
       <div className="absolute inset-0 z-0">
         {images.map((src, index) => (
@@ -56,10 +56,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       </div>
 
       {/* Hero Body Content matching Figma */}
-      <div className="relative z-10 flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 md:px-12 flex flex-col items-center justify-between pb-10 pt-10 md:pt-16 lg:pb-16">
+      <div className="relative z-10 flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 md:px-12 flex flex-col lg:flex-row items-center justify-between pb-10 pt-24 md:pt-32 lg:pt-40 lg:pb-16 gap-8 lg:gap-4">
         
         {/* Left Side Main Typography */}
-        <div className="w-full text-center lg:text-left mt-4 lg:mt-auto pt-4 lg:pt-0">
+        <div className="w-full text-center lg:text-left pt-4 lg:pt-0">
           <p className="text-[11px] md:text-xs font-semibold uppercase tracking-[0.25em] text-white/90 mb-3 drop-shadow-sm">
             {subtitle}
           </p>
@@ -69,8 +69,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </h1>
         </div>
 
-        {/* Right Side Floating Product Cards - Visible on mobile now! */}
-        <div className="w-full lg:w-auto flex flex-col gap-3 lg:gap-5 items-center lg:items-end self-center lg:self-end mt-12 lg:mb-12 pt-4 lg:pt-0">
+        {/* Right Side Floating Product Cards */}
+        <div className="w-full lg:w-auto flex flex-col gap-3 lg:gap-5 items-center lg:items-end lg:justify-center">
           {topProduct && (
             <ProductCard
               product={topProduct}

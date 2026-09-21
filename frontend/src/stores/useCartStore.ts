@@ -132,15 +132,4 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 }));
 
-// Initialize cart on client side
-if (typeof window !== "undefined") {
-  try {
-    const authData = localStorage.getItem("auth-storage");
-    let initialUserId: string | null = null;
-    if (authData) {
-      const parsed = JSON.parse(authData);
-      initialUserId = parsed?.state?.user?.id || parsed?.state?.user?.email || null;
-    }
-    useCartStore.getState().switchUserCart(initialUserId);
-  } catch (e) {}
-}
+

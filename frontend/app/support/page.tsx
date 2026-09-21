@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Customer Support | Store4Riders",
+  description: "Get assistance with your orders, gear sizing, exchanges, and product inquiries at Store4Riders.",
+};
+
 export default function SupportPage() {
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center bg-slate-50 text-slate-900 pt-32 pb-16 px-6">
@@ -10,8 +18,9 @@ export default function SupportPage() {
           This is a simulated placeholder page for the portfolio presentation. 
           In a production environment, this would contain the fully functional Customer Support flow.
         </p>
-        <a href="/" className="inline-block bg-slate-900 text-white font-bold px-8 py-4 rounded-full hover:bg-slate-800 hover:scale-105 transition-all">Return Home</a>
+        <Link href="/" className="inline-block bg-slate-900 text-white font-bold px-8 py-4 rounded-full hover:bg-slate-800 hover:scale-105 transition-all">Return Home</Link>
       </div>
     </div>
   );
 }
+

@@ -24,3 +24,15 @@ pnpm-debug.log*
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Temporary Scripts
+extract-swagger.js
+fix-swagger-errors.js
+safe-extract.js
+create-pages.js
+
+# Test Reports & Error Logs
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

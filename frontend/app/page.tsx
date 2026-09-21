@@ -1,4 +1,15 @@
+import type { Metadata } from "next";
 import HomepageModule from "@/modules/homepage";
+
+export const metadata: Metadata = {
+  title: "Store4Riders | Premium Motorcycle Riding Gear & Accessories",
+  description: "Shop certified motorcycle helmets, riding jackets, pants, boots, and safety gear in India. Genuine products, best prices & express delivery at Store4Riders.",
+  openGraph: {
+    title: "Store4Riders | Premium Motorcycle Riding Gear & Accessories",
+    description: "Shop certified motorcycle helmets, riding jackets, pants, boots, and safety gear in India.",
+    type: "website",
+  },
+};
 
 /**
  * Home Page Route

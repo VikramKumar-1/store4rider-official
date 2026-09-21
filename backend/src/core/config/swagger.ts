@@ -82,7 +82,7 @@ If you want to test protected APIs like **Cart**, **Orders**, or **Wishlist**:
     ],
   },
   // Automatically scan all route files in the modules directory for JSDoc comments
-  apis: ["./src/modules/**/*.route.ts", "./src/app/api/**/*.ts"],
+  apis: ["./src/modules/**/*.route.ts", "./src/modules/**/*.swagger.ts", "./src/app/api/**/*.ts"],
 };
 
 export const getSwaggerSpec = () => swaggerJsdoc(options);

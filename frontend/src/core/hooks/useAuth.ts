@@ -5,7 +5,7 @@ import { useCartStore } from "@/stores/useCartStore";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-export function useLogin() {
+export function useLogin(options?: { disableRedirect?: boolean }) {
   const setAuth = useAuthStore((state) => state.setAuth);
   const router = useRouter();
 
@@ -20,9 +20,11 @@ export function useLogin() {
       }
       toast.success("Successfully logged in!");
       
-      const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-      const redirectTarget = searchParams?.get("redirect") || "/";
-      router.push(redirectTarget);
+      if (!options?.disableRedirect) {
+        const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+        const redirectTarget = searchParams?.get("redirect") || "/";
+        router.push(redirectTarget);
+      }
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || "Invalid email or password");
