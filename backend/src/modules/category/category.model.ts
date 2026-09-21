@@ -7,6 +7,11 @@ const categorySchema = new Schema<ICategory>(
     slug: { type: String, required: true, unique: true },
     parentId: { type: String },
     description: { type: String },
+    bannerImage: { type: String },
+    metaTitle: { type: String },
+    metaDescription: { type: String },
+    metaKeywords: { type: String },
+    videoUrl: { type: String },
   },
   { timestamps: true }
 );

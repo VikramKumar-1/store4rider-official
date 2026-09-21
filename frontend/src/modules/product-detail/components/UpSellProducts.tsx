@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { KitProduct } from "../types/product-detail.types";
 
-export const UpSellProducts: React.FC<{ products: KitProduct[] }> = ({ products }) => {
+export const UpSellProducts: React.FC<{ products: KitProduct[]; title?: string }> = ({ products, title = "You May Also Like" }) => {
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   if (!products || products.length === 0) return null;
@@ -27,7 +27,7 @@ export const UpSellProducts: React.FC<{ products: KitProduct[] }> = ({ products 
         <div className="flex items-center gap-2.5">
           <span className="w-2 h-5 bg-brand rounded-full" />
           <h2 className="text-base md:text-lg font-extrabold uppercase tracking-wider text-neutral-900">
-            You May Also Like
+            {title}
           </h2>
         </div>
 

@@ -100,6 +100,14 @@ export class ProductRepository {
     return result.modifiedCount > 0;
   }
 
+  static async incrementSalesCount(productId: string, quantity: number, session?: any): Promise<boolean> {
+    const result = await ProductModel.updateOne(
+      { _id: productId },
+      { $inc: { salesCount: quantity } }
+    ).session(session || null).exec();
+    return result.modifiedCount > 0;
+  }
+
   /**
    * Deletes a product.
    */

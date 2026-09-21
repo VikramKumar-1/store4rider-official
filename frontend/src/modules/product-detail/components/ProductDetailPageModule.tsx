@@ -1,10 +1,11 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { useProductBySlug, useProductsBySkus, useProductReviews, IBackendProduct } from "@/core/hooks/useProducts";
 import { ProductDetailModule } from "@/modules/product-detail";
 import { PDPData, KitProduct } from "@/modules/product-detail/types/product-detail.types";
+import { useRecentViewsStore } from "@/stores/useRecentViewsStore";
 
 /**
  * Helper: Strip HTML tags for clean plain text.
@@ -377,6 +378,22 @@ export const ProductDetailPageModule = () => {
   const { data: relatedProducts } = useProductsBySkus(relatedSkus);
   const { data: upsellProducts } = useProductsBySkus(upsellSkus);
   const { data: reviewsData } = useProductReviews(productId);
+
+  const addRecentView = useRecentViewsStore((state) => state.addRecentView);
+
+  useEffect(() => {
+    if (product) {
+      addRecentView({
+        id: product._id,
+        name: product.name,
+        category: extractCategoryName(product),
+        priceFormatted: formatINR((product.specialPrice && product.specialPrice < product.basePrice) ? product.specialPrice : product.basePrice),
+        imageUrl: product.images?.[0]?.url || "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80",
+        rating: 4.95,
+        productUrl: `/products/${product.slug}`,
+      });
+    }
+  }, [product, addRecentView]);
 
   // Show a lightweight skeleton instead of a blocking full-page spinner
   if (isLoading) {

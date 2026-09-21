@@ -22,5 +22,17 @@ export async function categoryRouter(req: NextRequest, routePath: string[]): Pro
     return await CategoryController.create(req);
   }
 
+  if (method === "PUT" && pathLen === 1) {
+    const userId = extractUserFromAuth(req);
+    await checkAdmin(userId, UserService.getRole);
+    return await CategoryController.update(req, routePath[0]);
+  }
+
+  if (method === "DELETE" && pathLen === 1) {
+    const userId = extractUserFromAuth(req);
+    await checkAdmin(userId, UserService.getRole);
+    return await CategoryController.delete(req, routePath[0]);
+  }
+
   return null;
 }

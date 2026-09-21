@@ -19,4 +19,10 @@ export class CategoryValidator {
     const body = await req.json();
     return createCategorySchema.parse(body);
   }
+
+  static async validateUpdate(req: NextRequest) {
+    const body = await req.json();
+    const { updateCategorySchema } = await import("@store4riders/shared-validation");
+    return updateCategorySchema.parse(body);
+  }
 }

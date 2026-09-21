@@ -205,8 +205,8 @@ These rules apply to **every query, component, and API call** you write:
 | Phase | Name | Modules Covered | Status |
 |---|---|---|---|
 | 1 | Foundation & Admin Shell | Admin Dashboard, Roles & Permissions | ✅ COMPLETED |
-| 2 | Product & Catalog Enhancement | Product Catalogue, Brand Mgmt, Category | 🔄 IN PROGRESS |
-| 3 | Search & Discovery | Search & Filter (Meilisearch) | ⬜ NOT STARTED |
+| 2 | Product & Catalog Enhancement | Product Catalogue, Brand Mgmt, Category | ✅ COMPLETED |
+| 3 | Search & Discovery | Search & Filter (Meilisearch) | 🔄 IN PROGRESS |
 | 4 | Payment Gateways | Payment Module (PayU, CCavenue, Snapmint, COD) | ⬜ NOT STARTED |
 | 5 | Shipping & Logistics | Shipping (Shiprocket, Delhivery, Xpressbees) | ⬜ NOT STARTED |
 | 6 | Order Lifecycle & Returns | Order Management, Returns, Invoices | ⬜ NOT STARTED |
@@ -279,7 +279,7 @@ These rules apply to **every query, component, and API call** you write:
 
 ## Phase 2 — Product & Catalog Enhancement
 
-**Status:** 🔄 IN PROGRESS
+**Status:** ✅ COMPLETED
 **Modules:** Product Catalogue (2), Category (4), Brand Management
 **Depends on:** Phase 1 (admin UI to manage products)
 
@@ -298,10 +298,10 @@ These rules apply to **every query, component, and API call** you write:
   - CSV columns: `sku`, `basePrice`, `specialPrice`, `stockStatus`
   - Returns validation report: success count, error rows with reasons
   - Wrap in MongoDB transaction for atomicity
-- [ ] **2.4** Enhance Category model
+- [x] **2.4** Enhance Category model
   - Add fields: `bannerImage`, `metaTitle`, `metaDescription`, `metaKeywords`, `videoUrl`, `slug`
   - Update shared types and validation
-- [ ] **2.5** Build bestseller tracking
+- [x] **2.5** Build bestseller tracking
   - Increment `salesCount` on product when order is delivered
   - `GET /products?sort=bestselling` support
 
@@ -311,36 +311,36 @@ These rules apply to **every query, component, and API call** you write:
   - Product list page with search, filters (status, category, brand), bulk actions
   - Product create/edit form (all fields including new ones)
   - CSV upload page for bulk stock/pricing update with preview & error report
-- [ ] **2.7** Build admin category management UI
+- [x] **2.7** Build admin category management UI
   - Category tree view with drag-to-reorder
   - Category create/edit form with banner upload, SEO fields
 - [x] **2.8** Build admin brand management UI
   - Brand list, create/edit form with logo upload
-- [ ] **2.9** Build frontend category landing pages
+- [x] **2.9** Build frontend category landing pages
   - `/category/[slug]` route with banner, description, filtered products
-- [ ] **2.10** Implement recently viewed products
+- [x] **2.10** Implement recently viewed products
   - Client-side localStorage tracking (last 10 products)
   - "Recently Viewed" section on homepage and PDP
 
 ### Verification
 
-- [ ] Admin can CRUD products, categories, brands
-- [ ] CSV bulk update works with validation report
-- [ ] Category pages render with banners and SEO meta
-- [ ] Recently viewed products persist across page navigation
-- [ ] Bestseller sort returns products by sales count
+- [x] Admin can CRUD products, categories, brands
+- [x] CSV bulk update works with validation report
+- [x] Category pages render with banners and SEO meta
+- [x] Recently viewed products persist across page navigation
+- [x] Bestseller sort returns products by sales count
 
 ---
 
 ## Phase 3 — Search & Discovery
 
-**Status:** ⬜ NOT STARTED
+**Status:** 🔄 IN PROGRESS
 **Modules:** Search & Filter (5)
 **Depends on:** Phase 2 (product enhancements for attribute filters)
 
 ### Backend Tasks
 
-- [ ] **3.1** Complete Meilisearch integration
+- [/] **3.1** Complete Meilisearch integration
   - Index all products on startup (one-time sync)
   - Auto-index on product create/update/delete
   - Configure searchable attributes, filterable attributes, sortable attributes

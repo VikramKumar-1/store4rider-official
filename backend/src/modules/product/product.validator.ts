@@ -221,6 +221,8 @@ export class ProductValidator {
       sort = { basePrice: -1, _id: -1 };
     } else if (sortParam === "newest") {
       sort = { createdAt: -1, _id: -1 };
+    } else if (sortParam === "bestselling" || sortParam === "bestseller") {
+      sort = { salesCount: -1, _id: -1 };
     }
 
     return { filters, page, limit, sort };

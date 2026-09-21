@@ -12,5 +12,19 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes
 
+  # Meilisearch for Phase 3 (Search & Discovery)
+  meilisearch:
+    image: getmeili/meilisearch:v1.7
+    container_name: store4riders-meilisearch
+    environment:
+      - MEILI_MASTER_KEY=store4riders_master_key_123
+      - MEILI_ENV=development
+    ports:
+      - "7700:7700"
+    restart: unless-stopped
+    volumes:
+      - meilisearch_data:/meili_data
+
 volumes:
   redis_data:
+  meilisearch_data:

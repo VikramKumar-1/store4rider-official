@@ -23,4 +23,15 @@ export class CategoryController {
     const category = await CategoryService.createCategory(validatedData);
     return ApiResponse.success(category, "Category created successfully", 201);
   }
+
+  static async update(req: NextRequest, id: string) {
+    const validatedData = await CategoryValidator.validateUpdate(req);
+    const category = await CategoryService.updateCategory(id, validatedData);
+    return ApiResponse.success(category, "Category updated successfully");
+  }
+
+  static async delete(req: NextRequest, id: string) {
+    await CategoryService.deleteCategory(id);
+    return ApiResponse.success(null, "Category deleted successfully");
+  }
 }

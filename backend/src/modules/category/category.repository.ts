@@ -19,4 +19,16 @@ export class CategoryRepository {
     const category = new CategoryModel(data);
     return (await category.save()).toObject() as ICategory;
   }
+
+  static async findById(id: string): Promise<ICategory | null> {
+    return CategoryModel.findById(id).lean().exec() as unknown as ICategory | null;
+  }
+
+  static async update(id: string, data: Partial<ICategory>): Promise<ICategory | null> {
+    return CategoryModel.findByIdAndUpdate(id, data, { new: true }).lean().exec() as unknown as ICategory | null;
+  }
+
+  static async delete(id: string): Promise<void> {
+    await CategoryModel.findByIdAndDelete(id).exec();
+  }
 }

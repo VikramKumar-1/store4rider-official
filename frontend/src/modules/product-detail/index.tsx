@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { useCartStore } from "@/stores/useCartStore";
+import { useRecentViewsStore } from "@/stores/useRecentViewsStore";
 import TopBanner from "@/modules/homepage/components/TopBanner";
 import Navbar from "@/modules/homepage/components/Navbar";
 import Footer from "@/modules/homepage/components/Footer";
@@ -26,6 +27,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
   const [selectedSize, setSelectedSize] = useState(product.sizes?.[0] || "");
   const [availableSizes, setAvailableSizes] = useState<string[]>(product.sizes || []);
   const addItem = useCartStore((state) => state.addItem);
+  const recentViews = useRecentViewsStore((state) => state.items);
   const router = useRouter();
 
   // Reset defaults when product changes
@@ -254,6 +256,22 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         </div>
         
         <UpSellProducts products={product.upSellProducts} />
+
+        {recentViews.length > 0 && (
+          <div className="mt-[-80px] md:mt-[-100px]">
+            <UpSellProducts 
+              products={recentViews.filter(p => p.id !== product.id).map(p => ({
+                id: p.id,
+                name: p.name,
+                category: p.category,
+                priceFormatted: p.priceFormatted,
+                imageUrl: p.imageUrl,
+                productUrl: p.productUrl
+              }))} 
+              title="Recently Viewed" 
+            />
+          </div>
+        )}
 
       </main>
 

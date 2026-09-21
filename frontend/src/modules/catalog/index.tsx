@@ -15,11 +15,12 @@ import { useSearchParams, useRouter } from "next/navigation";
  * CatalogContent
  * Inner component to handle searchParams safely within Suspense
  */
-const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading?: boolean; isFetching?: boolean }> = ({ 
+const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading?: boolean; isFetching?: boolean; categoryNode?: any }> = ({ 
   products, 
   totalCount,
   isLoading,
-  isFetching
+  isFetching,
+  categoryNode
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -93,6 +94,21 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
 
       {/* 3. Main Catalog Area (Independent Dual Scrolling) */}
       <main className="max-w-[1400px] w-full mx-auto px-4 md:px-6 pt-6 pb-20 md:pb-32">
+        {categoryNode && (categoryNode.bannerImage || categoryNode.description) && (
+          <div className="mb-8 rounded-2xl overflow-hidden bg-slate-50 border border-slate-200">
+            {categoryNode.bannerImage && (
+              <div className="w-full h-48 md:h-64 relative bg-slate-200">
+                <img src={categoryNode.bannerImage} alt={categoryNode.name} className="w-full h-full object-cover" />
+              </div>
+            )}
+            {categoryNode.description && (
+              <div className="p-6 md:p-8">
+                <h2 className="text-2xl font-black mb-2 text-slate-900">{categoryNode.name}</h2>
+                <p className="text-slate-600 leading-relaxed max-w-4xl">{categoryNode.description}</p>
+              </div>
+            )}
+          </div>
+        )}
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
           
           {/* Left Sidebar Filters — Floating Ultra-Compact Sticky Card (Fixed top offset to eliminate header overlap) */}
@@ -121,7 +137,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
  * 
  * Semantic, SEO-friendly layout for the Product Listing Page.
  */
-export const CatalogModule: React.FC<CatalogProps> = ({ products, totalCount, isLoading, isFetching }) => {
+export const CatalogModule: React.FC<CatalogProps> = ({ products, totalCount, isLoading, isFetching, categoryNode }) => {
   return (
     <div className="w-full min-h-screen flex flex-col font-sans bg-white relative">
       
@@ -148,6 +164,7 @@ export const CatalogModule: React.FC<CatalogProps> = ({ products, totalCount, is
         totalCount={totalCount} 
         isLoading={isLoading}
         isFetching={isFetching}
+        categoryNode={categoryNode}
       />
 
 

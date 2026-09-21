@@ -13,5 +13,6 @@ export interface CatalogProps {
   totalCount?: number;
   isLoading?: boolean;
   isFetching?: boolean;
+  categoryNode?: any;
 }
 

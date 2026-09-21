@@ -111,6 +111,7 @@ export class OrderService {
           if (order.items && order.items.length > 0) {
             for (const itm of order.items) {
               await ProductRepository.decrementStock(itm.productId, itm.quantity, session);
+              await ProductRepository.incrementSalesCount(itm.productId, itm.quantity, session);
             }
           }
 
@@ -170,6 +171,7 @@ export class OrderService {
           if (order.items && order.items.length > 0) {
             for (const itm of order.items) {
               await ProductRepository.decrementStock(itm.productId, itm.quantity, session);
+              await ProductRepository.incrementSalesCount(itm.productId, itm.quantity, session);
             }
           }
 

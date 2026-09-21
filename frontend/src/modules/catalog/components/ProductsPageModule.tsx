@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useProducts } from "@/core/hooks/useProducts";
+import { useCategoryTree } from "@/core/hooks/useCategories";
 import { CatalogModule } from "@/modules/catalog";
 import { CatalogProduct } from "@/modules/catalog/types/catalog.types";
 
@@ -14,6 +15,22 @@ export const ProductsPageModule = () => {
   const minPrice = searchParams.get("minPrice") ? parseFloat(searchParams.get("minPrice")!) : undefined;
   const maxPrice = searchParams.get("maxPrice") ? parseFloat(searchParams.get("maxPrice")!) : undefined;
   const sort = searchParams.get("sort") || undefined;
+
+  const { data: catTreeData } = useCategoryTree();
+  let categoryNode = undefined;
+  if (category && catTreeData) {
+    const findNode = (nodes: any[]): any => {
+      for (const n of nodes) {
+        if (n.slug === category) return n;
+        if (n.children) {
+          const f = findNode(n.children);
+          if (f) return f;
+        }
+      }
+      return null;
+    };
+    categoryNode = findNode(catTreeData);
+  }
 
   const { data, isLoading, isFetching, error } = useProducts({ 
     category, 
@@ -115,6 +132,7 @@ export const ProductsPageModule = () => {
       totalCount={data?.totalCount || 0} 
       isLoading={isLoading && !data}
       isFetching={isFetching}
+      categoryNode={categoryNode}
     />
   );
 };

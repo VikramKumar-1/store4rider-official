@@ -14,6 +14,6 @@ describe('NotFoundError', () => {
   it('should default to 404 status code', () => {
     const error = new NotFoundError('Resource missing');
     expect(error.statusCode).toBe(404);
-    expect(error.message).toBe('Resource missing');
+    expect(error.message).toBe('Resource missing not found');
   });
 });

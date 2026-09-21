@@ -26,9 +26,27 @@ export class CategoryService {
   }
 
   static async createCategory(data: Partial<ICategory>): Promise<ICategory> {
-    const category = await CategoryRepository.create(data);
+    const slug = data.slug || data.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const category = await CategoryRepository.create({ ...data, slug });
     await this.invalidateCache();
     return category;
+  }
+
+  static async updateCategory(id: string, data: Partial<ICategory>): Promise<ICategory> {
+    if (data.name && !data.slug) {
+      data.slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    }
+    const category = await CategoryRepository.update(id, data);
+    if (!category) throw new Error("Category not found");
+    await this.invalidateCache();
+    return category;
+  }
+
+  static async deleteCategory(id: string): Promise<void> {
+    const category = await CategoryRepository.findById(id);
+    if (!category) throw new Error("Category not found");
+    await CategoryRepository.delete(id);
+    await this.invalidateCache();
   }
 
   static async invalidateCache() {

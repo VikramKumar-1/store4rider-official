@@ -1,7 +1,7 @@
 export interface IProductImage { id: string; url: string; altText?: string; }
 export interface IProductVariant { id: string; sku: string; price: number; stock: number; attributes: Record<string, string>; }
 export interface IProduct {
-  id: string;
+  _id: string;
   name: string;
   description: string;
   slug: string;
