@@ -85,8 +85,10 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
             >
               <option value="">Featured</option>
               <option value="newest">Newest First</option>
+              <option value="bestselling">Bestselling</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
+              <option value="rating">Top Rated</option>
             </select>
           </div>
         </div>

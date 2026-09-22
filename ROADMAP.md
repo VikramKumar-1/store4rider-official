@@ -206,7 +206,7 @@ These rules apply to **every query, component, and API call** you write:
 |---|---|---|---|
 | 1 | Foundation & Admin Shell | Admin Dashboard, Roles & Permissions | ✅ COMPLETED |
 | 2 | Product & Catalog Enhancement | Product Catalogue, Brand Mgmt, Category | ✅ COMPLETED |
-| 3 | Search & Discovery | Search & Filter (Meilisearch) | 🔄 IN PROGRESS |
+| 3 | Search & Discovery | Search & Filter (Meilisearch) | ✅ COMPLETED |
 | 4 | Payment Gateways | Payment Module (PayU, CCavenue, Snapmint, COD) | ⬜ NOT STARTED |
 | 5 | Shipping & Logistics | Shipping (Shiprocket, Delhivery, Xpressbees) | ⬜ NOT STARTED |
 | 6 | Order Lifecycle & Returns | Order Management, Returns, Invoices | ⬜ NOT STARTED |
@@ -334,47 +334,47 @@ These rules apply to **every query, component, and API call** you write:
 
 ## Phase 3 — Search & Discovery
 
-**Status:** 🔄 IN PROGRESS
+**Status:** ✅ COMPLETED
 **Modules:** Search & Filter (5)
 **Depends on:** Phase 2 (product enhancements for attribute filters)
 
 ### Backend Tasks
 
-- [/] **3.1** Complete Meilisearch integration
+- [x] **3.1** Complete Meilisearch integration
   - Index all products on startup (one-time sync)
   - Auto-index on product create/update/delete
   - Configure searchable attributes, filterable attributes, sortable attributes
-- [ ] **3.2** Build search autocomplete endpoint
+- [x] **3.2** Build search autocomplete endpoint
   - `GET /search/suggest?q=...` — returns top 5 product suggestions + top 3 category matches
-- [ ] **3.3** Build advanced filter endpoint
+- [x] **3.3** Build advanced filter endpoint
   - Dynamic attribute extraction from product variants (sizes, colours)
   - `GET /products?size=L&colour=Black&brand=Clan&priceMin=500&priceMax=5000`
-- [ ] **3.4** Add sort options
+- [x] **3.4** Add sort options
   - `sort=newest` (by createdAt desc)
   - `sort=bestselling` (by salesCount desc)
   - `sort=rating` (by avgRating desc — needs aggregate rating field)
 
 ### Frontend Tasks
 
-- [ ] **3.5** Build autocomplete search dropdown
+- [x] **3.5** Build autocomplete search dropdown
   - Debounced input (300ms)
   - Dropdown with product thumbnails, category links
   - Keyboard navigation (arrow keys + enter)
-- [ ] **3.6** Enhance sidebar filters
+- [x] **3.6** Enhance sidebar filters
   - Dynamic size filter (from variant attributes)
   - Dynamic colour filter (with colour swatches)
   - Brand filter with checkboxes
   - Active filter tags with clear buttons
-- [ ] **3.7** Add sort dropdown to catalog page
+- [x] **3.7** Add sort dropdown to catalog page
   - Newest, Bestselling, Price Low→High, Price High→Low, Rating
 
 ### Verification
 
-- [ ] Search returns relevant results with typo tolerance
-- [ ] Autocomplete shows suggestions as user types
-- [ ] Filters narrow results correctly and combine with each other
-- [ ] Sort options work correctly
-- [ ] Meilisearch stays in sync with MongoDB
+- [x] Search returns relevant results with typo tolerance
+- [x] Autocomplete shows suggestions as user types
+- [x] Filters narrow results correctly and combine with each other
+- [x] Sort options work correctly
+- [x] Meilisearch stays in sync with MongoDB
 
 ---
 

@@ -5,6 +5,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { KitProduct } from "../types/product-detail.types";
 
+const KitImage = ({ src, alt }: { src: string, alt: string }) => {
+  const [error, setError] = React.useState(false);
+  
+  return (
+    <Image
+      src={error ? "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80" : src}
+      alt={alt}
+      fill
+      className={`object-contain p-2 transition-transform duration-300 ease-out ${error ? 'mix-blend-multiply opacity-50' : 'group-hover:scale-105'}`}
+      sizes="(max-width: 768px) 135px, 150px"
+      onError={() => setError(true)}
+    />
+  );
+};
+
 export const CompleteKitSlider: React.FC<{ products: KitProduct[] }> = ({ products }) => {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -77,13 +92,7 @@ export const CompleteKitSlider: React.FC<{ products: KitProduct[] }> = ({ produc
           >
             {/* Image Container */}
             <div className="relative aspect-square w-full bg-neutral-50/80 rounded-lg overflow-hidden mb-2 border border-neutral-100">
-              <Image
-                src={product.imageUrl}
-                alt={product.name}
-                fill
-                className="object-contain p-2 group-hover:scale-105 transition-transform duration-300 ease-out"
-                sizes="(max-width: 768px) 135px, 150px"
-              />
+              <KitImage src={product.imageUrl} alt={product.name} />
             </div>
 
             {/* Typography Details */}

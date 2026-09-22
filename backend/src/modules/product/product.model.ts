@@ -49,6 +49,8 @@ const productSchema = new Schema<IProduct>(
       },
     ],
     salesCount: { type: Number, default: 0 },
+    avgRating: { type: Number, default: 0 },
+    reviewCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
@@ -58,6 +60,8 @@ productSchema.index({ brand: 1 });
 productSchema.index({ basePrice: 1, _id: -1 });
 productSchema.index({ basePrice: -1, _id: -1 });
 productSchema.index({ createdAt: -1, _id: -1 });
+productSchema.index({ salesCount: -1, _id: -1 });
+productSchema.index({ avgRating: -1, _id: -1 });
 
 // Prevent Mongoose from re-compiling the model during Next.js hot reloads
 export const ProductModel = mongoose.models.Product || mongoose.model<IProduct>("Product", productSchema);

@@ -1,7 +1,7 @@
 import { ProductRepository } from "./product.repository";
 import { IProduct } from "@store4riders/shared-types";
 import { NotFoundError } from "../../core/errors/AppError";
-import { indexProduct } from "../../core/search/meilisearch";
+import { indexProduct, removeProductFromIndex } from "../../core/search/meilisearch";
 import { slugify } from "@store4riders/shared-utils";
 import { getCache, setCache, deleteCache } from "../../core/cache/redis";
 
@@ -104,6 +104,7 @@ export class ProductService {
     const product = await ProductRepository.findById(id);
     if (!product) throw new NotFoundError("Product");
     await ProductRepository.delete(id);
+    await removeProductFromIndex(id);
     await this.invalidateProductCache(product.slug);
   }
 

@@ -13,9 +13,9 @@ describe('CategoryService', () => {
 
   it('should build a nested tree from flat categories', async () => {
     const mockCategories = [
-      { id: '1', name: 'Helmets', slug: 'helmets' },
-      { id: '2', name: 'Full Face', slug: 'full-face', parentId: '1' },
-      { id: '3', name: 'Jackets', slug: 'jackets' },
+      { _id: '1', name: 'Helmets', slug: 'helmets' },
+      { _id: '2', name: 'Full Face', slug: 'full-face', parentId: '1' },
+      { _id: '3', name: 'Jackets', slug: 'jackets' },
     ];
     
     vi.mocked(redis.getCache).mockResolvedValue(null);

@@ -44,6 +44,17 @@ const PRICE_RANGES = [
   { label: "> ₹10,000", short: "> ₹10k", id: "above-10k", min: 10000, max: undefined },
 ];
 
+const COLOURS = [
+  { name: "Black", hex: "#000000" },
+  { name: "White", hex: "#FFFFFF" },
+  { name: "Red", hex: "#FF0000" },
+  { name: "Blue", hex: "#0000FF" },
+  { name: "Grey", hex: "#808080" },
+  { name: "Green", hex: "#008000" },
+  { name: "Yellow", hex: "#FFFF00" },
+  { name: "Orange", hex: "#FFA500" },
+];
+
 export function SidebarFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -58,7 +69,18 @@ export function SidebarFilters() {
   const currentMaxPrice = searchParams.get("maxPrice");
   const currentInStock = searchParams.get("inStock") === "true";
   const currentOnSale = searchParams.get("onSale") === "true";
-  const currentSize = searchParams.get("size") || "";
+  
+  const currentSizeParam = searchParams.get("size") || "";
+  const activeSizes = useMemo(
+    () => (currentSizeParam ? currentSizeParam.split(",").map((s) => s.trim()) : []),
+    [currentSizeParam]
+  );
+
+  const currentColourParam = searchParams.get("colour") || "";
+  const activeColours = useMemo(
+    () => (currentColourParam ? currentColourParam.split(",").map((c) => c.trim()) : []),
+    [currentColourParam]
+  );
 
   // Determine active price ID
   const activePriceId = (() => {
@@ -73,10 +95,11 @@ export function SidebarFilters() {
   const activeFilterCount = 
     Number(Boolean(currentCategory)) + 
     activeBrands.length + 
+    activeColours.length +
     Number(Boolean(currentMinPrice || currentMaxPrice)) +
     Number(currentInStock) +
     Number(currentOnSale) +
-    Number(Boolean(currentSize));
+    activeSizes.length;
 
   const hasActiveFilters = activeFilterCount > 0;
 
@@ -105,6 +128,25 @@ export function SidebarFilters() {
       params.set("brand", updated.join(","));
     } else {
       params.delete("brand");
+    }
+    params.set("page", "1");
+    router.push(`/products?${params.toString()}`, { scroll: false });
+  };
+
+  const handleColourToggle = (colour: string) => {
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    let updated: string[];
+
+    if (activeColours.includes(colour)) {
+      updated = activeColours.filter((c) => c !== colour);
+    } else {
+      updated = [...activeColours, colour];
+    }
+
+    if (updated.length > 0) {
+      params.set("colour", updated.join(","));
+    } else {
+      params.delete("colour");
     }
     params.set("page", "1");
     router.push(`/products?${params.toString()}`, { scroll: false });
@@ -156,12 +198,20 @@ export function SidebarFilters() {
     router.push(`/products?${params.toString()}`, { scroll: false });
   };
 
-  const handleSizeSelect = (sz: string) => {
+  const handleSizeToggle = (sz: string) => {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
-    if (currentSize.toUpperCase() === sz.toUpperCase()) {
-      params.delete("size");
+    let updated: string[];
+
+    if (activeSizes.includes(sz)) {
+      updated = activeSizes.filter((s) => s !== sz);
     } else {
-      params.set("size", sz);
+      updated = [...activeSizes, sz];
+    }
+
+    if (updated.length > 0) {
+      params.set("size", updated.join(","));
+    } else {
+      params.delete("size");
     }
     params.set("page", "1");
     router.push(`/products?${params.toString()}`, { scroll: false });
@@ -244,14 +294,22 @@ export function SidebarFilters() {
                 </button>
               </span>
             ))}
-            {currentSize && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
-                Size: {currentSize}
-                <button onClick={() => handleSizeSelect(currentSize)} className="hover:text-orange-950 cursor-pointer">
+            {activeColours.map((c) => (
+              <span key={c} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
+                {c}
+                <button onClick={() => handleColourToggle(c)} className="hover:text-orange-950 cursor-pointer">
                   <X className="w-2.5 h-2.5" />
                 </button>
               </span>
-            )}
+            ))}
+            {activeSizes.map((sz) => (
+              <span key={sz} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
+                Size: {sz}
+                <button onClick={() => handleSizeToggle(sz)} className="hover:text-orange-950 cursor-pointer">
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </span>
+            ))}
             {(currentMinPrice || currentMaxPrice) && (
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
                 {PRICE_RANGES.find((p) => p.id === activePriceId)?.short || "Custom Price"}
@@ -339,9 +397,14 @@ export function SidebarFilters() {
                 Rider Size
               </span>
             </div>
-            {currentSize && (
+            {activeSizes.length > 0 && (
               <button 
-                onClick={() => handleSizeSelect(currentSize)}
+                onClick={() => {
+                  const params = new URLSearchParams(Array.from(searchParams.entries()));
+                  params.delete("size");
+                  params.set("page", "1");
+                  router.push(`/products?${params.toString()}`, { scroll: false });
+                }}
                 className="text-[10px] font-bold text-neutral-400 hover:text-banner cursor-pointer"
               >
                 Clear
@@ -352,11 +415,11 @@ export function SidebarFilters() {
           {/* Distinct Square Size Boxes */}
           <div className="grid grid-cols-6 gap-1">
             {SIZES.map((sz) => {
-              const isSelected = currentSize.toUpperCase() === sz.toUpperCase();
+              const isSelected = activeSizes.includes(sz);
               return (
                 <button
                   key={sz}
-                  onClick={() => handleSizeSelect(sz)}
+                  onClick={() => handleSizeToggle(sz)}
                   className={`py-1.5 text-center text-xs font-bold rounded-lg transition-all cursor-pointer border ${
                     isSelected
                       ? "bg-banner text-white border-banner shadow-xs scale-105 font-black"
@@ -379,9 +442,24 @@ export function SidebarFilters() {
                 Brands
               </span>
             </div>
-            <span className="text-[10px] font-semibold text-neutral-400">
-              {activeBrands.length ? `${activeBrands.length} selected` : "Multi-select"}
-            </span>
+            <div className="flex items-center gap-2">
+              {activeBrands.length > 0 && (
+                <button 
+                  onClick={() => {
+                    const params = new URLSearchParams(Array.from(searchParams.entries()));
+                    params.delete("brand");
+                    params.set("page", "1");
+                    router.push(`/products?${params.toString()}`, { scroll: false });
+                  }}
+                  className="text-[10px] font-bold text-neutral-400 hover:text-banner cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+              <span className="text-[10px] font-semibold text-neutral-400">
+                {activeBrands.length ? `${activeBrands.length} selected` : "Multi-select"}
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-1">
@@ -402,6 +480,57 @@ export function SidebarFilters() {
                   <span className={`text-[8px] tabular-nums ${isSelected ? "text-orange-100" : "text-neutral-400"}`}>
                     {brand.count}
                   </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Colours Section */}
+        <div className="pt-2.5 border-t border-neutral-100">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-3.5 bg-banner rounded-full"></span>
+              <span className="font-extrabold text-xs uppercase tracking-wide text-neutral-900">
+                Colours
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {activeColours.length > 0 && (
+                <button 
+                  onClick={() => {
+                    const params = new URLSearchParams(Array.from(searchParams.entries()));
+                    params.delete("colour");
+                    params.set("page", "1");
+                    router.push(`/products?${params.toString()}`, { scroll: false });
+                  }}
+                  className="text-[10px] font-bold text-neutral-400 hover:text-banner cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+              <span className="text-[10px] font-semibold text-neutral-400">
+                {activeColours.length ? `${activeColours.length} selected` : "Multi-select"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {COLOURS.map((color) => {
+              const isSelected = activeColours.includes(color.name);
+              return (
+                <button
+                  key={color.name}
+                  onClick={() => handleColourToggle(color.name)}
+                  title={color.name}
+                  className={`w-6 h-6 rounded-full cursor-pointer flex items-center justify-center transition-all ${
+                    isSelected ? "ring-2 ring-banner ring-offset-1" : "ring-1 ring-neutral-200 hover:ring-neutral-400"
+                  }`}
+                  style={{ backgroundColor: color.hex }}
+                >
+                  {isSelected && (
+                    <Check className={`w-3.5 h-3.5 ${color.name === "White" || color.name === "Yellow" ? "text-neutral-900" : "text-white"} stroke-[3]`} />
+                  )}
                 </button>
               );
             })}
