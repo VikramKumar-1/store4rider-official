@@ -21,9 +21,7 @@ const nextConfig = {
       }
     ],
   },
-  experimental: {
-    optimizePackageImports: ['lucide-react', '@heroicons/react'],
-  },
+  optimizePackageImports: ['lucide-react', '@heroicons/react'],
 };
 
 export default nextConfig;

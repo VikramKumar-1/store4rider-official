@@ -1,7 +1,25 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ["bullmq", "ioredis", "node-cron", "mongoose"],
+  serverExternalPackages: [
+    "bullmq",
+    "ioredis",
+    "node-cron",
+    "mongoose",
+    "pino",
+    "pino-pretty",
+    "@aws-sdk/client-s3",
+    "@aws-sdk/client-ses",
+    "@aws-sdk/s3-request-presigner",
+    "bcryptjs",
+    "jsonwebtoken",
+    "razorpay",
+    "rate-limiter-flexible",
+    "swagger-jsdoc",
+    "meilisearch",
+    "csv-parser",
+    "papaparse",
+  ],
   async headers() {
     return [
       {
