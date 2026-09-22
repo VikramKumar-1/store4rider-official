@@ -3,8 +3,12 @@ import { logger } from "../utils/logger";
 import { IProduct } from "@store4riders/shared-types";
 import { ProductModel } from "../../modules/product/product.model";
 
-const HOST = process.env.MEILISEARCH_HOST || "http://localhost:7700";
-const KEY = process.env.MEILISEARCH_KEY || "store4riders_master_key_123";
+const HOST = process.env.MEILISEARCH_HOST as string;
+const KEY = process.env.MEILISEARCH_KEY as string;
+
+if (!HOST || !KEY) {
+  logger.error("CRITICAL: MEILISEARCH_HOST or MEILISEARCH_KEY is missing in .env file");
+}
 
 export const meiliClient = new MeiliSearch({ host: HOST, apiKey: KEY });
 
@@ -88,7 +92,7 @@ export const initializeMeilisearch = async () => {
     
     logger.info("Meilisearch index settings updated successfully.");
   } catch (error) {
-    logger.error("Failed to initialize Meilisearch settings", error);
+    logger.error(error, "Failed to initialize Meilisearch settings");
   }
 };
 
@@ -100,7 +104,7 @@ export const indexProduct = async (product: any) => {
     const doc = transformProductForSearch(product);
     await meiliClient.index(INDEX_NAME).addDocuments([doc]);
   } catch (err) {
-    logger.error("Meilisearch index error", err);
+    logger.error(err, "Meilisearch index error");
   }
 };
 
@@ -111,7 +115,7 @@ export const removeProductFromIndex = async (productId: string) => {
   try {
     await meiliClient.index(INDEX_NAME).deleteDocument(productId);
   } catch (err) {
-    logger.error("Meilisearch delete error", err);
+    logger.error(err, "Meilisearch delete error");
   }
 };
 
@@ -121,7 +125,8 @@ export const removeProductFromIndex = async (productId: string) => {
 export const syncAllProductsToMeilisearch = async () => {
   try {
     logger.info("Starting full Meilisearch sync...");
-    const products = await ProductModel.find({ status: "published" }).lean().exec();
+    // Sync all products except archived ones
+    const products = await ProductModel.find({ status: { $ne: "archived" } }).lean().exec();
     
     const documents = products.map(transformProductForSearch);
     
@@ -136,6 +141,6 @@ export const syncAllProductsToMeilisearch = async () => {
     
     logger.info(`Successfully synced ${documents.length} products to Meilisearch.`);
   } catch (error) {
-    logger.error("Failed to sync products to Meilisearch", error);
+    logger.error(error, "Failed to sync products to Meilisearch");
   }
 };

@@ -13,6 +13,7 @@ import { uploadRouter } from "./modules/upload/upload.route";
 import { docsRouter } from "./modules/docs/docs.route";
 import { healthRouter } from "./modules/health/health.route";
 import { adminRouter } from "./modules/admin/admin.route";
+import { searchRouter } from "./modules/search/search.route";
 
 export async function centralRouter(req: NextRequest, routePath: string[]) {
   const [module, ...rest] = routePath;
@@ -32,6 +33,7 @@ export async function centralRouter(req: NextRequest, routePath: string[]) {
     case "wishlist": return wishlistRouter(req, rest);
     case "coupons": return couponRouter(req, rest);
     case "upload": return uploadRouter(req, rest);
+    case "search": return searchRouter(req, rest.join("/"));
     default: return null;
   }
 }

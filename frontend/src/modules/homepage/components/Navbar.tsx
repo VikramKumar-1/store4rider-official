@@ -19,6 +19,7 @@ import {
 import { NavbarProps, NavItem } from "../types/homepage.types";
 import { useCartStore } from "@/stores/useCartStore";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { SearchAutocomplete } from "@/modules/search/components/SearchAutocomplete";
 
 const DEFAULT_NAV_ITEMS: NavItem[] = [
   { 
@@ -294,53 +295,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* 3. Right Side: Search Box, Cart Button & User Profile */}
         <div className="flex items-center gap-3 sm:gap-4">
           
-          <form
-            onSubmit={handleSearchSubmit}
-            className="relative hidden sm:flex items-center group"
-          >
-            <div className={`relative flex items-center rounded-full transition-all duration-300 w-48 md:w-60 lg:w-72 border ${
-              isLight
-                ? "bg-neutral-100/90 border-neutral-200/90 shadow-xs focus-within:bg-white focus-within:border-neutral-400 focus-within:ring-2 focus-within:ring-neutral-900/5 focus-within:w-64 lg:focus-within:w-80"
-                : "bg-black/40 backdrop-blur-xl border-white/25 shadow-md focus-within:bg-black/65 focus-within:border-white/50 focus-within:ring-2 focus-within:ring-white/20 focus-within:w-64 lg:focus-within:w-80"
-            }`}>
-              <MagnifyingGlassIcon className={`w-4 h-4 ml-3.5 mr-2 shrink-0 transition-colors ${
-                isLight ? "text-neutral-400 group-focus-within:text-neutral-900" : "text-white/60 group-focus-within:text-white"
-              } stroke-[2]`} />
-              
-              <input
-                type="text"
-                placeholder="Search helmets, gear, boots..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full bg-transparent text-xs sm:text-[13px] py-2 pr-7 focus:outline-none font-medium transition-colors ${
-                  isLight 
-                    ? "text-neutral-900 placeholder:text-neutral-400" 
-                    : "text-white placeholder:text-white/60"
-                }`}
-              />
-
-              {searchQuery ? (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className={`mr-2.5 p-0.5 rounded-full transition-colors ${
-                    isLight ? "text-neutral-400 hover:text-neutral-700 bg-neutral-200/60" : "text-white/60 hover:text-white bg-white/20"
-                  }`}
-                  aria-label="Clear search"
-                >
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              ) : (
-                <span className={`hidden lg:inline-flex mr-2.5 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider shrink-0 select-none ${
-                  isLight ? "bg-neutral-200/70 text-neutral-500" : "bg-white/15 text-white/70"
-                }`}>
-                  ↵
-                </span>
-              )}
-            </div>
-          </form>
+          <SearchAutocomplete isLight={isLight} />
 
           <Link
             href="/cart"

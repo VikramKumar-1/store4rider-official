@@ -53,12 +53,20 @@ export class CategoryService {
     await deleteCache(CACHE_KEY);
   }
 
-  private static buildTree(categories: ICategory[], parentId?: string): any[] {
+  private static buildTree(categories: any[], parentId?: string, visited = new Set<string>()): any[] {
     return categories
-      .filter(c => c.parentId === parentId)
-      .map(c => ({
-        ...c,
-        children: this.buildTree(categories, c._id),
-      }));
+      .filter(c => {
+        const pId = c.parentId ? String(c.parentId) : undefined;
+        return pId === parentId;
+      })
+      .map(c => {
+        const id = String(c._id || c.id);
+        if (visited.has(id)) return { ...c, children: [] }; // Prevent circular reference
+        visited.add(id);
+        return {
+          ...c,
+          children: this.buildTree(categories, id, new Set(visited)),
+        };
+      });
   }
 }

@@ -29,6 +29,8 @@ export interface IProduct {
   videoUrl?: string;
   documents?: { name: string; url: string }[];
   salesCount?: number;
+  avgRating?: number;
+  reviewCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }

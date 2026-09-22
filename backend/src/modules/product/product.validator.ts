@@ -10,6 +10,13 @@ import { createProductSchema, updateProductSchema } from "@store4riders/shared-v
 export class ProductValidator {
   
   /**
+   * Escapes special characters in a string so it can be safely used in a RegExp.
+   */
+  private static escapeRegExp(string: string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+  }
+
+  /**
    * Validates the query parameters for listing products.
    * 
    * @param {NextRequest} req - The incoming HTTP request.
@@ -139,21 +146,21 @@ export class ProductValidator {
         const b = brandsList[0];
         const regex = b.toLowerCase() === "mt" 
           ? /\bmt\b|mt helmets/i 
-          : new RegExp(b, "i");
+          : new RegExp(ProductValidator.escapeRegExp(b), "i");
         andConditions.push({ brand: { $regex: regex } });
       } else if (brandsList.length > 1) {
         const brandRegexes = brandsList.map(b => {
           const regex = b.toLowerCase() === "mt" 
             ? /\bmt\b|mt helmets/i 
-            : new RegExp(b, "i");
+            : new RegExp(ProductValidator.escapeRegExp(b), "i");
           return { brand: { $regex: regex } };
         });
         andConditions.push({ $or: brandRegexes });
       }
     }
 
-    const minPrice = searchParams.get("minPrice");
-    const maxPrice = searchParams.get("maxPrice");
+    const minPrice = searchParams.get("minPrice") || searchParams.get("priceMin");
+    const maxPrice = searchParams.get("maxPrice") || searchParams.get("priceMax");
     if (minPrice || maxPrice) {
       const baseCond: Record<string, number> = {};
       const variantCond: Record<string, number> = {};
@@ -185,18 +192,35 @@ export class ProductValidator {
 
     const size = searchParams.get("size");
     if (size) {
-      const sizeRegex = new RegExp(`\\b${size}\\b`, "i");
+      const sizes = size.split(',').map(s => s.trim()).filter(Boolean);
+      const sizeRegexes = sizes.map(s => new RegExp(`\\b${ProductValidator.escapeRegExp(s)}\\b`, "i"));
       andConditions.push({
         $or: [
-          { configurableVariations: { $regex: sizeRegex } },
-          { "variants.sku": { $regex: sizeRegex } },
-          { name: { $regex: sizeRegex } },
+          { configurableVariations: { $in: sizeRegexes } },
+          { "variants.sku": { $in: sizeRegexes } },
+          { name: { $in: sizeRegexes } },
+          { "variants.attributes.size": { $in: sizes.map(s => new RegExp(`^${ProductValidator.escapeRegExp(s)}$`, "i")) } }
+        ],
+      });
+    }
+
+    const colour = searchParams.get("colour") || searchParams.get("color");
+    if (colour) {
+      const colours = colour.split(',').map(c => c.trim()).filter(Boolean);
+      const colourRegexes = colours.map(c => new RegExp(`\\b${ProductValidator.escapeRegExp(c)}\\b`, "i"));
+      andConditions.push({
+        $or: [
+          { configurableVariations: { $in: colourRegexes } },
+          { "variants.sku": { $in: colourRegexes } },
+          { name: { $in: colourRegexes } },
+          { "variants.attributes.color": { $in: colours.map(c => new RegExp(`^${ProductValidator.escapeRegExp(c)}$`, "i")) } },
+          { "variants.attributes.colour": { $in: colours.map(c => new RegExp(`^${ProductValidator.escapeRegExp(c)}$`, "i")) } }
         ],
       });
     }
 
     if (search) {
-      const searchRegex = new RegExp(search.trim(), "i");
+      const searchRegex = new RegExp(ProductValidator.escapeRegExp(search.trim()), "i");
       andConditions.push({
         $or: [
           { name: { $regex: searchRegex } },
@@ -223,6 +247,8 @@ export class ProductValidator {
       sort = { createdAt: -1, _id: -1 };
     } else if (sortParam === "bestselling" || sortParam === "bestseller") {
       sort = { salesCount: -1, _id: -1 };
+    } else if (sortParam === "rating") {
+      sort = { avgRating: -1, _id: -1 };
     }
 
     return { filters, page, limit, sort };
