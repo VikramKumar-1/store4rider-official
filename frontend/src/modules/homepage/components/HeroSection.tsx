@@ -33,7 +33,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   }, [images.length]);
 
   return (
-    <section className="relative w-full min-h-[70vh] sm:min-h-[75vh] lg:min-h-[80vh] flex flex-col justify-between overflow-hidden bg-neutral-200">
+    <section className="relative w-full h-[100svh] min-h-[600px] flex flex-col justify-between overflow-hidden bg-neutral-900">
       {/* Background Image Slider with subtle warm overlay */}
       <div className="absolute inset-0 z-0">
         {images.map((src, index) => (
@@ -56,7 +56,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       </div>
 
       {/* Hero Body Content matching Figma */}
-      <div className="relative z-10 flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 md:px-12 flex flex-col lg:flex-row items-center justify-between pb-10 pt-24 md:pt-32 lg:pt-40 lg:pb-16 gap-8 lg:gap-4">
+      <div className="relative z-10 flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 md:px-12 flex flex-col lg:flex-row items-center justify-between pb-16 pt-24 md:pt-32 lg:pt-40 lg:pb-24 gap-8 lg:gap-4">
         
         {/* Left Side Main Typography */}
         <div className="w-full text-center lg:text-left pt-4 lg:pt-0">

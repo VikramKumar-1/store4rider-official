@@ -151,12 +151,12 @@ export const Navbar: React.FC<NavbarProps> = ({
     }`}>
       {/* Smooth fading liquid glassmorphic backdrop */}
       <div 
-        className={`absolute inset-0 transition-all duration-500 ease-out pointer-events-none ${
+        className={`absolute inset-0 transition-all duration-300 ease-in-out pointer-events-none ${
           theme === "light"
             ? "bg-white/95 backdrop-blur-md border-b border-neutral-200/80 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"
             : isScrolled
-              ? "opacity-100 bg-white/85 backdrop-blur-xl border-b border-neutral-200/60 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06)]"
-              : "opacity-0 bg-transparent border-b border-transparent"
+              ? "opacity-100 bg-white/90 backdrop-blur-md border-b border-neutral-200/60 shadow-sm"
+              : "opacity-0 bg-white/0"
         }`} 
       />
       <nav className="relative z-10 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
