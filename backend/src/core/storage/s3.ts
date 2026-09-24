@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { logger } from "../utils/logger";
+import { AppError } from "../errors/AppError";
 
 const REGION = process.env.AWS_REGION || process.env.S3_REGION || "ap-south-2";
 const BUCKET = process.env.AWS_S3_BUCKET || process.env.S3_BUCKET || "store4riders";
@@ -26,8 +27,7 @@ if (ACCESS_KEY_ID && SECRET_ACCESS_KEY) {
  */
 export const getPresignedUrl = async (fileName: string, fileType: string): Promise<string> => {
   if (!s3Client) {
-    logger.warn(`Mocking presigned URL for ${fileName}`);
-    return `https://mock-s3-url.com/${fileName}`;
+    throw new AppError("AWS S3 credentials are not configured", 500);
   }
 
   const command = new PutObjectCommand({

@@ -167,9 +167,11 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
               onSizeChange={setSelectedSize}
             />
             
-            <div className="mt-10 border-t border-neutral-100 pt-6">
-              <CompleteKitSlider products={product.kitProducts} />
-            </div>
+            {product.kitProducts && product.kitProducts.length > 0 && (
+              <div className="mt-10 border-t border-neutral-100 pt-6">
+                <CompleteKitSlider products={product.kitProducts} />
+              </div>
+            )}
             
             {/* Mobile Only: Store Reviews */}
             <div className="mt-10 border-t border-neutral-100 pt-6 lg:hidden">
@@ -235,7 +237,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-neutral-900 leading-tight">Secure Payment</span>
-                  <span className="text-[10px] text-neutral-500 font-medium leading-tight mt-0.5">Razorpay encrypted</span>
+                  <span className="text-[10px] text-neutral-500 font-medium leading-tight mt-0.5">100% Secure Encrypted</span>
                 </div>
               </div>
             </div>

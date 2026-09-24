@@ -45,10 +45,12 @@ JWT_ACCESS_SECRET=your_super_secret_access_key
 JWT_REFRESH_SECRET=your_super_secret_refresh_key
 NODE_ENV=production
 
-# --- PAYMENT (Razorpay) ---
-RAZORPAY_KEY_ID=rzp_live_...
-RAZORPAY_KEY_SECRET=your_razorpay_secret
-RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
+# --- PAYMENT (PayU & CCAvenue) ---
+PAYU_MERCHANT_KEY=your_payu_key
+PAYU_SALT=your_payu_salt
+CCAVENUE_MERCHANT_ID=your_ccavenue_mid
+CCAVENUE_ACCESS_CODE=your_ccavenue_access
+CCAVENUE_WORKING_KEY=your_ccavenue_working
 
 # --- AWS S3 (For Images) ---
 AWS_ACCESS_KEY_ID=your_aws_access_key

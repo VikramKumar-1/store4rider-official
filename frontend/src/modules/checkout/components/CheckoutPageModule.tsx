@@ -12,8 +12,11 @@ import Footer from "@/modules/homepage/components/Footer";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { CheckoutPersonalInfo } from "./CheckoutPersonalInfo";
 import { CheckoutStepper } from "./CheckoutStepper";
-import { CheckoutShippingDelivery, CourierOption, COURIER_OPTIONS } from "./CheckoutShippingDelivery";
+import { CheckoutShippingDelivery } from "./CheckoutShippingDelivery";
 import { CheckoutConfirmation } from "./CheckoutConfirmation";
+import { useCheckout } from "@/core/hooks/useCheckout";
+import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
+import { PaymentMethodType } from "@store4riders/shared-types";
 import { 
   UserIcon, 
   TruckIcon, 
@@ -38,15 +41,15 @@ const INDIAN_STATES = [
 ];
 
 declare global {
-  interface Window {
-    Razorpay: any;
-  }
+  interface Window {}
 }
 
 export const CheckoutPageModule = () => {
   const router = useRouter();
   const { items, clearCart } = useCartStore();
   const [mounted, setMounted] = useState(false);
+  const { mutate: placeOrder, isPending: isPlacingOrder } = useCheckout();
+  const { data: settings } = usePublicSettings();
   
   // 4 Figma Steps: 1: Checkout Form, 2: Shipping, 3: Confirmation, 4: Success
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
@@ -68,8 +71,7 @@ export const CheckoutPageModule = () => {
   });
 
   // Shipping & Payment Options
-  const [selectedCourier, setSelectedCourier] = useState<CourierOption | null>(COURIER_OPTIONS[0]);
-  const [paymentOption, setPaymentOption] = useState<"razorpay" | "partial_cod">("razorpay");
+  const [paymentOption, setPaymentOption] = useState<PaymentMethodType>("payu");
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [generatedOrderNumber, setGeneratedOrderNumber] = useState("12345678910");
@@ -77,19 +79,6 @@ export const CheckoutPageModule = () => {
   useEffect(() => {
     setMounted(true);
     setGeneratedOrderNumber(`ORD-${Math.floor(1000000000 + Math.random() * 9000000000)}`);
-  }, []);
-
-  // Load Razorpay Checkout Script
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    document.body.appendChild(script);
-    return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
   }, []);
 
   // Redirect to cart if empty and not on success step
@@ -118,7 +107,7 @@ export const CheckoutPageModule = () => {
     return total + itemPrice * item.quantity;
   }, 0);
 
-  const shippingCost = selectedCourier ? selectedCourier.cost : 0;
+  const shippingCost = settings ? (subtotal >= settings.freeShippingThreshold ? 0 : settings.shippingCost) : 0;
   const voucherDiscount = subtotal >= 3000 ? 500 : 0; // Voucher 50KDISCOUNT
   const total = Math.max(0, subtotal - voucherDiscount + shippingCost);
 
@@ -128,9 +117,19 @@ export const CheckoutPageModule = () => {
   };
 
   const validateStep1 = () => {
-    if (!formData.name.trim() || !formData.phone.trim() || !formData.email.trim() || !formData.address.trim() || !formData.state || !formData.pinCode.trim()) {
-      setErrorMessage("Please complete all the input fields.");
-      window.scrollTo({ top: 120, behavior: "smooth" });
+    if (!formData.name.trim() || !formData.phone.trim() || !formData.email.trim()) {
+      setErrorMessage("Please provide your name, phone number, and email address.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return false;
+    }
+    setErrorMessage("");
+    return true;
+  };
+
+  const validateStep2 = () => {
+    if (!formData.address.trim() || !formData.state || !formData.pinCode.trim()) {
+      setErrorMessage("Please complete all shipping address fields.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return false;
     }
     setErrorMessage("");
@@ -141,70 +140,29 @@ export const CheckoutPageModule = () => {
     e.preventDefault();
     if (validateStep1()) {
       setCurrentStep(2);
-      window.scrollTo({ top: 120, behavior: "smooth" });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
-  const handleContinueToConfirmation = () => {
-    if (!selectedCourier) {
-      setErrorMessage("Oops! Please choose shipping method.");
-      window.scrollTo({ top: 120, behavior: "smooth" });
-      return;
+  const handleContinueToPayment = () => {
+    if (validateStep2()) {
+      setCurrentStep(3);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
-    setErrorMessage("");
-    setCurrentStep(3);
-    window.scrollTo({ top: 120, behavior: "smooth" });
   };
 
-  const handleAgreeToPay = async () => {
-    if (!window.Razorpay) {
-      toast.error("Payment SDK is loading, please try again in a moment.");
-      return;
-    }
-
+  const handleAgreeToPay = () => {
     setIsProcessing(true);
-
-    try {
-      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_SxxPIU94rZKzyE";
-
-      const options = {
-        key: razorpayKey,
-        amount: total * 100, // in paise
-        currency: "INR",
-        name: "Store4Riders",
-        description: `Order ${generatedOrderNumber}`,
-        order_id: "",
-        prefill: {
-          name: formData.name,
-          email: formData.email,
-          contact: `${formData.countryCode}${formData.phone}`,
-        },
-        theme: {
-          color: "#EA580C", // Bright orange
-        },
-        handler: function (response: any) {
-          setIsProcessing(false);
-          clearCart();
-          setCurrentStep(4); // Move to Screen 4: Success
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        },
-        modal: {
-          ondismiss: function () {
-            setIsProcessing(false);
-          }
-        }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", function (response: any) {
-        setIsProcessing(false);
-        toast.error(`Payment Failed: ${response.error?.description || "Transaction cancelled"}`);
-      });
-      rzp.open();
-    } catch (err) {
-      setIsProcessing(false);
-      toast.error("Failed to initiate payment. Please try again.");
-    }
+    // Address saving/fetching will be handled in later phases, for now we mock
+    placeOrder({ 
+      shippingAddressId: "temp-addr-id", 
+      paymentMethod: paymentOption
+    }, {
+      onSettled: () => setIsProcessing(false),
+      onSuccess: () => {
+        // Success logic is handled by the hook (redirection)
+      }
+    });
   };
 
   return (
@@ -238,7 +196,7 @@ export const CheckoutPageModule = () => {
       ]} />
 
       {/* Main Content */}
-      <main className="max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10 flex-1">
+      <main className="max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-24 md:pt-4 md:pb-32 flex-1">
         
         {/* ========================================================================= */}
         {/* SCREEN 4: SUCCESS (matching Figma Screen 4) */}
@@ -271,21 +229,22 @@ export const CheckoutPageModule = () => {
           /* SCREENS 1, 2, 3: CHECKOUT FLOW */
           /* ========================================================================= */
           <>
-            {/* Stepper Progress Bar */}
-            <CheckoutStepper 
-              currentStep={currentStep} 
-              setCurrentStep={setCurrentStep as (step: 1 | 2 | 3) => void} 
-              validateStep1={validateStep1} 
-            />
-
             {/* Two Column Layout */}
-            <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
+            <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 items-start">
               
               {/* Left Column: Form Steps */}
               <div className="w-full lg:w-[62%]">
                 
+                {/* Stepper Progress Bar - Moved inside left column to save vertical space */}
+                <CheckoutStepper 
+                  currentStep={currentStep} 
+                  setCurrentStep={setCurrentStep as (step: 1 | 2 | 3) => void} 
+                  validateStep1={validateStep1} 
+                  validateStep2={validateStep2}
+                />
+                
                 {/* ------------------------------------------------------------- */}
-                {/* SCREEN 1: CHECKOUT FORM (Contact Person + Address Detail) */}
+                {/* STEP 1: PERSONAL INFO (Contact Person) */}
                 {/* ------------------------------------------------------------- */}
                 {currentStep === 1 && (
                   <CheckoutPersonalInfo 
@@ -296,21 +255,23 @@ export const CheckoutPageModule = () => {
                 )}
 
                 {/* ------------------------------------------------------------- */}
-                {/* SCREEN 2: CHECKOUT/SHIPPING (Shipping Delivery) */}
+                {/* STEP 2: SHIPPING & ADDRESS (Address Detail + Delivery Method) */}
                 {/* ------------------------------------------------------------- */}
                 {currentStep === 2 && (
                   <CheckoutShippingDelivery
-                    selectedCourier={selectedCourier}
-                    setSelectedCourier={setSelectedCourier}
+                    formData={formData}
+                    handleInputChange={handleInputChange}
                     setErrorMessage={setErrorMessage}
                     errorMessage={errorMessage}
                     setCurrentStep={setCurrentStep as (step: 1 | 2 | 3) => void}
-                    handleContinueToConfirmation={handleContinueToConfirmation}
+                    handleContinueToPayment={handleContinueToPayment}
+                    shippingCost={shippingCost}
+                    freeShippingThreshold={settings?.freeShippingThreshold || 999}
                   />
                 )}
 
                 {/* ------------------------------------------------------------- */}
-                {/* SCREEN 3: CHECKOUT/CONFIRMATION (Confirmation & I Agree to Pay) */}
+                {/* STEP 3: PAYMENT METHOD */}
                 {/* ------------------------------------------------------------- */}
                 {currentStep === 3 && (
                   <CheckoutConfirmation
@@ -325,17 +286,17 @@ export const CheckoutPageModule = () => {
 
               </div>
 
-              {/* Right Column: ORDER SUMMARY matching all Figma screens (Sticky on desktop) */}
-              <div className="w-full lg:w-[38%] lg:sticky lg:top-24 bg-white z-20">
-                <div className="flex flex-col">
+              {/* Right Column: ORDER SUMMARY (Sticky on desktop) */}
+              <div className="w-full lg:w-[38%] lg:sticky lg:top-4 z-20">
+                <div className="flex flex-col bg-white border border-neutral-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-5 sm:p-6">
                   
-                  {/* Validation Error Alert Banner matching Figma */}
+                  {/* Validation Error Alert Banner */}
                   {errorMessage && (
-                    <div className="bg-[#B91C1C] text-white px-4 py-3 rounded-none text-xs font-semibold flex items-center justify-between shadow-md mb-6 animate-in slide-in-from-top duration-200">
+                    <div className="bg-red-50 border border-red-100 text-red-600 px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-between mb-4">
                       <span>{errorMessage}</span>
                       <button
                         onClick={() => setErrorMessage("")}
-                        className="text-white/80 hover:text-white p-0.5"
+                        className="text-red-400 hover:text-red-600 p-0.5 transition-colors"
                       >
                         <XMarkIcon className="w-4 h-4 stroke-[2]" />
                       </button>
@@ -344,19 +305,24 @@ export const CheckoutPageModule = () => {
 
                   {/* Promo Applied Banner in Order Summary */}
                   {voucherDiscount > 0 && (
-                    <div className="bg-neutral-100 border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-none text-xs font-medium flex items-center justify-between mb-6">
-                      <span>Hooray! You use promo code!</span>
-                      <XMarkIcon className="w-3.5 h-3.5 text-neutral-400 cursor-pointer" />
+                    <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 px-3 py-2 rounded-lg text-[11px] font-bold flex items-center justify-between mb-4">
+                      <span className="flex items-center gap-1.5">
+                        <CheckCircleIcon className="w-4 h-4" />
+                        Voucher "50KDISCOUNT" Applied!
+                      </span>
+                      <button className="text-emerald-500 hover:text-emerald-700">
+                        <XMarkIcon className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   )}
 
                   {/* Heading */}
-                  <h2 className="font-sans font-bold text-xl sm:text-2xl text-neutral-900 tracking-tight uppercase mb-6">
-                    ORDER SUMMARY
+                  <h2 className="font-sans font-bold text-lg text-neutral-900 tracking-tight mb-4">
+                    Order Summary
                   </h2>
 
-                  {/* Items Mini List matching Figma */}
-                  <div className="flex flex-col divide-y divide-neutral-100 mb-6">
+                  {/* Items Mini List */}
+                  <div className="flex flex-col gap-3 mb-5 max-h-[180px] overflow-y-auto pr-2 custom-scrollbar">
                     {items.map((item) => {
                       const product = item.product || {};
                       const name = product.name || "Riding Gear";
@@ -364,29 +330,28 @@ export const CheckoutPageModule = () => {
                       const rawImg = product.images?.[0]?.url || product.image || FALLBACK_IMAGE;
 
                       return (
-                        <div key={`${item.productId}-${item.variantId}`} className="py-4 first:pt-0 flex items-start gap-4">
-                          <div className="relative w-16 h-16 bg-neutral-100 rounded-none overflow-hidden shrink-0 border border-neutral-200">
+                        <div key={`${item.productId}-${item.variantId}`} className="flex items-center gap-3 group">
+                          <div className="relative w-12 h-12 bg-neutral-50 rounded-lg overflow-hidden shrink-0 border border-neutral-100 group-hover:border-neutral-200 transition-colors">
                             <Image
                               src={rawImg}
                               alt={name}
                               fill
                               className="object-contain p-1"
-                              sizes="64px"
+                              sizes="48px"
                             />
                           </div>
 
                           <div className="flex flex-col flex-1 min-w-0">
-                            <span className="font-bold text-xs sm:text-sm text-neutral-900 uppercase line-clamp-1">
+                            <span className="font-bold text-[11px] text-neutral-900 uppercase line-clamp-1 leading-tight">
                               {name}
                             </span>
-                            <span className="text-xs text-neutral-500 font-semibold mt-0.5">
-                              {item.quantity} X {formatPrice(price)}
+                            <span className="text-[11px] text-neutral-500 font-medium mt-0.5">
+                              Qty: {item.quantity}
                             </span>
-                            {product.orderNote && (
-                              <span className="text-[10px] text-neutral-400 italic mt-1 line-clamp-1">
-                                {product.orderNote}
-                              </span>
-                            )}
+                          </div>
+                          
+                          <div className="text-[13px] font-bold text-neutral-900">
+                            {formatPrice(price * item.quantity)}
                           </div>
                         </div>
                       );
@@ -394,39 +359,40 @@ export const CheckoutPageModule = () => {
                   </div>
 
                   {/* Cost Breakdown */}
-                  <div className="flex flex-col gap-3.5 py-4 border-t border-b border-neutral-200">
-                    <div className="flex items-center justify-between text-sm text-neutral-600">
+                  <div className="flex flex-col gap-2.5 pt-4 border-t border-dashed border-neutral-200">
+                    <div className="flex items-center justify-between text-sm text-neutral-500 font-medium">
                       <span>Subtotal</span>
-                      <span className="font-semibold text-neutral-900">{formatPrice(subtotal)}</span>
+                      <span className="text-neutral-900">{formatPrice(subtotal)}</span>
                     </div>
 
                     {voucherDiscount > 0 && (
-                      <div className="flex items-center justify-between text-sm font-semibold">
-                        <span className="text-neutral-600">Voucher (50KDISCOUNT)</span>
-                        <span className="text-[#DC2626] font-bold">-{formatPrice(voucherDiscount)}</span>
+                      <div className="flex items-center justify-between text-sm font-medium">
+                        <span className="text-emerald-600">Discount</span>
+                        <span className="text-emerald-600 font-bold">-{formatPrice(voucherDiscount)}</span>
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between text-sm text-neutral-600">
+                    <div className="flex items-center justify-between text-sm font-medium text-neutral-500">
                       <span>Shipping</span>
-                      <span className="font-semibold text-neutral-900">
-                        {selectedCourier ? formatPrice(selectedCourier.cost) : "IDR -"}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-base text-neutral-900 font-bold pt-1">
-                      <span>Total</span>
-                      <span className="text-xl font-extrabold text-neutral-900">
-                        {formatPrice(total)}
+                      <span className={shippingCost === 0 ? 'text-emerald-600 font-bold' : 'text-neutral-900'}>
+                        {shippingCost === 0 ? "Free" : formatPrice(shippingCost)}
                       </span>
                     </div>
                   </div>
 
+                  {/* Total */}
+                  <div className="flex items-center justify-between pt-4 mt-4 border-t border-neutral-200">
+                    <span className="text-base font-bold text-neutral-900">Total</span>
+                    <span className="text-2xl font-black text-[#AB1509] tracking-tight">
+                      {formatPrice(total)}
+                    </span>
+                  </div>
+
                   {/* Trust Badges */}
-                  <div className="flex items-center justify-between gap-4 mt-6 pt-6 border-t border-neutral-100 text-[11px] text-neutral-400 font-medium uppercase tracking-wider text-center">
-                    <span>✓ 256-Bit SSL Encryption</span>
+                  <div className="flex items-center justify-center gap-3 mt-6 text-[10px] text-neutral-400 font-semibold uppercase tracking-wider">
+                    <span className="flex items-center gap-1"><ShieldCheckIcon className="w-3.5 h-3.5"/> Secure</span>
                     <span>•</span>
-                    <span>✓ Verified Payment</span>
+                    <span className="flex items-center gap-1"><LockClosedIcon className="w-3.5 h-3.5"/> Encrypted</span>
                   </div>
 
                 </div>

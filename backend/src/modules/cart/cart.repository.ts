@@ -13,4 +13,8 @@ export class CartRepository {
       { new: true, upsert: true }
     ).lean().exec() as unknown as ICart;
   }
+
+  static async clear(userId: string, session?: any): Promise<void> {
+    await CartModel.findOneAndDelete({ userId }, { session }).exec();
+  }
 }

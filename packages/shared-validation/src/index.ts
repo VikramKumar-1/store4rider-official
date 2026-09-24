@@ -6,3 +6,4 @@ export * from "./cart.schema";
 export * from "./category.schema";
 export * from "./review.schema";
 export * from "./coupon.schema";
+export * from "./shipping.schema";

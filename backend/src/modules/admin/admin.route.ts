@@ -59,5 +59,30 @@ export async function adminRouter(req: NextRequest, routePath: string[]): Promis
     return await AdminController.bulkUpdateProducts(req);
   }
 
+  if (pathLen === 1 && routePath[0] === "settings") {
+    const userId = extractUserFromAuth(req);
+    // Use general admin check for settings since there isn't a specific setting permission mentioned in the snippet
+    await checkPermission(userId, PermissionAction.MANAGE_USERS, UserService.getRole); 
+    
+    const { SettingController } = await import("../settings/setting.controller");
+    const { SettingValidator } = await import("../settings/setting.validator");
+
+    if (method === "GET") {
+      return await SettingController.getSettings(req);
+    }
+    
+    if (method === "PUT") {
+      SettingValidator.validateUpdateSettings(req);
+      return await SettingController.updateSettings(req);
+    }
+  }
+
+  if (method === "GET" && pathLen === 1 && routePath[0] === "payment-logs") {
+    const userId = extractUserFromAuth(req);
+    await checkPermission(userId, PermissionAction.MANAGE_ORDERS, UserService.getRole); 
+    const { AdminController: AdminCtrl } = await import("./admin.controller");
+    return await AdminCtrl.getPaymentLogs(req);
+  }
+
   return null;
 }

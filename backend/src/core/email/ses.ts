@@ -1,5 +1,6 @@
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { logger } from "../utils/logger";
+import { AppError } from "../errors/AppError";
 
 const REGION = process.env.SES_REGION || "ap-south-1";
 const FROM_EMAIL = process.env.SES_FROM_EMAIL || "noreply@store4riders.com";
@@ -22,8 +23,7 @@ if (ACCESS_KEY_ID && SECRET_ACCESS_KEY) {
 
 export const sendEmail = async (to: string, subject: string, body: string) => {
   if (!sesClient) {
-    logger.info(`[MOCK EMAIL] To: ${to} | Subject: ${subject}`);
-    return;
+    throw new AppError("AWS SES credentials are not configured", 500);
   }
 
   const command = new SendEmailCommand({

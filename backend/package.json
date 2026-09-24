@@ -33,7 +33,6 @@
     "pino": "^8.16.0",
     "pino-pretty": "^10.2.0",
     "rate-limiter-flexible": "^4.0.0",
-    "razorpay": "^2.9.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "swagger-jsdoc": "^6.2.8",

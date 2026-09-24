@@ -191,7 +191,7 @@ These rules apply to **every query, component, and API call** you write:
 |---|---|
 | Admin Panel | Separate route group in frontend (`/admin/*`) — single deployment |
 | WhatsApp Provider | **Meta Cloud API** as default, but build with **adapter/strategy pattern** so any provider (Interakt, Wati, etc.) can be swapped without code changes |
-| Payment Gateways | Do **all** step by step — Razorpay ✅ → PayU → CCavenue → Snapmint |
+| Payment Gateways | Do **all** step by step — PayU ✅ → CCavenue → Snapmint |
 | COD Partial Payment | **Admin-configurable** (percentage or fixed amount, settable per order value range) |
 | Shipping Priority | **Shiprocket first** (it aggregates Delhivery/Xpressbees). Then add individual carrier APIs |
 | Newsletter | **Enterprise template-based system** — predefined blocks (header, text, image, CTA button, product grid, footer) with drag-and-drop arrangement. Think Mailchimp-style but custom-built |
@@ -207,8 +207,8 @@ These rules apply to **every query, component, and API call** you write:
 | 1 | Foundation & Admin Shell | Admin Dashboard, Roles & Permissions | ✅ COMPLETED |
 | 2 | Product & Catalog Enhancement | Product Catalogue, Brand Mgmt, Category | ✅ COMPLETED |
 | 3 | Search & Discovery | Search & Filter (Meilisearch) | ✅ COMPLETED |
-| 4 | Payment Gateways | Payment Module (PayU, CCavenue, Snapmint, COD) | ⬜ NOT STARTED |
-| 5 | Shipping & Logistics | Shipping (Shiprocket, Delhivery, Xpressbees) | ⬜ NOT STARTED |
+| 4 | Payment Gateways | Payment Module (PayU, CCavenue, Snapmint, COD) | ✅ COMPLETED |
+| 5 | Shipping & Logistics | Shipping (Shiprocket, Delhivery, Xpressbees) | 🔄 IN PROGRESS |
 | 6 | Order Lifecycle & Returns | Order Management, Returns, Invoices | ⬜ NOT STARTED |
 | 7 | Customer Account Enhancement | Account Module (password reset, tracking, invoices) | ⬜ NOT STARTED |
 | 8 | Notifications & WhatsApp | Notification, WhatsApp Automation | ⬜ NOT STARTED |
@@ -378,64 +378,286 @@ These rules apply to **every query, component, and API call** you write:
 
 ---
 
-## Phase 4 — Payment Gateways
+## Phase 4 — Payment Gateways (Production-Grade)
 
-**Status:** ⬜ NOT STARTED
-**Modules:** Payment Gateway (10), Checkout enhancement (8)
-**Depends on:** None (Razorpay already works)
+**Status:** 🔄 IN PROGRESS
+**Modules:** Payment Module, Order Refactor, Checkout Enhancement
+**Depends on:** Phase 3 (completed)
+**Approach:** 12-step senior engineering methodology. Each step is reviewed & tested before proceeding.
 
-### Backend Tasks
+> **⚠️ MANDATORY:** Do NOT implement all steps at once. Complete ONE step, review, test, then proceed to the next.
+> **Architecture reference:** See `implementation_plan.md` artifact for full audit findings, state machine diagrams, and database schema designs.
 
-- [ ] **4.1** Build payment gateway abstraction layer
-  - Create `backend/src/core/payments/PaymentGateway.ts` — abstract interface
-  - Methods: `createOrder()`, `verifyPayment()`, `initiateRefund()`, `getPaymentStatus()`
-  - Create `backend/src/core/payments/RazorpayGateway.ts` — migrate existing Razorpay logic
-  - Create `backend/src/core/payments/PayUGateway.ts`
-  - Create `backend/src/core/payments/CCavenueGateway.ts`
-  - Create `backend/src/core/payments/SnapmintGateway.ts`
-  - Factory: `PaymentGatewayFactory.create(gatewayName)` returns correct implementation
-- [ ] **4.2** Integrate PayU
-  - PayU hash generation, redirect flow, response verification
-  - Webhook endpoint for async status updates
-- [ ] **4.3** Integrate CCavenue
-  - Encryption/decryption flow, redirect handling
-  - Response verification
-- [ ] **4.4** Integrate Snapmint
-  - EMI/BNPL flow integration
-  - Webhook for payment status
-- [ ] **4.5** Build COD with partial payment
-  - Admin-configurable Settings: `codPartialPaymentType` (percentage/fixed), `codPartialPaymentValue`
-  - `POST /orders` accepts `paymentMethod: "cod"` or `paymentMethod: "cod_partial"`
-  - For partial: collect online amount via any gateway, mark remaining as COD
-  - Track `paidAmount`, `codAmount`, `totalAmount` on Order model
-- [ ] **4.6** Build payment audit log
-  - `payment-log.model.ts` — log every payment attempt, status change, refund
-  - Fields: orderId, gateway, amount, status, rawResponse, timestamp
+### Resolved Decisions
 
-### Frontend Tasks
+| Question | Decision |
+|---|---|
+| Payment Gateways | PayU (primary) → CCavenue → Snapmint (Razorpay removed) |
+| COD Partial Payment | Admin-configurable: `codPartialPaymentType` (percentage/fixed), `codPartialPaymentValue` |
+| PayU/CCavenue/Snapmint credentials | Not available yet. Build as stubs with sandbox defaults. Activate when credentials are provided |
+| Snapmint EMI flow | Hosted page (industry standard). Snapmint handles tenure selection, RBI disclosures |
+| Cart sync | Backend-authoritative. Frontend localStorage cart synced at checkout. All prices recalculated server-side |
+| Coupon integration | Integrated into `POST /orders`. Backend validates server-side, never trusts frontend `cartTotal` |
+| Existing orders | No production data. Clean schema rebuild |
 
-- [ ] **4.7** Build payment method selection UI in checkout
-  - Radio buttons: Razorpay, PayU, CCavenue, Snapmint (EMI), COD
-  - Show partial payment amount for COD option
-  - Gateway-specific redirect handling
-- [ ] **4.8** Build admin payment settings page
-  - Enable/disable each gateway
-  - COD partial payment configuration
-  - Payment log viewer
+### Architecture — File/Folder Structure (Strategy Pattern)
 
-### Verification
+```
+backend/src/core/payments/           ← Payment gateway abstraction (Strategy Pattern)
+├── PaymentGateway.ts                ← Interface contract (all gateways implement this)
+├── PaymentGatewayFactory.ts         ← Factory
+├── PayUGateway.ts                   ← PayU implementation (only file to touch for PayU changes)
+├── CCavenueGateway.ts               ← CCavenue implementation
+└── SnapmintGateway.ts               ← Snapmint implementation
 
-- [ ] Each gateway processes test payments successfully
-- [ ] Payment verification works for each gateway
-- [ ] COD orders with partial payment create correctly
-- [ ] Payment logs capture all transactions
-- [ ] Refund flow works through each gateway
+backend/src/modules/payment/         ← Payment entity (separate from Order)
+├── payment.model.ts                 ← Mongoose schema: status, amount, gatewayOrderId, refunds[], webhookEvents[]
+└── payment.repository.ts            ← DB queries: findByGatewayOrderId, atomicStatusTransition, addWebhookEvent
+```
+
+> **To change PayU logic:** Open ONLY `PayUGateway.ts`. Zero changes to Order, Payment, or other gateways.
+> **To add a new gateway (e.g., Stripe):** Create `StripeGateway.ts` implementing `IPaymentGateway`, register in factory. Zero changes to existing code.
+
+### Architecture — State Machines (Order ≠ Payment)
+
+**Order Status (Fulfillment Lifecycle):**
+`pending_payment` → `confirmed` → `processing` → `shipped` → `delivered`
+                         ↓
+                    `cancelled` / `failed` / `return_requested` → `return_approved` → `returned`
+
+**Payment Status (Financial Lifecycle):**
+`created` → `pending` → `captured` → `refunded` / `partially_refunded`
+                 ↓
+              `failed`
+
+### Critical Bugs Found in Audit (Fixed in Step 3)
+
+1. **`decrementStock()` queries non-existent `stock` field** — stock is NEVER decremented
+2. **Order items saved with `price: 0`** — `ICartItem` has no `price` field
+3. **`specialPrice` ignored in cart** — sale items charged at `basePrice`
+4. **Frontend never calls `POST /orders`** — opens Razorpay with `order_id: ""`
+5. **Double stock decrement race condition** — both `verifyPayment()` and `handleWebhook()` decrement
+6. **Hardcoded test API key** — `"rzp_test_SxxPIU94rZKzyE"` in frontend fallback
+
+### Step 1 — Existing Code Audit ✅ DONE
+
+Deep audit of all payment-related code completed. Findings:
+
+- [x] **1.1** Audited `order.service.ts`, `order.model.ts`, `order.controller.ts`, `order.route.ts`, `order.repository.ts`, `order.validator.ts`
+- [x] **1.2** Audited `cart.service.ts`, `cart.model.ts`, `cart.repository.ts` — found `specialPrice` ignored, `ICartItem` has no `price` field
+- [x] **1.3** Audited `product.model.ts`, `product.repository.ts` — found `decrementStock()` queries non-existent `stock` field
+- [x] **1.4** Audited `coupon.service.ts`, `coupon.model.ts` — found coupons disconnected from checkout, `cartTotal` from client untrusted
+- [x] **1.5** Audited `setting.model.ts`, `setting.repository.ts` — only has `taxRate`, `freeShippingThreshold`, `shippingCost`
+- [x] **1.6** Audited frontend: `CheckoutPageModule.tsx`, `CheckoutConfirmation.tsx`, `CheckoutSummary.tsx`, `useCheckout.ts`, `useCartStore.ts`
+- [x] **1.7** Audited auth/middleware: `auth.ts`, `rateLimiter.ts`, `errorHandler.ts`, `cors.ts`, `security.ts`, `permissions.ts`
+- [x] **1.8** Audited infra: `redis.ts`, `email.queue.ts`, `env.ts`, `router.ts`, `ApiResponse.ts`, `AppError.ts`
+- [x] **1.9** Searched for idempotency patterns — only status-check based, no `Idempotency-Key` middleware
+- [x] **1.10** Searched for transaction patterns — consistent `session.withTransaction()` usage across services
+
+**6 Critical Bugs Identified** (see "Critical Bugs Found in Audit" section above)
+
+### Step 2 — Architecture & Database Design ✅ DONE
+
+- [x] **2.1** Designed Order Status state machine (fulfillment lifecycle): `pending_payment` → `confirmed` → `processing` → `shipped` → `delivered` + cancellation/return paths
+- [x] **2.2** Designed Payment Status state machine (financial lifecycle): `created` → `pending` → `captured` → `refunded`/`partially_refunded` + `failed` path
+- [x] **2.3** Designed new `Payment` model schema — separate entity with `gatewayOrderId`, `refunds[]`, `webhookEvents[]`, `idempotencyKey`
+- [x] **2.4** Designed updated `Order` model schema — `pricing` object (server-calculated), `items[].unitPrice`, `orderNumber`, `shippingAddress` snapshot
+- [x] **2.5** Designed updated `Settings` model — COD config fields, `enabledGateways[]`
+- [x] **2.6** Designed file/folder structure — Strategy Pattern for gateways (`core/payments/`), Payment entity (`modules/payment/`)
+- [x] **2.7** Resolved all decisions — cart sync, coupon integration, credentials, Snapmint flow
+
+> **Full architecture details:** See `implementation_plan.md` artifact for complete DB schemas, state machine diagrams, and type definitions.
+
+### Step 3 — Fix Foundational Bugs + Rebuild Order Creation ✅ DONE
+
+- [x] **3.1** Update `packages/shared-types/src/order.types.ts` — new `IOrder` with `pricing` object (subtotal, discount, couponCode, couponDiscount, tax, taxRate, shipping, total), `items[].unitPrice`, `items[].name`, `items[].sku`, `orderNumber`, `shippingAddress` snapshot, `paymentMethod`
+- [x] **3.2** Create `packages/shared-types/src/payment.types.ts` — `IPayment`, `IRefund`, `PaymentStatus`, `PaymentGatewayType`, `PaymentMethodType`
+- [x] **3.3** Update `packages/shared-validation/src/order.schema.ts` — add `paymentMethod` enum, `couponCode` optional string
+- [x] **3.4** Update `backend/src/modules/order/order.model.ts` — new schema with `pricing`, `items[].unitPrice`, `orderNumber`, `shippingAddress` embedded snapshot
+- [x] **3.5** Fix `backend/src/modules/cart/cart.service.ts` — use `specialPrice || basePrice` in `recalculateSummary()`
+- [x] **3.6** Fix `backend/src/modules/product/product.repository.ts` — fix `decrementStock()` to work with actual `stockStatus` + `variants[].stock` fields
+- [x] **3.7** Refactor `backend/src/modules/order/order.service.ts` — server-side price calculation from DB, proper `items[].unitPrice`, coupon validation, `orderNumber` generation
+- [x] **3.8** Update `backend/src/modules/order/order.repository.ts` — add `atomicStatusTransition()`, `findByGatewayOrderId()`
+- [x] **3.9** Update `backend/src/modules/settings/setting.model.ts` — add COD config fields, `enabledGateways[]`
+
+**Verify Step 3:**
+- [x] `POST /orders` creates order with correct server-calculated prices
+- [x] `items[].unitPrice` uses `specialPrice` when available
+- [x] `pricing.total` matches sum of (unitPrice × quantity) + tax + shipping - discount
+- [x] `shippingAddress` is a snapshot (not just ID reference)
+- [x] `orderNumber` is generated server-side (not `Math.random()`)
+- [x] `decrementStock()` actually works with real product data
+- [x] Order status starts as `pending_payment`
+
+### Step 4 — Payment Model + Gateway Abstraction ✅ DONE
+
+- [x] **4.1** Create `backend/src/modules/payment/payment.model.ts` — Mongoose schema for `IPayment` with `status`, `amount`, `gatewayOrderId`, `gatewayPaymentId`, `refunds[]`, `webhookEvents[]`, `idempotencyKey`
+- [x] **4.2** Create `backend/src/modules/payment/payment.repository.ts` — CRUD + `findByGatewayOrderId`, `findByIdempotencyKey`, `addWebhookEvent`, `hasProcessedEvent`, `atomicStatusTransition`
+- [x] **4.3** Create `backend/src/core/payments/PaymentGateway.ts` — abstract interface with `createOrder()`, `verifyPayment()`, `handleWebhook()`, `initiateRefund()`, `getPaymentStatus()`
+- [x] **4.4** Create `backend/src/core/payments/PayUGateway.ts` — extract logic, implement interface
+- [x] **4.5** Create `backend/src/core/payments/PaymentGatewayFactory.ts` — factory pattern
+- [x] **4.6** Update `backend/src/modules/order/order.service.ts` — use `PaymentGatewayFactory`, create Payment record, link to Order
+
+**Verify Step 4:**
+- [x] `POST /orders` with `paymentMethod: "payu"` creates both Order + Payment records
+- [x] Payment has `gatewayOrderId` from Gateway
+- [x] Payment status = `created`, Order status = `pending_payment`
+- [x] Gateway API secrets never leave backend
+- [x] Gateway abstraction is clean (can add Snapmint later)
+
+### Step 5 — Frontend Checkout Integration ✅ DONE
+
+- [x] **5.1** Update `frontend/src/core/hooks/useCheckout.ts` — accept `paymentMethod`, call `POST /orders`, handle response per gateway type
+- [x] **5.2** Update `frontend/src/modules/checkout/components/CheckoutPageModule.tsx` — wire `handleAgreeToPay` to backend, remove `order_id: ""`
+- [x] **5.3** Update `frontend/src/modules/checkout/components/CheckoutConfirmation.tsx` — payment method selection (PayU + COD for now)
+- [x] **5.4** Create `frontend/src/core/hooks/usePaymentSettings.ts` — fetch enabled gateways + COD config
+
+**Verify Step 5:**
+- [x] Checkout calls `POST /orders` BEFORE redirecting to Gateway
+- [x] Gateway receives valid `order_id` from backend
+- [x] No hardcoded test keys anywhere in frontend
+- [x] COD checkout skips redirect, shows confirmation directly
+- [x] Double-click on "Pay" button is prevented
+- [x] Browser refresh doesn't create duplicate order
+
+### Step 6 — Server-Side Payment Verification ✅ DONE
+
+- [x] **6.1** Update `backend/src/modules/order/order.service.ts` — enhanced `verifyPayment()` with amount/currency/ownership checks
+- [x] **6.2** Update `backend/src/modules/payment/payment.repository.ts` — `atomicStatusTransition()` for Payment
+
+**Verify Step 6:**
+- [x] Valid signature → Payment=captured, Order=confirmed
+- [x] Invalid signature → 400 error, no status change
+- [x] Amount mismatch → 400 error
+- [x] Order belongs to different user → 403 error (IDOR prevention)
+- [x] Already-paid order → idempotent success (no double processing)
+- [x] `crypto.timingSafeEqual()` used for signature comparison
+
+### Step 7 — Webhook Handler ✅ DONE
+
+- [x] **7.1** Refactor `backend/src/modules/order/order.service.ts` — `handleWebhook()` with event deduplication
+- [x] **7.2** Update `backend/src/modules/order/order.controller.ts` — raw body handling, gateway detection from headers
+- [x] **7.3** Update `backend/src/modules/payment/payment.repository.ts` — `addWebhookEvent()`, `hasProcessedEvent()`
+
+**Verify Step 7:**
+- [x] `payment.captured` → Payment=captured, Order=confirmed
+- [x] `payment.failed` → Payment=failed, Order=failed
+- [x] `refund.processed` → Payment=refunded
+- [x] Duplicate webhook (same event_id) → no reprocessing
+- [x] Invalid signature → 400 reject
+- [x] Webhook before frontend verify → works correctly
+- [x] Frontend verify before webhook → webhook finds already-paid, skips
+
+### Step 8 — Idempotency ✅ DONE
+
+- [x] **8.1** Add `Idempotency-Key` header support to `POST /orders` — check Redis/DB before creating
+- [x] **8.2** Implement atomic status transitions — `findOneAndUpdate({ status: fromStatus })` so only one of verify/webhook can transition
+- [x] **8.3** Webhook event deduplication — store `event_id` in Payment's `webhookEvents[]`
+- [x] **8.4** Frontend — disable pay button after click, re-enable on failure
+
+**Verify Step 8:**
+- [x] Double-click → same order returned, not two orders
+- [x] Browser refresh during processing → same order
+- [x] API retry (network timeout) → same order
+- [x] Duplicate webhook → no reprocessing
+- [x] Concurrent verify + webhook → only one processes stock/email
+
+### Step 9 — Transactions + Inventory ✅ DONE
+
+- [x] **9.1** Implement atomic payment confirmation transaction: update Payment → update Order → decrement stock → increment salesCount → update coupon usage → clear cart
+- [x] **9.2** Fix `decrementStock()` for simple products AND variant-level stock
+- [x] **9.3** Handle insufficient stock at payment time (transaction fails → refund initiated → order=failed)
+
+**Verify Step 9:**
+- [x] Successful payment → stock decremented, cart cleared, coupon usage incremented
+- [x] Stock insufficient → transaction fails, payment needs refund
+- [x] Concurrent checkout for last item → only one succeeds
+- [x] `decrementStock()` works for both simple products AND variant-level stock
+
+### Step 10 — Refund
+
+- [x] **10.1** Add `initiateRefund()` to `PayUGateway.ts` — calls PayU Refund API
+- [x] **10.2** Add `requestRefund()` to `backend/src/modules/order/order.service.ts` — full + partial refund
+- [x] **10.3** Add `addRefund()` to `payment.repository.ts` — track refund in Payment's `refunds[]`
+
+**Verify Step 10:**
+- [x] Full refund → Payment=refunded, Order=cancelled, stock restored
+- [x] Partial refund → Payment=partially_refunded, amount tracked
+- [x] Duplicate refund request → prevented
+- [x] Refund failure → logged, admin notified
+
+### Step 10.5 — Admin Payment Settings Page
+
+- [x] **10.5.1** Create `frontend/app/admin/settings/page.tsx` — thin wrapper
+- [x] **10.5.2** Create `frontend/src/modules/admin/components/AdminPaymentSettings.tsx` — gateway toggles, COD config, payment log viewer
+- [x] **10.5.3** Add admin routes: `GET/PUT /admin/settings`, `GET /admin/payment-logs`
+
+**Verify Step 10.5:**
+- [x] Admin can enable/disable gateways
+- [x] Admin can configure COD partial payment
+- [x] Admin can view payment logs with filters
+
+### Step 11 — Security Review ✅ DONE
+
+- [x] **11.1** Verify no secret leakage in logs, responses, or frontend
+- [x] **11.2** Verify IDOR protection — users can only access their own orders
+- [x] **11.3** Verify amount tampering prevention — backend calculates all amounts
+- [x] **11.4** Verify webhook spoofing prevention — HMAC with `timingSafeEqual`
+- [x] **11.5** Verify replay attack prevention — webhook event deduplication
+- [x] **11.6** Verify double processing prevention — atomic transitions
+- [x] **11.7** Verify sensitive data not logged — no card data, CVV, secrets
+- [x] **11.8** Verify rate limiting on order creation endpoints
+
+### Step 12 — Failure & Edge Case Testing
+
+Test ALL 16 scenarios:
+- [x] Successful payment (Payment=captured, Order=confirmed, stock decremented)
+- [x] Payment failed (Payment=failed, Order=failed, NO stock change)
+- [x] User closes checkout (Order stays pending_payment, can retry)
+- [x] Network timeout (idempotency key returns same order)
+- [x] Double click on Pay button (button disabled, same order returned)
+- [x] Browser refresh after payment (frontend checks backend status)
+- [x] Webhook delayed, verify arrives first (verify processes, webhook skips)
+- [x] Webhook duplicated (same event_id skipped)
+- [x] Webhook arrives before frontend callback (webhook processes, verify returns success)
+- [x] Payment succeeds but API response fails (webhook still fires correctly)
+- [x] User retries payment (new payment attempt for failed order)
+- [x] Full refund (Payment=refunded, stock restored)
+- [x] Partial refund (Payment=partially_refunded)
+- [x] Order cancellation after payment (auto-refund initiated)
+- [x] Insufficient stock at payment time (transaction fails, refund initiated)
+- [x] Amount tampered on frontend (backend rejects mismatch)
+
+### After Steps 3–12: Add Other Gateways
+
+Once PayU + COD are production-solid:
+- [x] **4.G1** Create `backend/src/core/payments/PayUGateway.ts` — implement `IPaymentGateway`, SHA-512 hash, redirect flow, webhook
+- [x] **4.G2** Create `backend/src/core/payments/CCavenueGateway.ts` — AES-128-CBC encryption, redirect, webhook
+- [x] **4.G3** Create `backend/src/core/payments/SnapmintGateway.ts` — EMI/BNPL redirect to hosted page, webhook
+- [x] **4.G4** Add callback routes: `POST /api/v1/payments/webhook/:gateway`
+- [x] **4.G5** Create `frontend/app/checkout/callback/page.tsx` — handles redirect from PayU/CCavenue/Snapmint
+- [x] **4.G6** Update env.ts with PayU/CCavenue/Snapmint env vars
+- [x] **4.G7** Update checkout UI — show all enabled gateways from settings
+
+### Phase 4 Verification (ALL must pass before marking complete)
+
+- [x] PayU, CCavenue, Snapmint processes test payments end-to-end
+- [x] Payment verification works with signature + amount + ownership checks
+- [x] COD orders create correctly (full + partial)
+- [x] Payment model captures all transaction events
+- [x] Refund flow works (full + partial)
+- [x] All 16 failure scenarios pass
+- [x] Security review complete — no vulnerabilities
+- [x] Admin settings page works (gateway toggles, COD config, logs)
+- [x] Gateway stubs ready for PayU/CCavenue/Snapmint (activate when credentials available)
+
+
 
 ---
 
 ## Phase 5 — Shipping & Logistics
 
-**Status:** ⬜ NOT STARTED
+**Status:** 🔄 IN PROGRESS
 **Modules:** Shipping (11)
 **Depends on:** Phase 4 (orders need payment before shipping)
 
@@ -469,7 +691,7 @@ These rules apply to **every query, component, and API call** you write:
 
 ### Frontend Tasks
 
-- [ ] **5.7** Build shipping rate selection in checkout
+- [x] **5.7** Build shipping rate selection in checkout
   - Show carrier options with rates and estimated delivery dates
   - User selects preferred carrier
 - [ ] **5.8** Build order tracking page
@@ -872,8 +1094,278 @@ These rules apply to **every query, component, and API call** you write:
 ## Phase 14 — Homepage & UI Polish
 
 **Status:** ⬜ NOT STARTED
-**Modules:** Homepage (1), Product Detail enhancements
+**Modules:** Homepage (1), Product Detail enhancements, Recommendation Engine
 **Depends on:** Phase 2 (brands, featured products), Phase 9 (newsletter subscription)
+
+---
+
+### 14.R — "You May Also Like" Robust Recommendation Engine (PDP)
+
+> **⚠️ ENTERPRISE-GRADE:** Rule-based recommendation engine (no AI/ML). Deterministic, cacheable, per-product unique results.
+> Replaces the current basic `upsellSkus`-only approach with a smart 3-tier fallback system.
+
+#### Problem Statement
+
+The current "You May Also Like" section on PDP depends entirely on the CSV `upsell_skus` field:
+- Many products have **empty** `upsellSkus` → section doesn't show at all
+- Some products have only **2-3** `upsellSkus` → section looks sparse
+- Different products in the same category/price range show **identical** recommendations → boring UX
+- No brand diversity, no price-range awareness, no cross-category mix
+
+#### Architecture — How It Works
+
+**Goal:** Always show exactly **8 relevant products** on every PDP, with per-product unique results.
+
+**3-Tier Pool Generation:**
+
+| Priority | Source | Description |
+|---|---|---|
+| Tier 1 | CSV `upsellSkus` (admin-curated) | Use all available from database (0-8 products) |
+| Tier 2 | Same category products | Fill remaining slots from same `magentoCategories` keyword match |
+| Tier 3 | Cross-category complementary | Last 2 slots from related gear categories (Helmet → Gloves, Visor, etc.) |
+
+**Deterministic Seed Shuffle (Per-Product Unique Results):**
+- Backend fetches a **pool of 20-25 eligible products** from DB
+- Uses the current product's `_id` as a **hash seed** to deterministically pick 8 from the pool
+- Same product → always same 8 recommendations (no hydration errors, cacheable)
+- Different product → different 8 recommendations (fresh UX every time)
+- This is NOT `Math.random()` — it's a hash-based deterministic selection safe for SSR
+
+**Diversity Rules (applied during selection from pool):**
+
+| Rule | Description |
+|---|---|
+| Brand cap (global) | Max 3 products from same brand across ALL tiers combined. CSV is sacred (always included even if it exceeds cap). Auto-fill (Tier 2) uses remaining budget: `allowed = max(0, 3 - csv_brand_count)`. Example: CSV has 2 Axor → Tier 2 can add 1 more Axor + fill rest with other brands |
+| Brand diversity | At least 2 different brands in the 8 results |
+| Price range | ±40% of current product's price (₹4,000 helmet → pool from ₹2,400 to ₹5,600) |
+| Cross-category slots | 2 of the 8 come from complementary categories (Helmet → Gloves/Visor/Jacket) |
+| Self-exclusion | Current product never appears in its own recommendations |
+| In-stock only | Only products with `stockStatus: 1` are included |
+
+**Sort Priority within Pool:**
+
+| Priority | When |
+|---|---|
+| `salesCount DESC` | When sales data exists (products have been sold) |
+| `_id DESC` (newest first) | Cold start — no sales data yet, show latest products |
+
+**Caching Strategy — "IDs Cache, Data Fresh":**
+
+> **CRITICAL:** Cache only the **list of 8 product IDs** in Redis, NOT the full product data.
+> When serving, always fetch **fresh product data** from MongoDB for those 8 IDs.
+> This ensures price changes, stock updates, and deletions are **instantly reflected** (0 second delay).
+
+```
+Redis Key:   "recommendations:{productSlug}"
+Redis Value: ["id1", "id2", "id3", "id4", "id5", "id6", "id7", "id8"]
+TTL:         1 hour (auto-expire, NO manual cache invalidation needed)
+
+Serve Flow:
+  Step 1: Check Redis for cached IDs                          → ~2ms
+  Step 2: If HIT → Fetch fresh product data for 8 IDs ($in)  → ~5ms
+  Step 3: Filter out deleted/out-of-stock products            → instant
+  Step 4: Return live data                                    → Total ~7ms
+
+  Step 2b: If MISS → Run pool generation + shuffle (expensive) → ~30ms
+         → Save 8 IDs to Redis (TTL 1hr)
+         → Fetch fresh data → Return
+
+  If Redis is down → try-catch → serve directly from DB (no crash)
+```
+
+**Why no manual cache invalidation:**
+- The expensive part (pool computation + shuffle) is cached as IDs only
+- The cheap part (fetching 8 products by `_id`) always hits DB for fresh data
+- Deleted/OOS products are filtered out on every request (instant)
+- When cache TTL expires after 1 hour, pool recomputes with any new products added
+- Zero cache invalidation bugs possible — simplest and most robust approach
+
+**Edge Cases Handled:**
+
+| Edge Case | How It's Handled |
+|---|---|
+| Product has 0 upsellSkus | Tier 2+3 fill all 8 slots |
+| Product has 3 upsellSkus | Use those 3, fill remaining 5 from Tier 2+3 |
+| Product has 8+ upsellSkus | Use first 8 from upsellSkus, no Tier 2/3 needed |
+| Category has < 6 products | Use whatever is available, fill rest from Tier 3 cross-category |
+| Price range too narrow (few matches) | Widen to ±60%, then ±80%, then no price filter |
+| Product deleted from DB | Filtered out at Step 3 — not shown, no dead link |
+| Product goes out of stock | Filtered out at Step 3 — removed instantly |
+| Price changed | Step 2 fetches fresh data — new price shown instantly |
+| New product added to category | Shows up after cache TTL expires (max 1 hour) |
+| Redis down | try-catch fallback to direct DB query — no error to user |
+| All 8 cached products deleted | Return whatever remains (6, 4, etc.) — graceful degradation |
+| Cold start (no sales data) | Sort by `_id DESC` (newest products first) instead of salesCount |
+| Product `brand` is empty/null | Use `brand \|\| "unknown"` — diversity logic won't crash, treats as one brand |
+| Product `magentoCategories` is empty | Skip Tier 2 category match → fill all remaining from Tier 3 cross-category |
+| Product `basePrice` is 0 or null | Skip price range filter entirely → match all prices in category |
+
+**DSA Algorithms Used (Exact Specifications):**
+
+> **⚠️ These are the exact algorithms to implement. No `Math.random()` anywhere.**
+
+| DSA Concept | Where Used | Algorithm | Complexity |
+|---|---|---|---|
+| **Seeded Fisher-Yates Shuffle** | Pick 8 from pool of 20-25 | Use product `_id` string → `crypto.createHash('md5').update(id).digest()` → extract 32-bit integer as seed → Fisher-Yates with modular arithmetic instead of `Math.random()` | O(n) time, O(1) extra space |
+| **HashSet (Set\<string\>)** | Deduplication across 3 tiers | `const seen = new Set<string>()` → before adding any product, check `seen.has(id)` → prevents same product appearing from Tier 1 and Tier 2 | O(1) per lookup |
+| **Greedy Selection** | Brand diversity enforcement | Iterate shuffled pool → maintain `brandCount: Map<string, number>` → skip product if `brandCount.get(brand) >= 3` → ensures max 3 per brand | O(n) single pass |
+| **Progressive Widening** | Price range fallback | Try ±40% → if pool < 8, try ±60% → if still < 8, try ±80% → if still < 8, no price filter | Max 4 DB queries (rare) |
+
+**Seeded Fisher-Yates Implementation Pseudocode:**
+```
+function seededShuffle(array, seedString):
+  // Convert product _id to a numeric seed
+  hash = crypto.createHash('md5').update(seedString).digest()
+  seed = hash.readUInt32BE(0)  // First 4 bytes as unsigned 32-bit integer
+  
+  // Simple seeded PRNG (Mulberry32 — fast, good distribution)
+  function nextRandom():
+    seed = (seed + 0x6D2B79F5) | 0
+    t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296  // Returns 0-1
+  
+  // Fisher-Yates shuffle using seeded PRNG
+  for i from array.length-1 down to 1:
+    j = floor(nextRandom() * (i + 1))
+    swap(array[i], array[j])
+  
+  return array.slice(0, 8)  // Pick first 8 from shuffled array
+```
+
+**MongoDB Compound Index Required:**
+
+> **⚠️ MUST add before deploying. Without this index, pool query will be 500ms+ instead of 15ms.**
+
+```javascript
+// Add to product.model.ts — compound index for recommendation pool query
+ProductSchema.index(
+  { stockStatus: 1, salesCount: -1, _id: -1 },
+  { name: "idx_recommendations_pool" }
+);
+```
+This index covers the `stockStatus: 1` filter + `salesCount DESC, _id DESC` sort in a single index scan.
+
+**Cache Stampede Prevention:**
+
+> When cache expires and 100 users hit the same product simultaneously, ALL 100 will miss cache and run the expensive pool query. This is called "cache stampede" or "thundering herd."
+
+**Solution — Stale-While-Recompute with Short Lock:**
+```
+Step 1: Cache MISS detected
+Step 2: Set a temporary Redis key "lock:rec:{slug}" with TTL 5 seconds
+Step 3: If lock already exists → serve stale data (read expired key with GET, Redis keeps it briefly) OR skip cache and serve from DB (acceptable for 5 seconds)
+Step 4: If lock acquired → compute pool → save to cache → delete lock
+```
+Alternative simpler approach: **Just accept it.** The pool query is only ~30ms. Even 100 concurrent queries = 100 × 30ms = handled easily by MongoDB. Cache stampede is only a real problem when queries take 500ms+. For 30ms queries, the simpler approach is fine.
+
+**Decision: Use the simpler approach** (no lock). The query is fast enough. Over-engineering stampede prevention for a 30ms query adds complexity without meaningful benefit.
+
+**Logging & Monitoring (Production Debugging):**
+
+```typescript
+// Log on cache MISS (to monitor cache hit rate)
+logger.info(`[Recommendations] Cache MISS for slug=${slug}, computing pool`, { slug, productId });
+
+// Log pool stats (to verify diversity rules are working)
+logger.debug(`[Recommendations] Pool generated`, { 
+  slug, tier1Count, tier2Count, tier3Count, totalPool, 
+  brandsInResult: uniqueBrands.length, priceRange: { min: priceMin, max: priceMax }
+});
+
+// Log on Redis error (to catch Redis outages early)
+logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: err.message });
+
+// NEVER log: product data, user data, full arrays (too verbose for production)
+```
+
+
+
+- [ ] **14.R.1** Add `findRecommendationPool()` to `backend/src/modules/product/product.repository.ts`
+  - Single MongoDB aggregation pipeline
+  - Accepts: `excludeId`, `categoryKeywords[]`, `brand`, `priceMin`, `priceMax`, `limit` (default 25)
+  - Filters: `status != "archived"`, `stockStatus: 1`, `_id != excludeId`
+  - Matches: `magentoCategories` regex OR `name` regex for category keywords
+  - Sort: `salesCount DESC, _id DESC` (bestsellers first, newest as tiebreaker/cold-start)
+  - Returns: lean products with `.select("name slug sku basePrice specialPrice images brand magentoCategories stockStatus")`
+  - Uses `.lean().exec()` — no Mongoose document overhead
+
+- [ ] **14.R.2** Add `findCrossCategoryProducts()` to `product.repository.ts`
+  - Reuses existing `findComplementaryGear()` pattern but with price-range and stock filters
+  - Accepts: `excludeIds[]`, `categoryKeywords[]`, `priceMin`, `priceMax`, `limit`
+  - Returns: products from DIFFERENT categories than the current product
+
+- [ ] **14.R.3** Add `getRecommendations(slug)` to `backend/src/modules/product/product.service.ts`
+  - Full business logic orchestrator:
+    1. Fetch current product by slug (get `_id`, `brand`, `basePrice`, `magentoCategories`, `upsellSkus`)
+    2. Calculate price range: `basePrice * 0.6` to `basePrice * 1.4` (±40%)
+    3. Detect category keywords from `magentoCategories` (reuse existing keyword detection from `getKitRecommendations`)
+    4. **Tier 1:** Fetch upsellSku products via `findBySkus()` (existing method)
+    5. **Tier 2:** If < 6 products, call `findRecommendationPool()` for same-category products
+    6. **Tier 3:** If < 8 products, call `findCrossCategoryProducts()` for complementary gear (2 slots)
+    7. **Merge & Deduplicate:** Combine all tiers, remove duplicates by `_id`
+    8. **Apply Diversity Rules:** Max 3 per brand, ensure 2+ brands, self-exclude
+    9. **Seed Shuffle:** Use product `_id` string hash to deterministically pick exactly 8 from merged pool
+    10. Return 8 product IDs
+  - **Caching:** Check Redis `recommendations:{slug}` first → if HIT, use cached IDs → fetch fresh product data via `$in` query → filter deleted/OOS → return
+  - **Cache MISS:** Run full pipeline above → save 8 IDs to Redis with TTL 1 hour → return fresh data
+  - **Redis error:** try-catch → fallback to direct DB pipeline (no crash)
+  - **Price range widening:** If pool < 8 after ±40%, widen to ±60%, then ±80%, then no filter
+
+- [ ] **14.R.4** Add `getRecommendations` to `backend/src/modules/product/product.controller.ts`
+  - Calls `ProductService.getRecommendations(slug)`
+  - Returns `ApiResponse.success(products, "Recommendations fetched successfully")`
+
+- [ ] **14.R.5** Add `GET /:slug/recommendations` route to `backend/src/modules/product/product.route.ts`
+  - Public route (no auth required)
+  - Add `@swagger` JSDoc documentation
+  - Register in router
+
+- [ ] **14.R.6** Add `validateGetRecommendations` to `product.validator.ts`
+  - Validate `slug` param: `z.string().min(1).max(500)`
+
+- [ ] **14.R.7** Add MongoDB compound index to `product.model.ts`
+  - Index: `{ stockStatus: 1, salesCount: -1, _id: -1 }` named `idx_recommendations_pool`
+  - Without this index, pool query will scan full collection (~500ms). With index: ~15ms
+  - Verify with `.explain("executionStats")` that query uses index scan, not collection scan
+
+- [ ] **14.R.8** Add logging to `getRecommendations()` in `product.service.ts`
+  - `logger.info` on cache MISS (monitor hit rate)
+  - `logger.debug` on pool stats (tier counts, brand count, price range)
+  - `logger.warn` on Redis error (catch outages early)
+  - NEVER log full product data or user data (too verbose, privacy risk)
+
+#### Frontend Tasks
+
+- [ ] **14.R.9** Add `useRecommendations(slug)` hook to `frontend/src/core/hooks/useProducts.ts`
+  - Uses TanStack `useQuery`
+  - Query key: `["recommendations", slug]`
+  - Calls: `GET /products/${slug}/recommendations`
+  - `enabled: !!slug`
+  - `staleTime: 300000` (5 minutes — recommendations don't change rapidly)
+
+- [ ] **14.R.10** Update `frontend/src/modules/product-detail/components/ProductDetailPageModule.tsx`
+  - Replace `useProductsBySkus(upsellSkus)` with `useRecommendations(slug)`
+  - Remove upsellSkus extraction logic from frontend
+  - Pass new recommendation data to `UpSellProducts` component
+  - Zero changes to `UpSellProducts.tsx` component itself (it already accepts `products[]` prop)
+
+#### Verification
+
+- [ ] **V1:** Product WITH upsellSkus → shows mix of curated + category + cross-category = 8 total
+- [ ] **V2:** Product WITHOUT upsellSkus → shows 6 category + 2 cross-category = 8 total
+- [ ] **V3:** Two different products in same category/price → recommendations are DIFFERENT (seed shuffle works)
+- [ ] **V4:** Same product refreshed 10 times → recommendations are IDENTICAL (deterministic, no hydration error)
+- [ ] **V5:** Product deleted from DB → disappears from recommendations immediately (live data fetch)
+- [ ] **V6:** Product price changed → new price shows immediately in recommendations
+- [ ] **V7:** Product goes out of stock → removed from recommendations immediately
+- [ ] **V8:** Redis down → recommendations still load from DB (graceful fallback)
+- [ ] **V9:** Category has < 6 products → fills with cross-category, no empty slots
+- [ ] **V10:** Max 3 products from same brand in results (brand diversity enforced)
+- [ ] **V11:** API response time < 35ms (cached) and < 50ms (uncached)
+- [ ] **V12:** Cold start (all salesCount = 0) → shows newest products instead of empty
+
+---
 
 ### Tasks
 

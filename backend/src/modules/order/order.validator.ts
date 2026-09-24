@@ -24,7 +24,7 @@ export class OrderValidator {
   }
 
   /**
-   * Validates the payload for verifying a Razorpay payment.
+   * Validates the payload for verifying a gateway payment.
    * 
    * @param {NextRequest} req - The incoming HTTP request.
    * @returns {Promise<{userId: string, data: any}>} The user ID and validated payment data.

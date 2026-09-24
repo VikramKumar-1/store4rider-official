@@ -74,6 +74,71 @@ export class ProductService {
     return items;
   }
 
+  /**
+   * Smart Cross-Category Kit Recommendation Engine.
+   * Recommends complementary riding gear (Helmet, Jacket, Gloves, Boots)
+   * while strictly avoiding same-category duplicates.
+   */
+  static async getKitRecommendations(slugOrId: string): Promise<IProduct[]> {
+    const cacheKey = `product_kit_v2_${slugOrId}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return cached;
+
+    let product: IProduct | null = null;
+    if (slugOrId.match(/^[0-9a-fA-F]{24}$/)) {
+      product = await ProductRepository.findById(slugOrId);
+    }
+    if (!product) {
+      product = await ProductRepository.findBySlug(slugOrId);
+    }
+    if (!product) return [];
+
+    let kitProducts: IProduct[] = [];
+
+    // 1. Priority: If admin configured relatedSkus, use them
+    if (product.relatedSkus && product.relatedSkus.length > 0) {
+      kitProducts = await ProductRepository.findBySkus(product.relatedSkus);
+    }
+
+    // 2. Smart Cross-Category Matching if explicit related products are missing or fewer than 3
+    if (kitProducts.length < 3) {
+      const prodText = `${product.name} ${product.magentoCategories || ""}`.toLowerCase();
+
+      let targetKeywords: string[] = [];
+
+      if (prodText.includes("boot") || prodText.includes("shoe") || prodText.includes("footwear")) {
+        targetKeywords = ["Jacket", "Helmet", "Glove", "Pant"];
+      } else if (prodText.includes("helmet")) {
+        targetKeywords = ["Jacket", "Glove", "Boot", "Pant"];
+      } else if (prodText.includes("jacket")) {
+        targetKeywords = ["Glove", "Helmet", "Boot", "Pant"];
+      } else if (prodText.includes("glove")) {
+        targetKeywords = ["Jacket", "Helmet", "Boot", "Pant"];
+      } else if (prodText.includes("pant") || prodText.includes("trouser")) {
+        targetKeywords = ["Jacket", "Boot", "Glove", "Helmet"];
+      } else {
+        targetKeywords = ["Jacket", "Helmet", "Glove", "Boot"];
+      }
+
+      const complementary = await ProductRepository.findComplementaryGear(
+        targetKeywords,
+        String(product._id)
+      );
+
+      const existingIds = new Set(kitProducts.map(p => String(p._id)));
+      for (const item of complementary) {
+        if (!existingIds.has(String(item._id))) {
+          kitProducts.push(item);
+          existingIds.add(String(item._id));
+        }
+        if (kitProducts.length >= 4) break;
+      }
+    }
+
+    await setCache(cacheKey, kitProducts, PRODUCT_DETAIL_TTL);
+    return kitProducts;
+  }
+
   static async createProduct(data: Partial<IProduct>): Promise<IProduct> {
     const slug = slugify(data.name || "");
     const productData = { ...data, slug };

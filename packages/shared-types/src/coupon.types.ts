@@ -6,4 +6,5 @@ export interface ICoupon {
   minPurchase: number;
   expiryDate: Date;
   isActive: boolean;
+  usageCount?: number;
 }

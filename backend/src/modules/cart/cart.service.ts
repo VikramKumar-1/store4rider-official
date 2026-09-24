@@ -38,13 +38,17 @@ export class CartService {
     return await CartRepository.upsert(userId, updatedCart);
   }
 
+  static async clearCart(userId: string, session?: any): Promise<void> {
+    await CartRepository.clear(userId, session);
+  }
+
   static async recalculateSummary(cart: ICart): Promise<ICart> {
     let subtotal = 0;
 
     for (const item of cart.items) {
       const product = await ProductRepository.findById(item.productId);
       if (product) {
-        let price = product.basePrice;
+        let price = product.specialPrice || product.basePrice;
         if (item.variantId) {
           const variant = product.variants.find(v => v.id === item.variantId);
           if (variant) price = variant.price;

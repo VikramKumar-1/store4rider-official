@@ -2,10 +2,17 @@ import { z } from "zod";
 
 export const createOrderSchema = z.object({
   shippingAddressId: z.string(),
+  paymentMethod: z.enum(["cod", "payu", "ccavenue", "snapmint", "upi"]),
+  couponCode: z.string().optional(),
+  items: z.array(z.object({
+    productId: z.string(),
+    variantId: z.string().optional(),
+    quantity: z.number().min(1),
+  })).optional(),
 });
 
 export const verifyPaymentSchema = z.object({
-  razorpayOrderId: z.string(),
+  gatewayOrderId: z.string(),
   paymentId: z.string(),
   signature: z.string(),
 });

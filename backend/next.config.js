@@ -13,7 +13,6 @@ const nextConfig = {
     "@aws-sdk/s3-request-presigner",
     "bcryptjs",
     "jsonwebtoken",
-    "razorpay",
     "rate-limiter-flexible",
     "swagger-jsdoc",
     "meilisearch",

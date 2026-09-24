@@ -23,3 +23,41 @@ apiClient.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Auto-refresh token interceptor
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If 401 Unauthorized, and we haven't already retried this request
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        // Call refresh token endpoint (which uses the HttpOnly refresh token cookie)
+        const refreshResponse = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
+        
+        const newAccessToken = refreshResponse.data?.data?.accessToken;
+        
+        if (newAccessToken) {
+          // Update the zustand store with the new access token
+          useAuthStore.getState().setToken(newAccessToken);
+          
+          // Retry the original request with the new token
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          return apiClient(originalRequest);
+        }
+      } catch (refreshError) {
+        // If refresh fails (e.g. refresh token expired too), logout user
+        useAuthStore.getState().logout();
+        // Redirect to login page
+        if (typeof window !== "undefined") {
+          window.location.href = "/login?expired=true";
+        }
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);

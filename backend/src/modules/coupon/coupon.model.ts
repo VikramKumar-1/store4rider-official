@@ -9,6 +9,7 @@ const couponSchema = new Schema<ICoupon>(
     minPurchase: { type: Number, required: true, default: 0 },
     expiryDate: { type: Date, required: true },
     isActive: { type: Boolean, default: true },
+    usageCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

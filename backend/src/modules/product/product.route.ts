@@ -27,6 +27,10 @@ export async function productRouter(req: NextRequest, routePath: string[]): Prom
     return await ProductController.getBySkus(req);
   }
 
+  if (method === 'GET' && pathLen === 2 && routePath[1] === 'kit') {
+    return await ProductController.getKit(req, routePath[0]);
+  }
+
   if (pathLen === 1) {
     const param = routePath[0];
 

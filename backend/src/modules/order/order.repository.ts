@@ -21,16 +21,25 @@ export class OrderRepository {
     return OrderModel.findById(id).session(session || null).lean().exec() as unknown as IOrder | null;
   }
 
-  static async findByRazorpayOrderId(razorpayOrderId: string, session?: ClientSession): Promise<IOrder | null> {
-    return OrderModel.findOne({ razorpayOrderId }).session(session || null).lean().exec() as unknown as IOrder | null;
+  static async findByGatewayOrderId(gatewayOrderId: string, session?: ClientSession): Promise<IOrder | null> {
+    return OrderModel.findOne({ gatewayOrderId }).session(session || null).lean().exec() as unknown as IOrder | null;
   }
 
-  static async updateStatus(id: string, status: string, razorpayData?: any, session?: ClientSession): Promise<IOrder | null> {
+  static async findByIdempotencyKey(idempotencyKey: string, session?: ClientSession): Promise<IOrder | null> {
+    return OrderModel.findOne({ idempotencyKey }).session(session || null).lean().exec() as unknown as IOrder | null;
+  }
+
+  static async atomicStatusTransition(id: string, fromStatus: string, toStatus: string, updateData?: any, session?: ClientSession): Promise<IOrder | null> {
+    const update = { $set: { status: toStatus, ...updateData } };
+    return OrderModel.findOneAndUpdate({ _id: id, status: fromStatus }, update, { new: true, session }).lean().exec() as unknown as IOrder | null;
+  }
+
+  static async updateStatus(id: string, status: string, gatewayData?: any, session?: ClientSession): Promise<IOrder | null> {
     const update: any = { status };
-    if (razorpayData) {
-      if (razorpayData.razorpayOrderId) update.razorpayOrderId = razorpayData.razorpayOrderId;
-      if (razorpayData.paymentId) update.paymentId = razorpayData.paymentId;
-      if (razorpayData.paymentSignature) update.paymentSignature = razorpayData.paymentSignature;
+    if (gatewayData) {
+      if (gatewayData.gatewayOrderId) update.gatewayOrderId = gatewayData.gatewayOrderId;
+      if (gatewayData.paymentId) update.paymentId = gatewayData.paymentId;
+      if (gatewayData.paymentSignature) update.paymentSignature = gatewayData.paymentSignature;
     }
     return OrderModel.findByIdAndUpdate(id, update, { new: true, session }).lean().exec() as unknown as IOrder | null;
   }

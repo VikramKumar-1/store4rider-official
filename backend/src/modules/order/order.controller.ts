@@ -16,7 +16,8 @@ export class OrderController {
   
   static async create(req: NextRequest) {
     const { userId, data } = await OrderValidator.validateCreate(req);
-    const result = await OrderService.createOrder(userId, data.shippingAddressId);
+    const idempotencyKey = req.headers.get("Idempotency-Key") || "";
+    const result = await OrderService.createOrder(userId, { ...data, idempotencyKey });
     return ApiResponse.success(result, "Order created", 201);
   }
 
@@ -24,7 +25,7 @@ export class OrderController {
     const { userId, data } = await OrderValidator.validateVerify(req);
     await OrderService.verifyPayment(
       userId,
-      data.razorpayOrderId,
+      data.gatewayOrderId,
       data.paymentId,
       data.signature
     );
@@ -47,16 +48,15 @@ export class OrderController {
   }
 
   static async webhook(req: NextRequest) {
-    const signature = req.headers.get("x-razorpay-signature");
-    if (!signature) {
-      return ApiResponse.error("Missing Razorpay signature", 400);
-    }
-    
     // CRITICAL: Must read raw text for HMAC validation. Do not parse JSON yet.
     const rawBody = await req.text();
     
+    const headers: Record<string, string> = {};
+    req.headers.forEach((val, key) => { headers[key.toLowerCase()] = val; });
+
     try {
-      await OrderService.handleWebhook(rawBody, signature);
+      // In this catch-all webhook, we rely on the body to deduce the type, or we pass a generic string
+      await OrderService.handleWebhook(rawBody, headers, "unknown");
       return ApiResponse.success(null, "Webhook processed");
     } catch (err: any) {
       return ApiResponse.error(err.message, err.statusCode || 500);

@@ -33,4 +33,8 @@ export class CouponService {
   static async createCoupon(data: Partial<ICoupon>): Promise<ICoupon> {
     return await CouponRepository.create(data);
   }
+
+  static async incrementUsage(code: string, userId: string, session?: any): Promise<void> {
+    await CouponRepository.incrementUsage(code, session);
+  }
 }

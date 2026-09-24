@@ -19,7 +19,7 @@ trigger: always_on
 | **Backend** | Next.js (API Routes) | `latest` (15.x) |
 | **Database** | MongoDB (via Mongoose) | Atlas |
 | **Cache** | Redis (via ioredis) | — |
-| **Payments** | Razorpay | — |
+| **Payments** | PayU / CCavenue / Snapmint | — |
 | **Search** | Meilisearch | — |
 | **Storage** | AWS S3 | `ap-south-2` region |
 | **Email** | AWS SES (via BullMQ queue) | — |
@@ -37,6 +37,13 @@ trigger: always_on
 ---
 
 ## 1. GOLDEN RULES (Read First, Code Later)
+
+> **🔥🔥🔥 CRITICAL RULE: ZERO MOCK TOLERANCE 🔥🔥🔥**
+> **NEVER, under ANY circumstances, use mock data, hardcoded fallback strings, dummy tokens, ternary fallback values for configurations, or fallback prices (e.g. `rate: 60.0` or `|| 55.0`).**
+> - If an API integration (Payment, Shipping, etc.) fails or lacks data, **throw an AppError** or return an empty state (`[]`, `null`). 
+> - **DO NOT** use mock fallback strings like `"mock_token"`, `"999999"`, `"Primary Warehouse"`.
+> - If credentials are missing, fail fast. 
+> - This rule is ABSOLUTE. The user will review the code specifically for this.
 
 1. **NEVER rewrite existing functions.** Search the codebase FIRST. If a utility, hook, service method, or component exists — **import and reuse it**.
 2. **NEVER duplicate code.** Shared logic goes in `packages/shared-*`.

@@ -20,6 +20,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   setAuth: (user: User, token: string) => void;
+  setToken: (token: string) => void;
   setUser: (user: User | null) => void;
   logout: () => void;
 }
@@ -34,6 +35,9 @@ export const useAuthStore = create<AuthState>()(
         const userId = user.id || user.email;
         useCartStore.getState().switchUserCart(userId);
         set({ user, token, isAuthenticated: true });
+      },
+      setToken: (token) => {
+        set({ token });
       },
       setUser: (user) => {
         if (user) {

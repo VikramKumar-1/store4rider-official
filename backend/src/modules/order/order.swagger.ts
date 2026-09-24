@@ -13,17 +13,17 @@
    *       This is the core **Checkout & Order Creation** engine. It securely converts a user's Cart into an official, unpaid Order.
    *       
    *       ### 🛍️ Real-World Business Cases:
-   *       - **Payment Gateway Integration:** The frontend cannot just say "I paid ₹5000". That is highly insecure. Instead, this API calculates the total strictly on the server, contacts Razorpay, and generates a cryptographically signed `razorpayOrderId`. 
+   *       - **Payment Gateway Integration:** The frontend cannot just say "I paid ₹5000". That is highly insecure. Instead, this API calculates the total strictly on the server, contacts the Gateway, and generates a cryptographically signed `gatewayOrderId`. 
    *       - **Fraud Prevention:** Customers cannot manipulate cart prices via browser DevTools. The backend looks up the actual product prices from the database at the exact moment of checkout.
    *       
    *       ### 🔒 Security Layers:
-   *       - **Rate Limiting:** Protects against automated bots generating fake thousands of unpaid orders (DDoS on Razorpay limits).
+   *       - **Rate Limiting:** Protects against automated bots generating fake thousands of unpaid orders.
    *       - **Inventory Locking (Future):** Prepares the system to reserve stock temporarily for 15 minutes while the user pays.
    *       
    *       ### 📋 How to test?
    *       1. Ensure you are logged in and have items in your `/cart`.
    *       2. Get a `shippingAddressId` from the `/user/me/addresses` API.
-   *       3. Hit "Test Request". You will receive an official Razorpay Order ID.
+   *       3. Hit "Test Request". You will receive an official Gateway Order ID.
    *     tags: [Orders]
    *     security:
    *       - bearerAuth: []
@@ -49,15 +49,15 @@
    * @swagger
    * /order/webhook:
    *   post:
-   *     summary: Handle Razorpay webhook (Asynchronous Payment Confirmation)
+   *     summary: Handle Webhook (Asynchronous Payment Confirmation)
    *     tags: [Orders]
    *     description: |
    *       **Why Webhooks?**
    *       Frontend verification is NOT trustworthy. If a user closes the browser during payment, the frontend script won't run.
-   *       To ensure we never miss a payment, we rely on Razorpay Server-to-Server Webhooks.
+   *       To ensure we never miss a payment, we rely on Server-to-Server Webhooks.
    *       
    *       **Security Architecture (How we handle Money):**
-   *       1. **Signature Validation:** We compute an HMAC SHA256 signature using our `RAZORPAY_WEBHOOK_SECRET` and compare it with the `X-Razorpay-Signature` header. If it mismatches, we reject it (prevents spoofing).
+   *       1. **Signature Validation:** We compute an HMAC SHA256/SHA512 signature using our Secret and compare it with the signature header. If it mismatches, we reject it (prevents spoofing).
    *       2. **Idempotency:** Webhooks can fire multiple times. We check the order status before updating to ensure we don't process the same payment twice.
    *       3. **Event Mapping:** 
    *          - `payment.captured` -> Updates order to `PAID`, triggers order confirmation email via AWS SES.
@@ -67,11 +67,11 @@
    *       This ensures 100% financial accuracy and prevents hackers from artificially marking orders as "Paid" via client-side manipulation.
    *     parameters:
    *       - in: header
-   *         name: x-razorpay-signature
+   *         name: x-payu-signature
    *         required: true
    *         schema:
    *           type: string
-   *         description: HMAC SHA256 signature sent by Razorpay
+   *         description: HMAC SHA512 signature sent by PayU
    *     responses:
    *       200:
    *         description: Webhook processed successfully
@@ -81,7 +81,7 @@
    * @swagger
    * /order/verify:
    *   post:
-   *     summary: Synchronous Razorpay Payment Verification
+   *     summary: Synchronous Payment Verification
    *     tags: [Orders]
    *     security:
    *       - bearerAuth: []
@@ -90,7 +90,7 @@
    *       While Webhooks are the primary source of truth for payments, this endpoint allows the frontend to immediately verify a payment to show a "Success Screen" without waiting for the webhook to arrive.
    *       
    *       **Validation Logic:**
-   *       Calculates `HMAC_SHA256(razorpayOrderId + "|" + paymentId, RAZORPAY_SECRET)`.
+   *       Calculates HMAC signature and verifies.
    *       If it matches the `signature` from the frontend, we immediately mark the order as `PAID`.
    *       If the webhook arrives later, it will safely ignore the duplicate update (Idempotency).
    *     requestBody:
@@ -100,13 +100,13 @@
    *           schema:
    *             type: object
    *             required:
-   *               - razorpayOrderId
+   *               - gatewayOrderId
    *               - paymentId
    *               - signature
    *             properties:
-   *               razorpayOrderId:
+   *               gatewayOrderId:
    *                 type: string
-   *                 description: The Razorpay Order ID created initially
+   *                 description: The Gateway Order ID created initially
    *               paymentId:
    *                 type: string
    *                 description: The successful transaction ID

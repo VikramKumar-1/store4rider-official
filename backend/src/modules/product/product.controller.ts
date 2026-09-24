@@ -32,6 +32,11 @@ export class ProductController {
     return ApiResponse.success(products, 'Products fetched successfully');
   }
 
+  static async getKit(req: NextRequest, slugOrId: string) {
+    const products = await ProductService.getKitRecommendations(slugOrId);
+    return ApiResponse.success(products, "Kit recommendations fetched successfully");
+  }
+
   static async create(req: NextRequest) {
     const validatedData = await ProductValidator.validateCreate(req);
     const product = await ProductService.createProduct(validatedData as any);

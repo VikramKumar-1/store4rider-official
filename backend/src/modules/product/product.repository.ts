@@ -69,6 +69,38 @@ export class ProductRepository {
   }
 
   /**
+   * Finds complementary riding gear across different gear categories
+   * for the "Complete Your Kit" cross-selling engine.
+   */
+  static async findComplementaryGear(categoryKeywords: string[], excludeId: string): Promise<IProduct[]> {
+    const results: IProduct[] = [];
+    const seenIds = new Set<string>([excludeId]);
+
+    for (const keyword of categoryKeywords) {
+      const product = await ProductModel.findOne({
+        _id: { $nin: Array.from(seenIds) },
+        status: { $ne: "archived" },
+        $or: [
+          { magentoCategories: { $regex: keyword, $options: "i" } },
+          { name: { $regex: keyword, $options: "i" } },
+          { tags: { $in: [new RegExp(keyword, "i")] } },
+        ],
+      })
+      .select("name slug sku basePrice specialPrice images magentoCategories brand")
+      .sort({ salesCount: -1, _id: -1 })
+      .lean()
+      .exec();
+
+      if (product) {
+        seenIds.add(String((product as any)._id));
+        results.push(product as unknown as IProduct);
+      }
+    }
+
+    return results;
+  }
+
+  /**
    * Creates a new product.
    */
   static async create(data: Partial<IProduct>): Promise<IProduct> {
@@ -92,18 +124,42 @@ export class ProductRepository {
   /**
    * Atomically decrements product stock to prevent overselling and concurrency race conditions.
    */
-  static async decrementStock(productId: string, quantity: number, session?: any): Promise<boolean> {
-    const result = await ProductModel.updateOne(
-      { _id: productId, stock: { $gte: quantity } },
-      { $inc: { stock: -quantity } }
-    ).session(session || null).exec();
-    return result.modifiedCount > 0;
+  static async decrementStock(productId: string, variantId: string | undefined, quantity: number, session?: any): Promise<boolean> {
+    if (variantId) {
+      const result = await ProductModel.updateOne(
+        { _id: productId, "variants.id": variantId, "variants.stock": { $gte: quantity } },
+        { $inc: { "variants.$.stock": -quantity } }
+      ).session(session || null).exec();
+      return result.modifiedCount > 0;
+    } else {
+      const result = await ProductModel.findOne(
+        { _id: productId, stockStatus: 1 }
+      ).session(session || null).select("_id").lean().exec();
+      return !!result;
+    }
+  }
+
+  static async incrementStock(productId: string, variantId: string | undefined, quantity: number, session?: any): Promise<void> {
+    if (variantId) {
+      await ProductModel.updateOne(
+        { _id: productId, "variants.id": variantId },
+        { $inc: { "variants.$.stock": quantity } }
+      ).session(session || null).exec();
+    }
   }
 
   static async incrementSalesCount(productId: string, quantity: number, session?: any): Promise<boolean> {
     const result = await ProductModel.updateOne(
       { _id: productId },
       { $inc: { salesCount: quantity } }
+    ).session(session || null).exec();
+    return result.modifiedCount > 0;
+  }
+
+  static async decrementSalesCount(productId: string, quantity: number, session?: any): Promise<boolean> {
+    const result = await ProductModel.updateOne(
+      { _id: productId },
+      { $inc: { salesCount: -quantity } }
     ).session(session || null).exec();
     return result.modifiedCount > 0;
   }

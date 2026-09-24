@@ -105,6 +105,23 @@ export function useProductBySlug(slug: string) {
 }
 
 /**
+ * Fetch smart kit recommendations for a product.
+ * Returns complementary gear across different riding categories.
+ */
+export function useProductKit(slug: string) {
+  return useQuery({
+    queryKey: ["product-kit", slug],
+    queryFn: async () => {
+      if (!slug) return [];
+      const response = await apiClient.get<{ data: IBackendProduct[] }>(`/products/${slug}/kit`);
+      return response.data.data;
+    },
+    enabled: !!slug,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+/**
  * Fetch multiple products by their SKUs (for related/upsell sections).
  */
 export function useProductsBySkus(skus: string[]) {

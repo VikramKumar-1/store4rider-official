@@ -62,7 +62,7 @@ export class AuthController {
 
     const tokens = await AuthService.refreshToken(oldRefreshToken);
     
-    const res = ApiResponse.success(null, "Token refreshed");
+    const res = ApiResponse.success({ accessToken: tokens.accessToken }, "Token refreshed");
     setCookies(res, tokens.accessToken, tokens.refreshToken);
     return res;
   }

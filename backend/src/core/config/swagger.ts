@@ -29,7 +29,7 @@ This section outlines the engineering decisions, performance optimizations, secu
 * **Zero LocalStorage Policy:** We **never** store JWTs in \`localStorage\`. Tokens live in encrypted \`HttpOnly\`, \`Secure\`, \`SameSite=Strict\` cookies to prevent XSS attacks.
 * **Input Validation & Injection Prevention:** Every API request passes through strict **Zod Schemas**. This guarantees immunity against NoSQL (\`$gt\`, \`$ne\`) injection attacks.
 * **Anti-DDoS & Traffic Control:** Redis enforces strict IP-based Rate Limiting (e.g., 5 login attempts per 15 mins) to prevent brute-force and bot scraping.
-* **Financial Security (Razorpay):** Frontend payment success can be spoofed. We rely 100% on **Server-to-Server Webhooks** secured by HMAC SHA-256 signatures. An idempotency lock prevents double-processing of payments.
+* **Financial Security (Payment Gateways):** Frontend payment success can be spoofed. We rely 100% on **Server-to-Server Webhooks** secured by HMAC SHA-512 signatures. An idempotency lock prevents double-processing of payments.
 
 ## 3. Scalability (How much traffic can it handle?)
 

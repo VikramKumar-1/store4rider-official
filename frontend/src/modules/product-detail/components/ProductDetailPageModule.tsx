@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
-import { useProductBySlug, useProductsBySkus, useProductReviews, IBackendProduct } from "@/core/hooks/useProducts";
+import { useProductBySlug, useProductsBySkus, useProductKit, useProductReviews, IBackendProduct } from "@/core/hooks/useProducts";
 import { ProductDetailModule } from "@/modules/product-detail";
 import { PDPData, KitProduct } from "@/modules/product-detail/types/product-detail.types";
 import { useRecentViewsStore } from "@/stores/useRecentViewsStore";
@@ -250,17 +250,8 @@ const mapProductToPDP = (
   upSellProducts: KitProduct[],
   reviews: any[]
 ): PDPData => {
-  // --- UI TESTING FALLBACK ---
-  // If the database product doesn't have related/upsell products yet, we provide dummy data so you can see the UI layout.
-  const dummyKitProducts: KitProduct[] = [
-    { id: "k1", name: "Premium Leather Jacket", category: "Jacket", priceFormatted: "₹ 12,999", imageUrl: "https://images.unsplash.com/photo-1520975954732-57dd22299614?auto=format&fit=crop&w=400&q=80", productUrl: "#" },
-    { id: "k2", name: "Carbon Fiber Helmet", category: "Helmet", priceFormatted: "₹ 8,499", imageUrl: "https://images.unsplash.com/photo-1558981420-c532902e58b4?auto=format&fit=crop&w=400&q=80", productUrl: "#" },
-    { id: "k3", name: "Armored Riding Gloves", category: "Gloves", priceFormatted: "₹ 3,200", imageUrl: "https://images.unsplash.com/photo-1514316454349-750a7fd3da3a?auto=format&fit=crop&w=400&q=80", productUrl: "#" },
-    { id: "k4", name: "Riding Pants with Knee Guards", category: "Pants", priceFormatted: "₹ 6,500", imageUrl: "https://images.unsplash.com/photo-1605389656254-20993510e97d?auto=format&fit=crop&w=400&q=80", productUrl: "#" }
-  ];
-
-  const finalKitProducts = kitProducts && kitProducts.length > 0 ? kitProducts : dummyKitProducts;
-  // ---------------------------
+  // Only show real related products from database (no dummy placeholders)
+  const finalKitProducts = kitProducts || [];
 
   const hasDiscount = product.specialPrice && product.specialPrice < product.basePrice;
   const displayPrice = hasDiscount ? product.specialPrice! : product.basePrice;
@@ -371,11 +362,11 @@ export const ProductDetailPageModule = () => {
   // These queries fire in PARALLEL once product is available (not waterfall).
   // They won't block the page from rendering — the page shows immediately
   // with the main product data, and these sections fill in when ready.
-  const relatedSkus = product?.relatedSkus || [];
   const upsellSkus = product?.upsellSkus || [];
   const productId = product?._id || "";
 
-  const { data: relatedProducts } = useProductsBySkus(relatedSkus);
+  // Smart kit recommendations query (cross-category complementary gear)
+  const { data: kitProducts } = useProductKit(slug);
   const { data: upsellProducts } = useProductsBySkus(upsellSkus);
   const { data: reviewsData } = useProductReviews(productId);
 
@@ -438,7 +429,7 @@ export const ProductDetailPageModule = () => {
 
   const mappedProduct = mapProductToPDP(
     product,
-    (relatedProducts || []).map(mapToKitProduct),
+    (kitProducts || []).map(mapToKitProduct),
     (upsellProducts || []).map(mapToKitProduct),
     mappedReviews
   );

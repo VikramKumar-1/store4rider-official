@@ -51,4 +51,24 @@ export class AdminController {
     const report = await ProductService.bulkUpdateFromCsv(csvContent);
     return ApiResponse.success(report, "Bulk update processed");
   }
+
+  static async getPaymentLogs(req: NextRequest) {
+    const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const limit = parseInt(url.searchParams.get("limit") || "20");
+    const skip = (page - 1) * limit;
+
+    const { PaymentModel } = await import("../payment/payment.model");
+    
+    const logs = await PaymentModel.find({})
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .exec();
+
+    const totalCount = await PaymentModel.countDocuments();
+
+    return ApiResponse.paginated(logs, totalCount, page, limit);
+  }
 }
