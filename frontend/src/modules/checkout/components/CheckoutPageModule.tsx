@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { useCartStore } from "@/stores/useCartStore";
 import { formatPrice } from "@store4riders/shared-utils";
 import TopBanner from "@/modules/homepage/components/TopBanner";
@@ -13,10 +14,11 @@ import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { CheckoutPersonalInfo } from "./CheckoutPersonalInfo";
 import { CheckoutStepper } from "./CheckoutStepper";
 import { CheckoutShippingDelivery } from "./CheckoutShippingDelivery";
-import { CheckoutConfirmation } from "./CheckoutConfirmation";
+import { CheckoutPaymentStep } from "./CheckoutPaymentStep";
 import { useCheckout } from "@/core/hooks/useCheckout";
+import { useUserAddresses, useAddAddress, useUpdateAddress, useDeleteAddress } from "@/core/hooks/useAddresses";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
-import { PaymentMethodType } from "@store4riders/shared-types";
+import { PaymentMethodType, IUserAddress } from "@store4riders/shared-types";
 import { 
   UserIcon, 
   TruckIcon, 
@@ -29,7 +31,9 @@ import {
   ShieldCheckIcon,
   LockClosedIcon
 } from "@heroicons/react/24/outline";
-import { toast } from "sonner";
+import { COUNTRIES } from "@/core/utils/countries";
+
+import { useAuthStore } from "@/stores/useAuthStore";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80";
 
@@ -46,47 +50,179 @@ declare global {
 
 export const CheckoutPageModule = () => {
   const router = useRouter();
-  const { items, clearCart } = useCartStore();
+  const searchParams = useSearchParams();
+  const { user } = useAuthStore();
+  const { items, clearCart, isLoaded } = useCartStore();
   const [mounted, setMounted] = useState(false);
   const { mutate: placeOrder, isPending: isPlacingOrder } = useCheckout();
   const { data: settings } = usePublicSettings();
+  const { data: savedAddresses = [] } = useUserAddresses();
+  const { mutateAsync: addAddressAsync, isPending: isAddingAddress } = useAddAddress();
+  const { mutateAsync: updateAddressAsync, isPending: isUpdatingAddress } = useUpdateAddress();
+  const { mutateAsync: deleteAddressAsync } = useDeleteAddress();
+
+  const isSuccessParam = searchParams?.get("success") === "true";
+  const isFailedParam = searchParams?.get("failed") === "true";
+  const orderIdParam = searchParams?.get("orderId");
+  const [isOrderCompleted, setIsOrderCompleted] = useState(false);
   
   // 4 Figma Steps: 1: Checkout Form, 2: Shipping, 3: Confirmation, 4: Success
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(isSuccessParam ? 4 : 1);
   
   // Validation error alert
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Address state
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [showAddressForm, setShowAddressForm] = useState<boolean>(false);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+
+  const handleDeleteAddress = async (id: string) => {
+    if (confirm("Are you sure you want to delete this address?")) {
+      try {
+        await deleteAddressAsync(id);
+        toast.success("Address deleted successfully");
+        if (selectedAddressId === id) {
+          setSelectedAddressId(null);
+        }
+      } catch (err: any) {
+        toast.error(err.message || "Failed to delete address");
+      }
+    }
+  };
   
+  // Parse user's phone if they have one (e.g. +919876543210 -> +91, 9876543210)
+  const userPhoneRaw = user?.phone || "";
+  let defaultPhone = userPhoneRaw;
+  if (userPhoneRaw.startsWith("+91")) defaultPhone = userPhoneRaw.slice(3);
+
   // Form State matching Figma Screen 1
   const [formData, setFormData] = useState({
-    name: "",
-    countryCode: "+91",
-    phone: "",
+    name: user?.name || (user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : ""),
+    countryCode: "IN",
+    phone: defaultPhone,
     altPhone: "",
-    email: "",
+    email: user?.email || "",
     address: "",
     state: "",
     city: "",
     pinCode: "",
+    country: "",
   });
+
+  // Sync contact info whenever user profile loads or changes, or from localStorage
+  useEffect(() => {
+    let savedContact: any = null;
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("s4r_checkout_contact");
+        if (raw) savedContact = JSON.parse(raw);
+      } catch (e) {}
+    }
+
+    const userName = user?.name || (user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : "");
+    const userEmail = user?.email || "";
+    let userPhone = user?.phone || "";
+    if (userPhone.startsWith("+91")) userPhone = userPhone.slice(3);
+
+    setFormData((prev) => {
+      const nextName = prev.name || userName || savedContact?.name || "";
+      const nextEmail = prev.email || userEmail || savedContact?.email || "";
+      const nextPhone = prev.phone || userPhone || savedContact?.phone || "";
+      const nextAltPhone = prev.altPhone || savedContact?.altPhone || "";
+      const nextCountryCode = prev.countryCode && prev.countryCode !== "IN" ? prev.countryCode : (savedContact?.countryCode || "IN");
+
+      if (
+        nextName === prev.name &&
+        nextEmail === prev.email &&
+        nextPhone === prev.phone &&
+        nextAltPhone === prev.altPhone
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        name: nextName,
+        email: nextEmail,
+        phone: nextPhone,
+        altPhone: nextAltPhone,
+        countryCode: nextCountryCode,
+      };
+    });
+  }, [user]);
 
   // Shipping & Payment Options
   const [paymentOption, setPaymentOption] = useState<PaymentMethodType>("payu");
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [generatedOrderNumber, setGeneratedOrderNumber] = useState("12345678910");
+  const [isCodAvailable, setIsCodAvailable] = useState(true);
 
   useEffect(() => {
     setMounted(true);
     setGeneratedOrderNumber(`ORD-${Math.floor(1000000000 + Math.random() * 9000000000)}`);
+
+    // Auto-detect country based on IP
+    fetch("https://ipapi.co/json/")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.country) { // ipapi.co returns ISO2 in 'country'
+          setFormData((prev) => ({
+            ...prev,
+            country: data.country,
+            countryCode: data.country,
+          }));
+        }
+      })
+      .catch((err) => {
+        // Silently fail if adblocker or network issue prevents detection
+      });
   }, []);
 
-  // Redirect to cart if empty and not on success step
   useEffect(() => {
-    if (mounted && items.length === 0 && currentStep !== 4) {
+    if (savedAddresses && savedAddresses.length > 0) {
+      const defaultAddr = savedAddresses.find((a: IUserAddress) => a.isDefault) || savedAddresses[0];
+      if (!selectedAddressId) {
+         setSelectedAddressId(defaultAddr.id || String((defaultAddr as any)._id));
+      }
+      if (showAddressForm === undefined || showAddressForm === null || (savedAddresses.length > 0 && !selectedAddressId)) {
+        setShowAddressForm(false);
+      }
+    } else if (savedAddresses && savedAddresses.length === 0) {
+      setShowAddressForm(true);
+    }
+  }, [savedAddresses, selectedAddressId]);
+
+  // Handle successful payment redirect
+  useEffect(() => {
+    if (isSuccessParam) {
+      setCurrentStep(4);
+      clearCart();
+    }
+  }, [isSuccessParam, clearCart]);
+
+  // Handle failed or cancelled payment redirect
+  useEffect(() => {
+    if (isFailedParam) {
+      toast.error("Payment was cancelled or unsuccessful. Your items are still safely in your cart.");
+      setCurrentStep(3);
+    }
+  }, [isFailedParam]);
+
+  // If orderId is provided in URL, update generatedOrderNumber
+  useEffect(() => {
+    if (orderIdParam) {
+      setGeneratedOrderNumber(orderIdParam);
+    }
+  }, [orderIdParam]);
+
+  // Redirect to cart ONLY if mounted, cart storage has loaded, cart is truly empty, and not on success or completed order
+  useEffect(() => {
+    if (mounted && isLoaded && items.length === 0 && currentStep !== 4 && !isSuccessParam && !isOrderCompleted) {
       router.push("/cart");
     }
-  }, [mounted, items.length, currentStep, router]);
+  }, [mounted, isLoaded, items.length, currentStep, isSuccessParam, isOrderCompleted, router]);
 
   if (!mounted) {
     return (
@@ -107,9 +243,15 @@ export const CheckoutPageModule = () => {
     return total + itemPrice * item.quantity;
   }, 0);
 
+  const cartWeightKg = items.reduce((total, item) => {
+    const itemWeight = item.product?.weight || 0.5; // fallback 0.5kg
+    return total + itemWeight * item.quantity;
+  }, 0);
+
   const shippingCost = settings ? (subtotal >= settings.freeShippingThreshold ? 0 : settings.shippingCost) : 0;
   const voucherDiscount = subtotal >= 3000 ? 500 : 0; // Voucher 50KDISCOUNT
   const total = Math.max(0, subtotal - voucherDiscount + shippingCost);
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -117,21 +259,98 @@ export const CheckoutPageModule = () => {
   };
 
   const validateStep1 = () => {
+    // Basic presence check
     if (!formData.name.trim() || !formData.phone.trim() || !formData.email.trim()) {
       setErrorMessage("Please provide your name, phone number, and email address.");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return false;
     }
+
+    // Name validation (at least 2 chars, max 50 chars, letters and spaces)
+    if (formData.name.trim().length < 2 || formData.name.trim().length > 50 || !/^[a-zA-Z\s.-]+$/.test(formData.name.trim())) {
+      setErrorMessage("Please enter a valid full name (2-50 characters).");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return false;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.email.trim().length > 100 || !emailRegex.test(formData.email.trim())) {
+      setErrorMessage("Please enter a valid email address.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return false;
+    }
+
+    // Phone validation
+    const phoneClean = formData.phone.replace(/[\s-]/g, "");
+    if (!/^\d+$/.test(phoneClean)) {
+      setErrorMessage("Phone number must contain only digits.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return false;
+    }
+    const currentCountryInfo = COUNTRIES.find(c => c.code === formData.countryCode);
+    const validLengths = currentCountryInfo?.phoneLength || [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    
+    if (!validLengths.includes(phoneClean.length)) {
+      if (validLengths.length === 1) {
+        setErrorMessage(`Phone numbers for ${currentCountryInfo?.name || "this country"} must be exactly ${validLengths[0]} digits.`);
+      } else {
+        setErrorMessage(`Phone numbers for ${currentCountryInfo?.name || "this country"} must be ${validLengths.join(' or ')} digits long.`);
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return false;
+    }
+
+    // Alternate Phone validation (if provided)
+    if (formData.altPhone.trim()) {
+      const altPhoneClean = formData.altPhone.trim().replace(/[\s-]/g, "");
+      if (!/^\d+$/.test(altPhoneClean)) {
+        setErrorMessage("Alternate phone number must contain only digits.");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return false;
+      }
+      if (!validLengths.includes(altPhoneClean.length)) {
+        setErrorMessage(`Alternate phone number for ${currentCountryInfo?.name || "this country"} has an invalid length.`);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return false;
+      }
+    }
+
     setErrorMessage("");
     return true;
   };
 
   const validateStep2 = () => {
-    if (!formData.address.trim() || !formData.state || !formData.pinCode.trim()) {
+    if (!formData.address.trim() || !formData.state.trim() || !formData.pinCode.trim() || !formData.country) {
       setErrorMessage("Please complete all shipping address fields.");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return false;
     }
+
+    if (formData.address.trim().length > 200) {
+      setErrorMessage("Address is too long. Please keep it under 200 characters.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return false;
+    }
+
+    // Zip/Postal Code validation
+    if (formData.country === "IN") {
+      // Strict India Pin Code
+      if (!/^\d{6}$/.test(formData.pinCode.trim())) {
+        setErrorMessage("Indian PIN codes must be exactly 6 digits.");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return false;
+      }
+    } else {
+      // Global Zip validation
+      const zipRegex = /^[a-zA-Z0-9\s-]{3,10}$/;
+      if (!zipRegex.test(formData.pinCode.trim())) {
+        setErrorMessage("Please enter a valid postal/zip code for your country.");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return false;
+      }
+    }
+
     setErrorMessage("");
     return true;
   };
@@ -139,28 +358,130 @@ export const CheckoutPageModule = () => {
   const handleContinueToShipping = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateStep1()) {
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("s4r_checkout_contact", JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            altPhone: formData.altPhone,
+            countryCode: formData.countryCode,
+          }));
+        } catch (e) {}
+      }
       setCurrentStep(2);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
-  const handleContinueToPayment = () => {
-    if (validateStep2()) {
+  const handleContinueToPayment = async () => {
+    if (showAddressForm) {
+      if (validateStep2()) {
+        try {
+          const { COUNTRIES } = await import("@/core/utils/countries");
+          const selectedCountryObj = COUNTRIES.find(c => c.code.toUpperCase() === (formData.country || "").toUpperCase() || c.name.toLowerCase() === (formData.country || "").toLowerCase());
+          const selectedCountryName = selectedCountryObj?.name || formData.country;
+          
+          let targetAddressId: string | null = null;
+
+          if (editingAddressId) {
+            await updateAddressAsync({
+              addressId: editingAddressId,
+              addressData: {
+                street: formData.address,
+                city: formData.city,
+                state: formData.state,
+                pincode: formData.pinCode,
+                country: selectedCountryName,
+                isDefault: true,
+              }
+            });
+            targetAddressId = editingAddressId;
+            setEditingAddressId(null);
+            toast.success("Address updated successfully");
+          } else {
+            const updatedUser = await addAddressAsync({
+              street: formData.address,
+              city: formData.city,
+              state: formData.state,
+              pincode: formData.pinCode,
+              country: selectedCountryName,
+              isDefault: true,
+            });
+            const newAddress = updatedUser.addresses[updatedUser.addresses.length - 1];
+            targetAddressId = newAddress.id || String(newAddress._id);
+            toast.success("Address saved successfully");
+          }
+
+          if (targetAddressId) {
+            setSelectedAddressId(targetAddressId);
+          }
+          setShowAddressForm(false);
+          setCurrentStep(3);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } catch (error: any) {
+          toast.error(error.message || "Failed to save address");
+        }
+      }
+    } else {
+      if (!selectedAddressId) {
+        toast.error("Please select a shipping address");
+        return;
+      }
       setCurrentStep(3);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
-  const handleAgreeToPay = () => {
+  const handleAgreeToPay = async () => {
+    if (!selectedAddressId) {
+      toast.error("Please select a shipping address");
+      return;
+    }
     setIsProcessing(true);
-    // Address saving/fetching will be handled in later phases, for now we mock
+    
+    // Look up the dial code to construct the full phone number
+    const { COUNTRIES } = await import("@/core/utils/countries");
+    const dialCode = COUNTRIES.find(c => c.code === formData.countryCode)?.dialCode || "+91";
+    
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("s4r_checkout_contact", JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          altPhone: formData.altPhone,
+          countryCode: formData.countryCode,
+        }));
+      } catch (e) {}
+    }
+
     placeOrder({ 
-      shippingAddressId: "temp-addr-id", 
-      paymentMethod: paymentOption
+      shippingAddressId: selectedAddressId, 
+      paymentMethod: paymentOption,
+      phone: dialCode + formData.phone,
+      fullName: formData.name
     }, {
-      onSettled: () => setIsProcessing(false),
-      onSuccess: () => {
-        // Success logic is handled by the hook (redirection)
+      onError: () => {
+        setIsProcessing(false);
+      },
+      onSuccess: (data: any) => {
+        setIsProcessing(false);
+        const method = data?.paymentMethod || paymentOption;
+        const gatewayOrderId = data?.data?.gatewayOrderId;
+
+        // Pure COD order completed
+        if (method === "cod" && !gatewayOrderId) {
+          setIsOrderCompleted(true);
+          const ordId = data?.data?.orderNumber || data?.data?.orderId || generatedOrderNumber;
+          setGeneratedOrderNumber(ordId);
+          setCurrentStep(4);
+          clearCart();
+          if (typeof window !== "undefined") {
+            window.history.replaceState(null, "", `/checkout?success=true&orderId=${ordId}`);
+          }
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
       }
     });
   };
@@ -208,13 +529,13 @@ export const CheckoutPageModule = () => {
               <CheckIcon className="w-9 h-9 stroke-[3]" />
             </div>
 
-            {/* Modern Heading: PAYMENT SUCCESS! */}
+            {/* Modern Heading: ORDER CONFIRMED! / PAYMENT SUCCESS! */}
             <h1 className="font-sans text-3xl sm:text-4xl lg:text-5xl font-extrabold text-neutral-900 tracking-wide uppercase mb-4">
-              PAYMENT SUCCESS!
+              {paymentOption === "cod" ? "ORDER CONFIRMED!" : "PAYMENT SUCCESS!"}
             </h1>
 
             <p className="text-neutral-500 text-xs sm:text-sm max-w-lg mb-8 leading-relaxed font-sans">
-              Thank you for shopping with Store4Riders. Your order <strong>#{generatedOrderNumber}</strong> has been confirmed. A receipt and tracking details have been sent to <strong>{formData.email}</strong>.
+              Thank you for shopping with Store4Riders. Your order <strong>#{generatedOrderNumber}</strong> has been confirmed. A receipt and tracking details have been sent to {formData.email || user?.email ? <strong>{formData.email || user?.email}</strong> : "your registered email address"}.
             </p>
 
             <Link
@@ -251,6 +572,8 @@ export const CheckoutPageModule = () => {
                     formData={formData}
                     handleInputChange={handleInputChange}
                     handleContinueToShipping={handleContinueToShipping}
+                    errorMessage={errorMessage}
+                    setErrorMessage={setErrorMessage}
                   />
                 )}
 
@@ -267,6 +590,17 @@ export const CheckoutPageModule = () => {
                     handleContinueToPayment={handleContinueToPayment}
                     shippingCost={shippingCost}
                     freeShippingThreshold={settings?.freeShippingThreshold || 999}
+                    savedAddresses={savedAddresses}
+                    selectedAddressId={selectedAddressId}
+                    onSelectAddress={setSelectedAddressId}
+                    showAddressForm={showAddressForm}
+                    onToggleAddressForm={setShowAddressForm}
+                    isAddingAddress={isAddingAddress || isUpdatingAddress}
+                    onDeleteAddress={handleDeleteAddress}
+                    editingAddressId={editingAddressId}
+                    setEditingAddressId={setEditingAddressId}
+                    cartWeightKg={cartWeightKg}
+                    setIsCodAvailable={setIsCodAvailable}
                   />
                 )}
 
@@ -274,13 +608,25 @@ export const CheckoutPageModule = () => {
                 {/* STEP 3: PAYMENT METHOD */}
                 {/* ------------------------------------------------------------- */}
                 {currentStep === 3 && (
-                  <CheckoutConfirmation
+                  <CheckoutPaymentStep
                     generatedOrderNumber={generatedOrderNumber}
                     paymentOption={paymentOption}
                     setPaymentOption={setPaymentOption}
                     setCurrentStep={setCurrentStep as (step: 1 | 2 | 3) => void}
                     handleAgreeToPay={handleAgreeToPay}
                     isProcessing={isProcessing}
+                    isFailedParam={isFailedParam}
+                    shippingAddressSummary={
+                      savedAddresses.find((a) => (a.id || String((a as any)._id)) === selectedAddressId)
+                        ? (() => {
+                            const a = savedAddresses.find((a) => (a.id || String((a as any)._id)) === selectedAddressId)!;
+                            return `${a.street}, ${a.city}, ${a.state} - ${a.pincode}`;
+                          })()
+                        : formData.address
+                        ? `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pinCode}`
+                        : ""
+                    }
+                    isCodAvailable={isCodAvailable}
                   />
                 )}
 
@@ -290,19 +636,6 @@ export const CheckoutPageModule = () => {
               <div className="w-full lg:w-[38%] lg:sticky lg:top-4 z-20">
                 <div className="flex flex-col bg-white border border-neutral-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-5 sm:p-6">
                   
-                  {/* Validation Error Alert Banner */}
-                  {errorMessage && (
-                    <div className="bg-red-50 border border-red-100 text-red-600 px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-between mb-4">
-                      <span>{errorMessage}</span>
-                      <button
-                        onClick={() => setErrorMessage("")}
-                        className="text-red-400 hover:text-red-600 p-0.5 transition-colors"
-                      >
-                        <XMarkIcon className="w-4 h-4 stroke-[2]" />
-                      </button>
-                    </div>
-                  )}
-
                   {/* Promo Applied Banner in Order Summary */}
                   {voucherDiscount > 0 && (
                     <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 px-3 py-2 rounded-lg text-[11px] font-bold flex items-center justify-between mb-4">

@@ -18,21 +18,28 @@ const nextConfig = {
     "meilisearch",
     "csv-parser",
     "papaparse",
+    "pdfkit",
+    "fontkit",
+    "restructure"
   ],
+  // Framework-level CORS headers as safety net for all API routes.
+  // The route handler's applyCors() is the primary mechanism — this ensures
+  // browsers never see a response without CORS headers even during unhandled crashes.
   async headers() {
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     return [
       {
-        // match all API routes
         source: "/api/:path*",
         headers: [
+          { key: "Access-Control-Allow-Origin", value: frontendUrl },
+          { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, PATCH, DELETE, OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization, x-request-id, idempotency-key, Idempotency-Key, Accept, Cache-Control, X-Requested-With, Pragma" },
           { key: "Access-Control-Allow-Credentials", value: "true" },
-          { key: "Access-Control-Allow-Origin", value: process.env.FRONTEND_URL || "http://localhost:3000" },
-          { key: "Access-Control-Allow-Methods", value: "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
-          { key: "Access-Control-Allow-Headers", value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization" },
-        ]
-      }
-    ]
-  }
+          { key: "Access-Control-Max-Age", value: "86400" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

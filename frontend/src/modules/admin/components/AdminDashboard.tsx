@@ -1,13 +1,17 @@
 "use client";
-import { useAdminStats, useAdminRecentOrders, useAdminRevenueChart } from "@/core/hooks/useAdminDashboard";
+import { useState } from "react";
+import { useAdminStats, useAdminRevenueChart } from "@/core/hooks/useAdminDashboard";
 import { formatPrice } from "@store4riders/shared-utils";
-import { DollarSign, ShoppingBag, Users, AlertCircle, TrendingUp, Package, Clock } from "lucide-react";
+import { DollarSign, ShoppingBag, Users, AlertCircle, TrendingUp, Package } from "lucide-react";
 import Link from "next/link";
+import { OrderFulfillmentPanel } from "@/modules/admin-shipping/components/OrderFulfillmentPanel";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 
 export function AdminDashboard() {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
-  const { data: recentOrders, isLoading: ordersLoading } = useAdminRecentOrders();
   const { data: chartData, isLoading: chartLoading } = useAdminRevenueChart();
+  
+  const [fulfillOrderId, setFulfillOrderId] = useState<string | null>(null);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -60,9 +64,9 @@ export function AdminDashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Revenue Chart (Placeholder for now, could use Recharts) */}
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        {/* Revenue Chart */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 min-w-0">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-bold text-slate-800 flex items-center">
               <TrendingUp className="mr-2 text-slate-500" size={20} />
@@ -72,71 +76,73 @@ export function AdminDashboard() {
           {chartLoading ? (
             <div className="animate-pulse h-64 bg-slate-100 rounded-xl"></div>
           ) : (
-            <div className="h-64 flex items-end space-x-2">
-              {chartData?.map((item: any) => (
-                <div 
-                  key={item.date} 
-                  className="flex-1 bg-brand/80 hover:bg-brand transition-colors rounded-t-sm" 
-                  style={{ height: `${Math.max(10, (item.revenue / (Math.max(...chartData.map((d: any) => d.revenue)) || 1)) * 100)}%` }} 
-                  title={`${item.date}: ${formatPrice(item.revenue)}`}
-                ></div>
-              ))}
+            <div className="h-64 w-full">
+              {chartData && chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                    <XAxis 
+                      dataKey="date" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                      dy={10}
+                    />
+                    <YAxis 
+                      width={60}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                      tickFormatter={(value) => `₹${value}`}
+                      domain={[0, (dataMax: number) => Math.max(dataMax, 5000)]}
+                    />
+                    <Tooltip 
+                      cursor={{ fill: '#f1f5f9' }}
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      formatter={(value: number) => [formatPrice(value), "Revenue"]}
+                      labelStyle={{ color: '#0f172a', fontWeight: 'bold', marginBottom: '4px' }}
+                    />
+                    <Bar 
+                      dataKey="revenue" 
+                      fill="#AB1509" 
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={50}
+                      minPointSize={4}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+                  No revenue data available for the selected period.
+                </div>
+              )}
             </div>
           )}
-          <p className="text-xs text-slate-400 mt-4 text-center">Run `pnpm add recharts` and we can make this chart interactive!</p>
         </div>
 
-        {/* Actionable Panels */}
-        <div className="space-y-8">
-          
-          {/* Recent Orders */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-slate-800 flex items-center">
-                <Clock className="mr-2 text-slate-500" size={20} />
-                Recent Orders
-              </h2>
-              <Link href="/admin/orders" className="text-brand text-sm font-medium hover:underline">View All</Link>
-            </div>
-            
-            {ordersLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3, 4, 5].map(i => <div key={i} className="animate-pulse h-12 bg-slate-100 rounded-lg"></div>)}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentOrders?.map((order: any) => (
-                  <div key={order._id} className="group flex justify-between items-center p-3 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-100 cursor-pointer">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center text-brand font-bold text-xs">
-                        #{order._id.substring(order._id.length - 4).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-slate-900">{formatPrice(order.totalAmount)}</div>
-                        <div className="text-xs text-slate-500 capitalize">{order.status}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {recentOrders?.length === 0 && <div className="text-sm text-slate-500 text-center py-4 bg-slate-50 rounded-lg">No recent orders found.</div>}
-              </div>
-            )}
-          </div>
+        {/* Actionable Panels (Right Column) */}
+        <div className="space-y-8 min-w-0">
           
           {/* Quick Actions Placeholder */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl shadow-sm border border-slate-700 p-6 text-white">
+          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl shadow-sm border border-slate-700 p-6 text-white h-full flex flex-col justify-center">
              <h2 className="text-lg font-bold flex items-center mb-4">
                 <Package className="mr-2 text-brand" size={20} />
                 Pending Fulfillments
              </h2>
-             <p className="text-slate-300 text-sm mb-4">You have orders waiting to be shipped.</p>
-             <Link href="/admin/orders?status=paid" className="block w-full py-2.5 bg-white text-slate-900 text-center rounded-lg font-medium hover:bg-slate-100 transition-colors">
+             <p className="text-slate-300 text-sm mb-6">You have orders waiting to be shipped. Keep the momentum going!</p>
+             <Link href="/admin/orders?status=paid" className="block w-full py-3 bg-brand text-white text-center rounded-lg font-bold hover:bg-red-800 transition-colors shadow-lg">
                Ship Orders Now
              </Link>
           </div>
 
         </div>
       </div>
+
+      {fulfillOrderId && (
+        <OrderFulfillmentPanel 
+          orderId={fulfillOrderId} 
+          onClose={() => setFulfillOrderId(null)} 
+        />
+      )}
     </div>
   );
 }

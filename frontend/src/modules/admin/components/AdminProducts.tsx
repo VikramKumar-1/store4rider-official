@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Plus, Upload, Download, Search, Edit2, Trash2, Box } from "lucide-react";
+import { Plus, Upload, Download, Search, Edit2, Trash2, Box, FlaskConical } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
 import { useProducts, useBulkUpdateProducts } from "@/core/hooks/useProducts";
+import { apiClient } from "@/core/api/client";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -19,6 +20,46 @@ export function AdminProducts() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const bulkUpdate = useBulkUpdateProducts();
   const [uploadReport, setUploadReport] = useState<{ successCount: number; errorRows: any[] } | null>(null);
+
+  const [testProductExists, setTestProductExists] = useState(false);
+  const [isTogglingTestProduct, setIsTogglingTestProduct] = useState(false);
+
+  useEffect(() => {
+    checkTestProduct();
+  }, []);
+
+  const checkTestProduct = async () => {
+    try {
+      const res = await apiClient.get("/admin/products/test-product");
+      setTestProductExists(Boolean(res.data?.data?.exists));
+    } catch (e) {}
+  };
+
+  const handleCreateTestProduct = async () => {
+    setIsTogglingTestProduct(true);
+    try {
+      await apiClient.post("/admin/products/test-product");
+      setTestProductExists(true);
+      toast.success("₹1 Sandbox Test Product created with 999 stock!");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to create test product");
+    } finally {
+      setIsTogglingTestProduct(false);
+    }
+  };
+
+  const handleDeleteTestProduct = async () => {
+    setIsTogglingTestProduct(true);
+    try {
+      await apiClient.delete("/admin/products/test-product");
+      setTestProductExists(false);
+      toast.success("Test product removed from database!");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to remove test product");
+    } finally {
+      setIsTogglingTestProduct(false);
+    }
+  };
 
   const handleCsvUpload = () => {
     if (!csvFile) return;
@@ -42,6 +83,37 @@ export function AdminProducts() {
           <p className="text-slate-500 text-sm mt-1">Manage your product catalog</p>
         </div>
         <div className="flex items-center space-x-3">
+          {testProductExists ? (
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg shadow-2xs">
+              <Link
+                href="/products/store4riders-test-product"
+                target="_blank"
+                className="text-xs font-bold text-amber-900 hover:text-brand flex items-center gap-1.5 transition-colors"
+              >
+                <span>🧪 Test Item (₹1)</span>
+                <span className="text-[10px] bg-amber-200 text-amber-900 px-1 py-0.5 rounded font-mono">999 Stock</span>
+              </Link>
+              <button
+                type="button"
+                onClick={handleDeleteTestProduct}
+                disabled={isTogglingTestProduct}
+                className="text-xs text-red-600 hover:text-red-800 font-bold ml-2 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {isTogglingTestProduct ? "Removing..." : "Remove"}
+              </button>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={handleCreateTestProduct}
+              disabled={isTogglingTestProduct}
+              className="flex items-center space-x-1.5 border-dashed border-amber-400 text-amber-900 bg-amber-50/70 hover:bg-amber-100/70"
+            >
+              <span>🧪</span>
+              <span>{isTogglingTestProduct ? "Creating..." : "Create ₹1 Test Item"}</span>
+            </Button>
+          )}
+
           <Button variant="outline" onClick={() => { setIsCsvModalOpen(true); setUploadReport(null); }} className="flex items-center space-x-2">
             <Upload size={18} />
             <span>Bulk Update (CSV)</span>

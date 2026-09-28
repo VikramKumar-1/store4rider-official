@@ -8,6 +8,7 @@ export class SettingValidator {
       freeShippingThreshold: z.number().min(0).optional(),
       shippingCost: z.number().min(0).optional(),
       enabledGateways: z.array(z.string()).optional(),
+      codPartialPaymentEnabled: z.boolean().optional(),
       codPartialPaymentType: z.enum(["percentage", "fixed"]).optional(),
       codPartialPaymentValue: z.number().min(0).optional(),
     });

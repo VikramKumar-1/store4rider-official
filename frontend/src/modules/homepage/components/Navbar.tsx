@@ -142,7 +142,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   // Adaptive theme: On light pages, always light. On dark/transparent pages (Homepage), transparent at top and liquid glassmorphism on scroll.
   const isLight = theme === "light" || isScrolled;
-  const activeNavItems = (navItems && navItems.length > 0) ? navItems : DEFAULT_NAV_ITEMS;
+  const activeNavItems = navItems !== undefined ? navItems : DEFAULT_NAV_ITEMS;
 
   return (
     <header className={`w-full z-50 ${

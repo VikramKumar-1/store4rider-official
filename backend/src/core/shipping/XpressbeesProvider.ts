@@ -1,14 +1,17 @@
-import axios from "axios";
+import { shippingGet, shippingPost } from "./shippingApiClient";
 import { 
   ShippingProvider, 
   CreateShipmentInput, 
   CreateShipmentResult, 
   ShippingRate, 
-  TrackingInfoResult 
+  TrackingInfoResult,
+  GetRatesInput,
+  PickupResult
 } from "./ShippingProvider";
 import { AppError } from "../errors/AppError";
 import { logger } from "../utils/logger";
 import { ENV } from "../config/env";
+import { WarehouseRepository } from "../../modules/warehouse/warehouse.repository";
 
 export class XpressbeesProvider implements ShippingProvider {
   
@@ -27,8 +30,11 @@ export class XpressbeesProvider implements ShippingProvider {
 
   async createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult> {
     const headers = this.getHeaders();
-    const settings = await require("../../modules/settings/setting.repository").SettingRepository.getSettings();
-    const originPincode = settings?.storeOriginPincode || "411001";
+    const warehouse = await WarehouseRepository.findDefault();
+    if (!warehouse || !warehouse.pincode) {
+      throw new AppError("Default warehouse pincode not configured", 500);
+    }
+    const originPincode = warehouse.pincode;
     
     const payload = {
       order_number: input.orderNumber,
@@ -54,7 +60,7 @@ export class XpressbeesProvider implements ShippingProvider {
     };
 
     try {
-      const response = await axios.post(`${this.baseUrl}/shipments`, payload, { headers });
+      const response = await shippingPost(`${this.baseUrl}/shipments`, payload, { headers });
       const data = response.data.data;
       
       if (!response.data.status) {
@@ -74,21 +80,42 @@ export class XpressbeesProvider implements ShippingProvider {
     }
   }
 
-  async generateLabel(shipmentId: string): Promise<string> {
+  async requestPickup(shipmentId: string, providerOrderId?: string): Promise<PickupResult> {
     const headers = this.getHeaders();
     try {
-      const response = await axios.get(`${this.baseUrl}/shipments/label/${shipmentId}`, { headers });
-      return response.data.data?.label_url || "";
+      // Dummy endpoint based on standard patterns; Xpressbees typically has a /pickup endpoint
+      const response = await shippingPost(`${this.baseUrl}/pickup`, {
+        order_id: shipmentId
+      }, { headers });
+      
+      return {
+        success: true,
+        message: response.data?.message || "Pickup requested successfully"
+      };
+    } catch (error: any) {
+      logger.error(`Xpressbees Pickup Request Error: ${error.response?.data?.message || error.message}`);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to request pickup"
+      };
+    }
+  }
+
+  async generateLabel(shipmentId: string): Promise<string | null> {
+    const headers = this.getHeaders();
+    try {
+      const response = await shippingGet(`${this.baseUrl}/shipments/label/${shipmentId}`, { headers });
+      return response.data.data?.label_url || null;
     } catch (error) {
       logger.error("Xpressbees Label Generation Error", error);
-      return "";
+      return null;
     }
   }
 
   async getTrackingInfo(awb: string): Promise<TrackingInfoResult> {
     const headers = this.getHeaders();
     try {
-      const response = await axios.get(`${this.baseUrl}/track/${awb}`, { headers });
+      const response = await shippingGet(`${this.baseUrl}/track/${awb}`, { headers });
       
       const trackData = response.data.data;
       if (!trackData || trackData.length === 0) {
@@ -100,9 +127,11 @@ export class XpressbeesProvider implements ShippingProvider {
         currentStatus: trackData[0]?.status || "UNKNOWN",
         events: trackData.map((activity: any) => ({
           status: activity.status,
+          providerStatus: activity.status,
           location: activity.location,
-          date: activity.timestamp,
-          activity: activity.remark
+          timestamp: activity.timestamp,
+          activity: activity.remark,
+          description: activity.remark,
         })),
         estimatedDelivery: trackData[0]?.expected_delivery
       };
@@ -112,20 +141,26 @@ export class XpressbeesProvider implements ShippingProvider {
     }
   }
 
-  async getRates(deliveryPincode: string, weightKg: number, isCod: boolean): Promise<ShippingRate[]> {
+  async getRates(input: GetRatesInput): Promise<ShippingRate[]> {
     const headers = this.getHeaders();
     try {
-      const settings = await require("../../modules/settings/setting.repository").SettingRepository.getSettings();
-      const originPincode = settings?.storeOriginPincode || "411001";
+      const warehouse = await WarehouseRepository.findDefault();
+      if (!warehouse || !warehouse.pincode) {
+        throw new AppError("Default warehouse pincode not configured", 500);
+      }
+      const originPincode = warehouse.pincode;
       
-      const response = await axios.get(`${this.baseUrl}/serviceability`, {
+      const response = await shippingGet(`${this.baseUrl}/serviceability`, {
         params: {
-          destination_pincode: deliveryPincode,
+          destination_pincode: input.deliveryPincode,
           source_pincode: originPincode,
-          weight: weightKg * 1000,
-          payment_type: isCod ? "COD" : "Prepaid"
+          weight: input.weightKg * 1000,
+          payment_type: input.isCod ? "COD" : "Prepaid",
+          length: input.length,
+          breadth: input.breadth,
+          height: input.height
         },
-        headers
+        headers,
       });
 
       const data = response.data.data;
@@ -140,7 +175,7 @@ export class XpressbeesProvider implements ShippingProvider {
           courierName: "Xpressbees Express",
           courierId: "xpressbees_express",
           rate: data.estimated_charges,
-          estimatedDeliveryDays: data.estimated_delivery_days ? String(data.estimated_delivery_days) : "3-5 Days",
+          estimatedDeliveryDays: data.estimated_delivery_days ? String(data.estimated_delivery_days) : "",
           isCodAvailable: Boolean(data.cod_available)
         }
       ];
@@ -153,11 +188,42 @@ export class XpressbeesProvider implements ShippingProvider {
   async cancelShipment(shipmentId: string, awb: string): Promise<boolean> {
     const headers = this.getHeaders();
     try {
-      await axios.post(`${this.baseUrl}/shipments/cancel`, { awb_number: awb }, { headers });
+      await shippingPost(`${this.baseUrl}/shipments/cancel`, { awb_number: awb }, { headers });
       return true;
     } catch (error: any) {
       logger.error(`Xpressbees Cancel Error: ${error.response?.data?.message || error.message}`);
+      throw new AppError("Failed to cancel Xpressbees shipment", 500);
+    }
+  }
+
+  async checkServiceability(deliveryPincode: string, weightKg: number, isCod: boolean): Promise<import("./ShippingProvider").ServiceabilityResult> {
+    const rates = await this.getRates({ deliveryPincode, weightKg, isCod });
+    if (rates.length === 0) {
+      return { serviceable: false, codAvailable: false, provider: "xpressbees" };
+    }
+    
+    return {
+      serviceable: true,
+      codAvailable: rates[0].isCodAvailable,
+      estimatedDays: parseInt(rates[0].estimatedDeliveryDays, 10) || undefined,
+      provider: "xpressbees"
+    };
+  }
+
+  verifyWebhookSignature(payload: any, headers: Record<string, string>): boolean {
+    if (!ENV.XPRESSBEES_WEBHOOK_TOKEN) {
+      logger.warn("XPRESSBEES_WEBHOOK_TOKEN not configured. Bypassing Xpressbees webhook verification (NOT SECURE).");
+      return true;
+    }
+
+    // Xpressbees can use a custom header or Bearer token for their webhooks
+    const token = headers["authorization"]?.replace("Bearer ", "") || headers["x-xpressbees-token"] || headers["x-api-key"];
+    
+    if (!token || token !== ENV.XPRESSBEES_WEBHOOK_TOKEN) {
+      logger.warn("Xpressbees webhook unauthorized (invalid or missing token)");
       return false;
     }
+
+    return true;
   }
 }

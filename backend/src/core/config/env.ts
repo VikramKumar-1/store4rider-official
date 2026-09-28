@@ -9,6 +9,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   REDIS_URL: z.string().min(1, "REDIS_URL is required"),
   FRONTEND_URL: z.string().min(1, "FRONTEND_URL is required"),
+  API_URL: z.string().optional(),
   NEXT_PUBLIC_API_URL: z.string().optional(),
   JWT_ACCESS_SECRET: z.string().min(1, "JWT_ACCESS_SECRET is required"),
   JWT_REFRESH_SECRET: z.string().min(1, "JWT_REFRESH_SECRET is required"),
@@ -28,6 +29,9 @@ const envSchema = z.object({
   SHIPROCKET_PASSWORD: z.string().optional(),
   DELHIVERY_API_KEY: z.string().optional(),
   XPRESSBEES_API_KEY: z.string().optional(),
+  SHIPROCKET_WEBHOOK_SECRET: z.string().optional(),
+  DELHIVERY_WEBHOOK_TOKEN: z.string().optional(),
+  XPRESSBEES_WEBHOOK_TOKEN: z.string().optional(),
 });
 
 const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
@@ -36,7 +40,8 @@ export const ENV = envSchema.parse({
   DATABASE_URL: process.env.DATABASE_URL || process.env.MONGODB_URI || (isProd ? "" : "mongodb://localhost:27017/store4riders"),
   REDIS_URL: process.env.REDIS_URL || (isProd ? "" : "redis://localhost:6379"),
   FRONTEND_URL: process.env.FRONTEND_URL || (isProd ? "" : "http://localhost:3000"),
-  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || process.env.FRONTEND_URL || (isProd ? "" : "http://localhost:3000"),
+  API_URL: process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || (isProd ? "" : "http://localhost:4000"),
+  NEXT_PUBLIC_API_URL: process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || (isProd ? "" : "http://localhost:4000"),
   JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || (isProd ? "" : "dev-access-secret-do-not-use-in-prod"),
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || (isProd ? "" : "dev-refresh-secret-do-not-use-in-prod"),
   NODE_ENV: process.env.NODE_ENV,
@@ -53,6 +58,9 @@ export const ENV = envSchema.parse({
   AWS_S3_BUCKET: process.env.AWS_S3_BUCKET || process.env.S3_BUCKET,
   SHIPROCKET_EMAIL: process.env.SHIPROCKET_EMAIL,
   SHIPROCKET_PASSWORD: process.env.SHIPROCKET_PASSWORD,
+  SHIPROCKET_WEBHOOK_SECRET: process.env.SHIPROCKET_WEBHOOK_SECRET,
   DELHIVERY_API_KEY: process.env.DELHIVERY_API_KEY,
+  DELHIVERY_WEBHOOK_TOKEN: process.env.DELHIVERY_WEBHOOK_TOKEN,
   XPRESSBEES_API_KEY: process.env.XPRESSBEES_API_KEY,
+  XPRESSBEES_WEBHOOK_TOKEN: process.env.XPRESSBEES_WEBHOOK_TOKEN,
 });

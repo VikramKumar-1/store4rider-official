@@ -15,7 +15,10 @@ import { healthRouter } from "./modules/health/health.route";
 import { adminRouter } from "./modules/admin/admin.route";
 import { searchRouter } from "./modules/search/search.route";
 import { paymentRouter } from "./modules/payment/payment.route";
-import { shipmentRouter } from "./modules/shipping/shipment.route";
+import { shippingRouter } from "./modules/shipping/shipping.route";
+import { settingRouter } from "./modules/settings/setting.route";
+import { warehouseRouter } from "./modules/warehouse/warehouse.route";
+import { returnRouter } from "./modules/return/return.route";
 
 export async function centralRouter(req: NextRequest, routePath: string[]) {
   const [module, ...rest] = routePath;
@@ -37,7 +40,10 @@ export async function centralRouter(req: NextRequest, routePath: string[]) {
     case "upload": return uploadRouter(req, rest);
     case "search": return searchRouter(req, rest.join("/"));
     case "payments": return paymentRouter(req, rest.join("/"));
-    case "shipments": return shipmentRouter(req, rest);
+    case "shipping": return shippingRouter(req, rest);
+    case "settings": return settingRouter(req, rest.join("/"));
+    case "warehouses": return warehouseRouter(req, rest);
+    case "returns": return returnRouter(req, rest);
     default: return null;
   }
 }

@@ -3,25 +3,18 @@ import { UserIcon, TruckIcon, CreditCardIcon, CheckIcon } from "@heroicons/react
 
 interface CheckoutStepperProps {
   currentStep: number;
-  validateStep1: () => boolean;
-  validateStep2: () => boolean;
-  setCurrentStep: (step: 1 | 2 | 3) => void;
+  validateStep1?: () => boolean;
+  validateStep2?: () => boolean;
+  setCurrentStep?: (step: 1 | 2 | 3) => void;
 }
 
 export const CheckoutStepper = ({ 
-  currentStep, 
-  validateStep1, 
-  validateStep2, 
-  setCurrentStep 
+  currentStep
 }: CheckoutStepperProps) => {
   return (
     <div className="flex items-center gap-2 sm:gap-6 mb-8 pb-4 max-w-2xl">
       {/* Step 1: Personal Info */}
-      <button 
-        type="button"
-        onClick={() => setCurrentStep(1)}
-        className="flex items-center gap-2 text-left group"
-      >
+      <div className="flex items-center gap-2 text-left cursor-default select-none">
         <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${
           currentStep === 1 
             ? "bg-[#78350F] text-white shadow-sm" 
@@ -39,18 +32,12 @@ export const CheckoutStepper = ({
             Personal Info
           </span>
         </div>
-      </button>
+      </div>
 
       <div className="w-6 sm:w-12 h-[1.5px] bg-neutral-200 shrink-0" />
 
       {/* Step 2: Shipping & Address */}
-      <button 
-        type="button"
-        onClick={() => {
-          if (validateStep1()) setCurrentStep(2);
-        }}
-        className="flex items-center gap-2 text-left group"
-      >
+      <div className="flex items-center gap-2 text-left cursor-default select-none">
         <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${
           currentStep === 2 
             ? "bg-[#78350F] text-white shadow-sm" 
@@ -68,18 +55,12 @@ export const CheckoutStepper = ({
             Shipping & Address
           </span>
         </div>
-      </button>
+      </div>
 
       <div className="w-6 sm:w-12 h-[1.5px] bg-neutral-200 shrink-0" />
 
       {/* Step 3: Payment */}
-      <button 
-        type="button"
-        onClick={() => {
-          if (validateStep1() && validateStep2()) setCurrentStep(3);
-        }}
-        className="flex items-center gap-2 text-left group"
-      >
+      <div className="flex items-center gap-2 text-left cursor-default select-none">
         <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${
           currentStep === 3 
             ? "bg-[#78350F] text-white shadow-sm" 
@@ -95,7 +76,7 @@ export const CheckoutStepper = ({
             Payment
           </span>
         </div>
-      </button>
+      </div>
     </div>
   );
 };

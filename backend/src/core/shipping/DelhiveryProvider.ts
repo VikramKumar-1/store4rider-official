@@ -1,14 +1,17 @@
-import axios from "axios";
+import { shippingGet, shippingPost } from "./shippingApiClient";
 import { 
   ShippingProvider, 
   CreateShipmentInput, 
   CreateShipmentResult, 
   ShippingRate, 
-  TrackingInfoResult 
+  TrackingInfoResult,
+  GetRatesInput,
+  PickupResult
 } from "./ShippingProvider";
 import { AppError } from "../errors/AppError";
 import { logger } from "../utils/logger";
 import { ENV } from "../config/env";
+import { WarehouseRepository } from "../../modules/warehouse/warehouse.repository";
 
 export class DelhiveryProvider implements ShippingProvider {
   
@@ -27,9 +30,13 @@ export class DelhiveryProvider implements ShippingProvider {
 
   async createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult> {
     const headers = this.getHeaders();
-    const settings = await require("../../modules/settings/setting.repository").SettingRepository.getSettings();
-    const originPincode = settings?.storeOriginPincode || "411001";
-    const originCity = settings?.storeOriginCity || "Pune";
+    const warehouse = await WarehouseRepository.findDefault();
+    if (!warehouse || !warehouse.pincode || !warehouse.city || !warehouse.state || !warehouse.addressLine1) {
+      throw new AppError("Default warehouse missing pincode, city, state, or address", 500);
+    }
+    const originPincode = warehouse.pincode;
+    const originCity = warehouse.city;
+    const originState = warehouse.state;
     
     const payload = {
       format: "json",
@@ -47,9 +54,9 @@ export class DelhiveryProvider implements ShippingProvider {
             payment_mode: input.paymentMethod === "cod" ? "COD" : "Prepaid",
             return_pin: originPincode,
             return_city: originCity,
-            return_phone: settings?.storeOriginPhone || "",
-            return_add: settings?.storeOriginAddress || "",
-            return_state: originCity,
+            return_phone: warehouse.phone,
+            return_add: warehouse.addressLine1 + (warehouse.addressLine2 ? `, ${warehouse.addressLine2}` : ""),
+            return_state: originState,
             return_country: "India",
             products_desc: input.items.map(i => i.name).join(", "),
             cod_amount: input.paymentMethod === "cod" ? input.totalAmount : 0,
@@ -63,7 +70,7 @@ export class DelhiveryProvider implements ShippingProvider {
     };
 
     try {
-      const response = await axios.post(`${this.baseUrl}/api/cmu/create.json`, payload, { headers });
+      const response = await shippingPost(`${this.baseUrl}/api/cmu/create.json`, payload, { headers });
       
       const pkg = response.data.packages?.[0];
       if (!pkg || pkg.status !== "Success") {
@@ -83,31 +90,41 @@ export class DelhiveryProvider implements ShippingProvider {
     }
   }
 
-  async generateLabel(shipmentId: string): Promise<string> {
+  async requestPickup(shipmentId: string, providerOrderId?: string): Promise<PickupResult> {
+    // Delhivery auto-schedules pickup upon manifest creation.
+    // If explicit pickup location call is needed, it would be /fm/request/pb/generate/
+    // We return success immediately.
+    return {
+      success: true,
+      message: "Pickup auto-scheduled by Delhivery on creation"
+    };
+  }
+
+  async generateLabel(shipmentId: string): Promise<string | null> {
     const headers = this.getHeaders();
     try {
-      const response = await axios.get(`${this.baseUrl}/api/p/packing_slip`, {
+      const response = await shippingGet(`${this.baseUrl}/api/p/packing_slip`, {
         params: { wbns: shipmentId },
-        headers
+        headers,
       });
       // Delhivery usually returns raw HTML or PDF buffers for this endpoint. 
       // Handling specifics would depend on business needs. For now, we return the track URL as a fallback label view.
       if (response.data?.packages?.length > 0) {
         return `https://track.delhivery.com/p/${shipmentId}`;
       }
-      return "";
+      return null;
     } catch (error) {
       logger.error("Delhivery Label Generation Error", error);
-      return "";
+      return null;
     }
   }
 
   async getTrackingInfo(awb: string): Promise<TrackingInfoResult> {
     const headers = this.getHeaders();
     try {
-      const response = await axios.get(`${this.baseUrl}/api/v1/packages/json/`, {
+      const response = await shippingGet(`${this.baseUrl}/api/v1/packages/json/`, {
         params: { waybill: awb },
-        headers
+        headers,
       });
       
       const shipmentData = response.data.ShipmentData?.[0]?.Shipment;
@@ -122,9 +139,11 @@ export class DelhiveryProvider implements ShippingProvider {
         currentStatus: shipmentData.Status?.Status || "UNKNOWN",
         events: scans.map((scan: any) => ({
           status: scan.ScanDetail?.ScanType || scan.ScanDetail?.Scan,
+          providerStatus: scan.ScanDetail?.ScanType || scan.ScanDetail?.Scan,
           location: scan.ScanDetail?.ScannedLocation,
-          date: scan.ScanDetail?.ScanDateTime,
-          activity: scan.ScanDetail?.Instructions
+          timestamp: scan.ScanDetail?.ScanDateTime,
+          activity: scan.ScanDetail?.Instructions,
+          description: scan.ScanDetail?.Instructions,
         })),
         estimatedDelivery: shipmentData.ExpectedDeliveryDate
       };
@@ -134,31 +153,34 @@ export class DelhiveryProvider implements ShippingProvider {
     }
   }
 
-  async getRates(deliveryPincode: string, weightKg: number, isCod: boolean): Promise<ShippingRate[]> {
+  async getRates(input: GetRatesInput): Promise<ShippingRate[]> {
     const headers = this.getHeaders();
     try {
       // Step 1: Check Serviceability
-      const servResponse = await axios.get(`${this.baseUrl}/c/api/pin-codes/json/`, {
-        params: { filter_codes: deliveryPincode },
-        headers
+      const servResponse = await shippingGet(`${this.baseUrl}/c/api/pin-codes/json/`, {
+        params: { filter_codes: input.deliveryPincode },
+        headers,
       });
 
       const pinData = servResponse.data.delivery_codes?.[0]?.postal_code;
       if (!pinData) return [];
 
       // Step 2: Fetch actual rate
-      const settings = await require("../../modules/settings/setting.repository").SettingRepository.getSettings();
-      const originPincode = settings?.storeOriginPincode || "411001";
+      const warehouse = await WarehouseRepository.findDefault();
+      if (!warehouse || !warehouse.pincode) {
+        throw new AppError("Default warehouse pincode not configured", 500);
+      }
+      const originPincode = warehouse.pincode;
       
-      const rateResponse = await axios.get(`${this.baseUrl}/api/kinko/v1/invoice/charges/.json`, {
+      const rateResponse = await shippingGet(`${this.baseUrl}/api/kinko/v1/invoice/charges/.json`, {
         params: {
           md: "S", // Surface
           ss: "Delivered",
-          d_pin: deliveryPincode,
+          d_pin: input.deliveryPincode,
           o_pin: originPincode,
-          cgm: weightKg * 1000 // Convert kg to grams
+          cgm: input.weightKg * 1000 // Convert kg to grams
         },
-        headers
+        headers,
       });
 
       const rateData = rateResponse.data?.[0];
@@ -171,7 +193,7 @@ export class DelhiveryProvider implements ShippingProvider {
           courierName: "Delhivery Surface",
           courierId: "delhivery_surface",
           rate: rateData.total_amount,
-          estimatedDeliveryDays: pinData.sort_code || "3-4 Days",
+          estimatedDeliveryDays: pinData.sort_code,
           isCodAvailable: pinData.cod === "Y"
         }
       ];
@@ -184,14 +206,56 @@ export class DelhiveryProvider implements ShippingProvider {
   async cancelShipment(shipmentId: string, awb: string): Promise<boolean> {
     const headers = this.getHeaders();
     try {
-      await axios.post(`${this.baseUrl}/api/p/edit`, {
+      await shippingPost(`${this.baseUrl}/api/p/edit`, {
         waybill: awb,
         cancellation: true
       }, { headers });
       return true;
     } catch (error: any) {
       logger.error(`Delhivery Cancel Error: ${error.response?.data?.message || error.message}`);
+      throw new AppError("Failed to cancel Delhivery shipment", 500);
+    }
+  }
+
+  async checkServiceability(deliveryPincode: string, weightKg: number, isCod: boolean): Promise<import("./ShippingProvider").ServiceabilityResult> {
+    const headers = this.getHeaders();
+    try {
+      const servResponse = await shippingGet(`${this.baseUrl}/c/api/pin-codes/json/`, {
+        params: { filter_codes: deliveryPincode },
+        headers,
+      });
+
+      const pinData = servResponse.data.delivery_codes?.[0]?.postal_code;
+      if (!pinData) {
+        return { serviceable: false, codAvailable: false, provider: "delhivery" };
+      }
+
+      return {
+        serviceable: true,
+        codAvailable: pinData.cod === "Y",
+        estimatedDays: parseInt(pinData.sort_code, 10) || undefined,
+        provider: "delhivery"
+      };
+    } catch (error: any) {
+      logger.error(`Delhivery Serviceability Error: ${error.response?.data?.message || error.message}`);
+      return { serviceable: false, codAvailable: false, provider: "delhivery" };
+    }
+  }
+
+  verifyWebhookSignature(payload: any, headers: Record<string, string>): boolean {
+    if (!ENV.DELHIVERY_WEBHOOK_TOKEN) {
+      logger.warn("DELHIVERY_WEBHOOK_TOKEN not configured. Bypassing Delhivery webhook verification (NOT SECURE).");
+      return true; // Bypass only if explicitly unconfigured
+    }
+
+    // Delhivery uses a static Authorization token or custom header for webhook auth
+    const token = headers["authorization"]?.replace("Bearer ", "") || headers["x-delhivery-token"];
+    
+    if (!token || token !== ENV.DELHIVERY_WEBHOOK_TOKEN) {
+      logger.warn("Delhivery webhook unauthorized (invalid or missing token)");
       return false;
     }
+
+    return true;
   }
 }

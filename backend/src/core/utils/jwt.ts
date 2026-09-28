@@ -7,11 +7,11 @@ const REFRESH_SECRET = ENV.JWT_REFRESH_SECRET;
 /**
  * Generates an access token and a refresh token for the user.
  * Access token expires in 15 minutes.
- * Refresh token expires in 7 days.
+ * Refresh token expires in 30 days.
  */
 export const generateTokens = (userId: string) => {
   const accessToken = jwt.sign({ userId }, ACCESS_SECRET, { expiresIn: "15m" });
-  const refreshToken = jwt.sign({ userId }, REFRESH_SECRET, { expiresIn: "7d" });
+  const refreshToken = jwt.sign({ userId }, REFRESH_SECRET, { expiresIn: "30d" });
 
   return { accessToken, refreshToken };
 };

@@ -6,7 +6,7 @@ import { formatPrice } from "@store4riders/shared-utils";
 import Badge from "@/components/ui/Badge";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import { Package } from "lucide-react";
+import { Package, Truck } from "lucide-react";
 
 export function OrderHistory() {
   const { data, isLoading, error } = useQuery({
@@ -58,8 +58,15 @@ export function OrderHistory() {
             </div>
             
             <div className="flex flex-col md:items-end justify-between gap-4 border-t md:border-t-0 pt-4 md:pt-0 border-zinc-100 dark:border-zinc-800">
-              <span className="text-xl font-bold text-brand">{formatPrice(order.totalAmount)}</span>
-              <Button variant="outline" size="sm">View Details</Button>
+              <span className="text-xl font-bold text-brand">{formatPrice(order.pricing?.total || 0)}</span>
+              <div className="flex gap-2">
+                {["shipped", "processing", "delivered"].includes(order.status) && (
+                  <Link href={`/account/orders/${order._id || order.id}/tracking`}>
+                    <Button variant="outline" size="sm" className="gap-2"><Truck className="w-4 h-4"/> Track</Button>
+                  </Link>
+                )}
+                <Button variant="outline" size="sm">View Details</Button>
+              </div>
             </div>
           </div>
         ))}

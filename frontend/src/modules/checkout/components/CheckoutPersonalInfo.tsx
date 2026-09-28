@@ -1,5 +1,7 @@
 import React from "react";
-import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { DialCodeSelect } from "./DialCodeSelect";
+import { COUNTRIES } from "@/core/utils/countries";
 
 interface CheckoutPersonalInfoProps {
   formData: {
@@ -12,13 +14,20 @@ interface CheckoutPersonalInfoProps {
   };
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   handleContinueToShipping: (e: React.FormEvent) => void;
+  errorMessage?: string;
+  setErrorMessage?: (msg: string) => void;
 }
 
 export const CheckoutPersonalInfo = ({ 
   formData, 
   handleInputChange, 
-  handleContinueToShipping 
+  handleContinueToShipping,
+  errorMessage,
+  setErrorMessage
 }: CheckoutPersonalInfoProps) => {
+  const currentCountry = COUNTRIES.find((c) => c.code === formData.countryCode);
+  const maxPhoneLength = currentCountry?.phoneLength ? Math.max(...currentCountry.phoneLength) : 15;
+
   return (
     <form onSubmit={handleContinueToShipping} className="flex flex-col gap-6 animate-in fade-in duration-300">
       
@@ -43,42 +52,34 @@ export const CheckoutPersonalInfo = ({
             name="name"
             type="text"
             required
-            placeholder="Eg: Vikram Kumar"
+            maxLength={50}
+            placeholder="Enter your full name"
             value={formData.name}
             onChange={handleInputChange}
-            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none transition-colors"
+            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors"
           />
         </div>
 
         {/* Phone Number with Flag selector */}
         <div className="flex flex-col gap-1.5">
           <label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-neutral-700">
-            PHONE NUMBER *
+            MOBILE NUMBER *
           </label>
-          <div className="flex items-center gap-2">
-            <div className="relative shrink-0">
-              <select
-                name="countryCode"
-                value={formData.countryCode}
-                onChange={handleInputChange}
-                className="appearance-none bg-white border border-neutral-300 rounded-none pl-3 pr-8 py-3 text-sm text-neutral-800 focus:outline-none focus:border-[#78350F]"
-              >
-                <option value="+91">🇮🇳 (+91)</option>
-                <option value="+1">🇺🇸 (+1)</option>
-                <option value="+44">🇬🇧 (+44)</option>
-                <option value="+971">🇦🇪 (+971)</option>
-              </select>
-              <ChevronDownIcon className="w-3 h-3 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+          <div className="flex items-center gap-0">
+            <DialCodeSelect
+              value={formData.countryCode}
+              onChange={(val) => handleInputChange({ target: { name: "countryCode", value: val } } as any)}
+            />
             <input
               id="phone"
               name="phone"
               type="tel"
               required
-              placeholder="9876543210"
+              maxLength={maxPhoneLength}
+              placeholder="Enter your mobile number"
               value={formData.phone}
               onChange={handleInputChange}
-              className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none transition-colors"
+              className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors"
             />
           </div>
         </div>
@@ -92,10 +93,11 @@ export const CheckoutPersonalInfo = ({
             id="altPhone"
             name="altPhone"
             type="tel"
-            placeholder="Optional"
+            maxLength={maxPhoneLength}
+            placeholder="Enter alternate number (optional)"
             value={formData.altPhone}
             onChange={handleInputChange}
-            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none transition-colors"
+            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors"
           />
         </div>
 
@@ -109,19 +111,32 @@ export const CheckoutPersonalInfo = ({
             name="email"
             type="email"
             required
-            placeholder="vikram@example.com"
+            maxLength={100}
+            placeholder="Enter your email address"
             value={formData.email}
             onChange={handleInputChange}
-            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none transition-colors"
+            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors"
           />
         </div>
       </div>
 
       {/* Button at the bottom of the form */}
-      <div className="pt-4">
+      <div className="pt-4 flex flex-col gap-4">
+        {errorMessage && (
+          <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-none text-xs font-semibold flex items-center justify-between">
+            <span>{errorMessage}</span>
+            <button
+              type="button"
+              onClick={() => setErrorMessage && setErrorMessage("")}
+              className="text-red-400 hover:text-red-600 p-0.5 transition-colors"
+            >
+              <XMarkIcon className="w-5 h-5 stroke-[2]" />
+            </button>
+          </div>
+        )}
         <button
           type="submit"
-          className="w-full sm:w-auto min-w-[240px] bg-brand hover:bg-red-800 text-white font-bold tracking-widest text-xs uppercase py-4 px-8 rounded-none shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2"
+          className="w-full sm:w-auto min-w-[240px] bg-brand hover:bg-red-800 text-white font-bold tracking-widest text-xs uppercase py-4 px-8 rounded-none shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2 self-start"
         >
           CONTINUE TO SHIPPING & ADDRESS
           <span className="text-base leading-none">→</span>

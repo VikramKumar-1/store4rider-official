@@ -1,5 +1,10 @@
 import { NextRequest } from "next/server";
-import { cartItemSchema } from "@store4riders/shared-validation";
+import { 
+  cartItemSchema, 
+  updateCartItemSchema, 
+  removeCartItemSchema, 
+  syncCartSchema 
+} from "@store4riders/shared-validation";
 import { extractUserFromAuth } from "../../core/middlewares/auth";
 
 /**
@@ -32,4 +37,35 @@ export class CartValidator {
     const data = cartItemSchema.parse(body);
     return { userId, data };
   }
+
+  /**
+   * Validates the payload for updating an item's quantity in the cart.
+   */
+  static async validateUpdateQuantity(req: NextRequest) {
+    const userId = extractUserFromAuth(req);
+    const body = await req.json();
+    const data = updateCartItemSchema.parse(body);
+    return { userId, data };
+  }
+
+  /**
+   * Validates the payload for removing an item from the cart.
+   */
+  static async validateRemoveItem(req: NextRequest) {
+    const userId = extractUserFromAuth(req);
+    const body = await req.json();
+    const data = removeCartItemSchema.parse(body);
+    return { userId, data };
+  }
+
+  /**
+   * Validates the payload for syncing local cart items to the database.
+   */
+  static async validateSyncCart(req: NextRequest) {
+    const userId = extractUserFromAuth(req);
+    const body = await req.json();
+    const data = syncCartSchema.parse(body);
+    return { userId, data };
+  }
 }
+

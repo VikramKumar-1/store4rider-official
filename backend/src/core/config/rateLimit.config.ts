@@ -69,6 +69,30 @@ export const RATE_LIMIT_CONFIG = {
     duration: 60,            // per 1 minute (60 seconds)
     errorMessage: "Rate limit exceeded. Please slow down your requests.",
   },
+
+  /**
+   * 5. Shipping Serviceability Limiter
+   * Protects: POST /api/v1/shipments/serviceability
+   * Purpose: Prevents abuse of third-party courier serviceability APIs.
+   */
+  SHIPPING_SERVICEABILITY: {
+    keyPrefix: "rl_ship_svc",
+    points: 10,              // 10 requests
+    duration: 60,            // per 1 minute (60 seconds)
+    errorMessage: "Too many serviceability checks. Please wait a moment before trying again.",
+  },
+
+  /**
+   * 6. Shipping Rates Limiter
+   * Protects: POST /api/v1/shipments/rates
+   * Purpose: Prevents excessive rate comparison calls hitting all 3 courier APIs.
+   */
+  SHIPPING_RATES: {
+    keyPrefix: "rl_ship_rates",
+    points: 5,               // 5 requests
+    duration: 60,            // per 1 minute (60 seconds)
+    errorMessage: "Too many rate comparison requests. Please wait a moment before trying again.",
+  },
 } as const;
 
 export type RateLimitTier = keyof typeof RATE_LIMIT_CONFIG;

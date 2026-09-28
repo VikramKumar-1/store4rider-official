@@ -18,9 +18,10 @@ interface User {
 interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
-  setAuth: (user: User, token: string) => void;
-  setToken: (token: string) => void;
+  setAuth: (user: User, token: string, refreshToken?: string) => void;
+  setToken: (token: string, refreshToken?: string) => void;
   setUser: (user: User | null) => void;
   logout: () => void;
 }
@@ -30,14 +31,15 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       token: null,
+      refreshToken: null,
       isAuthenticated: false,
-      setAuth: (user, token) => {
+      setAuth: (user, token, refreshToken) => {
         const userId = user.id || user.email;
         useCartStore.getState().switchUserCart(userId);
-        set({ user, token, isAuthenticated: true });
+        set({ user, token, refreshToken: refreshToken || null, isAuthenticated: true });
       },
-      setToken: (token) => {
-        set({ token });
+      setToken: (token, refreshToken) => {
+        set((s) => ({ token, ...(refreshToken ? { refreshToken } : {}) }));
       },
       setUser: (user) => {
         if (user) {
@@ -47,7 +49,7 @@ export const useAuthStore = create<AuthState>()(
       },
       logout: () => {
         useCartStore.getState().switchUserCart(null);
-        set({ user: null, token: null, isAuthenticated: false });
+        set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
       },
     }),
     {

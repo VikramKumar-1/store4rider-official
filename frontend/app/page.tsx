@@ -24,10 +24,16 @@ export default async function Home() {
     // Fetch products from our backend API with sufficient limit for all homepage sections
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
     const fetchUrl = baseUrl.includes('/v1') ? `${baseUrl}/products` : `${baseUrl}/v1/products`;
+    
+    // Warn if trying to fetch from localhost during a production build (like on Vercel)
+    if (process.env.NODE_ENV === 'production' && baseUrl.includes('localhost')) {
+      console.warn("⚠️ WARNING: Fetching from localhost during production build. Did you forget to set NEXT_PUBLIC_API_URL in Vercel?");
+    }
+    
     console.log("Building homepage, fetching products from:", fetchUrl);
     
     const res = await fetch(`${fetchUrl}?limit=50`, { 
-      next: { revalidate: 10 } // Revalidate every 10 seconds
+      next: { revalidate: 60 } // Use ISR (revalidate every 60s) instead of no-store to fix build error
     });
     
     if (res.ok) {
@@ -35,10 +41,14 @@ export default async function Home() {
       backendProducts = data?.data?.items || [];
       console.log(`Successfully fetched ${backendProducts.length} products for homepage.`);
     } else {
-      console.error(`Failed to fetch products: ${res.status} ${res.statusText}`);
+      let errorBody = "";
+      try {
+        errorBody = await res.text();
+      } catch (e) {}
+      console.error(`Failed to fetch products: ${res.status} ${res.statusText}. URL: ${fetchUrl}. Body: ${errorBody}`);
     }
   } catch (error) {
-    console.error("Network error fetching products for homepage:", error);
+    console.error(`Network error fetching products from ${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}:`, error);
   }
 
   return <HomepageModule backendProducts={backendProducts} />;

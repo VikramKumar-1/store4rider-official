@@ -2,9 +2,11 @@ import mongoose, { Schema } from "mongoose";
 import { ICart, ICartItem, ICartSummary } from "@store4riders/shared-types";
 
 const cartItemSchema = new Schema<ICartItem>({
+  id: { type: String },
   productId: { type: String, required: true },
   variantId: { type: String },
   quantity: { type: Number, required: true, min: 1 },
+  product: { type: Schema.Types.Mixed },
 });
 
 const cartSummarySchema = new Schema<ICartSummary>({

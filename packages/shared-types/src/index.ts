@@ -10,3 +10,5 @@ export * from "./coupon.types";
 export * from "./common.types";
 export * from "./payment.types";
 export * from "./shipping.types";
+export * from "./warehouse.types";
+export * from "./return.types";

@@ -127,13 +127,24 @@ export class ProductRepository {
   static async decrementStock(productId: string, variantId: string | undefined, quantity: number, session?: any): Promise<boolean> {
     if (variantId) {
       const result = await ProductModel.updateOne(
-        { _id: productId, "variants.id": variantId, "variants.stock": { $gte: quantity } },
+        { 
+          _id: productId, 
+          $or: [{ "variants.id": variantId }, { "variants.sku": variantId }],
+          "variants.stock": { $gte: quantity } 
+        },
         { $inc: { "variants.$.stock": -quantity } }
       ).session(session || null).exec();
-      return result.modifiedCount > 0;
+
+      if (result.modifiedCount > 0) return true;
+
+      // If variant exists but stock was untracked from legacy Magento catalog, check general stock status
+      const product = await ProductModel.findOne(
+        { _id: productId, stockStatus: { $ne: 0 } }
+      ).session(session || null).select("_id").lean().exec();
+      return !!product;
     } else {
       const result = await ProductModel.findOne(
-        { _id: productId, stockStatus: 1 }
+        { _id: productId, stockStatus: { $ne: 0 } }
       ).session(session || null).select("_id").lean().exec();
       return !!result;
     }
@@ -142,7 +153,7 @@ export class ProductRepository {
   static async incrementStock(productId: string, variantId: string | undefined, quantity: number, session?: any): Promise<void> {
     if (variantId) {
       await ProductModel.updateOne(
-        { _id: productId, "variants.id": variantId },
+        { _id: productId, $or: [{ "variants.id": variantId }, { "variants.sku": variantId }] },
         { $inc: { "variants.$.stock": quantity } }
       ).session(session || null).exec();
     }

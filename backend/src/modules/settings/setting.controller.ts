@@ -15,8 +15,10 @@ export class SettingController {
       freeShippingThreshold: settings.freeShippingThreshold,
       shippingCost: settings.shippingCost,
       enabledGateways: settings.enabledGateways,
+      codPartialPaymentEnabled: Boolean(settings.codPartialPaymentEnabled),
       codPartialPaymentType: settings.codPartialPaymentType,
-      codPartialPaymentValue: settings.codPartialPaymentValue
+      codPartialPaymentValue: settings.codPartialPaymentValue,
+      packagePresets: settings.packagePresets
     };
     return ApiResponse.success(publicData, "Public settings retrieved successfully");
   }

@@ -10,6 +10,7 @@ interface ISettings {
   freeShippingThreshold: number;
   shippingCost: number;
   enabledGateways: string[];
+  codPartialPaymentEnabled?: boolean;
   codPartialPaymentType: "percentage" | "fixed";
   codPartialPaymentValue: number;
 }
@@ -91,7 +92,7 @@ export function AdminPaymentSettings() {
                   <input
                     type="checkbox"
                     className="rounded text-brand"
-                    checked={settings.enabledGateways.includes(gw)}
+                    checked={(settings?.enabledGateways || []).includes(gw)}
                     onChange={() => handleGatewayToggle(gw)}
                   />
                   <span className="ml-2 uppercase text-sm">{gw}</span>
@@ -102,7 +103,20 @@ export function AdminPaymentSettings() {
 
           <div className="pt-4 border-t">
             <h3 className="font-semibold text-md mb-2">COD Configuration</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center mb-3">
+              <input
+                type="checkbox"
+                id="codPartialPaymentEnabled"
+                className="rounded text-brand mr-2"
+                checked={Boolean(settings.codPartialPaymentEnabled)}
+                onChange={(e) => setSettings({ ...settings, codPartialPaymentEnabled: e.target.checked })}
+              />
+              <label htmlFor="codPartialPaymentEnabled" className="text-sm font-medium text-gray-700 cursor-pointer">
+                Require Partial Online Advance for COD Orders
+              </label>
+            </div>
+            {settings.codPartialPaymentEnabled && (
+              <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Partial Payment Type</label>
                 <select 
@@ -124,6 +138,7 @@ export function AdminPaymentSettings() {
                 />
               </div>
             </div>
+            )}
           </div>
 
           <Button type="submit" className="mt-4">Save Settings</Button>

@@ -23,6 +23,13 @@ export class UserValidator {
     return { userId, data };
   }
 
+  static async validateUpdateAddress(req: NextRequest): Promise<{ userId: string; data: Partial<IUserAddress> }> {
+    const userId = extractUserFromAuth(req);
+    const body = await req.json();
+    const data = addressSchema.partial().parse(body) as Partial<IUserAddress>;
+    return { userId, data };
+  }
+
   static extractUserId(req: NextRequest): string {
     return extractUserFromAuth(req);
   }

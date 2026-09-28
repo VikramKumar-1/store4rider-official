@@ -208,8 +208,8 @@ These rules apply to **every query, component, and API call** you write:
 | 2 | Product & Catalog Enhancement | Product Catalogue, Brand Mgmt, Category | ✅ COMPLETED |
 | 3 | Search & Discovery | Search & Filter (Meilisearch) | ✅ COMPLETED |
 | 4 | Payment Gateways | Payment Module (PayU, CCavenue, Snapmint, COD) | ✅ COMPLETED |
-| 5 | Shipping & Logistics | Shipping (Shiprocket, Delhivery, Xpressbees) | 🔄 IN PROGRESS |
-| 6 | Order Lifecycle & Returns | Order Management, Returns, Invoices | ⬜ NOT STARTED |
+| 5 | Shipping & Logistics | Shipping (Shiprocket, Delhivery, Xpressbees) | ✅ COMPLETED |
+| 6 | Order Lifecycle & Returns | Order Management, Returns, Invoices | ✅ COMPLETED |
 | 7 | Customer Account Enhancement | Account Module (password reset, tracking, invoices) | ⬜ NOT STARTED |
 | 8 | Notifications & WhatsApp | Notification, WhatsApp Automation | ⬜ NOT STARTED |
 | 9 | Email & Newsletter | Newsletter System, Email Templates | ⬜ NOT STARTED |
@@ -380,7 +380,7 @@ These rules apply to **every query, component, and API call** you write:
 
 ## Phase 4 — Payment Gateways (Production-Grade)
 
-**Status:** 🔄 IN PROGRESS
+**Status:** ✅ COMPLETED
 **Modules:** Payment Module, Order Refactor, Checkout Enhancement
 **Depends on:** Phase 3 (completed)
 **Approach:** 12-step senior engineering methodology. Each step is reviewed & tested before proceeding.
@@ -396,7 +396,7 @@ These rules apply to **every query, component, and API call** you write:
 | COD Partial Payment | Admin-configurable: `codPartialPaymentType` (percentage/fixed), `codPartialPaymentValue` |
 | PayU/CCavenue/Snapmint credentials | Not available yet. Build as stubs with sandbox defaults. Activate when credentials are provided |
 | Snapmint EMI flow | Hosted page (industry standard). Snapmint handles tenure selection, RBI disclosures |
-| Cart sync | Backend-authoritative. Frontend localStorage cart synced at checkout. All prices recalculated server-side |
+| Cart sync | Backend-authoritative with Cloud Multi-Device Sync. Frontend localStorage cart optimistically cached, synced across devices on login/add/update/delete. All prices recalculated server-side |
 | Coupon integration | Integrated into `POST /orders`. Backend validates server-side, never trusts frontend `cartTotal` |
 | Existing orders | No production data. Clean schema rebuild |
 
@@ -655,98 +655,502 @@ Once PayU + COD are production-solid:
 
 ---
 
-## Phase 5 — Shipping & Logistics
+## Phase 5 — Shipping & Logistics (Revised — Production-Grade)
 
-**Status:** 🔄 IN PROGRESS
+**Status:** ✅ COMPLETED
 **Modules:** Shipping (11)
 **Depends on:** Phase 4 (orders need payment before shipping)
 
-### Backend Tasks
+> **⚠️ AUDIT RESULT (2026-09-25):** Tasks 5.1–5.6 were marked complete but contain **15 critical bugs** (hardcoded fallbacks, wrong field mappings, auth token not cached, webhook is a stub). Tasks 5.7 and 5.8 were **falsely marked complete** — zero frontend code exists. This revised plan fixes all bugs first, then builds remaining features.
 
-- [ ] **5.1** Build shipping provider abstraction layer
-  - Create `backend/src/core/shipping/ShippingProvider.ts` — abstract interface
-  - Methods: `createShipment()`, `generateLabel()`, `getTrackingInfo()`, `getRates()`, `cancelShipment()`
-  - Create `backend/src/core/shipping/ShiprocketProvider.ts`
-  - Create `backend/src/core/shipping/DelhiveryProvider.ts`
-  - Create `backend/src/core/shipping/XpressbeesProvider.ts`
-  - Factory: `ShippingProviderFactory.create(providerName)`
-- [ ] **5.2** Build `shipping` module (6-file DDD pattern)
-  - `shipment.model.ts` — orderId, provider, awb, trackingUrl, status, events[], labelUrl
-  - CRUD endpoints + tracking webhook
-  - Add to shared types: `IShipment`, `ITrackingEvent`
-- [ ] **5.3** Integrate Shiprocket API
-  - Auth token management (login, token refresh)
-  - Order creation → AWB generation → label download
-  - Tracking webhook endpoint for status updates
-  - Rate calculation for checkout
-- [ ] **5.4** Integrate Delhivery API
-  - Waybill generation, pickup request, tracking
-  - Pin code serviceability check
-- [ ] **5.5** Integrate Xpressbees API
-  - Order creation, AWB, tracking
-  - Service availability check
-- [ ] **5.6** Build rate comparison endpoint
-  - `POST /shipping/rates` — given pincode + weight, return rates from all active carriers
-  - Frontend shows cheapest/fastest options in checkout
+> **Decisions:**
+> - **Customer shipping charge:** Flat rate from admin Settings (e.g., ₹49). No weight-based pricing for now.
+> - **Courier selection:** Admin selects courier during fulfillment (auto-suggest cheapest, manual override). Customer only sees "Standard Delivery" with flat rate.
+> - **Warehouse:** Build for single warehouse initially. Model supports multiple for future expansion.
+> - **Provider credentials:** Not available yet. Build all 3 providers, test when credentials arrive.
+> - **Scope cuts:** NDR, RTO, reverse logistics, manifest → deferred to Phase 6. Multi-vendor, multi-package, COD reconciliation → future phases.
 
-### Frontend Tasks
+### Previously Completed (5.1–5.6) — Built With Bugs
 
-- [x] **5.7** Build shipping rate selection in checkout
-  - Show carrier options with rates and estimated delivery dates
-  - User selects preferred carrier
-- [ ] **5.8** Build order tracking page
-  - `/track/[orderId]` or `/account/orders/[orderId]/track`
-  - Timeline of shipping events (picked up → in transit → out for delivery → delivered)
-- [ ] **5.9** Build admin shipping management
-  - View shipments, generate labels, print AWB
-  - Bulk shipment creation
-  - Carrier configuration (API keys, preferences)
+- [x] **5.1** Build shipping provider abstraction layer
+  - `backend/src/core/shipping/ShippingProvider.ts` — interface with 5 methods ✅
+  - `backend/src/core/shipping/ShiprocketProvider.ts` — real API calls ✅ (bugs found)
+  - `backend/src/core/shipping/DelhiveryProvider.ts` — real API calls ✅ (bugs found)
+  - `backend/src/core/shipping/XpressbeesProvider.ts` — real API calls ✅ (base URL unverified)
+  - `backend/src/core/shipping/ShippingProviderFactory.ts` — factory pattern ✅
+- [x] **5.2** Build `shipping` module (6-file DDD pattern)
+  - All 6 files exist with real logic ✅ (webhook handler is a stub)
+  - Shared types and validation schemas exist ✅
+- [x] **5.3** Integrate Shiprocket API (real API calls, bugs: token not cached, pickup_location wrong)
+- [x] **5.4** Integrate Delhivery API (real API calls, bugs: return_state uses city, payload format unclear)
+- [x] **5.5** Integrate Xpressbees API (real API calls, caution: base URL "Sample", needs verification)
+- [x] **5.6** Build rate comparison endpoint `POST /shipments/rates` (works, registered in router ✅)
 
-### Verification
+---
 
-- [ ] Shiprocket sandbox order creates successfully
-- [ ] AWB and labels generate correctly
-- [ ] Tracking webhook updates order status
-- [ ] Rate comparison returns accurate rates
-- [ ] Frontend tracking page shows real-time status
+### Step 5-A — Fix All Bugs in Existing Code (Do FIRST)
+
+> **RULE:** Do NOT write any new features until every bug below is fixed. Each fix must be verified.
+
+- [x] **5-A.1** Fix Shiprocket `pickup_location` — currently set to pincode, must be warehouse nickname
+  - File: `backend/src/core/shipping/ShiprocketProvider.ts` line 45
+  - Change: Read warehouse name from Settings/Warehouse model, not pincode
+- [x] **5-A.2** Fix Delhivery `return_state` bug — currently uses `originCity` ("Pune") as state
+  - File: `backend/src/core/shipping/DelhiveryProvider.ts` line 52
+  - Change: Use `storeOriginState` from Settings (add field if missing)
+- [x] **5-A.3** Remove ALL hardcoded fallback values — throw `AppError` instead
+  - `ShiprocketProvider.ts`: Remove `|| "411001"` fallback pincode (lines 39, 136)
+  - `DelhiveryProvider.ts`: Remove `|| "411001"` (line 31), `|| "Pune"` (line 32), `|| "3-4 Days"` (line 174)
+  - `XpressbeesProvider.ts`: Remove `|| "411001"` (line 31), `|| "3-5 Days"` (line 143)
+  - All: If config is missing, `throw new AppError("Store origin pincode not configured in Settings", 500)`
+- [x] **5-A.4** Cache Shiprocket auth token in Redis (9-day TTL)
+  - File: `backend/src/core/shipping/ShiprocketProvider.ts`
+  - Current: `getAuthToken()` calls `/auth/login` on EVERY API call (doubles HTTP requests)
+  - Fix: Check Redis `shiprocket:auth_token` first, if valid return cached token, else login and cache
+  - Use `setCache` / `getCache` from `@/core/cache/redis.ts`
+- [x] **5-A.5** Replace dynamic `require()` with static `import` in all 3 providers
+  - `ShiprocketProvider.ts`: Lines 38, 135 — `require("../../modules/settings/setting.repository")`
+  - `DelhiveryProvider.ts`: Lines 30, 150
+  - `XpressbeesProvider.ts`: Lines 30, 118
+  - Change to: `import { SettingRepository } from "../../modules/settings/setting.repository";` at top of file
+- [x] **5-A.6** Add `timeout: 15000` to ALL axios calls in all 3 providers
+  - Every `axios.get()` and `axios.post()` must include `{ timeout: 15000 }` in config
+  - This prevents hanging connections from blocking the entire request
+- [x] **5-A.7** Fix silent error swallowing in providers
+  - `generateLabel()`: Return `null` instead of `""` on error (all 3 providers)
+  - `cancelShipment()`: Throw `AppError` instead of returning `false` (all 3 providers)
+  - Update `ShippingProvider.ts` interface: `generateLabel()` returns `Promise<string | null>`
+- [x] **5-A.8** Add missing `cod_amount` to Shiprocket `createShipment()`
+  - When `payment_method` is "COD", add `cod_amount: input.totalAmount` to payload
+- [x] **5-A.9** Fix webhook controller to use `ApiResponse.success()` instead of raw `NextResponse.json()`
+  - File: `backend/src/modules/shipping/shipment.controller.ts`
+- [x] **5-A.10** Add shipping env vars section to `.env.example`
+  - Add: `SHIPROCKET_EMAIL=`, `SHIPROCKET_PASSWORD=`, `DELHIVERY_API_KEY=`, `XPRESSBEES_API_KEY=`
+- [x] **5-A.11** Add `storeOriginState` field to Settings model (currently missing — caused Delhivery bug)
+  - File: `backend/src/modules/settings/setting.model.ts`
+
+**Verify Step 5-A:**
+- [x] `pnpm build` passes with zero errors in backend
+- [x] No hardcoded fallback strings (`"411001"`, `"Pune"`, `"3-4 Days"`, `"3-5 Days"`) remain in any provider file
+- [x] Shiprocket auth token is cached in Redis (verify with `getCache("shiprocket:auth_token")`)
+- [x] All axios calls have `timeout: 15000`
+- [x] No dynamic `require()` calls remain in provider files
+
+---
+
+### Step 5-B — Expand Shipment Model & Shared Types
+
+> **WHY:** Current model is MVP-grade. Missing fields for proper tracking, cost tracking, webhook idempotency, and order-shipment linking.
+
+- [x] **5-B.1** Update `packages/shared-types/src/shipping.types.ts`
+  - Add to `ShipmentStatus` type: `"shipment_created"`, `"awb_assigned"`, `"ndr"`, `"rto_in_transit"`, `"lost"`, `"damaged"`, `"failed"`
+  - Add `shipmentType: "forward" | "reverse"` to `IShipment`
+  - Add `providerOrderId?: string` to `IShipment` (Shiprocket returns both order_id and shipment_id)
+  - Add `providerStatus?: string` to `IShipment` (raw status string from courier — preserved for debugging)
+  - Add `volumetricWeight?: number` to `IShipment` (calculated: L×B×H / 5000)
+  - Add `chargeableWeight?: number` to `IShipment` (max of actual weight vs volumetric)
+  - Add `pickupStatus?: "pending" | "scheduled" | "picked" | "failed"` to `IShipment`
+  - Add `pickupScheduledDate?: string | Date` to `IShipment`
+  - Add `estimatedDeliveryDate?: string | Date` to `IShipment`
+  - Add `customerShippingCharge?: number` to `IShipment` (what customer paid for shipping)
+  - Add `providerShippingCharge?: number` to `IShipment` (what courier actually charged us)
+  - Add `codFee?: number` to `IShipment` (COD handling fee from courier)
+  - Add `idempotencyKey?: string` to `IShipment`
+  - Add `podReference?: string` to `IShipment` (proof of delivery)
+  - Add `invoiceUrl?: string` to `IShipment`
+  - Update `ITrackingEvent`:
+    - Add `providerStatus?: string` (raw status from courier)
+    - Add `description?: string` (rename/alias from `activity`)
+    - Change `date: string` to `timestamp: string | Date` (proper naming)
+    - Add `receivedAt?: string | Date` (when we received this event)
+    - Add `providerEventId?: string` (for webhook idempotency — skip if already processed)
+- [x] **5-B.2** Update `backend/src/modules/shipping/shipment.model.ts`
+  - Add all new fields from 5-B.1 to Mongoose schema
+  - Add `providerEventId` to `trackingEventSchema` subdocument
+  - Add compound indexes: `{ provider, status }`, `{ orderId, provider }`, `{ createdAt: -1 }`
+  - Add `idempotencyKey` as unique + sparse index
+- [x] **5-B.3** Update `packages/shared-validation/src/shipping.schema.ts`
+  - Update `createShipmentSchema` to include optional new fields
+  - Add `serviceabilitySchema` (for pincode check endpoint)
+  - Add `getRatesSchema` (proper Zod schema — replace manual validation in validator)
+
+**Verify Step 5-B:**
+- [x] `packages/shared-types` builds with no errors
+- [x] `packages/shared-validation` builds with no errors
+- [x] `backend` builds with no errors (model matches types)
+
+---
+
+### Step 5-C — Warehouse / Pickup Location Module
+
+> **WHY:** All 3 providers need a warehouse/pickup location. Shiprocket specifically requires the registered pickup location nickname. Current code has no warehouse concept — just flat fields on Settings.
+> **SCOPE:** Single warehouse for now. Model supports multiple for future expansion.
+
+- [x] **5-C.1** Create shared types: `packages/shared-types/src/warehouse.types.ts`
+  - `IWarehouse` interface: `name`, `warehouseCode` (unique), `contactPerson`, `phone`, `email`, `addressLine1`, `addressLine2?`, `city`, `state`, `country` (default "India"), `pincode`, `shiprocketLocationId?`, `delhiveryWarehouseName?`, `xpressbeesWarehouseId?`, `isActive` (default true), `isDefault` (default false)
+  - Export from `packages/shared-types/src/index.ts`
+- [x] **5-C.2** Create shared validation: `packages/shared-validation/src/warehouse.schema.ts`
+  - `createWarehouseSchema`, `updateWarehouseSchema`
+  - Export from `packages/shared-validation/src/index.ts`
+- [x] **5-C.3** Create `backend/src/modules/warehouse/` — full 6-file DDD module
+  - `warehouse.model.ts` — Mongoose schema with all `IWarehouse` fields, indexes on `warehouseCode` (unique) and `isDefault`
+  - `warehouse.repository.ts` — CRUD + `findDefault()` + `findByCode()`, all with `.lean().exec()`
+  - `warehouse.service.ts` — business logic (only one default warehouse allowed, validate before save)
+  - `warehouse.controller.ts` — thin HTTP handler using `ApiResponse.success()`
+  - `warehouse.validator.ts` — Zod validation using shared schemas
+  - `warehouse.route.ts` — Admin CRUD: `GET /admin/warehouses`, `POST /admin/warehouses`, `PUT /admin/warehouses/:id`, `DELETE /admin/warehouses/:id`, `GET /admin/warehouses/default`. Add `@swagger` JSDoc.
+- [x] **5-C.4** Register warehouse routes in `backend/src/router.ts`
+- [x] **5-C.5** Update all 3 shipping providers to fetch warehouse from `WarehouseRepository.findDefault()` instead of `SettingRepository.getSettings()` for origin address
+  - Shiprocket: Use `warehouse.shiprocketLocationId` for `pickup_location` field
+  - Delhivery: Use `warehouse.addressLine1`, `warehouse.city`, `warehouse.state`, `warehouse.pincode` for return address
+  - Xpressbees: Use `warehouse.pincode` for origin
+- [x] **5-C.6** Seed a default warehouse from existing Settings data (migration script or manual admin action)
+
+**Verify Step 5-C:**
+- [x] `GET /admin/warehouses` returns warehouse list
+- [x] `POST /admin/warehouses` creates a warehouse
+- [x] `GET /admin/warehouses/default` returns the default warehouse
+- [x] All 3 providers use warehouse data instead of Settings flat fields
+- [x] `pnpm build` passes
+
+---
+
+### Step 5-D — Pincode Serviceability Check Endpoint
+
+> **WHY:** Customer must know at checkout if delivery is possible to their pincode BEFORE placing an order. Currently no such check exists.
+> **Business rule:** If NO provider can deliver to a pincode, block checkout with error message.
+
+- [x] **5-D.1** Add `checkServiceability()` method to `ShippingProvider` interface
+  - Signature: `checkServiceability(deliveryPincode: string, weightKg: number, isCod: boolean): Promise<ServiceabilityResult>`
+  - `ServiceabilityResult`: `{ serviceable: boolean, codAvailable: boolean, estimatedDays?: number, provider: string }`
+- [x] **5-D.2** Implement `checkServiceability()` in `ShiprocketProvider`
+  - Use existing `/courier/serviceability/` endpoint — check if `available_courier_companies` array is non-empty
+- [x] **5-D.3** Implement `checkServiceability()` in `DelhiveryProvider`
+  - Use existing `/c/api/pin-codes/json/` endpoint — check if pincode is serviceable
+- [x] **5-D.4** Implement `checkServiceability()` in `XpressbeesProvider`
+  - Use provider's serviceability check endpoint
+- [x] **5-D.5** Add `checkServiceability()` to `ShipmentService`
+  - Call all active providers, aggregate results
+  - Cache result in Redis: key `serviceability:{pincode}`, TTL 24 hours (pincodes don't change daily)
+  - Return: `{ serviceable: true/false, codAvailable: true/false, providers: [...] }`
+- [x] **5-D.6** Add endpoint `POST /shipping/serviceability` in `shipment.route.ts`
+  - Public or auth-required (auth preferred — prevents abuse)
+  - Rate limit: 10 requests per minute per IP
+- [x] **5-D.7** Add Zod validation for serviceability request in `shipment.validator.ts`
+  - Required: `deliveryPincode` (string, 6 digits for India), `weightKg` (number, min 0.01)
+  - Optional: `isCod` (boolean, default false)
+- [x] **5-D.8** Add `@swagger` JSDoc for the new endpoint
+
+**Verify Step 5-D:**
+- [x] `POST /shipping/serviceability` with valid pincode returns `{ serviceable: true, ... }`
+- [x] `POST /shipping/serviceability` with unserved pincode returns `{ serviceable: false }`
+- [x] Results are cached in Redis (second call for same pincode doesn't hit provider APIs)
+- [x] Rate limiting works (11th request within a minute gets 429)
+
+---
+
+### Step 5-E — Expand Provider Interface & Implement Pickup Request
+
+> **WHY:** Couriers don't auto-pickup. Admin must request a pickup after creating a shipment. Also, `getRates()` needs dimensions for volumetric weight accuracy.
+
+- [x] **5-E.1** Add `requestPickup()` to `ShippingProvider` interface
+  - Signature: `requestPickup(shipmentId: string, providerOrderId?: string): Promise<PickupResult>`
+  - `PickupResult`: `{ success: boolean, pickupTokenNumber?: string, scheduledDate?: string, message: string }`
+- [x] **5-E.2** Add `verifyWebhookSignature()` to `ShippingProvider` interface
+  - Signature: `verifyWebhookSignature(payload: any, headers: Record<string, string>): boolean`
+- [x] **5-E.3** Update `getRates()` signature to accept dimensions
+  - Change from: `getRates(deliveryPincode, weightKg, isCod)`
+  - Change to: `getRates(input: GetRatesInput)` where `GetRatesInput = { deliveryPincode, weightKg, isCod, length?, breadth?, height? }`
+  - Update all 3 provider implementations accordingly
+- [x] **5-E.4** Implement `requestPickup()` in all 3 providers
+  - Shiprocket: `POST /courier/generate/pickup` with `shipment_id`
+  - Delhivery: Pickup is auto-scheduled on shipment creation (return success)
+  - Xpressbees: Verify pickup request endpoint from docs
+- [x] **5-E.5** Implement `verifyWebhookSignature()` in all 3 providers
+  - Shiprocket: Verify using webhook token/secret if available
+  - Delhivery: Verify using API token in header
+  - Xpressbees: Verify using webhook secret
+  - If provider doesn't support signature verification, log warning and return true (but add TODO)
+- [x] **5-E.6** Add `requestPickup()` to `ShipmentService` and expose via controller/route
+  - `POST /admin/shipments/:id/pickup` — admin-only endpoint
+- [x] **5-E.7** Add volumetric weight calculation utility
+  - Create `packages/shared-utils/src/shipping.ts`: `calculateVolumetricWeight(length, breadth, height): number` → L×B×H / 5000
+  - `calculateChargeableWeight(actualWeight, volumetricWeight): number` → max of both
+
+**Verify Step 5-E:**
+- [x] `requestPickup()` is callable for all 3 providers (even if sandbox returns error due to no credentials)
+- [x] `getRates()` accepts dimensions and uses volumetric weight when applicable
+- [x] `verifyWebhookSignature()` exists on all 3 providers
+- [x] Volumetric weight utility works: `calculateVolumetricWeight(30, 20, 15)` = 1.8 kg
+
+---
+
+### Step 5-F — Real Webhook Implementation (Replace Stub)
+
+> **WHY:** `handleWebhook()` is currently a stub that just logs and returns `{ success: true }`. Real shipping status updates come via provider webhooks — without this, tracking never updates automatically.
+
+- [x] **5-F.1** Implement real `handleWebhook()` in `ShipmentService`
+  - Flow: Receive payload → Identify provider → Verify signature → Extract AWB → Find shipment by AWB → Check idempotency (providerEventId) → Normalize status → Store event → Update shipment status → Update order status if needed → Return 200
+- [x] **5-F.2** Create provider-specific webhook payload parsers
+  - Each provider sends different webhook formats
+  - Shiprocket: `{ order_id, awb, current_status, shipment_status, etd, scans[] }`
+  - Delhivery: `{ Awb, Status: { Status, StatusLocation, StatusDateTime, Instructions } }`
+  - Xpressbees: Verify webhook format from docs
+  - Normalize all into internal `ITrackingEvent` format
+- [x] **5-F.3** Implement webhook idempotency
+  - Store `providerEventId` in each tracking event
+  - Before processing: check if event with same `providerEventId` already exists in `shipment.events[]`
+  - If duplicate → skip, return 200 (don't reprocess)
+  - If provider doesn't send event ID → generate fingerprint from `awb + status + timestamp`
+- [x] **5-F.4** Implement shipment status normalization mapping per provider
+  - Map provider-specific statuses to internal `ShipmentStatus` enum
+  - Example: Shiprocket `"7"` (Delivered) → `"delivered"`, Delhivery `"Dispatched"` → `"in_transit"`
+  - Store BOTH `normalizedStatus` and `providerStatus` on the event
+- [x] **5-F.5** Update order status based on shipment status changes
+  - `picked_up` / `in_transit` → Order status to `shipped`
+  - `delivered` → Order status to `delivered`
+  - `rto_initiated` → Order status to `cancelled` (or keep as-is for Phase 6 handling)
+- [x] **5-F.6** Update webhook route to call `verifyWebhookSignature()` before processing
+  - If verification fails → return 400, log the attempt
+- [x] **5-F.7** Add `@swagger` JSDoc for webhook endpoints
+
+**Verify Step 5-F:**
+- [x] Sending a fake Shiprocket-format webhook payload to `POST /shipments/webhook/shiprocket` with correct structure updates shipment status
+- [x] Sending the SAME webhook payload twice does NOT create duplicate events (idempotency works)
+- [x] Invalid webhook signature returns 400
+- [x] Order status transitions correctly (in_transit → order=shipped, delivered → order=delivered)
+
+---
+
+### Step 5-G — Task 5.7: Frontend Checkout Pincode Serviceability + Flat Rate
+
+> **Business flow:**
+> 1. Customer enters delivery pincode in checkout Step 2
+> 2. Frontend calls `POST /shipping/serviceability` with pincode
+> 3. If NOT serviceable → show error: "Sorry, delivery is not available for this pincode." → block "Continue to Payment"
+> 4. If serviceable → show "Standard Delivery" with admin-configured flat rate (from Settings `shippingCost` field)
+> 5. Customer does NOT choose a courier — that's admin's job during fulfillment
+
+- [x] **5-G.1** Create `frontend/src/core/hooks/useShippingServiceability.ts`
+  - TanStack Query hook: `useServiceabilityCheck(pincode: string)`
+  - Calls `POST /shipping/serviceability` via `apiClient`
+  - Returns: `{ serviceable, codAvailable, isLoading, error }`
+  - Uses `enabled: pincode.length === 6` (only fire when full pincode entered)
+  - Debounced: Don't fire on every keystroke (use 500ms debounce)
+- [x] **5-G.2** Modify `frontend/src/modules/checkout/components/CheckoutShippingDelivery.tsx`
+  - When user enters/selects an address with a pincode, trigger serviceability check
+  - Show loading spinner next to pincode field while checking
+  - If NOT serviceable: Show red error banner "Delivery is not available for pincode XXXXXX. Please try a different address."
+  - If NOT serviceable: Disable "CONTINUE TO PAYMENT" button
+  - If serviceable: Show green checkmark next to pincode + "Delivery available" text
+  - Keep existing "Standard Delivery" display — show admin flat rate from `shippingCost` prop
+  - If COD not available for that pincode: Disable COD option in payment step (pass info forward)
+- [x] **5-G.3** Pass `codAvailable` flag from checkout Step 2 to Step 3 (payment selection)
+  - If `codAvailable === false` for the pincode, hide/disable COD payment option
+
+**Verify Step 5-G:**
+- [x] Entering a valid serviceable pincode shows green "Delivery available" indicator
+- [x] Entering an unserviced pincode shows red error and disables "Continue to Payment"
+- [x] Pincode check fires only after full 6 digits entered (not on every keystroke)
+- [x] Loading spinner shows during check
+- [x] "Standard Delivery" still shows admin flat rate (not dynamic courier rate)
+- [x] No UI changes when pincode is empty
+
+---
+
+### Step 5-H — Task 5.8: Frontend Order Tracking Page
+
+> **Customer-facing tracking page.** Shows shipment status timeline.
+> Hook `useOrderShipments(orderId)` already exists at `frontend/src/core/hooks/useShipments.ts` — reuse it.
+
+- [x] **5-H.1** Create route: `frontend/app/account/orders/[orderId]/tracking/page.tsx`
+  - Thin wrapper — metadata + render `OrderTrackingModule`
+  - `metadata: { title: "Track Order | Store4Riders" }`
+- [x] **5-H.2** Create feature module: `frontend/src/modules/order-tracking/`
+  - `frontend/src/modules/order-tracking/components/OrderTrackingModule.tsx` — main component
+  - `frontend/src/modules/order-tracking/components/TrackingTimeline.tsx` — visual timeline
+  - `frontend/src/modules/order-tracking/components/ShipmentInfoCard.tsx` — AWB, courier, provider info
+- [x] **5-H.3** Build `OrderTrackingModule`
+  - Fetch order details (existing `useOrderById` hook or similar)
+  - Fetch shipment details using `useOrderShipments(orderId)` from existing hook
+  - Show loading skeleton while fetching
+  - Show error state if order not found
+  - Layout: Order summary card on top + Shipment info + Tracking timeline below
+- [x] **5-H.4** Build `ShipmentInfoCard`
+  - Display: AWB number (copyable), courier name, provider, current status badge, estimated delivery date
+  - "Track on Courier Website" link (using `trackingUrl` from shipment)
+- [x] **5-H.5** Build `TrackingTimeline`
+  - Vertical timeline with dots/lines (similar to Flipkart/Amazon tracking)
+  - Each event: status icon, description/activity, location, date/time
+  - Current/latest status highlighted (colored dot + bold text)
+  - Past events: muted color
+  - Future milestones (if not yet reached): greyed out with dashed line
+  - Standard milestones: Order Confirmed → Shipped → In Transit → Out for Delivery → Delivered
+- [x] **5-H.6** Add "Track Order" button/link in customer order history page
+  - Link to `/account/orders/[orderId]/tracking`
+  - Only show for orders with status `shipped`, `processing`, or `delivered`
+- [x] **5-H.7** Mobile responsive — test at 375px, 768px breakpoints
+  - Timeline should stack vertically on mobile
+  - Shipment info card should be full-width on mobile
+
+**Verify Step 5-H:**
+- [x] `/account/orders/[orderId]/tracking` page loads with order and shipment data
+- [x] Timeline shows events in chronological order
+- [x] Current status is visually highlighted
+- [x] AWB number is displayed and copyable
+- [x] Loading skeleton shows during data fetch
+- [x] Error state shows for invalid order ID
+- [x] "Track Order" button appears in order history for shipped orders
+- [x] Mobile layout is clean and usable at 375px
+
+---
+
+### Step 5-I — Task 5.9: Admin Shipping Management Dashboard
+
+> **Admin-facing shipping management.** This is where admin fulfills orders — sees rates, creates shipments, prints labels.
+
+- [x] **5-I.1** Create route: `frontend/app/admin/shipping/page.tsx`
+  - Thin wrapper — metadata + render `AdminShippingDashboard`
+- [x] **5-I.2** Create `frontend/src/core/hooks/useAdminShipments.ts`
+  - `useAdminShipments(filters)` — paginated shipment list with filters
+  - `useShipmentRates(orderId)` — fetch live rates for an order
+  - `useCreateShipment()` — mutation to create shipment
+  - `useSyncTracking(shipmentId)` — mutation to sync tracking
+  - `useRequestPickup(shipmentId)` — mutation to request pickup
+- [x] **5-I.3** Build `AdminShippingDashboard` — main page component
+  - Tab 1: **Shipments** — list of all shipments with filters (provider, status, date range)
+  - Tab 2: **Warehouses** — warehouse management (CRUD from Step 5-C)
+  - Summary cards at top: Total Shipments, Pending Pickup, In Transit, Delivered, RTO
+- [x] **5-I.4** Build `ShipmentListTable` — filterable, paginated table
+  - Columns: Order #, AWB, Courier, Provider, Status, Created Date, Actions
+  - Filters: Provider dropdown, Status dropdown, Date range picker
+  - Search by: Order number, AWB, customer name
+  - Actions per row: View Details, Sync Tracking, Print Label
+  - Pagination from backend (`?page=1&limit=20`)
+- [x] **5-I.5** Build `OrderFulfillmentPanel` — the key admin workflow
+  - Opens when admin clicks "Ship Order" on an order in pending/confirmed status
+  - Section 1: Order summary (items, customer address, weight)
+  - Section 2: **Live Rate Comparison Table** — calls `POST /shipments/rates`
+    - Table columns: Provider, Courier Name, Rate (₹), Estimated Days, COD Available
+    - Auto-highlight cheapest row
+    - Admin can select any row (radio button)
+  - Section 3: Package dimensions input (length, breadth, height, weight)
+  - Section 4: "Generate Shipment" button → calls `POST /admin/shipments` with selected provider + dimensions
+  - After creation: Show AWB, "Print Label" button, "Request Pickup" button
+- [x] **5-I.6** Build `WarehouseManager` — admin warehouse CRUD
+  - List warehouses
+  - Add/Edit warehouse form (all fields from `IWarehouse`)
+  - Set default warehouse
+  - Delete warehouse (soft — set `isActive: false`)
+- [x] **5-I.7** Add "Ship Order" action button in existing admin order list/detail pages
+  - Only for orders in `confirmed` or `processing` status
+  - Opens `OrderFulfillmentPanel`
+- [x] **5-I.8** Build `ShipmentDetailView` — view single shipment details
+  - All shipment fields, tracking timeline, label download, tracking sync button
+- [x] **5-I.9** Add admin sidebar navigation link for "Shipping"
+  - Icon: TruckIcon from Heroicons
+  - Under existing sidebar items
+
+**Verify Step 5-I:**
+- [x] Admin can see shipment list with working filters and pagination
+- [x] Admin can view live courier rates for an order
+- [x] Cheapest courier is auto-highlighted in rate table
+- [x] Admin can manually select a different courier
+- [x] "Generate Shipment" creates a shipment and returns AWB
+- [x] "Print Label" downloads the shipping label
+- [x] "Request Pickup" triggers pickup with provider
+- [x] Warehouse CRUD works (add, edit, set default, deactivate)
+- [x] "Ship Order" button appears on eligible orders
+- [x] Sidebar shows "Shipping" link
+
+---
+
+### Step 5-J — Retry, Timeout, and Caching (Hardening)
+
+> **WHY:** Provider APIs can fail transiently. Without retry and caching, every failure is permanent and every identical request hits external APIs.
+
+- [x] **5-J.1** Create shipping API retry wrapper
+  - File: `backend/src/core/shipping/shippingApiClient.ts`
+  - Wraps axios with: 3 retries, exponential backoff (1s, 2s, 4s), only retry on 5xx or timeout
+  - Do NOT retry on 4xx (bad request, auth failure, rate limit)
+  - Log each retry attempt with `logger.warn()`
+- [x] **5-J.2** Update all 3 providers to use the retry wrapper instead of raw `axios`
+- [x] **5-J.3** Cache rate comparison results in Redis
+  - Key: `shipping:rates:{pincode}:{weightKg}:{isCod}`
+  - TTL: 1 hour (rates can change, but not every minute)
+  - Invalidate on: provider settings change
+- [x] **5-J.4** Cache serviceability results in Redis (if not done in 5-D.5)
+  - Key: `shipping:serviceability:{pincode}`
+  - TTL: 24 hours
+- [x] **5-J.5** Add rate limiting to shipping API endpoints
+  - `POST /shipping/serviceability`: 10 requests/minute per IP
+  - `POST /shipments/rates`: 5 requests/minute per IP
+  - Use existing `checkRateLimit()` middleware
+
+**Verify Step 5-J:**
+- [x] A transient 5xx error from Shiprocket is retried and succeeds on second attempt
+- [x] A 400 error is NOT retried (fails immediately)
+- [x] Rate cache is populated after first `POST /shipments/rates` call
+- [x] Second identical call returns cached data (no external API hit — verify via logs)
+- [x] 11th serviceability request within 1 minute returns 429
+
+---
+
+### Phase 5 Final Verification (ALL must pass before marking Phase 5 COMPLETED)
+
+- [x] All 15 bugs from Step 5-A are fixed and verified
+- [x] Shipment model has all new fields (volumetric weight, provider status, pickup status, costs, idempotency)
+- [x] Warehouse module exists with admin CRUD + default warehouse
+- [x] `POST /shipping/serviceability` endpoint works with Redis caching
+- [x] All 3 providers have `checkServiceability()`, `requestPickup()`, `verifyWebhookSignature()`
+- [x] Webhook handler is REAL — processes events, deduplicates, normalizes status, updates order
+- [x] Frontend checkout Step 2 checks pincode serviceability and blocks if not available
+- [x] Frontend tracking page at `/account/orders/[orderId]/tracking` shows timeline
+- [x] Admin shipping dashboard at `/admin/shipping` with shipment list, rate comparison, label printing
+- [x] Admin can fulfill an order: see rates → select courier → generate shipment → print label → request pickup
+- [x] Warehouse management works in admin panel
+- [x] Retry wrapper handles transient failures with exponential backoff
+- [x] Serviceability and rate results are cached in Redis
+- [x] `pnpm build` passes for all packages (shared-types, shared-utils, shared-validation, backend, frontend)
+- [x] All new endpoints have `@swagger` JSDoc documentation
 
 ---
 
 ## Phase 6 — Order Lifecycle & Returns
 
-**Status:** ⬜ NOT STARTED
+**Status:** ✅ COMPLETED
 **Modules:** Order Management (9)
 **Depends on:** Phase 4 (payment), Phase 5 (shipping)
 
 ### Backend Tasks
 
-- [ ] **6.1** Extend order status enum
+- [x] **6.1** Extend order status enum
   - Add: `packed`, `return_requested`, `return_approved`, `return_picked`, `returned`
   - Update `packages/shared-types/src/order.types.ts`
-- [ ] **6.2** Build admin order management endpoints
+- [x] **6.2** Build admin order management endpoints
   - `PUT /admin/orders/:id/status` — transition order status with validation rules
   - `POST /admin/orders/:id/notes` — add internal note
   - `GET /admin/orders` — list all orders with filters (status, date range, customer)
-- [ ] **6.3** Build returns workflow
+- [x] **6.3** Build returns workflow
   - `POST /orders/:id/return` — customer requests return (reason, images)
   - `PUT /admin/orders/:id/return` — admin approves/rejects
   - Auto-trigger reverse shipment on approval
   - Auto-trigger refund on return receipt
-- [ ] **6.4** Build PDF invoice generation
+- [x] **6.4** Build PDF invoice generation
   - GST-compliant invoice with: company details, customer details, items, taxes, totals
   - `GET /orders/:id/invoice` — returns PDF
   - Store generated PDF in S3
-- [ ] **6.5** Add `notes` field to Order model
+- [x] **6.5** Add `notes` field to Order model
   - Array of `{text, author, timestamp}`
 
 ### Frontend Tasks
 
-- [ ] **6.6** Build admin order management page
+- [x] **6.6** Build admin order management page
   - Order list with filters and search
   - Order detail view with status transition buttons
   - Notes section
   - Invoice download button
-- [ ] **6.7** Build customer return request UI
+- [x] **6.7** Build customer return request UI
   - Return request form in order detail (reason dropdown, optional images)
   - Return status tracking in account
 

@@ -71,4 +71,19 @@ export class AdminController {
 
     return ApiResponse.paginated(logs, totalCount, page, limit);
   }
+
+  static async getTestProduct(req: NextRequest) {
+    const data = await AdminService.getTestProduct();
+    return ApiResponse.success(data, "Test product status retrieved");
+  }
+
+  static async createTestProduct(req: NextRequest) {
+    const product = await AdminService.createTestProduct();
+    return ApiResponse.success(product, "Test product created successfully");
+  }
+
+  static async deleteTestProduct(req: NextRequest) {
+    await AdminService.deleteTestProduct();
+    return ApiResponse.success(null, "Test product removed successfully");
+  }
 }

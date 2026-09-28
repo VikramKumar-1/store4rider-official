@@ -31,7 +31,7 @@ export class CCavenueGateway implements PaymentGateway {
 
   async createOrder(order: IOrder, amount: number): Promise<GatewayOrderResult> {
     if (!ENV.CCAVENUE_MERCHANT_ID || !ENV.CCAVENUE_ACCESS_CODE || !ENV.CCAVENUE_WORKING_KEY) {
-      throw new AppError("CCAvenue credentials are not configured", 500);
+      throw new AppError("CCAvenue credentials are not configured in backend/.env", 400);
     }
     const merchantId = ENV.CCAVENUE_MERCHANT_ID;
     const accessCode = ENV.CCAVENUE_ACCESS_CODE;

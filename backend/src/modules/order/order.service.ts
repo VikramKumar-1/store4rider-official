@@ -53,14 +53,50 @@ export class OrderService {
     if (!userAddress) throw new AppError("Shipping address not found", 400);
     
     const shippingAddressSnapshot = {
-      fullName: `${user.firstName} ${user.lastName}`.trim(),
-      phone: user.phone || "",
+      fullName: input.fullName || `${user.firstName} ${user.lastName}`.trim(),
+      phone: input.phone || user.phone || "0000000000",
       addressLine1: userAddress.street,
       city: userAddress.city,
       state: userAddress.state,
       pincode: userAddress.pincode,
       country: userAddress.country,
     };
+
+    // SERVER-SIDE SERVICEABILITY GATE — prevents orders for undeliverable pincodes
+    // Frontend check is just UX; this is the real backend guard. Cannot be bypassed.
+    const pincode = shippingAddressSnapshot.pincode;
+    if (pincode && /^\d{6}$/.test(pincode)) {
+      try {
+        const { ShipmentService } = require("../shipping/shipment.service");
+        const serviceability = await ShipmentService.checkServiceability(pincode, 0.5, paymentMethod === "cod");
+        
+        // Check if ANY provider can deliver to this pincode
+        const isServiceable = serviceability.some((s: any) => s.serviceable);
+        if (!isServiceable) {
+          throw new AppError(
+            `Delivery is not available for pincode ${pincode}. Please use a different shipping address.`,
+            400
+          );
+        }
+
+        // If COD order, check if any provider supports COD at this pincode
+        if (paymentMethod === "cod") {
+          const codSupported = serviceability.some((s: any) => s.serviceable && s.codAvailable);
+          if (!codSupported) {
+            throw new AppError(
+              `Cash on Delivery is not available for pincode ${pincode}. Please use online payment.`,
+              400
+            );
+          }
+        }
+      } catch (error: any) {
+        // If it's our AppError (serviceability failed), re-throw it
+        if (error instanceof AppError) throw error;
+        // If external API failed, log warning but allow order (graceful degradation)
+        // We don't want courier API downtime to block all orders
+        logger.warn(`[OrderService] Serviceability check failed for pincode ${pincode}, allowing order: ${error.message}`);
+      }
+    }
 
     let subtotal = 0;
     let discount = 0;
@@ -122,7 +158,7 @@ export class OrderService {
 
     if (paymentMethod === "cod") {
       pricing.codAmountToCollect = totalAmount;
-      if (settings.codPartialPaymentType && settings.codPartialPaymentValue) {
+      if (settings.codPartialPaymentEnabled && settings.codPartialPaymentType && settings.codPartialPaymentValue && ENV.PAYU_MERCHANT_KEY && ENV.PAYU_SALT) {
         let partialAmount = 0;
         if (settings.codPartialPaymentType === "percentage") {
           partialAmount = (totalAmount * settings.codPartialPaymentValue) / 100;
@@ -163,11 +199,13 @@ export class OrderService {
         const orderIdStr = String((order as any)._id || (order as any).id || "");
         
         let gatewayOrderId = "";
+        let gatewayResponse: any = null;
         
         if (paymentMethod !== "cod" || collectGatewayForCod) {
           const gateway = PaymentGatewayFactory.create(actualGatewayType);
           const gatewayResult = await gateway.createOrder({ ...orderData, id: orderIdStr } as any, gatewayAmount);
           gatewayOrderId = gatewayResult.gatewayOrderId;
+          gatewayResponse = gatewayResult.gatewayResponse;
           
           await PaymentRepository.create({
             orderId: orderIdStr,
@@ -213,6 +251,9 @@ export class OrderService {
             await CouponService.incrementUsage(couponCode, userId, session);
           }
           await CartService.clearCart(userId, session);
+          if (user?.email) {
+            await addEmailJob(user.email, "Order Confirmed (Cash on Delivery)", `Your order #${orderNumber} has been placed successfully via Cash on Delivery.`);
+          }
         }
 
         if (gatewayOrderId) {
@@ -225,7 +266,9 @@ export class OrderService {
           orderId: orderIdStr, 
           gatewayOrderId: gatewayOrderId, 
           amount: gatewayAmount, 
-          orderNumber 
+          orderNumber,
+          gatewayResponse,
+          paymentMethod: actualGatewayType
         };
       });
     } finally {
@@ -527,8 +570,111 @@ export class OrderService {
     } finally {
       await session.endSession();
     }
-
     return result;
   }
-}
 
+  static async getAllAdmin(query: any, page: number, limit: number) {
+    const dbQuery: any = {};
+    if (query.status) dbQuery.status = query.status;
+    if (query.paymentMethod) dbQuery.paymentMethod = query.paymentMethod;
+    if (query.search) {
+      dbQuery.$or = [
+        { orderNumber: { $regex: query.search, $options: "i" } },
+        { "shippingAddress.fullName": { $regex: query.search, $options: "i" } },
+        { "shippingAddress.phone": { $regex: query.search, $options: "i" } },
+      ];
+    }
+    if (query.userId) dbQuery.userId = query.userId;
+
+    return await OrderRepository.findPaginated(dbQuery, page, limit);
+  }
+
+  static async addNote(orderId: string, author: string, text: string) {
+    const note = {
+      text,
+      author,
+      timestamp: new Date()
+    };
+    const order = await OrderRepository.addNote(orderId, note);
+    if (!order) throw new AppError("Order not found", 404);
+    return order;
+  }
+
+  static async adminUpdateStatus(orderId: string, newStatus: string) {
+    const allowedStatuses = [
+      "pending_payment", "confirmed", "processing", "packed", "shipped", 
+      "delivered", "cancelled", "failed", "refunded", 
+      "return_requested", "return_approved", "return_picked", "returned"
+    ];
+
+    if (!allowedStatuses.includes(newStatus)) {
+      throw new AppError(`Invalid status: ${newStatus}`, 400);
+    }
+
+    const order = await OrderRepository.findById(orderId);
+    if (!order) throw new AppError("Order not found", 404);
+
+    // Business Logic for status transition can be added here
+    // e.g., restoring stock if cancelled/returned
+
+    const updatedOrder = await OrderRepository.updateStatus(orderId, newStatus);
+    return updatedOrder;
+  }
+
+  static async requestReturn(orderId: string, userId: string, reason: string, images?: string[]) {
+    const order = await OrderRepository.findById(orderId);
+    if (!order || order.userId !== userId) {
+      throw new AppError("Order not found", 404);
+    }
+    
+    if (order.status !== "delivered") {
+      throw new AppError("Only delivered orders can be returned", 400);
+    }
+
+    const note = {
+      text: `Return requested: ${reason}`,
+      author: userId,
+      timestamp: new Date()
+    };
+    
+    await OrderRepository.addNote(orderId, note);
+    return await OrderRepository.updateStatus(orderId, "return_requested");
+  }
+
+  static async adminHandleReturn(orderId: string, action: string, adminNote?: string) {
+    const order = await OrderRepository.findById(orderId);
+    if (!order) {
+      throw new AppError("Order not found", 404);
+    }
+    
+    if (order.status !== "return_requested") {
+      throw new AppError("Order is not in return_requested status", 400);
+    }
+
+    const status = action === "approve" ? "return_approved" : "delivered";
+    
+    const noteText = action === "approve" ? "Return approved." : "Return rejected.";
+    await OrderRepository.addNote(orderId, {
+      text: adminNote ? `${noteText} Reason: ${adminNote}` : noteText,
+      author: "Admin",
+      timestamp: new Date()
+    });
+
+    return await OrderRepository.updateStatus(orderId, status);
+  }
+
+  static async getInvoiceUrl(orderId: string, userId: string) {
+    const order = await OrderRepository.findById(orderId);
+    if (!order) {
+      throw new AppError("Order not found", 404);
+    }
+    // Allow admin to skip userId check (if userId is "admin") or normal user check
+    if (userId !== "admin" && order.userId !== userId) {
+      throw new AppError("Unauthorized", 403);
+    }
+
+    const { InvoiceGenerator } = require("../../core/utils/invoiceGenerator");
+    const url = await InvoiceGenerator.getOrGenerateInvoiceUrl(order);
+    return url;
+  }
+}

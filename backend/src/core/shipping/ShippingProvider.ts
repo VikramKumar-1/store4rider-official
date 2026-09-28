@@ -52,8 +52,12 @@ export interface ShippingRate {
 export interface TrackingEvent {
   status: string; // e.g. "PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"
   location: string;
-  date: string;
-  activity: string;
+  timestamp: string | Date;
+  activity?: string;
+  description?: string;
+  providerStatus?: string;
+  receivedAt?: string | Date;
+  providerEventId?: string;
 }
 
 export interface TrackingInfoResult {
@@ -63,16 +67,48 @@ export interface TrackingInfoResult {
   estimatedDelivery?: string;
 }
 
+export interface ServiceabilityResult {
+  serviceable: boolean;
+  codAvailable: boolean;
+  estimatedDays?: number;
+  provider: string;
+}
+
+export interface PickupResult {
+  success: boolean;
+  pickupTokenNumber?: string;
+  scheduledDate?: string;
+  message: string;
+}
+
+export interface GetRatesInput {
+  deliveryPincode: string;
+  weightKg: number;
+  isCod: boolean;
+  length?: number;
+  breadth?: number;
+  height?: number;
+}
+
 export interface ShippingProvider {
+  /**
+   * Check if a pincode is serviceable by this provider
+   */
+  checkServiceability?(deliveryPincode: string, weightKg: number, isCod: boolean): Promise<ServiceabilityResult>;
   /**
    * Create a shipment in the provider's system
    */
   createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult>;
 
   /**
+   * Request pickup for an created shipment
+   */
+  requestPickup(shipmentId: string, providerOrderId?: string): Promise<PickupResult>;
+
+  /**
    * Generate or retrieve the shipping label URL
    */
-  generateLabel(shipmentId: string): Promise<string>;
+  generateLabel(shipmentId: string): Promise<string | null>;
 
   /**
    * Get real-time tracking information
@@ -82,10 +118,25 @@ export interface ShippingProvider {
   /**
    * Get available shipping rates for a specific pincode/weight
    */
-  getRates(deliveryPincode: string, weightKg: number, isCod: boolean): Promise<ShippingRate[]>;
+  getRates(input: GetRatesInput): Promise<ShippingRate[]>;
 
   /**
    * Cancel an existing shipment
    */
   cancelShipment(shipmentId: string, awb: string): Promise<boolean>;
+
+  /**
+   * Verify Webhook Signature
+   */
+  verifyWebhookSignature(payload: any, headers: Record<string, string>): boolean;
+
+  /**
+   * Extract unique Webhook Event ID
+   */
+  extractWebhookEventId?(payload: any): string;
+
+  /**
+   * Parse provider webhook payload into normalized event format
+   */
+  parseWebhookPayload?(payload: any): import("../../modules/shipping/services/tracking.service").NormalizedTrackingEvent;
 }

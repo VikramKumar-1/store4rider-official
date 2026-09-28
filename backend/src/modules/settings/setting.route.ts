@@ -20,6 +20,7 @@ export async function settingRouter(req: any, routePath: string) {
   if (method === "PUT" && routePath === "") {
     const userId = extractUserFromAuth(req);
     await checkAdmin(userId, UserService.getRole);
+    req.body = await req.json();
     SettingValidator.validateUpdateSettings(req);
     return SettingController.updateSettings(req);
   }

@@ -18,5 +18,11 @@ export async function userRouter(req: NextRequest, routePath: string[]): Promise
     if (method === "POST") return await UserController.addAddress(req);
   }
 
+  if (pathLen === 3 && routePath[0] === "me" && routePath[1] === "addresses") {
+    const addressId = routePath[2];
+    if (method === "PUT") return await UserController.updateAddress(req, addressId);
+    if (method === "DELETE") return await UserController.deleteAddress(req, addressId);
+  }
+
   return null;
 }

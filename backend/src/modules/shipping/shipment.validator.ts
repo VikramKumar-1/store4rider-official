@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createShipmentSchema, updateShipmentStatusSchema } from "@store4riders/shared-validation";
+import { createShipmentSchema, updateShipmentStatusSchema, getRatesSchema, serviceabilitySchema } from "@store4riders/shared-validation";
 import { AppError, ValidationError } from "../../core/errors/AppError";
 
 export class ShipmentValidator {
@@ -17,6 +17,20 @@ export class ShipmentValidator {
     return result.data.body;
   }
 
+  static async validateServiceability(req: NextRequest) {
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      throw new AppError("Invalid JSON", 400);
+    }
+    const result = serviceabilitySchema.safeParse({ body });
+    if (!result.success) {
+      throw new ValidationError(result.error.errors.map((e: any) => e.message).join(", "));
+    }
+    return result.data.body;
+  }
+
   static async validateGetRates(req: NextRequest) {
     let body;
     try {
@@ -24,14 +38,11 @@ export class ShipmentValidator {
     } catch {
       throw new AppError("Invalid JSON", 400);
     }
-    if (!body.deliveryPincode || typeof body.weightKg !== "number") {
-      throw new ValidationError("deliveryPincode and weightKg are required");
+    const result = getRatesSchema.safeParse({ body });
+    if (!result.success) {
+      throw new ValidationError(result.error.errors.map((e: any) => e.message).join(", "));
     }
-    return {
-      deliveryPincode: String(body.deliveryPincode),
-      weightKg: Number(body.weightKg),
-      isCod: Boolean(body.isCod)
-    };
+    return result.data.body;
   }
 
   static async validateStatusUpdate(req: NextRequest, id: string) {

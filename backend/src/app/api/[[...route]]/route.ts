@@ -19,6 +19,12 @@ const handleRequest = async (
   req: NextRequest, 
   props: { params: Promise<{ route?: string[] }> }
 ) => {
+  // Handle OPTIONS (Preflight) immediately without waiting for database connection
+  if (req.method === "OPTIONS") {
+    const res = new NextResponse("", { status: 200 });
+    return applyHeaders(res, req);
+  }
+
   try {
     await connectToDatabase();
     
@@ -33,13 +39,6 @@ const handleRequest = async (
     // Request Logger
     logger.info(`[${req.method}] ${req.nextUrl.pathname}`);
 
-    
-    // Handle OPTIONS (Preflight)
-    if (req.method === "OPTIONS") {
-      const res = new NextResponse(null, { status: 204 });
-      return applyHeaders(res, req);
-    }
-
     // Global Baseline Rate Limiter (Protects ALL endpoints from DDoS / scraping)
     // Exclude GET /products from global rate limit to allow Next.js SSG to build without failing
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "127.0.0.1";
@@ -51,7 +50,7 @@ const handleRequest = async (
     let res = await centralRouter(req, routePath);
     
     if (!res) {
-      res = NextResponse.json({ error: "Route not found" }, { status: 404 });
+      res = NextResponse.json({ error: "Route not found", debug_routePath: routePath, debug_originalRoute: resolvedParams?.route }, { status: 404 });
     }
 
     return applyHeaders(res, req);

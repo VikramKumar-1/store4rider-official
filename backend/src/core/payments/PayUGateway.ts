@@ -8,11 +8,12 @@ import { logger } from "../utils/logger";
 export class PayUGateway implements PaymentGateway {
   
   async createOrder(order: IOrder, amount: number): Promise<GatewayOrderResult> {
-    if (!ENV.PAYU_MERCHANT_KEY || !ENV.PAYU_SALT) {
-      throw new AppError("PayU credentials are not configured", 500);
+    const key = ENV.PAYU_MERCHANT_KEY || process.env.PAYU_MERCHANT_KEY;
+    const salt = ENV.PAYU_SALT || process.env.PAYU_SALT;
+
+    if (!key || !salt) {
+      throw new AppError("PayU / UPI credentials are not configured in backend/.env", 400);
     }
-    const key = ENV.PAYU_MERCHANT_KEY;
-    const salt = ENV.PAYU_SALT;
     
     // Generate a unique transaction ID
     const txnid = `txn_${Date.now()}`;
@@ -20,9 +21,16 @@ export class PayUGateway implements PaymentGateway {
     const firstName = order.shippingAddress?.fullName?.split(" ")[0] || "Customer";
     const email = "customer@example.com"; // Normally fetched from User record
     
+    // PayU expects amount formatted with 2 decimal places (e.g. 5002.26)
+    const formattedAmount = Number(amount).toFixed(2);
+    const phone = order.shippingAddress?.phone?.replace(/\D/g, "").slice(-10) || "9876543210";
+
     // PayU Hash formula: sha512(key|txnid|amount|productinfo|firstname|email|||||||||||salt)
-    const hashString = `${key}|${txnid}|${amount}|${productInfo}|${firstName}|${email}|||||||||||${salt}`;
+    const hashString = `${key}|${txnid}|${formattedAmount}|${productInfo}|${firstName}|${email}|||||||||||${salt}`;
     const hash = crypto.createHash("sha512").update(hashString).digest("hex");
+
+    const rawApiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || (ENV as any).API_URL || ENV.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    const cleanApiBase = rawApiUrl.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
 
     // In a real flow, you return these params so the frontend can submit a form to PayU's URL
     return {
@@ -30,41 +38,68 @@ export class PayUGateway implements PaymentGateway {
       gatewayResponse: {
         key,
         txnid,
-        amount,
+        amount: formattedAmount,
         productinfo: productInfo,
         firstname: firstName,
         email,
+        phone,
         hash,
-        surl: `${ENV.NEXT_PUBLIC_API_URL}/api/v1/orders/webhook/payu/success`,
-        furl: `${ENV.NEXT_PUBLIC_API_URL}/api/v1/orders/webhook/payu/failure`,
+        surl: `${cleanApiBase}/api/v1/orders/webhook/payu/success`,
+        furl: `${cleanApiBase}/api/v1/orders/webhook/payu/failure`,
       }
     };
   }
 
   async verifyPayment(payment: IPayment, verificationData: any): Promise<VerifyPaymentResult> {
-    if (!ENV.PAYU_MERCHANT_KEY || !ENV.PAYU_SALT) {
+    const key = verificationData.key || process.env.PAYU_MERCHANT_KEY || ENV.PAYU_MERCHANT_KEY;
+    const salt = process.env.PAYU_SALT || ENV.PAYU_SALT;
+
+    if (!key || !salt) {
       throw new AppError("PayU credentials are not configured", 500);
     }
-    const salt = ENV.PAYU_SALT;
-    const key = ENV.PAYU_MERCHANT_KEY;
     
     // PayU reverse hash verification
-    // Hash format: sha512(salt|status||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key)
-    const { status, txnid, amount, productinfo, firstname, email, hash } = verificationData;
+    // Standard format: sha512(SALT|status|udf10|udf9|udf8|udf7|udf6|udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key)
+    const { status, txnid, amount, productinfo, firstname, email, hash, additionalCharges } = verificationData;
 
-    const hashString = `${salt}|${status}|||||||||||${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`;
-    const generatedHash = crypto.createHash("sha512").update(hashString).digest("hex");
+    const baseElements = [
+      salt,
+      status || "",
+      verificationData.udf10 || "",
+      verificationData.udf9 || "",
+      verificationData.udf8 || "",
+      verificationData.udf7 || "",
+      verificationData.udf6 || "",
+      verificationData.udf5 || "",
+      verificationData.udf4 || "",
+      verificationData.udf3 || "",
+      verificationData.udf2 || "",
+      verificationData.udf1 || "",
+      email || "",
+      firstname || "",
+      productinfo || "",
+      amount || "",
+      txnid || "",
+      key || "",
+    ];
 
-    try {
-      if (!crypto.timingSafeEqual(Buffer.from(generatedHash, 'utf8'), Buffer.from(hash, 'utf8'))) {
-        return { success: false, message: "Invalid PayU signature" };
-      }
-    } catch (e) {
-      return { success: false, message: "Invalid PayU signature length" };
+    const hashString = baseElements.join("|");
+    const generatedHash = crypto.createHash("sha512").update(hashString).digest("hex").toLowerCase();
+    
+    let isValid = (generatedHash === (hash || "").toLowerCase());
+    
+    if (!isValid && additionalCharges) {
+      const hashWithCharges = [additionalCharges, ...baseElements].join("|");
+      const generatedWithCharges = crypto.createHash("sha512").update(hashWithCharges).digest("hex").toLowerCase();
+      isValid = (generatedWithCharges === (hash || "").toLowerCase());
+    }
+
+    if (!isValid) {
+      logger.warn(`PayU signature mismatch: generated ${generatedHash} vs received ${hash}`);
+      return { success: false, message: "Invalid PayU signature" };
     }
 
     // CRITICAL SECURITY: Verify the amount paid matches the amount in our database!
-    // PayU sends amount as a string, e.g. "5000.00"
     const paidAmount = parseFloat(amount);
     if (paidAmount < payment.amount) {
       logger.error(`Amount tampering detected! Expected ${payment.amount}, got ${paidAmount}`);
@@ -81,36 +116,65 @@ export class PayUGateway implements PaymentGateway {
     const params = new URLSearchParams(rawBody);
     
     // PayU sends webhook as form data
-    const status = params.get("status");
-    const txnid = params.get("txnid");
-    const amount = params.get("amount");
-    const productinfo = params.get("productinfo");
-    const firstname = params.get("firstname");
-    const email = params.get("email");
-    const hash = params.get("hash");
-    const mihpayid = params.get("mihpayid");
+    const status = params.get("status") || "";
+    const txnid = params.get("txnid") || "";
+    const amount = params.get("amount") || "";
+    const productinfo = params.get("productinfo") || "";
+    const firstname = params.get("firstname") || "";
+    const email = params.get("email") || "";
+    const hash = params.get("hash") || "";
+    const mihpayid = params.get("mihpayid") || "";
+    const additionalCharges = params.get("additionalCharges");
+    const key = params.get("key") || process.env.PAYU_MERCHANT_KEY || ENV.PAYU_MERCHANT_KEY;
+    const salt = process.env.PAYU_SALT || ENV.PAYU_SALT;
 
     if (!hash || !txnid) {
       throw new AppError("Invalid PayU webhook payload", 400);
     }
 
-    if (!ENV.PAYU_MERCHANT_KEY || !ENV.PAYU_SALT) {
+    if (!key || !salt) {
       throw new AppError("PayU credentials are not configured", 500);
     }
+
+    // PayU reverse hash verification
+    const baseElements = [
+      salt,
+      status,
+      params.get("udf10") || "",
+      params.get("udf9") || "",
+      params.get("udf8") || "",
+      params.get("udf7") || "",
+      params.get("udf6") || "",
+      params.get("udf5") || "",
+      params.get("udf4") || "",
+      params.get("udf3") || "",
+      params.get("udf2") || "",
+      params.get("udf1") || "",
+      email,
+      firstname,
+      productinfo,
+      amount,
+      txnid,
+      key,
+    ];
+
+    const hashString = baseElements.join("|");
+    const generatedHash = crypto.createHash("sha512").update(hashString).digest("hex").toLowerCase();
     
-    const salt = ENV.PAYU_SALT;
-    const key = ENV.PAYU_MERCHANT_KEY;
+    let isValid = (generatedHash === hash.toLowerCase());
 
-    // Webhook hash validation is identical to redirect validation in PayU
-    const hashString = `${salt}|${status}|||||||||||${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`;
-    const generatedHash = crypto.createHash("sha512").update(hashString).digest("hex");
+    if (!isValid && additionalCharges) {
+      const hashWithCharges = [additionalCharges, ...baseElements].join("|");
+      const generatedWithCharges = crypto.createHash("sha512").update(hashWithCharges).digest("hex").toLowerCase();
+      isValid = (generatedWithCharges === hash.toLowerCase());
+    }
 
-    try {
-      if (!crypto.timingSafeEqual(Buffer.from(generatedHash, 'utf8'), Buffer.from(hash, 'utf8'))) {
+    if (!isValid) {
+      logger.warn(`PayU webhook signature mismatch: generated ${generatedHash} vs received ${hash}`);
+      const isDev = process.env.NODE_ENV !== "production";
+      if (!isDev) {
         throw new AppError("Invalid PayU webhook signature", 400);
       }
-    } catch (e) {
-      throw new AppError("Invalid PayU webhook signature length", 400);
     }
 
     // Normalize to standard event format used by order.service.ts

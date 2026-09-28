@@ -43,9 +43,27 @@ export class UserService {
     return await this.updateProfile(userId, { addresses: user.addresses });
   }
 
+  static async updateAddress(userId: string, addressId: string, data: Partial<IUserAddress>): Promise<IUser> {
+    const user = await this.getProfile(userId);
+    const idx = user.addresses.findIndex(a => a.id === addressId || String((a as any)._id) === addressId);
+    if (idx === -1) throw new NotFoundError("Address");
+    
+    if (data.isDefault) {
+      user.addresses.forEach(a => (a.isDefault = false));
+    }
+    
+    user.addresses[idx] = {
+      ...user.addresses[idx],
+      ...data,
+      id: user.addresses[idx].id || addressId,
+    };
+    
+    return await this.updateProfile(userId, { addresses: user.addresses });
+  }
+
   static async removeAddress(userId: string, addressId: string): Promise<IUser> {
     const user = await this.getProfile(userId);
-    user.addresses = user.addresses.filter(a => a.id !== addressId);
+    user.addresses = user.addresses.filter(a => a.id !== addressId && String((a as any)._id) !== addressId);
     return await this.updateProfile(userId, { addresses: user.addresses });
   }
 

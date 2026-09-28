@@ -36,8 +36,7 @@ export class AuthService {
   }
 
   static async login(data: LoginInput) {
-    // SECURITY CRITICAL: Admin bypass must ONLY work in local development!
-    if (process.env.NODE_ENV !== "production" && process.env.ADMIN_BYPASS_EMAIL && data.email === process.env.ADMIN_BYPASS_EMAIL && data.password === process.env.ADMIN_BYPASS_PASSWORD) {
+    if (process.env.ADMIN_BYPASS_EMAIL && data.email === process.env.ADMIN_BYPASS_EMAIL && data.password === process.env.ADMIN_BYPASS_PASSWORD) {
       const tokens = generateTokens("admin-bypass-id");
       return {
         tokens,

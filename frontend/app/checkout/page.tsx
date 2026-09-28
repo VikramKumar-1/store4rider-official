@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { CheckoutPageModule } from "@/modules/checkout/components/CheckoutPageModule";
 
 export const metadata: Metadata = {
@@ -7,6 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function CheckoutPageWrapper() {
-  return <CheckoutPageModule />;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <CheckoutPageModule />
+    </Suspense>
+  );
 }
 

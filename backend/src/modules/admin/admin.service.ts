@@ -61,4 +61,57 @@ export class AdminService {
       revenue: item.revenue
     }));
   }
+
+  static async getTestProduct() {
+    const product = await ProductModel.findOne({ sku: "TEST-SANDBOX-001" }).lean().exec();
+    return { exists: !!product, product };
+  }
+
+  static async createTestProduct() {
+    const testData = {
+      name: "Store4Riders Sandbox Test Item (₹1)",
+      slug: "store4riders-test-product",
+      sku: "TEST-SANDBOX-001",
+      basePrice: 1,
+      specialPrice: 1,
+      stockStatus: 1,
+      productType: "simple",
+      description: "<p>This is a temporary sandbox product created for testing payment gateways (PayU, CCAvenue, Snapmint) and order checkout flows. You can safely purchase this for ₹1 in test mode and delete it from the Admin panel anytime.</p>",
+      shortDescription: "Temporary sandbox test product for payment and checkout verification.",
+      images: [
+        {
+          id: "test-img-1",
+          url: "https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=600&q=80",
+          altText: "Store4Riders Test Product"
+        }
+      ],
+      variants: [
+        {
+          id: "var-test-1",
+          sku: "TEST-SANDBOX-001-STD",
+          price: 1,
+          stock: 999,
+          attributes: new Map([["size", "Standard"], ["color", "Red"]])
+        }
+      ],
+      status: "published",
+      isFeatured: false,
+      salesCount: 0
+    };
+
+    const product = await ProductModel.findOneAndUpdate(
+      { sku: "TEST-SANDBOX-001" },
+      { $set: testData },
+      { new: true, upsert: true }
+    ).lean().exec();
+
+    return product;
+  }
+
+  static async deleteTestProduct() {
+    await ProductModel.deleteMany({
+      $or: [{ sku: "TEST-SANDBOX-001" }, { slug: "store4riders-test-product" }]
+    }).exec();
+    return { success: true };
+  }
 }

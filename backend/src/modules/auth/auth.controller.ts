@@ -9,16 +9,16 @@ const setCookies = (res: NextResponse, accessToken: string, refreshToken: string
   res.cookies.set("accessToken", accessToken, {
     httpOnly: true,
     secure: isProd,
-    sameSite: "strict",
+    sameSite: isProd ? "strict" : "lax",
     path: "/",
-    maxAge: 15 * 60, // 15 mins
+    maxAge: 7 * 24 * 60 * 60, // 7 days
   });
   res.cookies.set("refreshToken", refreshToken, {
     httpOnly: true,
     secure: isProd,
-    sameSite: "strict",
+    sameSite: isProd ? "strict" : "lax",
     path: "/",
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   });
 };
 
@@ -42,7 +42,11 @@ export class AuthController {
     const result = await AuthService.register(validatedData);
     
     // Return tokens and user in data payload for mobile apps / frontend, while also setting cookies for web
-    const res = ApiResponse.success({ accessToken: result.tokens.accessToken, user: result.user }, "Registered successfully", 201);
+    const res = ApiResponse.success({ 
+      accessToken: result.tokens.accessToken, 
+      refreshToken: result.tokens.refreshToken,
+      user: result.user 
+    }, "Registered successfully", 201);
     setCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
     return res;
   }
@@ -51,18 +55,32 @@ export class AuthController {
     const validatedData = await AuthValidator.validateLogin(req);
     const result = await AuthService.login(validatedData);
 
-    const res = ApiResponse.success({ accessToken: result.tokens.accessToken, user: result.user }, "Logged in successfully");
+    const res = ApiResponse.success({ 
+      accessToken: result.tokens.accessToken, 
+      refreshToken: result.tokens.refreshToken,
+      user: result.user 
+    }, "Logged in successfully");
     setCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
     return res;
   }
 
   static async refresh(req: NextRequest) {
-    const oldRefreshToken = req.cookies.get("refreshToken")?.value;
+    let oldRefreshToken = req.cookies.get("refreshToken")?.value;
+    if (!oldRefreshToken) {
+      try {
+        const body = await req.json();
+        oldRefreshToken = body?.refreshToken;
+      } catch (e) {}
+    }
+
     if (!oldRefreshToken) return ApiResponse.error("No refresh token", 401);
 
     const tokens = await AuthService.refreshToken(oldRefreshToken);
     
-    const res = ApiResponse.success({ accessToken: tokens.accessToken }, "Token refreshed");
+    const res = ApiResponse.success({ 
+      accessToken: tokens.accessToken, 
+      refreshToken: tokens.refreshToken 
+    }, "Token refreshed");
     setCookies(res, tokens.accessToken, tokens.refreshToken);
     return res;
   }

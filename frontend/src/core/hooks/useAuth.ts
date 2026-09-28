@@ -16,7 +16,7 @@ export function useLogin(options?: { disableRedirect?: boolean }) {
     },
     onSuccess: (data) => {
       if (data?.data?.user && data?.data?.accessToken) {
-        setAuth(data.data.user, data.data.accessToken);
+        setAuth(data.data.user, data.data.accessToken, data.data.refreshToken);
       }
       toast.success("Successfully logged in!");
       
@@ -43,7 +43,7 @@ export function useRegister() {
     },
     onSuccess: (data) => {
       if (data?.data?.user && data?.data?.accessToken) {
-        setAuth(data.data.user, data.data.accessToken);
+        setAuth(data.data.user, data.data.accessToken, data.data.refreshToken);
       }
 
       const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;

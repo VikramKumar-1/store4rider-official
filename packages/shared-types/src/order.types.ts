@@ -36,6 +36,12 @@ export interface IOrderAddress {
   country: string;
 }
 
+export interface IOrderNote {
+  text: string;
+  author: string;
+  timestamp: Date;
+}
+
 export interface IOrder {
   id?: string;
   orderNumber: string;
@@ -49,6 +55,7 @@ export interface IOrder {
   paymentId?: string;
   paymentSignature?: string;
   idempotencyKey?: string;
+  notes?: IOrderNote[];
   createdAt: Date;
   updatedAt: Date;
 }

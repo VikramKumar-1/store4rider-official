@@ -50,6 +50,13 @@ const orderSchema = new Schema<IOrder>(
     paymentId: { type: String },
     paymentSignature: { type: String },
     idempotencyKey: { type: String, sparse: true },
+    notes: [
+      {
+        text: { type: String, required: true },
+        author: { type: String, required: true },
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

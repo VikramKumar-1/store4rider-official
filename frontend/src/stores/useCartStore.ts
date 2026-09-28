@@ -7,6 +7,7 @@ export interface LocalCartItem extends ICartItem {
 
 interface CartState {
   items: LocalCartItem[];
+  isLoaded: boolean;
   currentUserId: string | null;
   isDrawerOpen: boolean;
   openDrawer: () => void;
@@ -16,8 +17,10 @@ interface CartState {
   updateQuantity: (productId: string, quantity: number, variantId?: string) => void;
   removeItem: (productId: string, variantId?: string, itemId?: string) => void;
   clearCart: () => void;
-  /** Switches active cart storage to the specified user or guest */
+  /** Switches active cart storage to the specified user or guest and syncs with cloud */
   switchUserCart: (userId: string | null) => void;
+  /** Fetches latest cloud cart from server */
+  fetchServerCart: () => Promise<void>;
 }
 
 const getCartStorageKey = (userId: string | null) => {
@@ -47,8 +50,22 @@ const saveItemsToStorage = (userId: string | null, items: LocalCartItem[]) => {
   }
 };
 
+/**
+ * Helper to dynamically load apiClient without creating circular import dependencies
+ */
+const syncToServer = async (action: (client: any) => Promise<any>) => {
+  if (typeof window === "undefined") return;
+  try {
+    const { apiClient } = await import("@/core/api/client");
+    return await action(apiClient);
+  } catch (e) {
+    // Non-blocking catch to guarantee client resilience
+  }
+};
+
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
+  isLoaded: false,
   currentUserId: null,
   isDrawerOpen: false,
   openDrawer: () => set({ isDrawerOpen: true }),
@@ -56,8 +73,68 @@ export const useCartStore = create<CartState>((set, get) => ({
   toggleDrawer: () => set((s) => ({ isDrawerOpen: !s.isDrawerOpen })),
 
   switchUserCart: (userId: string | null) => {
-    const items = loadItemsFromStorage(userId);
-    set({ currentUserId: userId, items });
+    if (userId === null) {
+      // Guest mode
+      const items = loadItemsFromStorage(null);
+      set({ currentUserId: null, items, isLoaded: true });
+      return;
+    }
+
+    // Optimistically load cached items for instantaneous UI display
+    const cachedItems = loadItemsFromStorage(userId);
+    set({ currentUserId: userId, items: cachedItems, isLoaded: true });
+
+    // Check if guest items need merging into user's account
+    const guestItems = loadItemsFromStorage(null);
+
+    syncToServer(async (apiClient) => {
+      if (guestItems && guestItems.length > 0) {
+        // Merge guest items with cloud cart
+        const res = await apiClient.post("/cart/sync", {
+          items: guestItems.map((i) => ({
+            id: i.id,
+            productId: i.productId,
+            variantId: i.variantId,
+            quantity: i.quantity,
+            product: i.product,
+          })),
+        });
+        const serverCart = res.data?.data;
+        if (serverCart && Array.isArray(serverCart.items)) {
+          set({ items: serverCart.items });
+          saveItemsToStorage(userId, serverCart.items);
+          if (typeof window !== "undefined") {
+            localStorage.removeItem(getCartStorageKey(null));
+          }
+        }
+      } else {
+        // Fetch user's existing cloud cart from MongoDB
+        const res = await apiClient.get("/cart");
+        const serverCart = res.data?.data;
+        if (serverCart && Array.isArray(serverCart.items)) {
+          if (serverCart.items.length > 0 || cachedItems.length === 0) {
+            set({ items: serverCart.items });
+            saveItemsToStorage(userId, serverCart.items);
+          } else if (cachedItems.length > 0) {
+            // Push local cached items to cloud if cloud was empty
+            const syncRes = await apiClient.post("/cart/sync", {
+              items: cachedItems.map((i) => ({
+                id: i.id,
+                productId: i.productId,
+                variantId: i.variantId,
+                quantity: i.quantity,
+                product: i.product,
+              })),
+            });
+            const updated = syncRes.data?.data;
+            if (updated && Array.isArray(updated.items)) {
+              set({ items: updated.items });
+              saveItemsToStorage(userId, updated.items);
+            }
+          }
+        }
+      }
+    });
   },
 
   addItem: (item) => {
@@ -79,6 +156,18 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     saveItemsToStorage(currentUserId, updated);
     set({ items: updated });
+
+    if (currentUserId) {
+      syncToServer((apiClient) =>
+        apiClient.post("/cart/items", {
+          id: item.id,
+          productId: item.productId,
+          variantId: item.variantId,
+          quantity: item.quantity,
+          product: item.product,
+        })
+      );
+    }
   },
 
   updateQuantity: (productId, quantity, variantId) => {
@@ -99,6 +188,16 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     saveItemsToStorage(currentUserId, updated);
     set({ items: updated });
+
+    if (currentUserId) {
+      syncToServer((apiClient) =>
+        apiClient.put("/cart/items", {
+          productId,
+          variantId,
+          quantity,
+        })
+      );
+    }
   },
 
   removeItem: (productId, variantId, itemId) => {
@@ -117,6 +216,14 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     saveItemsToStorage(currentUserId, updated);
     set({ items: updated });
+
+    if (currentUserId) {
+      syncToServer((apiClient) =>
+        apiClient.delete("/cart/items", {
+          data: { productId, variantId, itemId },
+        })
+      );
+    }
   },
 
   clearCart: () => {
@@ -124,12 +231,28 @@ export const useCartStore = create<CartState>((set, get) => ({
     if (typeof window !== "undefined") {
       try {
         localStorage.removeItem(getCartStorageKey(currentUserId));
+        localStorage.removeItem(getCartStorageKey(null));
         localStorage.removeItem("guest-cart-storage");
         localStorage.removeItem("s4r-user-cart-v2");
       } catch (e) {}
     }
     set({ items: [] });
+
+    if (currentUserId) {
+      syncToServer((apiClient) => apiClient.delete("/cart"));
+    }
+  },
+
+  fetchServerCart: async () => {
+    const { currentUserId } = get();
+    if (!currentUserId) return;
+    await syncToServer(async (apiClient) => {
+      const res = await apiClient.get("/cart");
+      const serverCart = res.data?.data;
+      if (serverCart && Array.isArray(serverCart.items)) {
+        set({ items: serverCart.items });
+        saveItemsToStorage(currentUserId, serverCart.items);
+      }
+    });
   },
 }));
-
-

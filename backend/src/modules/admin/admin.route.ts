@@ -59,6 +59,21 @@ export async function adminRouter(req: NextRequest, routePath: string[]): Promis
     return await AdminController.bulkUpdateProducts(req);
   }
 
+  if (pathLen === 2 && routePath[0] === "products" && routePath[1] === "test-product") {
+    const userId = extractUserFromAuth(req);
+    await checkPermission(userId, PermissionAction.MANAGE_PRODUCTS, UserService.getRole);
+
+    if (method === "GET") {
+      return await AdminController.getTestProduct(req);
+    }
+    if (method === "POST") {
+      return await AdminController.createTestProduct(req);
+    }
+    if (method === "DELETE") {
+      return await AdminController.deleteTestProduct(req);
+    }
+  }
+
   if (pathLen === 1 && routePath[0] === "settings") {
     const userId = extractUserFromAuth(req);
     // Use general admin check for settings since there isn't a specific setting permission mentioned in the snippet

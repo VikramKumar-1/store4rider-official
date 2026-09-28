@@ -43,4 +43,21 @@ export class OrderRepository {
     }
     return OrderModel.findByIdAndUpdate(id, update, { new: true, session }).lean().exec() as unknown as IOrder | null;
   }
+
+  static async findPaginated(query: any, page: number, limit: number, session?: ClientSession) {
+    const skip = (page - 1) * limit;
+    const [items, total] = await Promise.all([
+      OrderModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).session(session || null).lean().exec(),
+      OrderModel.countDocuments(query).session(session || null).exec()
+    ]);
+    return { items, total };
+  }
+
+  static async addNote(id: string, note: import("@store4riders/shared-types").IOrderNote, session?: ClientSession): Promise<IOrder | null> {
+    return OrderModel.findByIdAndUpdate(
+      id,
+      { $push: { notes: note } },
+      { new: true, session }
+    ).lean().exec() as unknown as IOrder | null;
+  }
 }

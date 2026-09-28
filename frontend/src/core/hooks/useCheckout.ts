@@ -16,14 +16,14 @@ export function useCheckout() {
   const router = useRouter();
 
   return useMutation({
-    mutationFn: async ({ shippingAddressId, paymentMethod, couponCode }: { shippingAddressId: string; paymentMethod: PaymentMethodType; couponCode?: string }) => {
+    mutationFn: async ({ shippingAddressId, paymentMethod, couponCode, phone, fullName }: { shippingAddressId: string; paymentMethod: PaymentMethodType; couponCode?: string; phone?: string; fullName?: string }) => {
       if (!isAuthenticated) {
         throw new Error("You must be logged in to checkout");
       }
       
       const payloadItems = cartItems.map(item => ({
         productId: item.productId,
-        variantId: item.variantId,
+        variantId: item.variantId || undefined,
         quantity: item.quantity
       }));
       
@@ -33,38 +33,55 @@ export function useCheckout() {
       const response = await apiClient.post("/orders", { 
         shippingAddressId, 
         paymentMethod, 
-        couponCode,
-        items: payloadItems 
-      }, {
-        headers: {
-          "Idempotency-Key": idempotencyKey
-        }
+        couponCode: couponCode || undefined,
+        phone: phone || undefined,
+        fullName: fullName || undefined,
+        items: payloadItems,
+        idempotencyKey,
       });
       return { ...response.data, paymentMethod };
     },
     onSuccess: (data) => {
-      const { gatewayOrderId, amount, paymentMethod } = data.data;
+      const { gatewayOrderId, amount, paymentMethod, gatewayResponse } = data.data;
 
-      // Handle COD without partial payment
+      // Handle COD without partial payment (handled in CheckoutPageModule onSuccess)
       if (paymentMethod === "cod" && !gatewayOrderId) {
-        useCartStore.getState().clearCart();
         toast.success("Order Confirmed Successfully!");
-        router.push("/checkout?success=true");
         return;
       }
 
-      // Handle PayU, CCAvenue, Snapmint, UPI, and COD (with partial payment)
-      if (paymentMethod === "payu" || paymentMethod === "ccavenue" || paymentMethod === "snapmint" || paymentMethod === "upi" || (paymentMethod === "cod" && gatewayOrderId)) {
-        useCartStore.getState().clearCart();
-        
-        if (paymentMethod === "cod") {
-          toast.success(`Redirecting to PayU to collect COD Advance...`);
-        } else {
-          toast.success(`Redirecting to ${paymentMethod.toUpperCase()}...`);
-        }
-        
-        // Example redirect: router.push(data.data.redirectUrl);
+      // Handle PayU, UPI, and COD partial payment with PayU
+      if (((paymentMethod === "payu" || paymentMethod === "upi") || (paymentMethod === "cod" && gatewayOrderId)) && gatewayResponse) {
+        toast.success("Redirecting to PayU Payment Gateway...");
+
+        // Standard PayU India form submit redirect
+        const isProd = process.env.NODE_ENV === "production";
+        const payuAction = isProd ? "https://secure.payu.in/_payment" : "https://test.payu.in/_payment";
+
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = payuAction;
+
+        Object.entries(gatewayResponse).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = key;
+            input.value = String(value);
+            form.appendChild(input);
+          }
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+        return;
+      }
+
+      // Handle CCAvenue or Snapmint if selected
+      if (paymentMethod === "ccavenue" || paymentMethod === "snapmint") {
+        toast.success(`Redirecting to ${paymentMethod.toUpperCase()}...`);
         setTimeout(() => {
+          useCartStore.getState().clearCart();
           router.push("/checkout?success=true");
         }, 1500);
       }
@@ -73,9 +90,23 @@ export function useCheckout() {
       if (error.message === "You must be logged in to checkout") {
         toast.error("Please login first to complete your order");
         router.push("/login?redirect=/checkout");
-      } else {
-        toast.error(error.response?.data?.error || "Failed to initialize checkout");
+        return;
       }
+
+      const resData = error.response?.data;
+      let errorMsg = "Failed to initialize checkout";
+
+      if (typeof resData?.error === "string") {
+        errorMsg = resData.error;
+      } else if (Array.isArray(resData?.error) && resData.error[0]?.message) {
+        errorMsg = resData.error[0].message;
+      } else if (typeof resData?.message === "string") {
+        errorMsg = resData.message;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+
+      toast.error(errorMsg);
     },
   });
 }

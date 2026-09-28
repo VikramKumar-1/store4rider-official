@@ -1,19 +1,30 @@
 export type ShipmentStatus = 
   | "pending" 
+  | "shipment_created"
+  | "awb_assigned"
   | "ready_to_ship"
   | "picked_up"
   | "in_transit"
   | "out_for_delivery"
   | "delivered"
-  | "rto_initiated" // Return To Origin
+  | "ndr"
+  | "rto_initiated"
+  | "rto_in_transit"
   | "rto_delivered"
-  | "cancelled";
+  | "cancelled"
+  | "lost"
+  | "damaged"
+  | "failed";
 
 export interface ITrackingEvent {
   status: string;
+  providerStatus?: string;
   location: string;
-  date: string;
-  activity: string;
+  timestamp: string | Date;
+  activity?: string; // Kept for backwards compatibility
+  description?: string;
+  receivedAt?: string | Date;
+  providerEventId?: string;
 }
 
 export interface IShipment {
@@ -21,10 +32,13 @@ export interface IShipment {
   _id?: string;
   orderId: string;
   provider: "shiprocket" | "delhivery" | "xpressbees";
+  shipmentType: "forward" | "reverse";
+  providerOrderId?: string;
   shipmentId: string; // ID returned by the provider
   awb?: string;
   courierName?: string;
   status: ShipmentStatus;
+  providerStatus?: string;
   trackingUrl?: string;
   labelUrl?: string;
   events: ITrackingEvent[];
@@ -32,6 +46,17 @@ export interface IShipment {
   breadth: number;
   height: number;
   weight: number;
+  volumetricWeight?: number;
+  chargeableWeight?: number;
+  pickupStatus?: "pending" | "scheduled" | "picked" | "failed";
+  pickupScheduledDate?: string | Date;
+  estimatedDeliveryDate?: string | Date;
+  customerShippingCharge?: number;
+  providerShippingCharge?: number;
+  codFee?: number;
+  idempotencyKey?: string;
+  podReference?: string;
+  invoiceUrl?: string;
   createdAt?: string | Date;
   updatedAt?: string | Date;
 }

@@ -1,0 +1,7 @@
+{
+  "material-icon-theme.files.associations": {
+    "*.model.ts": "database",
+    "*.validator.ts": "certificate",
+    "*.repository.ts": "lock"
+  }
+}

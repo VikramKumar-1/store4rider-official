@@ -30,4 +30,16 @@ export class UserController {
     const user = await UserService.addAddress(userId, data);
     return ApiResponse.success(user, "Address added successfully");
   }
+
+  static async updateAddress(req: NextRequest, addressId: string) {
+    const { userId, data } = await UserValidator.validateUpdateAddress(req);
+    const user = await UserService.updateAddress(userId, addressId, data);
+    return ApiResponse.success(user, "Address updated successfully");
+  }
+
+  static async deleteAddress(req: NextRequest, addressId: string) {
+    const userId = UserValidator.extractUserId(req);
+    const user = await UserService.removeAddress(userId, addressId);
+    return ApiResponse.success(user, "Address removed successfully");
+  }
 }

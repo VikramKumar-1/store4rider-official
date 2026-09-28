@@ -12,7 +12,7 @@ export class SnapmintGateway implements PaymentGateway {
     const secret = ENV.SNAPMINT_SECRET;
     
     if (!merchantId || !secret) {
-      throw new AppError("Snapmint credentials are not configured", 500);
+      throw new AppError("Snapmint credentials are not configured in backend/.env", 400);
     }
 
     const orderId = String((order as any)._id || order.id || order.orderNumber);

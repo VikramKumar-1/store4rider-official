@@ -3,6 +3,7 @@ import { apiClient } from "../api/client";
 
 export interface IPublicSettings {
   enabledGateways: string[];
+  codPartialPaymentEnabled?: boolean;
   codPartialPaymentType?: "percentage" | "fixed";
   codPartialPaymentValue?: number;
   taxRate: number;

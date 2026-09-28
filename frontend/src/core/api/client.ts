@@ -35,25 +35,34 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Call refresh token endpoint (which uses the HttpOnly refresh token cookie)
-        const refreshResponse = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
+        const { refreshToken, isAuthenticated } = useAuthStore.getState();
+        
+        // Call refresh token endpoint (sends both cookie and body token for bulletproof cross-origin support)
+        const refreshResponse = await axios.post(
+          `${API_URL}/auth/refresh`,
+          { refreshToken: refreshToken || undefined },
+          { withCredentials: true }
+        );
         
         const newAccessToken = refreshResponse.data?.data?.accessToken;
+        const newRefreshToken = refreshResponse.data?.data?.refreshToken;
         
         if (newAccessToken) {
-          // Update the zustand store with the new access token
-          useAuthStore.getState().setToken(newAccessToken);
+          // Update the zustand store with the refreshed access token
+          useAuthStore.getState().setToken(newAccessToken, newRefreshToken);
           
           // Retry the original request with the new token
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
-        // If refresh fails (e.g. refresh token expired too), logout user
-        useAuthStore.getState().logout();
-        // Redirect to login page
-        if (typeof window !== "undefined") {
-          window.location.href = "/login?expired=true";
+        const { isAuthenticated } = useAuthStore.getState();
+        if (isAuthenticated) {
+          // If refresh fails and user was logged in, log out cleanly
+          useAuthStore.getState().logout();
+          if (typeof window !== "undefined") {
+            window.location.href = "/login?expired=true";
+          }
         }
       }
     }

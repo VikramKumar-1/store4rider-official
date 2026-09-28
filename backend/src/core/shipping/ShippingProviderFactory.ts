@@ -19,4 +19,16 @@ export class ShippingProviderFactory {
         throw new AppError(`Shipping provider '${providerName}' is not supported yet`, 501);
     }
   }
+
+  static getProvider(providerName: string): ShippingProvider {
+    return this.create(providerName);
+  }
+
+  static getAllProviders(): ShippingProvider[] {
+    return [
+      new ShiprocketProvider(),
+      new DelhiveryProvider(),
+      new XpressbeesProvider()
+    ];
+  }
 }
