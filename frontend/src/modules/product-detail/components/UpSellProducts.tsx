@@ -59,13 +59,13 @@ export const UpSellProducts: React.FC<{ products: KitProduct[]; title?: string }
       {/* Responsive Slider / Grid Container */}
       <div 
         ref={scrollRef}
-        className="flex gap-4 md:gap-5 overflow-x-auto scrollbar-none py-2 px-1 snap-x snap-mandatory"
+        className="flex gap-4 md:gap-5 overflow-x-auto scrollbar-none py-2 px-1"
       >
         {products.map((product) => (
           <Link 
             key={product.id} 
             href={product.productUrl}
-            className="group shrink-0 w-[170px] sm:w-[200px] md:w-[240px] snap-start flex flex-col bg-white rounded-xl border border-neutral-200/70 p-3 shadow-2xs hover:shadow-md hover:border-neutral-300 transition-all duration-300"
+            className="shrink-0 w-[170px] sm:w-[200px] md:w-[240px] block bg-white rounded-xl border border-neutral-200/70 p-3 transform-gpu"
           >
             {/* Image Box */}
             <div className="relative aspect-square w-full bg-neutral-50/50 rounded-lg overflow-hidden mb-3 border border-neutral-100">
@@ -73,27 +73,19 @@ export const UpSellProducts: React.FC<{ products: KitProduct[]; title?: string }
                 src={product.imageUrl}
                 alt={product.name}
                 fill
-                className="object-contain p-3 group-hover:scale-105 transition-transform duration-300 ease-out"
+                className="object-contain p-3 pointer-events-none"
                 sizes="(max-width: 640px) 170px, (max-width: 768px) 200px, 240px"
               />
-              <div className="absolute top-2 right-2 bg-neutral-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm shadow-xs">
-                FEATURED
-              </div>
             </div>
 
             {/* Product Meta */}
-            <div className="flex flex-col flex-1 justify-between">
-              <div>
-                <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
-                  {product.category}
-                </span>
-                <h3 className="text-xs md:text-sm font-bold text-neutral-900 font-sans line-clamp-2 leading-snug group-hover:text-brand transition-colors mt-0.5">
-                  {product.name}
-                </h3>
-              </div>
-              <span className="text-xs md:text-sm font-extrabold text-brand font-sans mt-2">
+            <div className="mt-1">
+              <h3 className="text-xs md:text-sm font-bold text-neutral-900 font-sans line-clamp-2 leading-snug">
+                {product.name}
+              </h3>
+              <div className="text-xs md:text-sm font-extrabold text-brand font-sans mt-2">
                 {product.priceFormatted}
-              </span>
+              </div>
             </div>
           </Link>
         ))}

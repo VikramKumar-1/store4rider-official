@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import axios from "axios";
 
 export interface IStoreReview {
@@ -11,13 +11,18 @@ export interface IStoreReview {
 }
 
 export function useStoreReviews() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["store-reviews"],
-    queryFn: async () => {
-      // Calls our new Next.js API route which handles the scraping
-      const response = await axios.get("/api/reviews/store");
-      return response.data.data as IStoreReview[];
+    queryFn: async ({ pageParam = "" }) => {
+      const url = pageParam ? `/api/reviews/store?token=${pageParam}` : `/api/reviews/store`;
+      const response = await axios.get(url);
+      return {
+        data: response.data.data as IStoreReview[],
+        nextToken: response.data.nextToken as string | null,
+      };
     },
-    staleTime: 24 * 60 * 60 * 1000, // Cache for 24 hours to minimize API calls
+    getNextPageParam: (lastPage) => lastPage.nextToken || undefined,
+    initialPageParam: "",
+    staleTime: 24 * 60 * 60 * 1000, // Cache for 24 hours
   });
 }

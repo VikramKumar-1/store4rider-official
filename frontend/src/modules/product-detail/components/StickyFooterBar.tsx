@@ -64,10 +64,19 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
       {/* Top Floating Mini-Bar (Mobile mostly) */}
       <div className="w-full bg-white/50 backdrop-blur-md border-b border-neutral-200/50 py-1 px-4 flex justify-between items-center text-[10px] md:hidden">
         <span className="font-semibold text-neutral-600 flex items-center gap-1">
-          <span className="text-amber-500">★</span>
-          <span>{rating}</span>
-          <span className="text-neutral-300">·</span>
-          <span>{reviewCount > 0 ? `${reviewCount} REVIEWS` : "VERIFIED GEAR"}</span>
+          {rating > 0 ? (
+            <>
+              <span className="text-amber-500">★</span>
+              <span>{rating.toFixed(1)}</span>
+              <span className="text-neutral-300">·</span>
+              <span>{reviewCount > 0 ? `${reviewCount} REVIEWS` : "VERIFIED GEAR"}</span>
+            </>
+          ) : (
+            <>
+              <span className="text-neutral-300">★</span>
+              <span className="text-[10px] tracking-wider uppercase text-neutral-500">Be the first to review</span>
+            </>
+          )}
         </span>
         <span className="text-brand font-bold uppercase tracking-wider cursor-pointer hover:underline">
           Size Guide

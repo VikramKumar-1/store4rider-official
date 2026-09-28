@@ -316,13 +316,17 @@ const mapProductToPDP = (
       }))
     : [{ name: "Standard", background: "#111111" }];
 
+  const avgRating = reviews && reviews.length > 0 
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 
+    : 0;
+
   return {
     id: product._id,
     slug: product.slug,
     category,
     name: product.name,
-    rating: 4.95,
-    reviewCount: reviews.length,
+    rating: avgRating,
+    reviewCount: reviews ? reviews.length : 0,
     originalPriceFormatted,
     discountBadge,
     priceFormatted,
@@ -333,11 +337,7 @@ const mapProductToPDP = (
     sizes: sizes.length > 0 ? sizes : ["One Size"],
     kitProducts: finalKitProducts,
     storeReviews: storeReviews || [],
-    productReviews: reviews && reviews.length > 0 ? reviews : [
-      { id: "pr1", author: "Aman V.", rating: 5, date: "15 Oct 2023", text: "The D3O protection on these boots is amazing. Feels very sturdy yet comfortable enough for short walks off the bike." },
-      { id: "pr2", author: "Karthik Reddy", rating: 4, date: "02 Sep 2023", text: "Waterproofing works exactly as advertised. Used it during heavy monsoon rides and my feet stayed completely dry. Deducting one star because they take a little time to break in." },
-      { id: "pr3", author: "Siddharth S.", rating: 5, date: "28 Aug 2023", text: "Looks just like a regular high-top sneaker but has all the protection of a proper riding boot. Extremely satisfied with this purchase!" },
-    ],
+    productReviews: reviews || [],
     upSellProducts,
     rawVariants: product.variants?.map(v => ({
       sku: v.sku,
@@ -364,7 +364,7 @@ export const ProductDetailPageModule = () => {
   const { data: kitProducts } = useProductKit(slug);
   const { data: upsellProducts } = useProductsBySkus(upsellSkus);
   const { data: reviewsData } = useProductReviews(productId);
-  const { data: storeReviews } = useStoreReviews();
+  const { data: storeReviewsData, fetchNextPage, hasNextPage, isFetchingNextPage } = useStoreReviews();
 
   const addRecentView = useRecentViewsStore((state) => state.addRecentView);
 
@@ -428,7 +428,7 @@ export const ProductDetailPageModule = () => {
     (kitProducts || []).map(mapToKitProduct),
     (upsellProducts || []).map(mapToKitProduct),
     mappedReviews,
-    storeReviews || []
+    storeReviewsData?.pages.flatMap(p => p.data) || []
   );
 
   return <ProductDetailModule product={mappedProduct} />;

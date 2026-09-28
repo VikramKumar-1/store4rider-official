@@ -65,7 +65,10 @@ export class ProductRepository {
 
   static async findBySkus(skus: string[]): Promise<IProduct[]> {
     if (!skus || skus.length === 0) return [];
-    return ProductModel.find({ sku: { $in: skus } }).lean().exec() as unknown as IProduct[];
+    return ProductModel.find({ 
+      sku: { $in: skus },
+      "images.0": { $exists: true } 
+    }).lean().exec() as unknown as IProduct[];
   }
 
   /**
@@ -80,6 +83,7 @@ export class ProductRepository {
       const product = await ProductModel.findOne({
         _id: { $nin: Array.from(seenIds) },
         status: { $ne: "archived" },
+        "images.0": { $exists: true },
         $or: [
           { magentoCategories: { $regex: keyword, $options: "i" } },
           { name: { $regex: keyword, $options: "i" } },

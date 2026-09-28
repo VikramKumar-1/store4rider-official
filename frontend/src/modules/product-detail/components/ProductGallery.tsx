@@ -146,38 +146,57 @@ export const ProductGallery: React.FC<{
     <div className="flex flex-col gap-4 relative">
       {/* Main Large Image */}
       <div 
-        className="relative aspect-square w-full max-h-[500px] bg-white overflow-hidden rounded-md border border-neutral-200 cursor-crosshair"
+        className="relative aspect-square w-full max-h-[500px] bg-white rounded-xl border border-neutral-200/80 cursor-none overflow-hidden"
         onMouseEnter={() => setIsZoomed(true)}
         onMouseLeave={() => setIsZoomed(false)}
         onMouseMove={handleMouseMove}
       >
-        {/* Base Image (Always visible) */}
+        {/* Base Image */}
         <Image
           src={mainSrc}
           alt={images[activeIndex]?.altText || "Product image"}
           fill
-          className="p-4 object-contain"
+          className="object-contain p-2 md:p-6"
           priority
           sizes="(max-width: 768px) 100vw, 50vw"
           onError={() => setMainSrc(FALLBACK_IMAGE)}
         />
 
-        {/* Circular Magnifying Glass - Visible only on desktop on hover */}
+        {/* Flawless Clip-Path Circular Magnifying Glass */}
         {isZoomed && (
-          <div 
-            className="absolute z-20 pointer-events-none border-2 border-neutral-100 shadow-xl rounded-full hidden lg:block bg-white"
-            style={{
-              left: `${position.x}%`,
-              top: `${position.y}%`,
-              width: "200px",
-              height: "200px",
-              transform: "translate(-50%, -50%)",
-              backgroundImage: `url(${mainSrc})`,
-              backgroundPosition: `${position.x}% ${position.y}%`,
-              backgroundSize: "300%", // Zoom level inside the glass
-              backgroundRepeat: "no-repeat",
-            }}
-          />
+          <>
+            {/* The Zoomed Image masked by a circle */}
+            <div 
+              className="absolute inset-0 z-10 pointer-events-none hidden lg:block"
+              style={{
+                clipPath: `circle(125px at ${position.x}% ${position.y}%)`
+              }}
+            >
+              <div className="relative w-full h-full bg-white">
+                <Image
+                  src={mainSrc}
+                  alt="Zoomed"
+                  fill
+                  className="object-contain p-2 md:p-6"
+                  style={{
+                    transformOrigin: `${position.x}% ${position.y}%`,
+                    transform: 'scale(2.5)',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* The Glass Frame/Ring (to give it a realistic glass look) */}
+            <div 
+              className="absolute z-20 pointer-events-none hidden lg:block rounded-full border-2 border-neutral-200 shadow-[inset_0_0_20px_rgba(0,0,0,0.05),0_8px_30px_rgba(0,0,0,0.15)]"
+              style={{
+                left: `calc(${position.x}% - 125px)`,
+                top: `calc(${position.y}% - 125px)`,
+                width: "250px",
+                height: "250px",
+              }}
+            />
+          </>
         )}
       </div>
 

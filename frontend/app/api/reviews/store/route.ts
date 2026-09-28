@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
 
+// Cache this API response for 24 hours (86400 seconds) across all users.
+// This ensures we only hit SerpApi ONCE per day, saving the free tier limit.
+export const revalidate = 86400;
+
 // This is the fallback data containing 10 REALISTIC Google reviews for Store4Riders.
 // If the SerpApi key is missing, it will serve these 10 reviews instantly to fulfill the requirement.
 const FALLBACK_REVIEWS = [
@@ -86,20 +90,26 @@ const FALLBACK_REVIEWS = [
   }
 ];
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const token = searchParams.get("token");
     const apiKey = process.env.SERPAPI_KEY;
     
-    // If we have the API key, scrape live from Google Maps
     if (apiKey) {
-      // Using the exact data_id extracted from Store4Riders Google Maps URL
-      const url = `https://serpapi.com/search.json?engine=google_maps_reviews&data_id=0x3bc2c00d5a48819f:0xd4b529549919577c&api_key=${apiKey}`;
-      const response = await axios.get(url, { timeout: 10000 });
+      // sort_by=newestFirst ensures we always get a full page of 10 reviews consistently
+      let url = `https://serpapi.com/search.json?engine=google_maps_reviews&data_id=0x3bc2c00d5a48819f:0xd4b529549919577c&api_key=${apiKey}&sort_by=newestFirst`;
+      if (token) url += `&next_page_token=${token}`;
       
-      if (response.data && response.data.reviews) {
-        // Map SerpApi response to our UI format (take top 10)
-        const liveReviews = response.data.reviews.slice(0, 10).map((r: any, idx: number) => ({
-          id: `live-${idx}`,
+      // Use Next.js native fetch with 24-hour cache (86400s) to heavily save API limits
+      const response = await fetch(url, { 
+        next: { revalidate: 86400 } 
+      });
+      const data = await response.json();
+      
+      if (data && data.reviews) {
+        const liveReviews = data.reviews.map((r: any, idx: number) => ({
+          id: r.user?.name ? `${r.user.name}-${idx}` : `live-${idx}`,
           author: r.user?.name || "Customer",
           rating: r.rating,
           date: r.date || "Recently",
@@ -107,12 +117,12 @@ export async function GET() {
           link: r.link || r.share_link || "https://www.google.com/search?q=Store4Riders+Pune#lrd=0x3bc2c00d5a48819f:0xd4b529549919577c,1,,,,"
         }));
         
-        return NextResponse.json({ success: true, data: liveReviews });
+        const nextToken = data.serpapi_pagination?.next_page_token || null;
+        return NextResponse.json({ success: true, data: liveReviews, nextToken });
       }
     }
 
-    // If no API key is provided, return our 10 realistic fallback reviews
-    return NextResponse.json({ success: true, data: FALLBACK_REVIEWS });
+    return NextResponse.json({ success: true, data: FALLBACK_REVIEWS, nextToken: null });
 
   } catch (error) {
     console.error("Error fetching Google Reviews:", error);

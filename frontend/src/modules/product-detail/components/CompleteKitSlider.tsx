@@ -13,7 +13,7 @@ const KitImage = ({ src, alt }: { src: string, alt: string }) => {
       src={error ? "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80" : src}
       alt={alt}
       fill
-      className={`object-contain p-2 transition-transform duration-300 ease-out ${error ? 'mix-blend-multiply opacity-50' : 'group-hover:scale-105'}`}
+      className={`object-contain p-2 ${error ? 'mix-blend-multiply opacity-50' : ''}`}
       sizes="(max-width: 768px) 135px, 150px"
       onError={() => setError(true)}
     />
@@ -82,34 +82,29 @@ export const CompleteKitSlider: React.FC<{ products: KitProduct[] }> = ({ produc
       {/* Products Slider Row */}
       <div 
         ref={scrollContainerRef}
-        className="flex gap-3 overflow-x-auto scrollbar-none py-1 snap-x snap-mandatory relative z-10"
+        className="flex gap-3 overflow-x-auto scrollbar-none py-1 relative z-10"
       >
         {products.map((product) => (
           <Link 
             key={product.id} 
             href={product.productUrl}
-            className="group shrink-0 w-[135px] sm:w-[150px] snap-start flex flex-col bg-white/95 rounded-xl border border-neutral-200/80 p-2.5 shadow-2xs hover:shadow-md hover:border-neutral-300 hover:-translate-y-0.5 transition-all duration-300"
+            className="shrink-0 w-[135px] sm:w-[150px] block bg-white/95 rounded-xl border border-neutral-200/80 p-2.5 transform-gpu"
           >
             {/* Image Container */}
-            <div className="relative aspect-square w-full bg-neutral-50/80 rounded-lg overflow-hidden mb-2 border border-neutral-100">
+            <div className="relative aspect-square w-full bg-neutral-50/80 rounded-lg overflow-hidden mb-2 border border-neutral-100 pointer-events-none">
               <KitImage src={product.imageUrl} alt={product.name} />
             </div>
 
             {/* Typography Details */}
-            <div className="flex flex-col flex-1 justify-between">
-              <div>
-                <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider">
-                  {product.category}
-                </span>
-                <h4 className="text-xs font-bold text-neutral-900 font-sans line-clamp-2 leading-snug group-hover:text-brand transition-colors mt-0.5">
-                  {product.name}
-                </h4>
-              </div>
+            <div className="mt-1">
+              <h4 className="text-xs font-bold text-neutral-900 font-sans line-clamp-2 leading-snug">
+                {product.name}
+              </h4>
               <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-neutral-100">
                 <span className="text-xs font-extrabold text-brand font-sans">
                   {product.priceFormatted}
                 </span>
-                <span className="w-5 h-5 rounded-full bg-neutral-100 group-hover:bg-brand group-hover:text-white text-neutral-400 flex items-center justify-center text-xs font-bold transition-colors">
+                <span className="w-5 h-5 rounded-full bg-neutral-100 text-neutral-400 flex items-center justify-center text-xs font-bold">
                   +
                 </span>
               </div>

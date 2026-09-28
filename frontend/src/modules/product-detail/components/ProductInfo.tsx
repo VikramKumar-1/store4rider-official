@@ -41,15 +41,19 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
 }) => {
   return (
     <div className="flex flex-col gap-4">
-      {/* Header: Category & Rating */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-widest text-neutral-500 font-semibold">
-          {category}
-        </span>
-        <div className="flex items-center gap-1 bg-yellow-100/50 px-2 py-0.5 rounded-sm">
-          <StarIcon className="w-4 h-4 text-[#FFD700]" />
-          <span className="text-sm font-bold text-neutral-700">{rating}</span>
-        </div>
+      {/* Header: Rating Only (Category removed as it's in breadcrumb) */}
+      <div className="flex items-center justify-end">
+        {rating > 0 ? (
+          <div className="flex items-center gap-1 bg-yellow-100/50 px-2 py-0.5 rounded-sm">
+            <StarIcon className="w-4 h-4 text-[#FFD700]" />
+            <span className="text-sm font-bold text-neutral-700">{rating.toFixed(1)}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-neutral-400 uppercase tracking-widest cursor-pointer hover:text-brand transition-colors group">
+            <StarIcon className="w-4 h-4 text-neutral-300 group-hover:text-amber-400 transition-colors" />
+            <span>Be the first to review</span>
+          </div>
+        )}
       </div>
 
       {/* Title */}
