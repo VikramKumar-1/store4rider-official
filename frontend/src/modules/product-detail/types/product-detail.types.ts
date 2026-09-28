@@ -18,6 +18,7 @@ export interface ReviewData {
   rating: number;
   date: string;
   text: string;
+  link?: string;
 }
 
 export interface ColorOption {

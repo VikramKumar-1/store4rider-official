@@ -6,6 +6,7 @@ import { useProductBySlug, useProductsBySkus, useProductKit, useProductReviews, 
 import { ProductDetailModule } from "@/modules/product-detail";
 import { PDPData, KitProduct } from "@/modules/product-detail/types/product-detail.types";
 import { useRecentViewsStore } from "@/stores/useRecentViewsStore";
+import { useStoreReviews } from "@/core/hooks/useStoreReviews";
 
 /**
  * Helper: Strip HTML tags for clean plain text.
@@ -248,7 +249,8 @@ const mapProductToPDP = (
   product: IBackendProduct,
   kitProducts: KitProduct[],
   upSellProducts: KitProduct[],
-  reviews: any[]
+  reviews: any[],
+  storeReviews: any[]
 ): PDPData => {
   // Only show real related products from database (no dummy placeholders)
   const finalKitProducts = kitProducts || [];
@@ -330,14 +332,7 @@ const mapProductToPDP = (
     colors: mappedColors,
     sizes: sizes.length > 0 ? sizes : ["One Size"],
     kitProducts: finalKitProducts,
-    // TODO: Replace with real Google reviews from API
-    storeReviews: [
-      { id: "sr1", author: "Rahul Sharma", rating: 5, date: "2 weeks ago", text: "Amazing quality riding boots! Waterproofing works perfectly in Mumbai rains." },
-      { id: "sr2", author: "Ankit Patel", rating: 5, date: "1 month ago", text: "Best riding gear store in India. Fast delivery and genuine products." },
-      { id: "sr3", author: "Priya Singh", rating: 4, date: "1 month ago", text: "Great customer service. They helped me pick the right size." },
-      { id: "sr4", author: "Vikram Joshi", rating: 5, date: "2 months ago", text: "Bought gloves and jacket. Premium quality, worth every rupee." },
-      { id: "sr5", author: "Deepak Kumar", rating: 5, date: "3 months ago", text: "1 year damage cover is a game changer. Highly recommended!" },
-    ],
+    storeReviews: storeReviews || [],
     productReviews: reviews && reviews.length > 0 ? reviews : [
       { id: "pr1", author: "Aman V.", rating: 5, date: "15 Oct 2023", text: "The D3O protection on these boots is amazing. Feels very sturdy yet comfortable enough for short walks off the bike." },
       { id: "pr2", author: "Karthik Reddy", rating: 4, date: "02 Sep 2023", text: "Waterproofing works exactly as advertised. Used it during heavy monsoon rides and my feet stayed completely dry. Deducting one star because they take a little time to break in." },
@@ -369,6 +364,7 @@ export const ProductDetailPageModule = () => {
   const { data: kitProducts } = useProductKit(slug);
   const { data: upsellProducts } = useProductsBySkus(upsellSkus);
   const { data: reviewsData } = useProductReviews(productId);
+  const { data: storeReviews } = useStoreReviews();
 
   const addRecentView = useRecentViewsStore((state) => state.addRecentView);
 
@@ -431,7 +427,8 @@ export const ProductDetailPageModule = () => {
     product,
     (kitProducts || []).map(mapToKitProduct),
     (upsellProducts || []).map(mapToKitProduct),
-    mappedReviews
+    mappedReviews,
+    storeReviews || []
   );
 
   return <ProductDetailModule product={mappedProduct} />;
