@@ -3,14 +3,25 @@ import { logger } from "../utils/logger";
 import { IProduct } from "@store4riders/shared-types";
 import { ProductModel } from "../../modules/product/product.model";
 
-const HOST = process.env.MEILISEARCH_HOST as string;
-const KEY = process.env.MEILISEARCH_KEY as string;
+let _client: MeiliSearch | null = null;
 
-if (!HOST || !KEY) {
-  logger.error("CRITICAL: MEILISEARCH_HOST or MEILISEARCH_KEY is missing in .env file");
-}
-
-export const meiliClient = new MeiliSearch({ host: HOST, apiKey: KEY });
+export const meiliClient = new Proxy({} as MeiliSearch, {
+  get(target, prop) {
+    if (!_client) {
+      const HOST = process.env.MEILISEARCH_HOST as string;
+      const KEY = process.env.MEILISEARCH_KEY as string;
+      if (!HOST || !KEY) {
+        logger.error("CRITICAL: MEILISEARCH_HOST or MEILISEARCH_KEY is missing in .env file");
+        // We throw here (Fail Fast) so it only crashes when the API is actually CALLED, not at build time.
+        throw new Error("MEILISEARCH_HOST or MEILISEARCH_KEY is missing");
+      }
+      _client = new MeiliSearch({ host: HOST, apiKey: KEY });
+    }
+    
+    const value = (_client as any)[prop];
+    return typeof value === "function" ? value.bind(_client) : value;
+  }
+});
 
 const INDEX_NAME = "products";
 
