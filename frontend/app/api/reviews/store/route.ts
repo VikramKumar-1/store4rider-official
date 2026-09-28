@@ -4,6 +4,7 @@ import axios from "axios";
 // Cache this API response for 24 hours (86400 seconds) across all users.
 // This ensures we only hit SerpApi ONCE per day, saving the free tier limit.
 export const revalidate = 86400;
+export const dynamic = "force-dynamic";
 
 // This is the fallback data containing 10 REALISTIC Google reviews for Store4Riders.
 // If the SerpApi key is missing, it will serve these 10 reviews instantly to fulfill the requirement.

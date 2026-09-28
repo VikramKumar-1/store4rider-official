@@ -29,6 +29,7 @@ const Thumbnail: React.FC<{
         src={src}
         alt={`Thumbnail ${idx}`}
         fill
+        unoptimized
         className="object-contain p-1"
         onError={() => setSrc(FALLBACK_IMAGE)}
       />
@@ -156,6 +157,7 @@ export const ProductGallery: React.FC<{
           src={mainSrc}
           alt={images[activeIndex]?.altText || "Product image"}
           fill
+          unoptimized
           className="object-contain p-2 md:p-6"
           priority
           sizes="(max-width: 768px) 100vw, 50vw"
@@ -177,6 +179,7 @@ export const ProductGallery: React.FC<{
                   src={mainSrc}
                   alt="Zoomed"
                   fill
+                  unoptimized
                   className="object-contain p-2 md:p-6"
                   style={{
                     transformOrigin: `${position.x}% ${position.y}%`,
