@@ -5,44 +5,44 @@ import { ChevronLeftIcon, ChevronRightIcon, StarIcon } from "@heroicons/react/24
 import { ReviewData } from "../types/product-detail.types";
 
 const ReviewCard: React.FC<{ review: ReviewData }> = ({ review }) => {
-  const isLong = review.text.length > 90;
+  const isLong = review.text.length > 70;
 
   return (
     <a 
       href={review.link || "#"} 
       target={review.link ? "_blank" : "_self"} 
       rel="noopener noreferrer"
-      className="group shrink-0 w-[220px] snap-center border border-neutral-200/70 p-3.5 rounded-xl flex flex-col justify-between bg-white h-[160px] hover:border-neutral-300 relative cursor-pointer block"
+      className="group shrink-0 w-[180px] md:w-[200px] border border-neutral-200/70 p-3 rounded-xl flex flex-col justify-between bg-white h-[130px] hover:border-neutral-300 relative cursor-pointer block"
     >
       <div>
         {/* Top: Stars + Verified tag */}
-        <div className="flex items-center justify-between gap-1 mb-2">
-          <div className="flex items-center gap-0.5 text-amber-400">
+        <div className="flex items-center justify-between gap-1 mb-1.5">
+          <div className="flex items-center gap-0 text-amber-400">
             {[...Array(5)].map((_, i) => (
-              <StarIcon key={i} className={`w-3 h-3 ${i < review.rating ? "text-amber-400" : "text-neutral-200"}`} />
+              <StarIcon key={i} className={`w-2.5 h-2.5 ${i < review.rating ? "text-amber-400" : "text-neutral-200"}`} />
             ))}
           </div>
         </div>
         
         {/* Review text */}
-        <p className="text-[11px] text-neutral-700 leading-relaxed font-normal line-clamp-3">
+        <p className="text-[10px] text-neutral-600 leading-snug font-normal line-clamp-3">
           "{review.text}"
         </p>
         {isLong && (
-          <span className="text-[9px] font-bold text-brand mt-1 uppercase tracking-wider group-hover:underline inline-block">
+          <span className="text-[8px] font-bold text-brand mt-0.5 uppercase tracking-wider group-hover:underline inline-block">
             Read More
           </span>
         )}
       </div>
 
       {/* Bottom author info */}
-      <div className="flex items-center justify-between pt-2 border-t border-neutral-100 mt-2">
+      <div className="flex items-center justify-between pt-1.5 border-t border-neutral-100 mt-1.5">
         <div className="flex flex-col">
-          <div className="flex items-center gap-1.5">
-            <svg className="w-3 h-3 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <div className="flex items-center gap-1">
+            <svg className="w-2.5 h-2.5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            <span className="text-[11px] font-bold text-neutral-900 leading-tight truncate max-w-[120px]">{review.author}</span>
+            <span className="text-[10px] font-bold text-neutral-900 leading-tight truncate max-w-[100px]">{review.author}</span>
           </div>
           <span className="text-[9px] text-neutral-400">{review.date}</span>
         </div>
@@ -125,13 +125,13 @@ export const StoreReviews: React.FC<{ reviews?: ReviewData[] }> = ({ reviews: pr
         {/* Scroll Container */}
         <div 
           ref={sliderRef}
-          className="flex gap-3 overflow-x-auto scrollbar-none py-1 items-start snap-x snap-mandatory"
+          className="flex gap-3 overflow-x-auto scrollbar-none py-1 items-start"
         >
           {reviews.map((review) => (
             <ReviewCard key={review.id} review={review} />
           ))}
           {hasNextPage && (
-            <div className="shrink-0 w-[120px] snap-center flex items-center justify-center h-[160px]">
+            <div className="shrink-0 w-[120px] flex items-center justify-center h-[130px]">
               <button 
                 onClick={() => fetchNextPage()} 
                 disabled={isFetchingNextPage}

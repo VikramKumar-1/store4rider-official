@@ -13,6 +13,7 @@ const KitImage = ({ src, alt }: { src: string, alt: string }) => {
       src={error ? "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80" : src}
       alt={alt}
       fill
+      unoptimized
       className={`object-contain p-2 ${error ? 'mix-blend-multiply opacity-50' : ''}`}
       sizes="(max-width: 768px) 135px, 150px"
       onError={() => setError(true)}
@@ -48,9 +49,6 @@ export const CompleteKitSlider: React.FC<{ products: KitProduct[] }> = ({ produc
             <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-neutral-900 leading-tight">
               Complete Your Kit
             </h3>
-            <span className="text-[10px] text-neutral-400 font-medium block">
-              Frequently paired by riders
-            </span>
           </div>
         </div>
 

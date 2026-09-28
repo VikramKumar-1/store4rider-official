@@ -73,6 +73,7 @@ export const UpSellProducts: React.FC<{ products: KitProduct[]; title?: string }
                 src={product.imageUrl}
                 alt={product.name}
                 fill
+                unoptimized
                 className="object-contain p-3 pointer-events-none"
                 sizes="(max-width: 640px) 170px, (max-width: 768px) 200px, 240px"
               />

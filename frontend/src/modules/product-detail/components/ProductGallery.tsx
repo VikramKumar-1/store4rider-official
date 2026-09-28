@@ -146,7 +146,7 @@ export const ProductGallery: React.FC<{
     <div className="flex flex-col gap-4 relative">
       {/* Main Large Image */}
       <div 
-        className="relative aspect-square w-full max-h-[500px] bg-white rounded-xl border border-neutral-200/80 cursor-none overflow-hidden"
+        className="relative aspect-square md:aspect-[10/11] w-full max-h-[500px] md:max-h-[580px] bg-white rounded-xl border border-neutral-200/80 cursor-none overflow-hidden"
         onMouseEnter={() => setIsZoomed(true)}
         onMouseLeave={() => setIsZoomed(false)}
         onMouseMove={handleMouseMove}
