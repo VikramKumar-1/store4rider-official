@@ -22,6 +22,8 @@ export interface IBackendProduct {
   magentoCategories?: string;  // e.g. "Root/Riding Gear/Boots"
   configurableVariations?: string; // e.g. "sku=CL-FR-BL-7,color=Black|sku=CL-FR-BR-7,color=Brown"
   brand?: string;
+  sizeChart?: string;
+  size_chart?: string;
   images: Array<{
     id?: string;
     url: string;
@@ -166,5 +168,16 @@ export function useBulkUpdateProducts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
+  });
+}
+
+export function useProductAggregations(params?: any) {
+  return useQuery({
+    queryKey: ["product_aggregations", params],
+    queryFn: async () => {
+      const response = await apiClient.get("/products/aggregations", { params });
+      return response.data.data;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes cache since it depends on params now
   });
 }

@@ -21,7 +21,7 @@ export const UpSellProducts: React.FC<{ products: KitProduct[]; title?: string }
   };
 
   return (
-    <div className="w-full mt-12 md:mt-16 mb-28 md:mb-36 border-t border-neutral-200/80 pt-10">
+    <div className="w-full mt-3 md:mt-16 mb-8 md:mb-36 border-t border-neutral-200/80 pt-4 md:pt-10">
       {/* Header with Navigation Arrows */}
       <div className="flex items-center justify-between mb-6 px-1">
         <div className="flex items-center gap-2.5">

@@ -34,7 +34,7 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
       id: "prod-1",
       title: "Riding Armor Jacket",
       priceFormatted: "₹ 5,499",
-      imageUrl: "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80",
+      imageUrl: "/no-image.svg",
       ctaText: "SHOP NOW",
       ctaUrl: "/products/riding-armor-jacket",
     },
@@ -73,9 +73,15 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
   // Map real backend products to grid data, or fallback to dummy data if none exist yet
   const gridProducts: BrowseProductData[] = backendProducts && backendProducts.length > 0 
     ? backendProducts.slice(0, 8).map((p: any, idx: number) => {
-        // Use specialPrice if available, otherwise basePrice
-        const displayPrice = (p.specialPrice && p.specialPrice < p.basePrice)
-          ? p.specialPrice : p.basePrice;
+        // Resolve price with fallbacks: basePrice → variant prices → specialPrice
+        let effectivePrice = p.basePrice || 0;
+        if (effectivePrice === 0 && Array.isArray(p.variants) && p.variants.length > 0) {
+          const vp = p.variants.map((v: any) => v.price).filter((pr: number) => pr > 0);
+          if (vp.length > 0) effectivePrice = Math.min(...vp);
+        }
+        if (effectivePrice === 0 && p.specialPrice && p.specialPrice > 0) effectivePrice = p.specialPrice;
+        const displayPrice = (p.specialPrice && p.specialPrice > 0 && effectivePrice > 0 && p.specialPrice < effectivePrice)
+          ? p.specialPrice : effectivePrice;
         // Extract category from magentoCategories path
         const catParts = (p.magentoCategories || "").split(",")[0].split("/");
         const catName = catParts.filter((c: string) => !c.toLowerCase().includes("root")).pop()?.trim() || "GEAR";
@@ -84,7 +90,7 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
           category: catName.toUpperCase(),
           name: p.name,
           priceFormatted: `₹ ${displayPrice?.toLocaleString('en-IN') || '0'}`,
-          imageUrl: (p.images && p.images.length > 0) ? p.images[0].url : "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80",
+          imageUrl: (p.images && p.images.length > 0) ? p.images[0].url : "/no-image.svg",
           rating: 4.8,
           productUrl: `/products/${p.slug || p._id}`
         };
@@ -95,7 +101,7 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
       category: "JACKETS",
       name: "Premium Leather Jacket",
       priceFormatted: "₹ 8,999",
-      imageUrl: "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80",
+      imageUrl: "/no-image.svg",
       rating: 4.95,
       productUrl: "/products/1"
     },
@@ -125,6 +131,42 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
       imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
       rating: 4.95,
       productUrl: "/products/4"
+    },
+    {
+      id: "grid-5",
+      category: "JACKETS",
+      name: "All-Weather Riding Jacket",
+      priceFormatted: "₹ 7,499",
+      imageUrl: "/no-image.svg",
+      rating: 4.80,
+      productUrl: "/products/5"
+    },
+    {
+      id: "grid-6",
+      category: "GLOVES",
+      name: "Full Gauntlet Gloves",
+      priceFormatted: "₹ 3,299",
+      imageUrl: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=600&q=80",
+      rating: 4.85,
+      productUrl: "/products/6"
+    },
+    {
+      id: "grid-7",
+      category: "HELMETS",
+      name: "Carbon Fiber Helmet",
+      priceFormatted: "₹ 12,500",
+      imageUrl: "https://images.unsplash.com/photo-1520975954732-57dd22299614?auto=format&fit=crop&w=600&q=80",
+      rating: 4.95,
+      productUrl: "/products/7"
+    },
+    {
+      id: "grid-8",
+      category: "PANTS",
+      name: "Armored Riding Pants",
+      priceFormatted: "₹ 5,999",
+      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
+      rating: 4.90,
+      productUrl: "/products/8"
     }
   ];
 
@@ -149,80 +191,104 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
     ? matchedTouring.slice(0, 4) 
     : [...matchedTouring, ...(backendProducts || []).filter((p: any) => !matchedTouring.some((m: any) => m._id === p._id))].slice(0, 4);
 
-  const touringProducts: BrowseProductData[] = finalTouringList.map((p: any, idx: number) => {
-    const displayPrice = (p.specialPrice && p.specialPrice < p.basePrice) ? p.specialPrice : p.basePrice;
-    const catParts = (p.magentoCategories || "").split(",")[0].split("/");
-    const catName = catParts.filter((c: string) => !c.toLowerCase().includes("root")).pop()?.trim() || "TOURING GEAR";
-    return {
-      id: p._id || p.id || `tour-${idx}`,
-      category: catName.toUpperCase(),
-      name: p.name,
-      priceFormatted: `₹ ${displayPrice?.toLocaleString('en-IN') || '0'}`,
-      imageUrl: (p.images && p.images.length > 0 && p.images[0].url) 
-        ? p.images[0].url 
-        : "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
-      rating: 4.85,
-      productUrl: `/products/${p.slug || p._id}`
-    };
-  });
+  const touringProducts: BrowseProductData[] = finalTouringList.length > 0 
+    ? finalTouringList.map((p: any, idx: number) => {
+        let effectivePrice = p.basePrice || 0;
+        if (effectivePrice === 0 && Array.isArray(p.variants) && p.variants.length > 0) {
+          const vp = p.variants.map((v: any) => v.price).filter((pr: number) => pr > 0);
+          if (vp.length > 0) effectivePrice = Math.min(...vp);
+        }
+        if (effectivePrice === 0 && p.specialPrice && p.specialPrice > 0) effectivePrice = p.specialPrice;
+        const displayPrice = (p.specialPrice && p.specialPrice > 0 && effectivePrice > 0 && p.specialPrice < effectivePrice)
+          ? p.specialPrice : effectivePrice;
+        const catParts = (p.magentoCategories || "").split(",")[0].split("/");
+        const catName = catParts.filter((c: string) => !c.toLowerCase().includes("root")).pop()?.trim() || "TOURING GEAR";
+        return {
+          id: p._id || p.id || `tour-${idx}`,
+          category: catName.toUpperCase(),
+          name: p.name,
+          priceFormatted: `₹ ${displayPrice?.toLocaleString('en-IN') || '0'}`,
+          imageUrl: (p.images && p.images.length > 0 && p.images[0].url) 
+            ? p.images[0].url 
+            : "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
+          rating: 4.85,
+          productUrl: `/products/${p.slug || p._id}`
+        };
+      })
+    : [
+        {
+          id: "tour-1",
+          category: "LUGGAGE",
+          name: "Touring Tail Bag 50L",
+          priceFormatted: "₹ 4,500",
+          imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
+          rating: 4.90,
+          productUrl: "/products/t1"
+        },
+        {
+          id: "tour-2",
+          category: "HELMETS",
+          name: "Adventure Dual Sport Helmet",
+          priceFormatted: "₹ 6,800",
+          imageUrl: "https://images.unsplash.com/photo-1520975954732-57dd22299614?auto=format&fit=crop&w=600&q=80",
+          rating: 4.85,
+          productUrl: "/products/t2"
+        },
+        {
+          id: "tour-3",
+          category: "BOOTS",
+          name: "Waterproof Touring Boots",
+          priceFormatted: "₹ 9,999",
+          imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
+          rating: 4.95,
+          productUrl: "/products/t3"
+        },
+        {
+          id: "tour-4",
+          category: "JACKETS",
+          name: "Mesh Touring Jacket",
+          priceFormatted: "₹ 8,200",
+          imageUrl: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=600&q=80",
+          rating: 4.80,
+          productUrl: "/products/t4"
+        }
+      ];
 
-  const testimonialsData: TestimonialData[] = [
-    {
-      id: "test-1",
-      authorName: "Rohit Deshmukh",
-      bikeModel: "KTM Duke 390",
-      location: "Pune",
-      purchasedProduct: "MT Thunder 4 SV Helmet",
-      date: "12 Aug 2024",
-      rating: 5,
-      verified: true,
-      content: "Got the MT Thunder 4 SV delivered in 2 days to Pune! The fit is snug, wind noise at 110 kmph is very minimal, and the visor clarity is top notch. Genuine ECE 22.06 certified piece with proper batch serial. Store4Riders is 100% legit!",
-    },
-    {
-      id: "test-2",
-      authorName: "Arjun Venkat",
-      bikeModel: "RE Himalayan 450",
-      location: "Bangalore",
-      purchasedProduct: "Rynox Storm Evo Jacket",
-      date: "28 Jul 2024",
-      rating: 5,
-      verified: true,
-      content: "The level 2 Knox armor on shoulders and back gives massive confidence on highway tours. Rode from Bangalore to Ooty in heavy rain; the thermal liner and rain cover performed flawlessly. Outstanding customer service!",
-    },
-    {
-      id: "test-3",
-      authorName: "Vikram Malhotra",
-      bikeModel: "Kawasaki Ninja 400",
-      location: "New Delhi",
-      purchasedProduct: "Axor Apex Venom Helmet",
-      date: "14 Jun 2024",
-      rating: 5,
-      verified: true,
-      content: "The aerodynamic stability on track days is incredible. Double D-ring lock is solid, and the Pinlock 30 lens stopped fogging completely during early morning winter rides. Best price online compared to other retailers.",
-    },
-    {
-      id: "test-4",
-      authorName: "Pooja Sharma",
-      bikeModel: "BMW G310 GS",
-      location: "Chandigarh",
-      purchasedProduct: "ViaTerra Claw Tail Bag 72L",
-      date: "03 May 2024",
-      rating: 5,
-      verified: true,
-      content: "Mounted the Claw 72L for my Spiti Valley ride. Zero saddle shake even on rocky river crossings. Heavy duty Cordura fabric and completely waterproof inner liners. Must-have for any adventure tourer!",
-    },
-    {
-      id: "test-5",
-      authorName: "Karthik Nair",
-      bikeModel: "Yamaha R15 V4",
-      location: "Kochi",
-      purchasedProduct: "Furygan AFS-19 Riding Gloves",
-      date: "19 Apr 2024",
-      rating: 5,
-      verified: true,
-      content: "Pre-curved fingers with carbon knuckle protectors. Fantastic throttle feel and zero palm fatigue during spirited weekend cornering. Delivery was lightning fast with safe bubble packaging.",
-    }
-  ];
+  const [testimonialsData, setTestimonialsData] = React.useState<TestimonialData[]>([]);
+
+  React.useEffect(() => {
+    // Fetch real Google Reviews from SerpApi route
+    const fetchReviews = async () => {
+      try {
+        const res = await fetch("/api/reviews/store");
+        const json = await res.json();
+        if (json.success && json.data) {
+          let mappedReviews: TestimonialData[] = json.data.map((r: any) => ({
+            id: r.id,
+            authorName: r.author,
+            date: r.date,
+            rating: r.rating || 5,
+            content: r.text,
+            verified: true,
+            link: r.link,
+          }));
+
+          // Force exactly 10 reviews to show in the UI slider
+          if (mappedReviews.length > 0) {
+            while (mappedReviews.length < 10) {
+              mappedReviews = [...mappedReviews, ...mappedReviews].map((r, index) => ({ ...r, id: `${r.id}-${index}` }));
+            }
+            mappedReviews = mappedReviews.slice(0, 10);
+          }
+
+          setTestimonialsData(mappedReviews);
+        }
+      } catch (error) {
+        console.error("Failed to fetch reviews:", error);
+      }
+    };
+    fetchReviews();
+  }, []);
 
   // Background image using the provided heropic1.jpg from public folder
   const heroBgImage = "/heropic1.jpg";
@@ -264,7 +330,7 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
         <BrowseProductsSection title="BROWSE RIDING GEAR CATEGORIES" products={gridProducts} />
 
         {/* 6. Touring Gear Section */}
-        <BrowseProductsSection title="BEST GEAR FOR TOURING" products={touringProducts} />
+        <BrowseProductsSection title="BEST GEAR FOR TOURING" products={touringProducts} showSeeMore={true} mobileLayout="grid" />
 
         {/* 7. Social Media / Insta Reels Section */}
         <SocialMediaSection />

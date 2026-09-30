@@ -35,15 +35,15 @@ const CategoryCard: React.FC<{ data: CategoryCardData; className?: string }> = (
       />
       {/* Removing full gradient overlay, keeping image clean */}
       <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500 pointer-events-none" />
-      
+
       {/* Glassmorphism Title Badge */}
-      <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6 right-4 md:right-auto flex items-center justify-start pointer-events-none">
-        <div className="bg-white/10 backdrop-blur-md border border-white/30 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-xl px-5 py-2.5 md:px-6 md:py-3 flex items-center gap-4 group-hover:bg-white/20 group-hover:border-white/50 transition-all duration-300">
-          <h2 className="font-sans font-bold text-sm md:text-base text-white tracking-[0.1em] uppercase drop-shadow-md">
+      <div className="absolute bottom-2 left-2 md:bottom-6 md:left-6 right-2 md:right-auto flex items-center justify-start pointer-events-none">
+        <div className="bg-white/10 backdrop-blur-md border border-white/30 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-lg md:rounded-xl px-2 py-1 md:px-6 md:py-3 flex items-center gap-1.5 md:gap-3 group-hover:bg-white/20 group-hover:border-white/50 transition-all duration-300">
+          <h2 className="font-sans font-bold text-[8px] min-[375px]:text-[9px] sm:text-xs md:text-base text-white tracking-[0.1em] uppercase drop-shadow-md">
             {data.title}
           </h2>
-          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white transition-colors duration-300">
-            <svg className="w-3.5 h-3.5 text-white group-hover:text-black transform group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <div className="w-3 h-3 md:w-7 md:h-7 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white transition-colors duration-300">
+            <svg className="w-2 h-2 md:w-3 md:h-3 text-white group-hover:text-black transform group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </div>
@@ -55,52 +55,35 @@ const CategoryCard: React.FC<{ data: CategoryCardData; className?: string }> = (
 
 /**
  * FeaturedCategories Component
- * 
- * Presentational component matching the asymmetrical masonry grid layout from Figma.
- * - Left column contains two stacked rectangles (Helmets, Gloves).
- * - Right column contains one tall rectangle spanning full height (Jackets).
+ *
+ * MOBILE & DESKTOP — Asymmetric masonry grid (Figma layout)
+ * - Left column has Helmets + Gloves stacked
+ * - Right column has Jackets full height
  */
 export const FeaturedCategories: React.FC<FeaturedCategoriesProps> = ({ categories }) => {
   return (
-    <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 py-10 md:py-16">
+    <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 py-8 md:py-16">
       {/* Section Title */}
-      <div className="text-center mb-10 md:mb-14">
-        <h2 className="font-sans text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-neutral-900 uppercase tracking-wide">
+      <div className="text-center mb-6 md:mb-14">
+        <h2 className="font-sans text-[16px] min-[375px]:text-[18px] sm:text-2xl md:text-3xl lg:text-[40px] font-extrabold text-neutral-900 uppercase tracking-wide md:tracking-wider whitespace-nowrap">
           SHOP BY CATEGORY
         </h2>
-        <div className="w-16 h-1 bg-banner mx-auto mt-4 rounded-full"></div>
+        <div className="w-10 md:w-16 h-1 bg-banner mx-auto mt-2 md:mt-4 rounded-full" />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:gap-6 h-[400px] md:h-[620px]">
-        
-        {/* Left Column (Two Stacked Items) */}
-        <div className="flex flex-col gap-3 md:gap-6 h-full">
-          <CategoryCard
-            data={categories.helmets}
-            className="flex-1 min-h-0"
-          />
-          <CategoryCard
-            data={categories.gloves}
-            className="flex-1 min-h-0"
-          />
+      {/* Asymmetric masonry grid — both Mobile & Desktop */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 md:gap-6 h-[260px] sm:h-[400px] md:h-[620px]">
+        {/* Left Column: two stacked */}
+        <div className="flex flex-col gap-2 sm:gap-4 md:gap-6 h-full">
+          <CategoryCard data={categories.helmets} className="flex-1 min-h-0 rounded-sm md:rounded-none" />
+          <CategoryCard data={categories.gloves} className="flex-1 min-h-0 rounded-sm md:rounded-none" />
         </div>
-
-        {/* Right Column (One Tall Item) */}
+        {/* Right Column: one tall */}
         <div className="h-full">
-          <CategoryCard
-            data={categories.jackets}
-            className="h-full min-h-0"
-          />
+          <CategoryCard data={categories.jackets} className="h-full min-h-0 rounded-sm md:rounded-none" />
         </div>
-
       </div>
 
-      {/* See More / View All Button */}
-      <div className="mt-12 flex justify-center">
-        <button className="bg-banner text-white px-10 py-3.5 text-sm font-semibold tracking-[0.2em] shadow-md hover:bg-orange-600 hover:shadow-lg transition-all duration-300 rounded-sm">
-          SEE ALL CATEGORIES
-        </button>
-      </div>
     </section>
   );
 };

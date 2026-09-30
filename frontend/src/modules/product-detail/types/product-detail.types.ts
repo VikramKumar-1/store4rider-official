@@ -38,6 +38,7 @@ export interface PDPData {
   priceFormatted: string;
   shortDescription: string;
   fullDescription: string;
+  sizeChart?: string;
   images: ProductImage[];
   colors: ColorOption[];
   sizes: string[];
@@ -51,6 +52,7 @@ export interface PDPData {
     stock: number;
     attributes?: Record<string, string>;
   }>;
+  isFreeShipping?: boolean;
 }
 
 export interface ProductDetailProps {

@@ -20,6 +20,7 @@ import { StickyFooterBar } from "./components/StickyFooterBar";
 const CompleteKitSlider = dynamic(() => import("./components/CompleteKitSlider").then(m => ({ default: m.CompleteKitSlider })), { ssr: false });
 const StoreReviews = dynamic(() => import("./components/StoreReviews").then(m => ({ default: m.StoreReviews })), { ssr: false });
 const DetailAndReviews = dynamic(() => import("./components/DetailAndReviews").then(m => ({ default: m.DetailAndReviews })), { ssr: false });
+const CustomerReviews = dynamic(() => import("./components/DetailAndReviews").then(m => ({ default: m.CustomerReviews })), { ssr: false });
 const UpSellProducts = dynamic(() => import("./components/UpSellProducts").then(m => ({ default: m.UpSellProducts })), { ssr: false });
 
 export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) => {
@@ -55,6 +56,9 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         if (sz) validSizesForColor.add(String(sz).trim());
       }
     });
+
+    // If no size restrictions found for this color, keep all sizes enabled
+    if (validSizesForColor.size === 0) return [];
 
     // If a size is in product.sizes but NOT in validSizesForColor, it means this 
     // specific Color doesn't manufacture this size. So we disable it.
@@ -151,7 +155,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
           </div>
 
           {/* Right: Info, Kit & Reviews (50% width on large screens) */}
-          <div className="w-full lg:w-1/2 flex flex-col pt-4 lg:pt-0 pb-12">
+          <div className="w-full lg:w-1/2 flex flex-col pt-2 md:pt-4 lg:pt-0 pb-2 md:pb-6">
             <ProductInfo 
               category={product.category}
               rating={product.rating}
@@ -166,26 +170,28 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
               selectedSize={selectedSize}
               disabledColors={disabledColors}
               disabledSizes={disabledSizes}
+              sizeChart={product.sizeChart}
+              isFreeShipping={product.isFreeShipping ?? false} // From DB
               onColorChange={setSelectedColor}
               onSizeChange={setSelectedSize}
             />
             
-            {/* Complete Kit */}
+            {/* Complete Kit - Displays right under short description in its own box when available */}
             {product.kitProducts && product.kitProducts.length > 0 && (
-              <div className="mt-3">
+              <div className="mt-3 md:mt-4">
                 <CompleteKitSlider products={product.kitProducts} />
               </div>
             )}
             
-            {/* Store Reviews (Moved inside right column to match mockup) */}
-            <div className="mt-3">
+            {/* Store Reviews (Desktop only, hidden on mobile as requested) */}
+            <div className="mt-3 hidden md:block">
               <StoreReviews reviews={product.storeReviews} />
             </div>
           </div>
         </div>
 
         {/* 3. Bottom Detail Areas */}
-        <div className="mt-8 w-full">
+        <div className="mt-3 md:mt-6 w-full">
           <DetailAndReviews 
             fullDescription={product.fullDescription} 
             reviews={product.productReviews} 
@@ -195,7 +201,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         <UpSellProducts products={product.upSellProducts} />
 
         {recentViews.length > 0 && (
-          <div className="mt-[-80px] md:mt-[-100px]">
+          <div className="mt-[-10px] md:mt-[-100px]">
             <UpSellProducts 
               products={recentViews.filter(p => p.id !== product.id).slice(0, 8).map(p => ({
                 id: p.id,
@@ -209,6 +215,18 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
             />
           </div>
         )}
+
+        {/* 4. Customer Reviews on Mobile: Placed at bottom below Recently Viewed */}
+        <div className="block lg:hidden mt-2 mb-10 w-full">
+          <div className="w-full bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950 py-2.5 px-4 rounded-xl mb-4 shadow-xs">
+            <h2 className="font-sans text-[11px] font-bold uppercase tracking-wider text-white flex items-center justify-center gap-2 whitespace-nowrap overflow-hidden">
+              <span className="w-4 h-[2px] bg-[#ab1509] shrink-0" />
+              <span>Customer Reviews</span>
+              <span className="w-4 h-[2px] bg-[#ab1509] shrink-0" />
+            </h2>
+          </div>
+          <CustomerReviews reviews={product.productReviews} />
+        </div>
 
       </main>
 
@@ -225,6 +243,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         selectedSize={selectedSize}
         disabledColors={disabledColors}
         disabledSizes={disabledSizes}
+        sizeChart={product.sizeChart}
         onColorChange={setSelectedColor}
         onSizeChange={setSelectedSize}
         rating={product.rating}

@@ -103,7 +103,12 @@ export const ProductsPageModule = () => {
       }
     }
 
-    const displayPrice = (p.specialPrice && p.specialPrice > 0 && p.specialPrice < effectivePrice)
+    // 3. Fallback: if still 0 but specialPrice exists, use it as the price
+    if (effectivePrice === 0 && p.specialPrice && p.specialPrice > 0) {
+      effectivePrice = p.specialPrice;
+    }
+
+    const displayPrice = (p.specialPrice && p.specialPrice > 0 && effectivePrice > 0 && p.specialPrice < effectivePrice)
       ? p.specialPrice : effectivePrice;
 
     const priceFormatted = displayPrice > 0

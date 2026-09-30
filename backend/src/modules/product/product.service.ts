@@ -59,6 +59,45 @@ export class ProductService {
     const product = await ProductRepository.findBySlug(slug);
     if (!product) throw new NotFoundError("Product");
 
+    // DYNAMIC ORPHAN VARIANT RECOVERY:
+    // If basePrice is 0 and no variants are attached (because CSV configurable_variations was empty)
+    // we search the database for any child variants using the SKU prefix
+    if (!product.basePrice && (!product.variants || product.variants.length === 0)) {
+      const { ProductModel } = await import("./product.model");
+      // Find children whose SKU starts with the parent's SKU and have a price
+      const children = await ProductModel.find({ 
+        sku: { $regex: new RegExp(`^${product.sku}[-_]`, "i") },
+        status: "draft",
+        basePrice: { $gt: 0 }
+      }).lean().exec();
+
+      if (children && children.length > 0) {
+        // Build the variants array dynamically from the orphaned children!
+        product.variants = children.map(c => {
+          // Attempt to extract Size from name
+          let size = "Standard";
+          const nameParts = c.name.split("-");
+          if (nameParts.length > 1) {
+             const potentialSize = nameParts[nameParts.length - 2].trim();
+             if (["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"].includes(potentialSize)) {
+                size = potentialSize;
+             }
+          }
+          return {
+            id: c._id ? c._id.toString() : c.sku,
+            sku: c.sku,
+            price: c.basePrice,
+            specialPrice: c.specialPrice,
+            stock: c.qty || 10,
+            attributes: { size }
+          };
+        });
+        
+        // Also fix the parent's own price
+        product.basePrice = Math.min(...children.map(c => c.basePrice));
+      }
+    }
+
     await setCache(cacheKey, product, PRODUCT_DETAIL_TTL);
     return product;
   }
@@ -69,18 +108,25 @@ export class ProductService {
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
-    const items = await ProductRepository.findBySkus(skus);
+    const cleanSkus = skus
+      .join(",")
+      .split(",")
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    const items = await ProductRepository.findBySkus(cleanSkus);
     await setCache(cacheKey, items, PRODUCT_DETAIL_TTL);
     return items;
   }
 
   /**
-   * Smart Cross-Category Kit Recommendation Engine.
-   * Recommends complementary riding gear (Helmet, Jacket, Gloves, Boots)
-   * while strictly avoiding same-category duplicates.
+   * Kit Recommendation Engine — accuracy first, no fallback.
+   * Only returns relatedSkus products if they exist in DB.
+   * If relatedSkus not configured or not found in DB → returns empty array.
+   * No smart matching, no upsellSkus fallback.
    */
   static async getKitRecommendations(slugOrId: string): Promise<IProduct[]> {
-    const cacheKey = `product_kit_v2_${slugOrId}`;
+    const cacheKey = `product_kit_v6_${slugOrId}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -95,48 +141,102 @@ export class ProductService {
 
     let kitProducts: IProduct[] = [];
 
-    // 1. Priority: If admin configured relatedSkus, use them
     if (product.relatedSkus && product.relatedSkus.length > 0) {
-      kitProducts = await ProductRepository.findBySkus(product.relatedSkus);
-    }
-
-    // 2. Smart Cross-Category Matching if explicit related products are missing or fewer than 3
-    if (kitProducts.length < 3) {
-      const prodText = `${product.name} ${product.magentoCategories || ""}`.toLowerCase();
-
-      let targetKeywords: string[] = [];
-
-      if (prodText.includes("boot") || prodText.includes("shoe") || prodText.includes("footwear")) {
-        targetKeywords = ["Jacket", "Helmet", "Glove", "Pant"];
-      } else if (prodText.includes("helmet")) {
-        targetKeywords = ["Jacket", "Glove", "Boot", "Pant"];
-      } else if (prodText.includes("jacket")) {
-        targetKeywords = ["Glove", "Helmet", "Boot", "Pant"];
-      } else if (prodText.includes("glove")) {
-        targetKeywords = ["Jacket", "Helmet", "Boot", "Pant"];
-      } else if (prodText.includes("pant") || prodText.includes("trouser")) {
-        targetKeywords = ["Jacket", "Boot", "Glove", "Helmet"];
-      } else {
-        targetKeywords = ["Jacket", "Helmet", "Glove", "Boot"];
-      }
-
-      const complementary = await ProductRepository.findComplementaryGear(
-        targetKeywords,
-        String(product._id)
-      );
-
-      const existingIds = new Set(kitProducts.map(p => String(p._id)));
-      for (const item of complementary) {
-        if (!existingIds.has(String(item._id))) {
-          kitProducts.push(item);
-          existingIds.add(String(item._id));
-        }
-        if (kitProducts.length >= 4) break;
-      }
+      const cleanSkus = product.relatedSkus
+        .join(",")
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean);
+      kitProducts = await ProductRepository.findBySkus(cleanSkus);
     }
 
     await setCache(cacheKey, kitProducts, PRODUCT_DETAIL_TTL);
     return kitProducts;
+  }
+
+
+  static async getAggregations(filters: Record<string, unknown> = {}): Promise<any> {
+    const serializeFilter = (obj: any): string => {
+      if (!obj || typeof obj !== "object") return String(obj);
+      if (obj instanceof RegExp) return obj.toString();
+      if (Array.isArray(obj)) return `[${obj.map(serializeFilter).join(",")}]`;
+      return Object.entries(obj).map(([k, v]) => `${k}:${serializeFilter(v)}`).sort().join(";");
+    };
+
+    const cacheKey = `product_aggregations_v3_${serializeFilter(filters)}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return cached;
+
+    const { ProductModel } = await import("./product.model");
+    
+    // Only query products matching current filters (search, category, etc)
+    const products = await ProductModel.find(filters).select("brand magentoCategories configurableVariations").lean().exec();
+
+    const brandsMap = new Map<string, number>();
+    const categoriesMap = new Map<string, number>();
+    const colorsMap = new Map<string, number>();
+    const sizesMap = new Map<string, number>();
+
+    products.forEach((p: any) => {
+      // 1. Extract Brands
+      if (p.brand) {
+        brandsMap.set(p.brand, (brandsMap.get(p.brand) || 0) + 1);
+      }
+      
+      // 2. Extract Categories (safely parse Magento path like Root/Gear/Helmets)
+      if (p.magentoCategories) {
+        const paths = p.magentoCategories.split(",");
+        for (const path of paths) {
+          // Clean the path: remove "Root Test 01" and ignore junk price categories
+          const pathLower = path.toLowerCase();
+          if (pathLower.includes("between") || pathLower.includes("under ") || pathLower.includes("price") || pathLower.includes("rs.") || pathLower.includes("₹")) {
+            continue; // Ignore fake price-based categories
+          }
+          
+          // Build a clean path string (e.g. "Riding Gear > Motorcycle Helmets > Full Face")
+          const parts = path.split("/")
+            .map((part: string) => part.trim())
+            .filter((part: string) => part && !part.toLowerCase().includes("root"));
+            
+          if (parts.length > 0) {
+            // We store the full path string to build a tree later
+            const cleanPath = parts.join(" > ");
+            categoriesMap.set(cleanPath, (categoriesMap.get(cleanPath) || 0) + 1);
+          }
+        }
+      }
+
+      // 3. Extract Colors & Sizes from Magento Variations
+      if (p.configurableVariations) {
+        const variants = p.configurableVariations.split("|");
+        for (const variant of variants) {
+          const attrs = variant.split(",");
+          for (const attr of attrs) {
+            const [key, value] = attr.split("=");
+            if (!key || !value) continue;
+            const k = key.trim().toLowerCase();
+            const v = value.trim();
+
+            if (k === "color") {
+              colorsMap.set(v, (colorsMap.get(v) || 0) + 1);
+            } else if (k.includes("size") || k.includes("eu_size")) {
+              sizesMap.set(v, (sizesMap.get(v) || 0) + 1);
+            }
+          }
+        }
+      }
+    });
+
+    const result = {
+      brands: Array.from(brandsMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+      categories: Array.from(categoriesMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+      colors: Array.from(colorsMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+      sizes: Array.from(sizesMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+    };
+
+    // Cache for 1 hour to keep UI fast
+    await setCache(cacheKey, result, 3600);
+    return result;
   }
 
   static async createProduct(data: Partial<IProduct>): Promise<IProduct> {

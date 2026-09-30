@@ -19,6 +19,12 @@ export class ProductController {
     return ApiResponse.paginated(items, totalCount, page, limit);
   }
 
+  static async getAggregations(req: NextRequest) {
+    const { filters } = ProductValidator.validateListQuery(req);
+    const data = await ProductService.getAggregations(filters);
+    return ApiResponse.success(data, "Aggregations fetched successfully");
+  }
+
   static async getBySlug(req: NextRequest, slug: string) {
     const product = await ProductService.getProductBySlug(slug);
     return ApiResponse.success(product, "Product fetched successfully");

@@ -10,32 +10,12 @@ import {
   Tag
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useProductAggregations } from "@/core/hooks/useProducts";
+import { slugify } from "@store4riders/shared-utils";
 
-const CATEGORIES = [
-  { name: "All Gear", slug: "", count: 1196 },
-  { name: "Helmets", slug: "helmets", count: 335 },
-  { name: "Jackets", slug: "riding-jackets", count: 108 },
-  { name: "Luggage", slug: "motorcycle-luggage", count: 115 },
-  { name: "Gloves", slug: "riding-gloves", count: 74 },
-  { name: "Boots", slug: "riding-boots", count: 52 },
-  { name: "Pants", slug: "riding-pants", count: 48 },
-  { name: "Accessories", slug: "bike-accessories", count: 48 },
+const DEFAULT_CATEGORIES = [
+  { name: "All Gear", slug: "", count: 0 },
 ];
-
-const BRANDS = [
-  { name: "MT Helmets", short: "MT", count: 90 },
-  { name: "Axor Helmets", short: "Axor", count: 85 },
-  { name: "SMK Helmets", short: "SMK", count: 45 },
-  { name: "Rynox Gear", short: "Rynox", count: 28 },
-  { name: "ViaTerra", short: "ViaTerra", count: 22 },
-  { name: "Furygan", short: "Furygan", count: 18 },
-  { name: "Korda", short: "Korda", count: 16 },
-  { name: "RS Taichi", short: "RS Taichi", count: 14 },
-  { name: "Raida Gears", short: "Raida", count: 12 },
-  { name: "MotoTech Gear", short: "MotoTech", count: 10 },
-];
-
-const SIZES = ["XS", "S", "M", "L", "XL", "2XL"];
 
 const PRICE_RANGES = [
   { label: "< ₹3,000", short: "< ₹3k", id: "under-3k", min: undefined, max: 3000 },
@@ -44,23 +24,75 @@ const PRICE_RANGES = [
   { label: "> ₹10,000", short: "> ₹10k", id: "above-10k", min: 10000, max: undefined },
 ];
 
-const COLOURS = [
-  { name: "Black", hex: "#000000" },
-  { name: "White", hex: "#FFFFFF" },
-  { name: "Red", hex: "#FF0000" },
-  { name: "Blue", hex: "#0000FF" },
-  { name: "Grey", hex: "#808080" },
-  { name: "Green", hex: "#008000" },
-  { name: "Yellow", hex: "#FFFF00" },
-  { name: "Orange", hex: "#FFA500" },
-];
-
 export function SidebarFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
+  
+  // Extract params to pass to API
   const currentCategory = searchParams.get("category") || "";
   const currentBrandParam = searchParams.get("brand") || "";
+  const currentSearch = searchParams.get("search") || searchParams.get("q") || "";
+  
+  const { data: aggregations, isLoading } = useProductAggregations({
+    category: currentCategory || undefined,
+    search: currentSearch || undefined,
+  });
+
+  const CATEGORIES = aggregations?.categories 
+    ? aggregations.categories.slice(0, 30).map((c: any) => {
+        const parts = c.name.split('>');
+        const displayName = parts[parts.length - 1].trim();
+        const indent = (parts.length - 1) * 8; // Slight indent for visual cue if it's a subcategory
+        return { 
+          fullName: c.name, 
+          displayName,
+          slug: slugify(displayName), 
+          count: c.count,
+          indent
+        };
+      }) // We rely on backend's count-based sorting so most popular (Helmets, etc) stay at the top
+    : [];
+    
+  const BRANDS = aggregations?.brands 
+    ? aggregations.brands.slice(0, 15).map((b: any) => ({ name: b.name, short: b.name, count: b.count }))
+    : [];
+    
+  const SIZES = aggregations?.sizes 
+    ? aggregations.sizes.slice(0, 12).map((s: any) => s.name)
+    : [];
+    
+  const COLOURS = useMemo(() => {
+    if (!aggregations?.colors) return [];
+    
+    const baseColorsMap = new Map<string, string>();
+    
+    aggregations.colors.forEach((c: any) => {
+      const nameLower = c.name.toLowerCase();
+      let baseName = "";
+      let hex = "";
+      
+      // Order matters! Check for distinctive colors first before falling back to black/grey
+      if (nameLower.includes('red')) { baseName = 'Red'; hex = '#DC2626'; }
+      else if (nameLower.includes('blue')) { baseName = 'Blue'; hex = '#2563EB'; }
+      else if (nameLower.includes('green') || nameLower.includes('olive') || nameLower.includes('khaki')) { baseName = 'Green'; hex = '#16A34A'; }
+      else if (nameLower.includes('yellow')) { baseName = 'Yellow'; hex = '#EAB308'; }
+      else if (nameLower.includes('orange') || nameLower.includes('org')) { baseName = 'Orange'; hex = '#EA580C'; }
+      else if (nameLower.includes('white')) { baseName = 'White'; hex = '#FFFFFF'; }
+      else if (nameLower.includes('brown') || nameLower.includes('tan')) { baseName = 'Brown'; hex = '#78350F'; }
+      else if (nameLower.includes('grey') || nameLower.includes('gray') || nameLower.includes('anthracite')) { baseName = 'Grey'; hex = '#6B7280'; }
+      else if (nameLower.includes('black') || nameLower.includes('noir')) { baseName = 'Black'; hex = '#111111'; }
+      
+      if (baseName && !baseColorsMap.has(baseName)) {
+        baseColorsMap.set(baseName, hex);
+      }
+    });
+
+    return Array.from(baseColorsMap.entries())
+      .slice(0, 8)
+      .map(([name, hex]) => ({ name, hex }));
+  }, [aggregations?.colors]);
+
+
   const activeBrands = useMemo(
     () => (currentBrandParam ? currentBrandParam.split(",").map((b) => b.trim()) : []),
     [currentBrandParam]
@@ -280,13 +312,13 @@ export function SidebarFilters() {
             )}
             {currentCategory && (
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
-                {CATEGORIES.find((c) => c.slug === currentCategory)?.name || currentCategory}
+                {CATEGORIES.find((c: any) => c.slug === currentCategory)?.name || currentCategory}
                 <button onClick={() => handleCategoryClick("")} className="hover:text-orange-950 cursor-pointer">
                   <X className="w-2.5 h-2.5" />
                 </button>
               </span>
             )}
-            {activeBrands.map((b) => (
+            {activeBrands.map((b: string) => (
               <span key={b} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
                 {b}
                 <button onClick={() => handleBrandToggle(b)} className="hover:text-orange-950 cursor-pointer">
@@ -294,7 +326,7 @@ export function SidebarFilters() {
                 </button>
               </span>
             ))}
-            {activeColours.map((c) => (
+            {activeColours.map((c: string) => (
               <span key={c} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
                 {c}
                 <button onClick={() => handleColourToggle(c)} className="hover:text-orange-950 cursor-pointer">
@@ -302,7 +334,7 @@ export function SidebarFilters() {
                 </button>
               </span>
             ))}
-            {activeSizes.map((sz) => (
+            {activeSizes.map((sz: string) => (
               <span key={sz} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
                 Size: {sz}
                 <button onClick={() => handleSizeToggle(sz)} className="hover:text-orange-950 cursor-pointer">
@@ -312,7 +344,7 @@ export function SidebarFilters() {
             ))}
             {(currentMinPrice || currentMaxPrice) && (
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
-                {PRICE_RANGES.find((p) => p.id === activePriceId)?.short || "Custom Price"}
+                {PRICE_RANGES.find((p: any) => p.id === activePriceId)?.short || "Custom Price"}
                 <button onClick={removePriceFilter} className="hover:text-orange-950 cursor-pointer">
                   <X className="w-2.5 h-2.5" />
                 </button>
@@ -322,69 +354,74 @@ export function SidebarFilters() {
         )}
       </div>
 
-      {/* 2. CARD 1: Category & Quick Toggles */}
-      <div className="bg-white rounded-xl border border-neutral-200/80 p-3 shadow-xs space-y-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-3.5 bg-banner rounded-full"></span>
-            <span className="font-extrabold text-xs uppercase tracking-wide text-neutral-900">
-              Categories
-            </span>
-          </div>
+      {/* Quick Toggles: In Stock & On Sale */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleToggleInStock}
+          title="Only in-stock products"
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+            currentInStock
+              ? "bg-banner text-white border-banner shadow-xs"
+              : "bg-white hover:bg-neutral-50 text-neutral-700 border-neutral-200/80 shadow-xs"
+          }`}
+        >
+          <PackageCheck className="w-3.5 h-3.5" />
+          <span>In Stock</span>
+        </button>
 
-          {/* Quick Toggles: In Stock & On Sale */}
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={handleToggleInStock}
-              title="Only in-stock products"
-              className={`flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border ${
-                currentInStock
-                  ? "bg-banner text-white border-banner shadow-xs"
-                  : "bg-neutral-50 hover:bg-neutral-100 text-neutral-700 hover:text-neutral-900 border-neutral-200/80"
-              }`}
-            >
-              <PackageCheck className="w-3 h-3" />
-              <span>In Stock</span>
-            </button>
-
-            <button
-              onClick={handleToggleOnSale}
-              title="Only on-sale products"
-              className={`flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border ${
-                currentOnSale
-                  ? "bg-banner text-white border-banner shadow-xs"
-                  : "bg-neutral-50 hover:bg-neutral-100 text-neutral-700 hover:text-neutral-900 border-neutral-200/80"
-              }`}
-            >
-              <Tag className="w-3 h-3" />
-              <span>Sale</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 2-Column Categories */}
-        <div className="grid grid-cols-2 gap-1.5">
-          {CATEGORIES.map((cat) => {
-            const active = isCategoryActive(cat.slug);
-            return (
-              <button
-                key={cat.slug}
-                onClick={() => handleCategoryClick(cat.slug)}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
-                  active
-                    ? "bg-banner text-white border-banner shadow-xs font-bold"
-                    : "bg-neutral-50/80 hover:bg-neutral-100 text-neutral-700 hover:text-neutral-950 border-neutral-200/70"
-                }`}
-              >
-                <span className="truncate">{cat.name}</span>
-                <span className={`text-[9px] tabular-nums ${active ? "text-orange-100 font-bold" : "text-neutral-400"}`}>
-                  {cat.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <button
+          onClick={handleToggleOnSale}
+          title="Only on-sale products"
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+            currentOnSale
+              ? "bg-banner text-white border-banner shadow-xs"
+              : "bg-white hover:bg-neutral-50 text-neutral-700 border-neutral-200/80 shadow-xs"
+          }`}
+        >
+          <Tag className="w-3.5 h-3.5" />
+          <span>Sale</span>
+        </button>
       </div>
+
+      {/* 2. CARD 1: Category Selection (Only shows on 'All Products' page) */}
+      {!currentCategory && (
+        <div className="bg-white rounded-xl border border-neutral-200/80 p-3 shadow-xs space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-3.5 bg-banner rounded-full"></span>
+              <span className="font-extrabold text-xs uppercase tracking-wide text-neutral-900">
+                Categories
+              </span>
+            </div>
+          </div>
+
+          {/* Scrollable Categories List */}
+          <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
+            {CATEGORIES.map((cat: any) => {
+              const active = isCategoryActive(cat.slug);
+              return (
+                <button
+                  key={cat.fullName}
+                  style={{ paddingLeft: `${cat.indent + 10}px` }}
+                  onClick={() => handleCategoryClick(cat.slug)}
+                  className={`w-full flex items-center justify-between pr-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer border-l-2 ${
+                    active
+                      ? "bg-orange-50/50 text-banner border-banner font-black"
+                      : "bg-transparent text-neutral-600 hover:text-neutral-950 border-transparent hover:border-neutral-300"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="truncate font-semibold">{cat.displayName}</span>
+                  </div>
+                  <span className={`text-[9px] tabular-nums ${active ? "text-banner font-bold" : "text-neutral-400"}`}>
+                    {cat.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* 3. CARD 2: Rider Specs (Size & Brands) */}
       <div className="bg-white rounded-xl border border-neutral-200/80 p-3 shadow-xs space-y-3">
@@ -414,7 +451,7 @@ export function SidebarFilters() {
 
           {/* Distinct Square Size Boxes */}
           <div className="grid grid-cols-6 gap-1">
-            {SIZES.map((sz) => {
+            {SIZES.map((sz: string) => {
               const isSelected = activeSizes.includes(sz);
               return (
                 <button
@@ -463,7 +500,7 @@ export function SidebarFilters() {
           </div>
 
           <div className="flex flex-wrap gap-1">
-            {BRANDS.map((brand) => {
+            {BRANDS.map((brand: any) => {
               const isSelected = activeBrands.includes(brand.name);
               return (
                 <button

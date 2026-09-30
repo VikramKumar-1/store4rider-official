@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,53 +6,59 @@ import { BrowseProductData } from "../types/homepage.types";
 export interface BrowseProductsSectionProps {
   title: string;
   products: BrowseProductData[];
+  showSeeMore?: boolean;
+  mobileLayout?: "scroll" | "grid";
 }
-
-import { ShoppingCartIcon } from "@heroicons/react/24/solid";
 
 /**
  * GridProductCard Component
- * Internal component to render individual product cards within the grid.
- * Features a hover effect that reveals the "ADD TO CART" button.
  */
-const GridProductCard: React.FC<{ product: BrowseProductData }> = ({ product }) => {
+const GridProductCard: React.FC<{ product: BrowseProductData; layout?: "scroll" | "grid" }> = ({ 
+  product, 
+  layout = "scroll" 
+}) => {
+  // Use fixed width for scrolling carousel, but full width for grid layout
+  const containerClass = layout === "scroll" 
+    ? "w-[140px] sm:w-[180px] lg:w-auto flex-shrink-0 sm:flex-shrink" 
+    : "w-full";
+
   return (
-    <div className="flex flex-col group cursor-pointer h-full">
-      {/* Image Container */}
-      <div className="relative aspect-square w-full bg-white rounded-xl overflow-hidden mb-2 group/image border border-neutral-100 p-2">
+    <div className={`flex flex-col group cursor-pointer ${containerClass}`}>
+      {/* Edge-to-edge Image Container */}
+      <div className="relative aspect-[4/5] w-full bg-white overflow-hidden mb-2 md:mb-3 group/image flex items-center justify-center">
         <Image
           src={product.imageUrl}
           alt={product.name}
           fill
-          className="object-contain group-hover:scale-105 transition-transform duration-500 ease-out will-change-transform p-4"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          className="object-contain group-hover:scale-105 transition-transform duration-500 ease-out will-change-transform p-2"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
         
-        {/* Sleek Liquid Glassmorphism Rating Badge */}
-        <div className="absolute top-2 right-2 bg-white/40 backdrop-blur-md border border-white/50 shadow-[0_4px_12px_rgba(0,0,0,0.05)] text-neutral-900 text-[10px] md:text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 z-10 transition-transform hover:scale-105">
-          <svg className="w-2.5 h-2.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+        {/* Solid Orange Rating Badge */}
+        <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 bg-[#FF5429] text-white text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 z-10 shadow-sm">
+          <svg className="w-2 h-2 md:w-2.5 md:h-2.5 text-white fill-current" viewBox="0 0 20 20">
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
-          {product.rating.toFixed(1)}
+          {product.rating.toFixed(2).replace(/\.?0+$/, '')}
         </div>
 
         {/* Hover "Add to Cart" Button Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto bg-black/5 z-20">
-          <button className="bg-neutral-900/90 backdrop-blur-sm hover:bg-banner text-white w-[85%] py-2.5 rounded-full flex items-center justify-center gap-2 text-[10px] md:text-xs font-bold tracking-[0.15em] shadow-xl translate-y-4 group-hover:translate-y-0 transition-all duration-300 ease-out">
-            ADD TO CART <ShoppingCartIcon className="w-3.5 h-3.5" />
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto bg-black/5 z-20 hidden lg:flex">
+          <button className="bg-white/95 hover:bg-white text-neutral-900 w-[85%] py-2.5 rounded flex items-center justify-center gap-2 text-[10px] font-bold tracking-widest shadow-xl translate-y-4 group-hover:translate-y-0 transition-all duration-300 ease-out">
+            ADD TO CART
           </button>
         </div>
       </div>
 
-      {/* Product Details - Tighter Spacing */}
-      <div className="flex flex-col space-y-0.5 px-0.5">
-        <span className="text-[9px] uppercase tracking-[0.15em] text-neutral-400 font-bold font-sans">
-          {product.category}
+      {/* Product Details */}
+      <div className="flex flex-col space-y-0.5 md:space-y-1 mt-1">
+        <span className="text-[8px] md:text-[10px] uppercase tracking-widest text-neutral-400 font-sans font-bold">
+          {product.category || "PRODUCT CATEGORY"}
         </span>
-        <h3 className="font-sans font-semibold text-[13px] md:text-[14px] text-neutral-900 group-hover:text-banner transition-colors line-clamp-1 leading-tight">
+        <h3 className="font-sans font-bold text-[12px] md:text-[15px] text-neutral-900 line-clamp-1 leading-tight">
           {product.name}
         </h3>
-        <span className="text-xs md:text-[13px] text-brand font-extrabold tracking-wide mt-0.5">
+        <span className="text-[10px] md:text-xs text-neutral-500 font-sans font-semibold tracking-wide">
           {product.priceFormatted}
         </span>
       </div>
@@ -64,39 +68,59 @@ const GridProductCard: React.FC<{ product: BrowseProductData }> = ({ product }) 
 
 /**
  * BrowseProductsSection Component
- * 
- * Renders a 4-column grid of products with a large serif heading.
- * The "SEE MORE" button appears dynamically when hovering over an individual product card.
  */
 export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
   title,
   products,
+  showSeeMore = false,
+  mobileLayout = "scroll"
 }) => {
   return (
-    <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 py-8 md:py-10 bg-white">
+    <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 py-6 md:py-16 bg-white overflow-hidden">
       {/* Title */}
-      <div className="text-center mb-10 md:mb-14">
-        <h2 className="font-sans text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-neutral-900 uppercase tracking-wide">
+      <div className="text-center mb-5 md:mb-12 px-2">
+        <h2 className="font-sans text-[16px] min-[375px]:text-[18px] sm:text-2xl md:text-3xl lg:text-[40px] font-extrabold text-neutral-900 uppercase tracking-wide md:tracking-wider leading-tight">
           {title}
         </h2>
-        <div className="w-16 h-1 bg-banner mx-auto mt-4 rounded-full"></div>
+        <div className="w-10 md:w-16 h-1 bg-banner mx-auto mt-2 md:mt-4 rounded-full"></div>
       </div>
 
-      {/* Products Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-x-6 md:gap-y-8">
-        {products.map((product) => (
-          <Link key={product.id} href={product.productUrl} className="block">
-            <GridProductCard product={product} />
+      {/* Products Row/Grid */}
+      <div className={mobileLayout === "scroll" ? "-mx-4 px-4 sm:mx-0 sm:px-0" : ""}>
+        <div className={
+          mobileLayout === "scroll" 
+            ? "flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 overflow-x-auto sm:overflow-visible snap-x snap-mandatory pb-4 sm:pb-0 hide-scrollbar"
+            : "grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6"
+        }>
+          {products.map((product) => (
+            <Link key={product.id} href={product.productUrl} className={mobileLayout === "scroll" ? "block snap-start" : "block"}>
+              <GridProductCard product={product} layout={mobileLayout} />
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Conditional See More Button */}
+      {showSeeMore && (
+        <div className="mt-8 md:mt-12 flex justify-center">
+          <Link
+            href="/products?q=touring"
+            className="bg-banner text-white px-8 md:px-12 py-3 md:py-3.5 text-xs sm:text-sm font-semibold tracking-[0.2em] shadow-md hover:bg-orange-600 hover:shadow-lg transition-all duration-300 rounded-sm"
+          >
+            SEE MORE
           </Link>
-        ))}
-      </div>
+        </div>
+      )}
 
-      {/* See More / View All Button */}
-      <div className="mt-12 flex justify-center">
-        <button className="bg-banner text-white px-10 py-3.5 text-sm font-semibold tracking-[0.2em] shadow-md hover:bg-orange-600 hover:shadow-lg transition-all duration-300 rounded-sm">
-          SEE MORE
-        </button>
-      </div>
+      {/* Add custom CSS to hide scrollbar but keep functionality */}
+      {mobileLayout === "scroll" && (
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            .hide-scrollbar::-webkit-scrollbar { display: none; }
+            .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+          `
+        }} />
+      )}
     </section>
   );
 };

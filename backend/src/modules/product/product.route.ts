@@ -16,6 +16,10 @@ export async function productRouter(req: NextRequest, routePath: string[]): Prom
     return await ProductController.list(req);
   }
 
+  if (method === "GET" && pathLen === 1 && routePath[0] === "aggregations") {
+    return await ProductController.getAggregations(req);
+  }
+
   if (method === "POST" && pathLen === 0) {
     const userId = extractUserFromAuth(req);
     // Mock role fetch for now

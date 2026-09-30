@@ -30,7 +30,11 @@ export class ProductValidator {
     const brand = searchParams.get("brand");
     const search = searchParams.get("search") || searchParams.get("q");
     
-    const filters: Record<string, unknown> = {};
+    const filters: Record<string, unknown> = {
+      // Hide child variants (draft) and disabled products (archived)
+      // Products with status=published OR status=undefined (old data) will show
+      status: { $nin: ["draft", "archived"] }
+    };
     const andConditions: any[] = [];
     
     // Accurate category matching for Magento paths and product names with word boundaries
@@ -220,15 +224,25 @@ export class ProductValidator {
     }
 
     if (search) {
-      const searchRegex = new RegExp(ProductValidator.escapeRegExp(search.trim()), "i");
-      andConditions.push({
-        $or: [
-          { name: { $regex: searchRegex } },
-          { brand: { $regex: searchRegex } },
-          { sku: { $regex: searchRegex } },
-          { magentoCategories: { $regex: searchRegex } },
-        ],
-      });
+      // Convert hyphens/underscores to spaces and split into individual words
+      const searchTerms = search.trim().replace(/[-_]/g, " ").split(/\s+/).filter(Boolean);
+      
+      if (searchTerms.length > 0) {
+        const searchConditions = searchTerms.map(term => {
+          const searchRegex = new RegExp(ProductValidator.escapeRegExp(term), "i");
+          return {
+            $or: [
+              { name: { $regex: searchRegex } },
+              { brand: { $regex: searchRegex } },
+              { sku: { $regex: searchRegex } },
+              { magentoCategories: { $regex: searchRegex } },
+            ],
+          };
+        });
+        
+        // $and ensures ALL typed words must be present somewhere in the document
+        andConditions.push({ $and: searchConditions });
+      }
     }
 
     if (andConditions.length === 1) {

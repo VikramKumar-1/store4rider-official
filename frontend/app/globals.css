@@ -142,10 +142,35 @@ html {
   color: #0f172a;
 }
 
-/* Hide legacy Magento table & broken images (source files not available) */
-.magento-layout table,
-.magento-layout img {
-  display: none !important;
+/* Render legacy Magento tables & images properly instead of hiding them */
+.magento-layout table {
+  width: 100% !important;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.875rem;
+}
+
+.magento-layout table td,
+.magento-layout table th {
+  border: 1px solid #e2e8f0;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.magento-layout table th {
+  background-color: #f8fafc;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.magento-layout img,
+.magento-layout-accordion img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  display: block;
 }
 
 /* ==========================================

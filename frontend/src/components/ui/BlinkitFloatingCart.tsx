@@ -8,7 +8,7 @@ import { useCartStore } from "@/stores/useCartStore";
 import { formatPrice } from "@store4riders/shared-utils";
 import { ChevronRightIcon, CheckIcon, ShoppingBagIcon } from "@heroicons/react/24/solid";
 
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80";
+const FALLBACK_IMAGE = "/no-image.svg";
 
 /**
  * Premium Toast & Quick Cart System

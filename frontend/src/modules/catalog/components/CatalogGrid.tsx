@@ -61,21 +61,19 @@ export const CatalogGrid: React.FC<CatalogGridProps> = ({
   return (
     <div className="flex flex-col w-full">
       
-      {/* 3-Column Product Grid or Skeleton */}
       {isLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-6 md:gap-8">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
-            <div key={i} className="flex flex-col gap-3 animate-pulse">
-              <div className="aspect-[3/4] bg-neutral-100 rounded-sm" />
+            <div key={i} className="flex flex-col gap-2 animate-pulse">
+              <div className="aspect-[3/4] bg-neutral-100 rounded-lg" />
               <div className="h-3 w-20 bg-neutral-100 rounded" />
-              <div className="h-5 w-3/4 bg-neutral-100 rounded" />
-              <div className="h-3 w-16 bg-neutral-100 rounded" />
+              <div className="h-4 w-3/4 bg-neutral-100 rounded" />
             </div>
           ))}
         </div>
       ) : (
         <div
-          className={`grid grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 transition-opacity duration-200 ${
+          className={`grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-6 md:gap-8 transition-opacity duration-200 ${
             isFetching ? "opacity-60 pointer-events-none" : "opacity-100"
           }`}
         >
@@ -85,60 +83,37 @@ export const CatalogGrid: React.FC<CatalogGridProps> = ({
         </div>
       )}
 
-      {/* Modern Luxury Pagination Container */}
+      {/* Modern Minimalist Pagination Container */}
       {totalPages > 1 && (
-        <div className="mt-14 pt-8 border-t border-neutral-100 flex flex-col sm:flex-row items-center justify-between gap-5 select-none">
+        <div className="mt-8 pt-6 sm:mt-10 border-t border-neutral-100 flex flex-col items-center justify-center gap-6 select-none">
           
-          {/* Left: Progress info & item count */}
-          <div className="flex flex-col items-center sm:items-start gap-1.5">
-            <p className="text-xs text-neutral-500 font-medium">
-              Showing <span className="font-bold text-neutral-900">{startItem}</span>–<span className="font-bold text-neutral-900">{endItem}</span> of <span className="font-bold text-neutral-900">{totalCount.toLocaleString()}</span> products
+          {/* Top: Progress info & item count */}
+          <div className="flex flex-col items-center gap-2.5">
+            <p className="text-[13px] text-neutral-500">
+              Showing <span className="font-bold text-neutral-900">{startItem}-{endItem}</span> of <span className="font-bold text-neutral-900">{totalCount.toLocaleString()}</span> products
             </p>
             {/* Subtle Progress Track */}
-            <div className="w-40 h-1 bg-neutral-100 rounded-full overflow-hidden">
+            <div className="w-48 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-banner transition-all duration-500 rounded-full"
+                className="h-full bg-[#FF5429] transition-all duration-500 rounded-full"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
           </div>
 
-          {/* Center / Right: Numbered pagination controls */}
-          <nav aria-label="Catalog pagination" className="flex items-center gap-1.5 flex-wrap justify-center">
+          {/* Center: Numbered pagination controls */}
+          <nav aria-label="Catalog pagination" className="flex flex-col items-center gap-4">
             
-            {/* First Page button if far */}
-            {currentPage > 4 && totalPages > 7 && (
-              <button
-                onClick={() => handlePageChange(1)}
-                aria-label="First page"
-                title="First Page"
-                className="w-9 h-9 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer border border-neutral-200/60"
-              >
-                <ChevronsLeft className="w-4 h-4" />
-              </button>
-            )}
-
-            {/* Previous Button */}
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              aria-label="Previous page"
-              className="flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-bold uppercase tracking-wider text-neutral-700 hover:text-banner hover:bg-neutral-50 border border-neutral-200 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer shadow-2xs"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Prev</span>
-            </button>
-
-            {/* Numbered Pills */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center justify-center gap-1.5 sm:gap-4">
+              {/* Numbered Pills */}
               {paginationRange.map((page, idx) => {
                 if (page === "...") {
                   return (
                     <span 
                       key={`ellipsis-${idx}`} 
-                      className="w-8 h-9 flex items-center justify-center text-xs font-bold text-neutral-400 select-none"
+                      className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-xs sm:text-sm font-bold text-neutral-400 select-none"
                     >
-                      …
+                      ...
                     </span>
                   );
                 }
@@ -151,10 +126,10 @@ export const CatalogGrid: React.FC<CatalogGridProps> = ({
                     key={pageNum}
                     onClick={() => handlePageChange(pageNum)}
                     aria-current={isActive ? "page" : undefined}
-                    className={`min-w-9 h-9 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
+                    className={`w-8 h-8 rounded-lg text-[13px] sm:w-10 sm:h-10 sm:rounded-xl sm:text-[15px] font-bold transition-all cursor-pointer flex items-center justify-center ${
                       isActive
-                        ? "bg-neutral-900 text-white shadow-sm scale-105"
-                        : "text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100 border border-transparent"
+                        ? "bg-neutral-900 text-white shadow-md"
+                        : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50"
                     }`}
                   >
                     {pageNum}
@@ -163,31 +138,30 @@ export const CatalogGrid: React.FC<CatalogGridProps> = ({
               })}
             </div>
 
-            {/* Next Button */}
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              aria-label="Next page"
-              className="flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-bold uppercase tracking-wider text-neutral-700 hover:text-banner hover:bg-neutral-50 border border-neutral-200 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer shadow-2xs"
-            >
-              <span className="hidden sm:inline">Next</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2 sm:gap-3 mt-1 sm:mt-2">
+              {/* Previous Button */}
+              {currentPage > 1 && (
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  aria-label="Previous page"
+                  className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-lg sm:rounded-xl bg-white border border-neutral-200 text-neutral-700 hover:border-neutral-300 hover:text-neutral-900 transition-all cursor-pointer shadow-xs"
+                >
+                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              )}
 
-            {/* Last Page button if far */}
-            {currentPage < totalPages - 3 && totalPages > 7 && (
-              <button
-                onClick={() => handlePageChange(totalPages)}
-                aria-label="Last page"
-                title="Last Page"
-                className="w-9 h-9 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer border border-neutral-200/60"
-              >
-                <ChevronsRight className="w-4 h-4" />
-              </button>
-            )}
-
+              {/* Next Button */}
+              {currentPage < totalPages && (
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  aria-label="Next page"
+                  className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-lg sm:rounded-xl bg-white border border-neutral-200 text-neutral-700 hover:border-neutral-300 hover:text-neutral-900 transition-all cursor-pointer shadow-xs"
+                >
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              )}
+            </div>
           </nav>
-
         </div>
       )}
       

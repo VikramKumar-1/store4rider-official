@@ -110,4 +110,5 @@ export interface TestimonialData {
   purchasedProduct?: string;
   verified?: boolean;
   location?: string;
+  link?: string;
 }

@@ -21,7 +21,16 @@ export interface IProduct {
   metaDescription?: string;
   relatedSkus?: string[];
   upsellSkus?: string[];
+  crosssellSkus?: string[];
   brand?: string;
+  gender?: string;
+  countryOfManufacture?: string;
+  attributeSetCode?: string;
+  configurableVariationLabels?: string;
+  qty?: number;
+  sizeChart?: string;
+  size_chart?: string;
+  isFreeShipping?: boolean;
   configurableVariations?: string;
   status?: "draft" | "published" | "archived";
   isFeatured?: boolean;

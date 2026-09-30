@@ -42,44 +42,54 @@ const findMatchingImageIndex = (selectedColor: string | undefined, images: Produ
 
   const normalizedColor = selectedColor.trim().toLowerCase();
   
+  // 1. Direct match on altText
+  let matchIdx = images.findIndex(img => 
+    (img.altText || "").toLowerCase().includes(normalizedColor)
+  );
+  if (matchIdx !== -1) return matchIdx;
+
+  // 2. Direct match on image URL
+  matchIdx = images.findIndex(img => 
+    (img.url || "").toLowerCase().includes(normalizedColor)
+  );
+  if (matchIdx !== -1) return matchIdx;
+
   const tokens = normalizedColor.split(/[/\\&\-_+ ]/).filter(Boolean);
   const accentTokens = tokens.length > 1 ? tokens.filter(t => t !== "black" && t !== "grey") : tokens;
   const primaryToken = accentTokens[0] || tokens[0];
 
   const abbreviations: Record<string, string[]> = {
-    yellow: ["ylw", "yel"],
-    black: ["blk", "_5_", "_30"],
-    orange: ["org", "_10"],
-    blue: ["blu", "_14", "_24", "_19"],
-    red: ["_25", "_46", "_3__11zon"],
-    grey: ["gry", "gray", "_9", "_11"],
-    brown: ["brn", "__1"],
-    white: ["wht"],
-    green: ["grn"],
-    silver: ["slv"],
-    purple: ["pur", "prp"],
+    yellow: ["ylw", "yel", "yellow"],
+    black: ["blk", "_5_", "_30", "_38", "black"],
+    orange: ["org", "_10", "orange"],
+    blue: ["blu", "_14", "_24", "_19", "blue"],
+    red: ["_25", "_46", "_48", "_3__11zon", "red"],
+    grey: ["gry", "gray", "_9", "_11", "grey"],
+    brown: ["brn", "__1", "brown"],
+    white: ["wht", "white"],
+    green: ["grn", "green"],
+    silver: ["slv", "silver"],
+    purple: ["pur", "prp", "purple"],
   };
 
-  const searchTerms = [primaryToken, ...(abbreviations[primaryToken] || [])];
+  const searchTerms = [
+    primaryToken,
+    ...(abbreviations[primaryToken] || []),
+    ...tokens,
+  ];
 
-  let matchIdx = images.findIndex(img => 
-    (img.altText || "").toLowerCase().includes(normalizedColor)
-  );
-
-  if (matchIdx === -1) {
-    matchIdx = images.findIndex(img => {
-      const alt = (img.altText || "").toLowerCase();
-      const url = (img.url || "").toLowerCase();
-      
-      return searchTerms.some(term => 
-        alt.includes(term) || 
-        url.includes(`-${term}`) || 
-        url.includes(`_${term}`) || 
-        url.includes(`/${term}`) ||
-        url.includes(term)
-      );
-    });
-  }
+  matchIdx = images.findIndex(img => {
+    const alt = (img.altText || "").toLowerCase();
+    const url = (img.url || "").toLowerCase();
+    
+    return searchTerms.some(term => 
+      alt.includes(term) || 
+      url.includes(`-${term}`) || 
+      url.includes(`_${term}`) || 
+      url.includes(`/${term}`) || 
+      url.includes(term)
+    );
+  });
 
   return matchIdx;
 };
@@ -88,26 +98,32 @@ export const ProductGallery: React.FC<{
   images: ProductImage[];
   selectedColor?: string;
 }> = ({ images, selectedColor }) => {
-  // Compute initial match synchronously to prevent flashing
-  const initialMatchIdx = findMatchingImageIndex(selectedColor, images);
-  const safeInitialIdx = initialMatchIdx !== -1 ? initialMatchIdx : 0;
-
-  const [activeIndex, setActiveIndex] = useState(safeInitialIdx);
-  const [mainSrc, setMainSrc] = useState(images?.[safeInitialIdx]?.url || FALLBACK_IMAGE);
+  // Always default to the very first image (base image) which matches Catalog
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [mainSrc, setMainSrc] = useState(images?.[0]?.url || FALLBACK_IMAGE);
+  const [userHasClickedColor, setUserHasClickedColor] = useState(false);
+  const prevColorRef = React.useRef(selectedColor);
 
   // Sync main image whenever images list changes (e.g. navigation)
   useEffect(() => {
     if (images && images.length > 0) {
-      setMainSrc(images[activeIndex]?.url || images[0].url);
+      setActiveIndex(0);
+      setMainSrc(images[0].url);
+      setUserHasClickedColor(false);
     }
-  }, [images, activeIndex]);
+  }, [images]);
 
-  // When selectedColor changes AFTER mount, switch to exact matching image
+  // When selectedColor changes, switch to exact matching image
   useEffect(() => {
-    const matchIdx = findMatchingImageIndex(selectedColor, images);
-    if (matchIdx !== -1) {
-      setActiveIndex(matchIdx);
-      setMainSrc(images[matchIdx].url);
+    if (selectedColor) {
+      prevColorRef.current = selectedColor;
+      setUserHasClickedColor(true); // Flag that color changed
+
+      const matchIdx = findMatchingImageIndex(selectedColor, images);
+      if (matchIdx !== -1) {
+        setActiveIndex(matchIdx);
+        setMainSrc(images[matchIdx].url);
+      }
     }
   }, [selectedColor, images]);
 

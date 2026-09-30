@@ -67,7 +67,7 @@ export class ProductRepository {
     if (!skus || skus.length === 0) return [];
     return ProductModel.find({ 
       sku: { $in: skus },
-      "images.0": { $exists: true } 
+      stockStatus: { $ne: 0 } // Hide Out of Stock products
     }).lean().exec() as unknown as IProduct[];
   }
 

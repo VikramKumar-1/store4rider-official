@@ -70,9 +70,9 @@ const parseVariations = (variationsStr?: string): { colors: string[]; sizes: str
       const k = key.trim().toLowerCase();
       const v = value.trim();
 
-      if (k === "color") {
+      if (k === "color" || k === "colour") {
         colors.add(v);
-      } else if (k.includes("size") || k.includes("eu_size")) {
+      } else if (k === "size" || k === "eu_size" || k === "eu_size_for_boots") {
         sizes.add(v);
       }
     }
@@ -178,12 +178,20 @@ export const parseColorToBackground = (colorName: string): string => {
 const mapToKitProduct = (p: IBackendProduct): KitProduct => {
   const catParts = (p.magentoCategories || "").split(",")[0].split("/");
   const catName = catParts.filter(c => !c.toLowerCase().includes("root")).pop()?.trim() || "GEAR";
-  const price = (p.specialPrice && p.specialPrice < p.basePrice) ? p.specialPrice : p.basePrice;
+  // Resolve price with fallbacks: basePrice → variant prices → specialPrice
+  let effectivePrice = p.basePrice || 0;
+  if (effectivePrice === 0 && Array.isArray(p.variants) && p.variants.length > 0) {
+    const vp = p.variants.map((v: any) => v.price).filter((pr: number) => pr > 0);
+    if (vp.length > 0) effectivePrice = Math.min(...vp);
+  }
+  if (effectivePrice === 0 && p.specialPrice && p.specialPrice > 0) effectivePrice = p.specialPrice;
+  const price = (p.specialPrice && p.specialPrice > 0 && effectivePrice > 0 && p.specialPrice < effectivePrice)
+    ? p.specialPrice : effectivePrice;
   return {
     id: p._id,
     name: p.name,
     category: catName.toUpperCase(),
-    priceFormatted: formatINR(price),
+    priceFormatted: price > 0 ? formatINR(price) : "Contact for Price",
     imageUrl: p.images?.[0]?.url || "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80",
     productUrl: `/products/${p.slug}`,
   };
@@ -226,19 +234,75 @@ const filenameToColorMap: Record<string, string> = {
   "clan-scout-shoes-_19__1": "Blue",
 };
 
-const inferImageColorLabel = (imgUrl: string, existingAlt: string, productName: string): string => {
-  if (existingAlt && (existingAlt.includes("-") || existingAlt.includes("|")) && !existingAlt.endsWith("additional view")) {
-    return existingAlt;
-  }
+const KNOWN_COLORS = [
+  "black/grey", "black/red", "black/blue", "black/orange",
+  "black", "brown", "tan", "white", "red", "blue", "green",
+  "grey", "gray", "orange", "yellow", "neon", "navy", "olive",
+  "camo", "silver", "gold", "pink", "purple", "teal", "cyan"
+];
 
+const inferImageColorLabel = (imgUrl: string, existingAlt: string, productName: string): string => {
   const urlLower = (imgUrl || "").toLowerCase();
+
+  // 1. Check known filename mappings first
   for (const [key, color] of Object.entries(filenameToColorMap)) {
     if (urlLower.includes(key.toLowerCase())) {
       return `${productName} - ${color}`;
     }
   }
 
+  // 2. Check if URL contains any known color word
+  for (const c of KNOWN_COLORS) {
+    if (urlLower.includes(c)) {
+      const capitalized = c.split(/[/\\&\-_+ ]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join("/");
+      return `${productName} - ${capitalized}`;
+    }
+  }
+
+  // 3. Check if existingAlt explicitly mentions a known color
+  const altLower = (existingAlt || "").toLowerCase();
+  for (const c of KNOWN_COLORS) {
+    if (altLower.includes(c)) {
+      return existingAlt;
+    }
+  }
+
   return existingAlt || productName;
+};
+
+const parseVariationsToRawVariants = (variationsStr?: string) => {
+  if (!variationsStr) return [];
+  const result: any[] = [];
+  const variants = variationsStr.split("|");
+  for (const variant of variants) {
+    const attrs = variant.split(",");
+    let sku = "";
+    const attributes: Record<string, string> = {};
+    for (const attr of attrs) {
+      const [key, value] = attr.split("=");
+      if (!key || !value) continue;
+      const k = key.trim().toLowerCase();
+      const v = value.trim();
+      if (k === "sku") {
+        sku = v;
+      } else if (k === "color" || k === "colour") {
+        attributes["color"] = v;
+      } else if (k === "size" || k === "eu_size" || k === "eu_size_for_boots") {
+        attributes["size"] = v;
+      } else {
+        attributes[k] = v;
+      }
+    }
+    if (sku || Object.keys(attributes).length > 0) {
+      result.push({
+        sku,
+        attributes,
+        price: 0,
+        stock: 1,
+      });
+    }
+  }
+  return result;
 };
 
 /**
@@ -255,12 +319,51 @@ const mapProductToPDP = (
   // Only show real related products from database (no dummy placeholders)
   const finalKitProducts = kitProducts || [];
 
-  const hasDiscount = product.specialPrice && product.specialPrice < product.basePrice;
-  const displayPrice = hasDiscount ? product.specialPrice! : product.basePrice;
-  const priceFormatted = formatINR(displayPrice);
-  const originalPriceFormatted = hasDiscount ? formatINR(product.basePrice) : undefined;
+  let base = product.basePrice;
+  let special = product.specialPrice;
+
+  // Fallback 1: If base is 0, get lowest price from variants
+  if (!base && product.variants && product.variants.length > 0) {
+    const variantPrices = product.variants
+      .map((v: any) => v.price)
+      .filter((p: number) => p > 0);
+    if (variantPrices.length > 0) {
+      base = Math.min(...variantPrices);
+    }
+    // Also check variant specialPrices
+    if (!special) {
+      const variantSpecials = product.variants
+        .map((v: any) => v.specialPrice)
+        .filter((p: number | undefined) => p && p > 0);
+      if (variantSpecials.length > 0) {
+        special = Math.min(...(variantSpecials as number[]));
+      }
+    }
+  }
+
+  // Fallback 2: If base is still 0 but specialPrice exists, use specialPrice as the display price
+  if (!base && special && special > 0) {
+    base = special;
+    special = undefined;
+  }
+
+  // Fallback 3: If STILL 0, try to extract price from metaTitle (Legacy Magento fallback)
+  if (!base && product.metaTitle) {
+    const match = product.metaTitle.match(/(?:rs\.?|inr|₹)\s*([0-9,]+)/i);
+    if (match && match[1]) {
+      const parsed = parseFloat(match[1].replace(/,/g, ""));
+      if (parsed > 0) {
+        base = parsed;
+      }
+    }
+  }
+
+  const hasDiscount = special && special > 0 && base > 0 && special < base;
+  const displayPrice = hasDiscount ? special! : base;
+  const priceFormatted = displayPrice > 0 ? formatINR(displayPrice) : "Contact for Price";
+  const originalPriceFormatted = hasDiscount ? formatINR(base) : undefined;
   const discountBadge = hasDiscount
-    ? `${Math.round(((product.basePrice - product.specialPrice!) / product.basePrice) * 100)}%`
+    ? `${Math.round(((base - special!) / base) * 100)}%`
     : undefined;
 
   const gallery = product.images?.length > 0
@@ -295,8 +398,8 @@ const mapProductToPDP = (
         Object.entries(attrs).forEach(([key, value]) => {
           const k = key.toLowerCase();
           const v = String(value).trim();
-          if (k === 'color') colorSet.add(v);
-          else if (k.includes('size') || k.includes('eu_size')) sizeSet.add(v);
+          if (k === 'color' || k === 'colour') colorSet.add(v);
+          else if (k === 'size' || k === 'eu_size' || k === 'eu_size_for_boots') sizeSet.add(v);
         });
       }
     });
@@ -320,6 +423,23 @@ const mapProductToPDP = (
     ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 
     : 0;
 
+  let rawVariants = product.variants?.map(v => ({
+    sku: v.sku,
+    price: v.price,
+    stock: v.stock,
+    attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : (v.attributes || {})
+  }));
+
+  if ((!rawVariants || rawVariants.length === 0) && product.configurableVariations) {
+    rawVariants = parseVariationsToRawVariants(product.configurableVariations);
+  }
+
+  // Determine free shipping eligibility
+  const hasShippingCharge = (product as any).shippingFee > 0 || (product as any).shipping_charge > 0 || (product as any).shippingCost > 0;
+  const isFreeShipping = hasShippingCharge 
+    ? false 
+    : ((product as any).isFreeShipping ?? (product as any).free_shipping ?? (displayPrice >= 999));
+
   return {
     id: product._id,
     slug: product.slug,
@@ -332,6 +452,7 @@ const mapProductToPDP = (
     priceFormatted,
     shortDescription,
     fullDescription: product.description || "",
+    sizeChart: product.sizeChart || product.size_chart,
     images: gallery,
     colors: mappedColors,
     sizes: sizes.length > 0 ? sizes : ["One Size"],
@@ -339,12 +460,8 @@ const mapProductToPDP = (
     storeReviews: storeReviews || [],
     productReviews: reviews || [],
     upSellProducts,
-    rawVariants: product.variants?.map(v => ({
-      sku: v.sku,
-      price: v.price,
-      stock: v.stock,
-      attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : (v.attributes || {})
-    })),
+    rawVariants,
+    isFreeShipping,
   };
 };
 

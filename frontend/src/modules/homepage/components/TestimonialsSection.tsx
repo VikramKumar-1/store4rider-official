@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { StarIcon, ChevronLeftIcon, ChevronRightIcon, CheckBadgeIcon } from "@heroicons/react/24/solid";
+import { StarIcon, ChevronLeftIcon, ChevronRightIcon, UserIcon } from "@heroicons/react/24/solid";
 import { TestimonialData } from "../types/homepage.types";
 
 export interface TestimonialsSectionProps {
@@ -11,123 +11,93 @@ export interface TestimonialsSectionProps {
 
 /**
  * TestimonialCard Component
- * Modern, high-trust rider review card with verified badge and riding info.
+ * Matches the user's wireframe layout exactly: 
+ * Left: Avatar (circle) + Name (top) / Date (bottom)
+ * Right: 5 Stars
+ * Below: Review text
  */
 const TestimonialCard: React.FC<{ data: TestimonialData }> = ({ data }) => {
   return (
-    <div className="bg-white p-6 md:p-7 shadow-xs hover:shadow-md transition-all duration-300 w-[300px] sm:w-[340px] md:w-[380px] shrink-0 flex flex-col justify-between rounded-2xl border border-neutral-200/80 select-none">
+    <a 
+      href={data.link || "#"} 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="bg-[#FFF5F0] border border-[#FFE8DD] p-3.5 sm:p-5 md:p-6 w-[230px] min-[375px]:w-[245px] sm:w-[320px] md:w-[380px] shrink-0 flex flex-col rounded-sm select-none h-full transition-colors duration-300 hover:bg-[#FFF0E5] block"
+    >
       
-      {/* Top: Author Info, Rating, Verified Badge */}
-      <div>
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3">
-            {/* Avatar / Initials */}
-            <div className="w-11 h-11 rounded-full bg-neutral-900 text-white overflow-hidden relative shrink-0 flex items-center justify-center font-black text-sm border-2 border-banner/20">
-              {data.avatarUrl ? (
-                <Image src={data.avatarUrl} alt={data.authorName} fill className="object-cover" />
-              ) : (
-                <span>{data.authorName.split(" ").map(n => n[0]).slice(0, 2).join("")}</span>
-              )}
-            </div>
-
-            {/* Name + Bike/City */}
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs sm:text-sm font-extrabold text-neutral-900 uppercase tracking-tight truncate">
-                  {data.authorName}
-                </span>
-                {data.verified !== false && (
-                  <CheckBadgeIcon className="w-4 h-4 text-emerald-600 shrink-0" title="Verified Buyer" />
-                )}
-              </div>
-              <span className="text-[11px] font-medium text-neutral-500 truncate">
-                {data.bikeModel ? `${data.bikeModel}${data.location ? ` • ${data.location}` : ""}` : data.date}
-              </span>
-            </div>
+      {/* Top Header Row */}
+      <div className="flex items-start justify-between mb-2.5 sm:mb-4">
+        
+        {/* Left: Avatar + Name/Date */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Avatar (Dark brownish-red circle with UserIcon fallback) */}
+          <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-full bg-[#4a1c1c] overflow-hidden relative shrink-0 flex items-center justify-center">
+            {data.avatarUrl ? (
+              <Image src={data.avatarUrl} alt={data.authorName} fill className="object-cover" />
+            ) : (
+              <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white/80" />
+            )}
           </div>
-
-          {/* Stars */}
-          <div className="flex items-center gap-0.5 shrink-0">
-            {[...Array(5)].map((_, i) => (
-              <StarIcon
-                key={i}
-                className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${
-                  i < Math.floor(data.rating) ? "text-amber-400" : "text-neutral-200"
-                }`}
-              />
-            ))}
+          
+          <div className="flex flex-col">
+            <span className="text-[9px] min-[375px]:text-[10px] md:text-[11px] font-bold text-neutral-900 uppercase tracking-wide">
+              {data.authorName}
+            </span>
+            <span className="text-[8px] md:text-[10px] text-neutral-500 mt-0.5">
+              {data.date}
+            </span>
           </div>
         </div>
 
-        {/* Product Tag (if available) */}
-        {data.purchasedProduct && (
-          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-neutral-100 text-neutral-700 text-[10px] font-bold uppercase tracking-wider mb-3.5">
-            <span className="text-banner">Gear:</span> {data.purchasedProduct}
-          </div>
-        )}
-
-        {/* Review Text */}
-        <p className="text-xs sm:text-[13px] text-neutral-600 leading-relaxed font-sans line-clamp-4">
-          &ldquo;{data.content}&rdquo;
-        </p>
+        {/* Right: Stars */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          {[...Array(5)].map((_, i) => (
+            <StarIcon
+              key={i}
+              className={`w-3 h-3 sm:w-4 sm:h-4 ${
+                i < Math.floor(data.rating) ? "text-[#FFD700]" : "text-neutral-200"
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* Bottom Footer: Date & Verified purchase note */}
-      <div className="mt-5 pt-3.5 border-t border-neutral-100 flex items-center justify-between text-[11px] text-neutral-400 font-medium">
-        <span>{data.date}</span>
-        <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-bold">
-          ✓ Verified Rider
-        </span>
-      </div>
+      {/* Review Text */}
+      <p className="text-[10px] sm:text-xs text-neutral-500 leading-normal sm:leading-relaxed font-sans line-clamp-4 sm:line-clamp-5">
+        {data.content}
+      </p>
 
-    </div>
+    </a>
   );
 };
 
 /**
  * TestimonialsSection Component
- * 
- * Features:
- * - Smooth desktop horizontal buttons (Prev/Next) with disabled states
- * - Mouse drag-to-scroll support without text selection
- * - Smooth mouse wheel horizontal scroll translation
- * - Interactive pagination dots
- * - Soft responsive design with zero jitter
  */
 export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({ testimonials }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  const [activeIndex, setActiveIndex] = useState(0);
 
   // Mouse drag state
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
   const scrollLeftStartRef = useRef(0);
-  const hasDraggedRef = useRef(false);
 
   const updateScrollState = useCallback(() => {
     const el = scrollContainerRef.current;
     if (!el) return;
-
     const { scrollLeft, scrollWidth, clientWidth } = el;
     setCanScrollLeft(scrollLeft > 10);
     setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
-
-    // Approximate active index
-    const cardWidth = 340 + 24; // Card width + gap
-    const idx = Math.round(scrollLeft / cardWidth);
-    setActiveIndex(Math.min(idx, testimonials.length - 1));
-  }, [testimonials.length]);
+  }, []);
 
   useEffect(() => {
     const el = scrollContainerRef.current;
     if (!el) return;
-
     updateScrollState();
     el.addEventListener("scroll", updateScrollState, { passive: true });
     window.addEventListener("resize", updateScrollState);
-
     return () => {
       el.removeEventListener("scroll", updateScrollState);
       window.removeEventListener("resize", updateScrollState);
@@ -137,21 +107,9 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({ testim
   const handleScroll = (direction: "left" | "right") => {
     const el = scrollContainerRef.current;
     if (!el) return;
-
     const scrollAmount = el.clientWidth * 0.75;
     el.scrollBy({
       left: direction === "left" ? -scrollAmount : scrollAmount,
-      behavior: "smooth",
-    });
-  };
-
-  const handleDotClick = (index: number) => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-
-    const cardWidth = 340 + 24;
-    el.scrollTo({
-      left: index * cardWidth,
       behavior: "smooth",
     });
   };
@@ -161,7 +119,6 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({ testim
     const el = scrollContainerRef.current;
     if (!el) return;
     isDraggingRef.current = true;
-    hasDraggedRef.current = false;
     startXRef.current = e.pageX - el.offsetLeft;
     scrollLeftStartRef.current = el.scrollLeft;
   };
@@ -172,10 +129,7 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({ testim
     if (!el) return;
     e.preventDefault();
     const x = e.pageX - el.offsetLeft;
-    const walk = (x - startXRef.current) * 1.4; // Scroll multiplier
-    if (Math.abs(walk) > 5) {
-      hasDraggedRef.current = true;
-    }
+    const walk = (x - startXRef.current) * 1.5;
     el.scrollLeft = scrollLeftStartRef.current - walk;
   };
 
@@ -183,124 +137,72 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({ testim
     isDraggingRef.current = false;
   };
 
-  // Horizontal Wheel Support (allows smooth mouse wheel scroll without holding Shift)
-  const handleWheel = (e: React.WheelEvent) => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && Math.abs(e.deltaY) > 10) {
-      // Check if carousel can scroll further in that direction
-      const canScrollDown = el.scrollLeft < el.scrollWidth - el.clientWidth - 5;
-      const canScrollUp = el.scrollLeft > 5;
-
-      if ((e.deltaY > 0 && canScrollDown) || (e.deltaY < 0 && canScrollUp)) {
-        e.preventDefault();
-        el.scrollBy({
-          left: e.deltaY * 1.5,
-          behavior: "auto",
-        });
-      }
-    }
-  };
-
   return (
-    <section className="w-full bg-[#f9f9f9] py-12 md:py-20 overflow-hidden border-t border-b border-neutral-200/70">
-      <div className="max-w-[1400px] mx-auto px-4 md:px-6">
+    <section className="w-full bg-[#f4f4f4] py-12 md:py-20 overflow-hidden">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-6 relative">
         
-        {/* Header with Title & Navigation Controls */}
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10 md:mb-12">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-banner animate-pulse"></span>
-              <span className="text-[11px] font-extrabold uppercase tracking-widest text-banner">
-                Rider Community
-              </span>
-            </div>
-            <h2 className="font-sans text-2xl sm:text-3xl md:text-4xl font-extrabold uppercase tracking-wide text-neutral-900 leading-tight">
-              WHAT CUSTOMERS SAY ABOUT US
-            </h2>
-            <div className="w-16 h-1 bg-banner mt-3 rounded-full"></div>
-            <p className="text-xs sm:text-sm text-neutral-500 font-medium mt-3 max-w-xl">
-              Authentic feedback from verified riders across India who rely on Store4Riders for premium safety, genuine gear, and express delivery.
-            </p>
-          </div>
-
-          {/* Prev / Next Controls */}
-          <div className="flex items-center gap-3 self-end md:self-auto">
-            <button
-              onClick={() => handleScroll("left")}
-              disabled={!canScrollLeft}
-              aria-label="Previous Reviews"
-              className={`w-11 h-11 rounded-xl flex items-center justify-center border transition-all duration-200 cursor-pointer ${
-                canScrollLeft
-                  ? "bg-white border-neutral-200 text-neutral-800 hover:bg-neutral-900 hover:text-white hover:border-neutral-900 shadow-xs active:scale-95"
-                  : "bg-neutral-100 border-neutral-200 text-neutral-300 cursor-not-allowed opacity-50"
-              }`}
-            >
-              <ChevronLeftIcon className="w-5 h-5 stroke-[2]" />
-            </button>
-
-            <button
-              onClick={() => handleScroll("right")}
-              disabled={!canScrollRight}
-              aria-label="Next Reviews"
-              className={`w-11 h-11 rounded-xl flex items-center justify-center border transition-all duration-200 cursor-pointer ${
-                canScrollRight
-                  ? "bg-white border-neutral-200 text-neutral-800 hover:bg-neutral-900 hover:text-white hover:border-neutral-900 shadow-xs active:scale-95"
-                  : "bg-neutral-100 border-neutral-200 text-neutral-300 cursor-not-allowed opacity-50"
-              }`}
-            >
-              <ChevronRightIcon className="w-5 h-5 stroke-[2]" />
-            </button>
-          </div>
+        {/* Centered Header (Matching Wireframe) */}
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="font-sans text-[16px] min-[375px]:text-[18px] sm:text-2xl md:text-3xl lg:text-[40px] font-extrabold uppercase tracking-wide md:tracking-wider text-neutral-900 leading-tight whitespace-nowrap">
+            WHAT CUSTOMERS SAY ABOUT US
+          </h2>
+          <div className="w-10 md:w-16 h-1 bg-banner mx-auto mt-2 md:mt-4 rounded-full"></div>
         </div>
 
-        {/* Silky Smooth Horizontal Review Cards Container */}
-        <div
-          ref={scrollContainerRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUpOrLeave}
-          onMouseLeave={handleMouseUpOrLeave}
-          onWheel={handleWheel}
-          className="flex overflow-x-auto gap-5 md:gap-6 pb-6 pt-2 scroll-smooth cursor-grab active:cursor-grabbing hide-scrollbar select-none"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
-          {testimonials.map((testimonial) => (
-            <div key={testimonial.id} className="shrink-0 transition-transform duration-200 hover:-translate-y-1">
-              <TestimonialCard data={testimonial} />
-            </div>
-          ))}
+        {/* Prev / Next Desktop Controls (Hidden on mobile to keep layout clean like wireframe) */}
+        <div className="hidden md:flex absolute top-1/2 -translate-y-1/2 left-0 right-0 justify-between px-2 md:px-4 pointer-events-none z-10">
+          <button
+            onClick={() => handleScroll("left")}
+            disabled={!canScrollLeft}
+            className={`pointer-events-auto w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer shadow-md ${
+              canScrollLeft
+                ? "bg-white text-neutral-800 hover:bg-neutral-900 hover:text-white"
+                : "bg-white/50 text-neutral-400 cursor-not-allowed opacity-50"
+            }`}
+          >
+            <ChevronLeftIcon className="w-6 h-6 stroke-[2]" />
+          </button>
+
+          <button
+            onClick={() => handleScroll("right")}
+            disabled={!canScrollRight}
+            className={`pointer-events-auto w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer shadow-md ${
+              canScrollRight
+                ? "bg-white text-neutral-800 hover:bg-neutral-900 hover:text-white"
+                : "bg-white/50 text-neutral-400 cursor-not-allowed opacity-50"
+            }`}
+          >
+            <ChevronRightIcon className="w-6 h-6 stroke-[2]" />
+          </button>
         </div>
 
-        {/* Interactive Bottom Pagination Dots */}
-        <div className="flex items-center justify-center gap-2 mt-4">
-          {testimonials.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleDotClick(idx)}
-              aria-label={`Jump to review ${idx + 1}`}
-              className={`transition-all duration-300 rounded-full cursor-pointer ${
-                activeIndex === idx
-                  ? "w-8 h-2 bg-banner"
-                  : "w-2 h-2 bg-neutral-300 hover:bg-neutral-400"
-              }`}
-            />
-          ))}
+        {/* Horizontal Review Cards Container */}
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0">
+          <div
+            ref={scrollContainerRef}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUpOrLeave}
+            onMouseLeave={handleMouseUpOrLeave}
+            className="flex overflow-x-auto gap-3 sm:gap-4 md:gap-6 pb-4 sm:pb-6 pt-2 scroll-smooth cursor-grab active:cursor-grabbing hide-scrollbar select-none snap-x snap-mandatory"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {testimonials.map((testimonial) => (
+              <div key={testimonial.id} className="shrink-0 snap-center md:snap-start">
+                <TestimonialCard data={testimonial} />
+              </div>
+            ))}
+          </div>
         </div>
 
       </div>
 
-      {/* Global CSS to suppress scrollbars cleanly */}
-      <style jsx global>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .hide-scrollbar::-webkit-scrollbar { display: none; }
+          .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        `
+      }} />
     </section>
   );
 };

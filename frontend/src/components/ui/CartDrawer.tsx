@@ -18,7 +18,7 @@ import {
   TruckIcon
 } from "@heroicons/react/24/outline";
 
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80";
+const FALLBACK_IMAGE = "/no-image.svg";
 
 export const CartDrawer: React.FC = () => {
   const router = useRouter();

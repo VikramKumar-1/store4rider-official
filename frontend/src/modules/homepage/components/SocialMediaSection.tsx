@@ -1,122 +1,107 @@
 "use client";
 
-import React, { useRef } from "react";
+import React from "react";
 import Image from "next/image";
-import { RocketLaunchIcon, PlayIcon, VideoCameraIcon, ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
+import Link from "next/link";
+import { RocketLaunchIcon, PlayIcon, Squares2X2Icon, FilmIcon, UserIcon } from "@heroicons/react/24/solid";
 
 /**
  * SocialMediaSection Component
  * 
- * Renders a compact 2-column layout:
- * - Left: Instagram Reels horizontal slider
- * - Right: Split into two stacked blocks (Image banner and a feature card)
+ * Matches the user's wireframe:
+ * - A 3-column Instagram Reels grid (like a profile view).
+ * - Below (or to the right on desktop): Two promo banners, displayed side-by-side on mobile.
  */
 export const SocialMediaSection: React.FC = () => {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  
+  // 6 Images for a 3x2 IG grid
   const reelImages = [
     "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=400&h=600&q=80",
     "https://images.unsplash.com/photo-1518972553187-573b983a54dc?auto=format&fit=crop&w=400&h=600&q=80",
     "https://images.unsplash.com/photo-1520975954732-57dd22299614?auto=format&fit=crop&w=400&h=600&q=80",
     "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=400&h=600&q=80",
     "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=400&h=600&q=80",
+    "https://images.unsplash.com/photo-1449426468159-d96dbf08f19f?auto=format&fit=crop&w=400&h=600&q=80",
   ];
 
-  const scrollLeft = () => {
-    if (scrollRef.current) scrollRef.current.scrollBy({ left: -250, behavior: 'smooth' });
-  };
-
-  const scrollRight = () => {
-    if (scrollRef.current) scrollRef.current.scrollBy({ left: 250, behavior: 'smooth' });
-  };
+  const viewCounts = ["12.9K", "8,181", "45K", "6,480", "4,254", "10.2K"];
 
   return (
-    <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 py-12 md:py-16 bg-neutral-100">
+    <section className="w-full max-w-[1400px] mx-auto px-0 sm:px-4 md:px-6 py-8 md:py-16 bg-white">
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+      {/* Title (Hidden on mobile to match the pure IG frame look, or just kept clean) */}
+      <div className="text-center mb-6 md:mb-12 px-4">
+        <h2 className="font-sans text-[16px] min-[375px]:text-[18px] sm:text-2xl md:text-3xl lg:text-[40px] font-extrabold uppercase tracking-wide md:tracking-wider text-neutral-900 leading-tight whitespace-nowrap">
+          INSTA REELS
+        </h2>
+        <div className="w-10 md:w-16 h-1 bg-banner mx-auto mt-2 md:mt-3 rounded-full"></div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
         
-        {/* Left: Instagram Reels Horizontal Slider (Col Span 2) */}
-        <div className="lg:col-span-2 bg-white rounded-lg p-6 shadow-sm border border-neutral-200 flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="font-sans text-xl md:text-2xl font-extrabold uppercase tracking-wide text-neutral-900 flex items-center gap-3">
-              INSTA REELS
-            </h2>
-            <div className="flex gap-2">
-              <button onClick={scrollLeft} className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center hover:bg-brand hover:text-white transition-colors text-neutral-600">
-                <ChevronLeftIcon className="w-5 h-5" />
-              </button>
-              <button onClick={scrollRight} className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center hover:bg-brand hover:text-white transition-colors text-neutral-600">
-                <ChevronRightIcon className="w-5 h-5" />
-              </button>
+        {/* Left: Instagram Profile / Reels Grid */}
+        <div className="lg:col-span-2 border border-neutral-200 bg-white overflow-hidden sm:rounded-lg shadow-sm">
+          
+          {/* Fake IG Tabs */}
+          <div className="flex justify-around items-center border-b border-neutral-200 bg-neutral-900 text-neutral-400">
+            <div className="flex-1 py-3 flex justify-center cursor-pointer hover:text-white">
+              <Squares2X2Icon className="w-5 h-5" />
+            </div>
+            <div className="flex-1 py-3 flex justify-center border-b-2 border-white text-white cursor-pointer">
+              <FilmIcon className="w-5 h-5" />
+            </div>
+            <div className="flex-1 py-3 flex justify-center cursor-pointer hover:text-white">
+              <UserIcon className="w-5 h-5" />
             </div>
           </div>
           
-          <div 
-            ref={scrollRef}
-            className="flex overflow-x-auto gap-4 snap-x snap-mandatory hide-scrollbar pb-4 flex-1 items-stretch"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
+          {/* 3x2 Grid */}
+          <div className="grid grid-cols-3 gap-[1px] bg-neutral-200">
             {reelImages.map((src, idx) => (
               <div 
                 key={idx} 
-                className="relative min-w-[200px] md:min-w-[220px] aspect-[4/5] bg-neutral-900 rounded-lg group cursor-pointer overflow-hidden snap-start flex-shrink-0"
+                className="relative aspect-[9/16] bg-neutral-900 group cursor-pointer overflow-hidden"
               >
                 <Image
                   src={src}
                   alt={`Reel ${idx + 1}`}
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100"
-                  sizes="(max-width: 768px) 50vw, 250px"
+                  className="object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                  sizes="(max-width: 768px) 33vw, 250px"
                 />
                 
-                {/* Hover Play Button */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/20 transition-all duration-300">
-                  <div className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center scale-75 group-hover:scale-100 transition-transform duration-300">
-                    <PlayIcon className="w-5 h-5 text-white ml-0.5" />
-                  </div>
-                </div>
-
-                <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-white text-xs font-semibold drop-shadow-md z-10">
-                  <PlayIcon className="w-4 h-4" />
-                  <span>{[1.2, 45, 12, 8.9, 102][idx % 5]}K</span>
+                {/* Views Count (Bottom Left) */}
+                <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-[10px] md:text-xs font-semibold drop-shadow-md z-10">
+                  <PlayIcon className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                  <span>{viewCounts[idx]}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right: Two Stacked Banners (Col Span 1) */}
-        <div className="lg:col-span-1 flex flex-col gap-6">
+        {/* Right (Desktop) / Bottom (Mobile): Two Category Banners matching wireframe layout */}
+        {/* On mobile, they are side-by-side (grid-cols-2). On desktop, they stack (lg:grid-cols-1) */}
+        <div className="lg:col-span-1 grid grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-4 px-2 sm:px-0">
           
-          {/* Top Banner: Image Offer */}
-          <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden group cursor-pointer shadow-sm border border-neutral-200">
+          {/* Wireframe "Image 1": Simple Image Banner */}
+          <Link href="/products" className="relative w-full aspect-[4/5] lg:aspect-auto lg:h-[300px] rounded-lg overflow-hidden group cursor-pointer border border-neutral-200 bg-neutral-800 flex items-center justify-center">
             <Image
               src="https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80"
-              alt="Promo Banner"
+              alt="Category Image 1"
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6">
-              <span className="text-brand font-bold text-sm tracking-widest mb-1">NEW ARRIVAL</span>
-              <h3 className="text-white font-sans font-bold text-xl uppercase tracking-wide leading-tight">TOURING<br/>ESSENTIALS</h3>
-            </div>
-          </div>
+          </Link>
 
-          {/* Bottom Banner: Feature Card */}
-          <div className="bg-[#f25b22] rounded-lg p-6 flex flex-col justify-center items-start text-white shadow-sm flex-1 relative overflow-hidden group cursor-pointer border border-[#e04f1a]">
-            {/* Background Icon */}
-            <RocketLaunchIcon className="absolute -bottom-4 -right-4 w-32 h-32 text-white/10 group-hover:scale-110 transition-transform duration-500" />
-            
-            <div className="relative z-10">
-              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-4 backdrop-blur-sm">
-                <RocketLaunchIcon className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="font-bold text-xl mb-1">Free Shipping</h3>
-              <p className="text-white/90 text-sm max-w-[80%] leading-relaxed">
-                On all orders across India above ₹1000. Upgrade your gear today.
-              </p>
-            </div>
-          </div>
+          {/* Wireframe "Image 2": Simple Image Banner */}
+          <Link href="/products" className="relative w-full aspect-[4/5] lg:aspect-auto lg:h-[300px] rounded-lg overflow-hidden group cursor-pointer border border-neutral-200 bg-neutral-800 flex items-center justify-center">
+            <Image
+              src="https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=600&q=80"
+              alt="Category Image 2"
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          </Link>
 
         </div>
 

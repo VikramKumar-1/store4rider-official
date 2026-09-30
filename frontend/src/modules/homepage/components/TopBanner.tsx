@@ -18,7 +18,7 @@ export const TopBanner: React.FC<TopBannerProps> = ({
   bannerUrl,
 }) => {
   const content = (
-    <div className="bg-banner text-banner-text text-xs py-2 px-4 text-center font-medium tracking-wide shadow-sm flex items-center justify-center gap-1.5 transition-colors">
+    <div className="bg-banner text-banner-text text-[9px] sm:text-xs py-1.5 sm:py-2 px-2 sm:px-4 text-center font-medium tracking-wide shadow-sm flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 transition-colors">
       <span>{message}</span>
       <span className="font-extrabold uppercase tracking-wider underline underline-offset-2">
         {highlightText}

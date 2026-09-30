@@ -125,11 +125,11 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
         aria-label="Breadcrumb" 
         className="w-full bg-white border-b border-neutral-100"
       >
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3.5">
           <ol 
             itemScope 
             itemType="https://schema.org/BreadcrumbList"
-            className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-neutral-500 flex-wrap"
+            className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-neutral-500 leading-relaxed"
           >
             {breadcrumbItems.map((item, index) => {
               const isFirst = index === 0;
@@ -141,7 +141,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
                   itemProp="itemListElement"
                   itemScope
                   itemType="https://schema.org/ListItem"
-                  className="flex items-center gap-2"
+                  className="inline"
                 >
                   {/* Position metadata for SEO microdata */}
                   <meta itemProp="position" content={String(index + 1)} />
@@ -150,10 +150,9 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
                     <Link
                       href={item.href}
                       itemProp="item"
-                      className="hover:text-banner transition-colors flex items-center gap-1.5 text-neutral-600 font-medium"
+                      className="hover:text-banner transition-colors inline text-neutral-600 font-medium"
                     >
-                      {isFirst && <HomeIcon className="w-3.5 h-3.5 stroke-[2] -mt-0.5 text-neutral-400" />}
-                      <span itemProp="name" className="truncate max-w-[150px] sm:max-w-none">
+                      <span itemProp="name">
                         {item.label}
                       </span>
                     </Link>
@@ -161,7 +160,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
                     <span
                       itemProp="name"
                       aria-current={isLast ? "page" : undefined}
-                      className={`truncate max-w-[220px] sm:max-w-none ${
+                      className={`inline ${
                         isLast ? "text-neutral-900 font-bold" : "text-neutral-600"
                       }`}
                     >
@@ -171,10 +170,12 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
 
                   {/* Accessible Breadcrumb Separator */}
                   {!isLast && (
-                    <ChevronRightIcon 
+                    <span 
                       aria-hidden="true" 
-                      className="w-3.5 h-3.5 text-neutral-300 stroke-[2.5] shrink-0" 
-                    />
+                      className="inline-block mx-1.5 sm:mx-2 text-neutral-300 font-normal"
+                    >
+                      /
+                    </span>
                   )}
                 </li>
               );
