@@ -139,7 +139,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
  */
 export const CatalogModule: React.FC<CatalogProps> = ({ products, totalCount, isLoading, isFetching, categoryNode }) => {
   return (
-    <div className="w-full min-h-screen flex flex-col font-sans bg-white relative">
+    <div className="w-full min-h-screen flex flex-col font-sans bg-white relative pb-36 lg:pb-0">
       
       {/* 1. Header Global Area */}
       <TopBanner

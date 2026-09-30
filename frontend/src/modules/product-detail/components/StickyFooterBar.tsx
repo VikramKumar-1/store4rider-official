@@ -74,11 +74,13 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
   const handleColorClick = React.useCallback((colorName: string) => {
     if (disabledColors.includes(colorName)) return;
     if (onColorChange) onColorChange(colorName);
+    setOpenDropdown(null);
   }, [disabledColors, onColorChange]);
 
   const handleSizeClick = React.useCallback((sizeName: string) => {
     if (disabledSizes.includes(sizeName)) return;
     if (onSizeChange) onSizeChange(sizeName);
+    setOpenDropdown(null);
   }, [disabledSizes, onSizeChange]);
 
   const handleAddToCartClick = React.useCallback(() => {
@@ -264,14 +266,6 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                       </div>
                     </div>
                   )}
-
-                  {/* Done / Confirm button */}
-                  <button
-                    onClick={() => setOpenDropdown(null)}
-                    className="w-full bg-neutral-900 hover:bg-neutral-800 text-white py-3 rounded-xl font-bold uppercase tracking-wider text-xs shadow-md active:scale-98 transition-all"
-                  >
-                    Done
-                  </button>
                 </div>
               </div>,
               document.body
@@ -308,7 +302,7 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                 </div>
                 <div className="flex items-center justify-center gap-1.5 leading-none w-full">
                   <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-neutral-300 shrink-0" style={{ background: colors.find(c => c.name === activeColor)?.background || '#111' }} />
-                  <span className="text-[12px] sm:text-[13px] font-black text-neutral-900 truncate leading-none mt-0.5">{activeColor || "--"}</span>
+                  <span className="text-[12px] sm:text-[13px] font-black text-neutral-900 truncate leading-tight mt-px pb-px">{activeColor || "--"}</span>
                 </div>
               </button>
             </div>
@@ -478,10 +472,10 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="p-4 overflow-y-auto min-h-0">
+            <div className="p-4 pb-12 overflow-y-auto min-h-0">
               {sizeChart.includes('<') ? (
                 <div 
-                  className="w-full overflow-x-auto text-sm text-neutral-800 [&_table]:min-w-[600px] [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-neutral-300 [&_th]:p-3 [&_th]:bg-neutral-100 [&_th]:whitespace-nowrap [&_td]:border [&_td]:border-neutral-300 [&_td]:p-3 [&_td]:text-center [&_img]:w-full [&_img]:max-h-[70vh] [&_img]:object-contain [&_img]:mx-auto"
+                  className="w-full text-[10px] sm:text-sm text-neutral-800 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-neutral-300 [&_th]:p-1.5 sm:[&_th]:p-3 [&_th]:bg-neutral-100 [&_th]:whitespace-nowrap [&_td]:border [&_td]:border-neutral-300 [&_td]:p-1.5 sm:[&_td]:p-3 [&_td]:text-center [&_img]:w-full [&_img]:max-h-[60vh] [&_img]:object-contain [&_img]:mx-auto"
                   dangerouslySetInnerHTML={{ __html: sizeChart.replace(/""/g, '"') }} 
                 />
               ) : (

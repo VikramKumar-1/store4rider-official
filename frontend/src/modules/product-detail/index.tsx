@@ -114,7 +114,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
   };
 
   return (
-    <div className="w-full min-h-screen flex flex-col font-sans bg-white relative pb-20 md:pb-24">
+    <div className="w-full min-h-screen flex flex-col font-sans bg-white relative pb-32 md:pb-28">
       
       {/* 1. Header Global Area */}
       <TopBanner

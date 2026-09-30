@@ -241,14 +241,14 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="p-4 overflow-y-auto min-h-0">
+            <div className="p-4 pb-12 overflow-y-auto min-h-0">
               {sizeChart.includes('<') ? (
                 <div 
-                  className="w-full overflow-x-auto text-sm text-neutral-800 [&_table]:min-w-[600px] [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-neutral-300 [&_th]:p-3 [&_th]:bg-neutral-100 [&_th]:whitespace-nowrap [&_td]:border [&_td]:border-neutral-300 [&_td]:p-3 [&_td]:text-center [&_img]:max-w-full [&_img]:h-auto"
+                  className="w-full text-[10px] sm:text-sm text-neutral-800 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-neutral-300 [&_th]:p-1.5 sm:[&_th]:p-3 [&_th]:bg-neutral-100 [&_th]:whitespace-nowrap [&_td]:border [&_td]:border-neutral-300 [&_td]:p-1.5 sm:[&_td]:p-3 [&_td]:text-center [&_img]:w-full [&_img]:max-h-[60vh] [&_img]:object-contain [&_img]:mx-auto"
                   dangerouslySetInnerHTML={{ __html: sizeChart.replace(/""/g, '"') }} 
                 />
               ) : (
-                <img src={sizeChart} alt="Size Chart" className="w-full max-h-[70vh] object-contain rounded-md mx-auto" />
+                <img src={sizeChart} alt="Size Chart" className="w-full max-h-[60vh] object-contain rounded-md mx-auto" />
               )}
             </div>
           </div>
