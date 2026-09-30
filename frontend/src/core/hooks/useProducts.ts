@@ -35,6 +35,7 @@ export interface IBackendProduct {
     price: number;
     stock: number;
     attributes?: Record<string, string>;
+    imageUrl?: string;
   }>;
   relatedSkus?: string[];
   upsellSkus?: string[];

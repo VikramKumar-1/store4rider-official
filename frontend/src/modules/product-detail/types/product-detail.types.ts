@@ -51,6 +51,7 @@ export interface PDPData {
     price: number;
     stock: number;
     attributes?: Record<string, string>;
+    imageUrl?: string;
   }>;
   isFreeShipping?: boolean;
 }

@@ -3,7 +3,7 @@ import { ENV } from "../config/env";
 import { logger } from "../utils/logger";
 import IORedis from "ioredis";
 
-const connection = new IORedis(ENV.REDIS_URL, { maxRetriesPerRequest: null });
+const connection = ENV.REDIS_URL ? new IORedis(ENV.REDIS_URL, { maxRetriesPerRequest: null }) : new IORedis({ maxRetriesPerRequest: null });
 
 export const emailQueue = new Queue("emailQueue", { connection });
 

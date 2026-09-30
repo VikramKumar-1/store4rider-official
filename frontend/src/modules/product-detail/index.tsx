@@ -114,7 +114,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
   };
 
   return (
-    <div className="w-full min-h-screen flex flex-col font-sans bg-white relative pb-32 md:pb-28">
+    <div className="w-full min-h-screen flex flex-col font-sans bg-white relative">
       
       {/* 1. Header Global Area */}
       <TopBanner
@@ -151,6 +151,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
             <ProductGallery 
               images={product.images} 
               selectedColor={selectedColor}
+              activeVariantImageUrl={activeVariant?.imageUrl}
             />
           </div>
 
@@ -230,8 +231,10 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
 
       </main>
 
-      {/* 4. Global Footer */}
-      <Footer />
+      {/* 4. Global Footer with extra bottom padding for sticky bar */}
+      <div className="bg-banner pb-32 md:pb-28">
+        <Footer />
+      </div>
 
       {/* 5. Sticky Add to Cart Bar */}
       <StickyFooterBar 

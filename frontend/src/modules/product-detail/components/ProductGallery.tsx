@@ -97,7 +97,8 @@ const findMatchingImageIndex = (selectedColor: string | undefined, images: Produ
 export const ProductGallery: React.FC<{ 
   images: ProductImage[];
   selectedColor?: string;
-}> = ({ images, selectedColor }) => {
+  activeVariantImageUrl?: string;
+}> = ({ images, selectedColor, activeVariantImageUrl }) => {
   // Always default to the very first image (base image) which matches Catalog
   const [activeIndex, setActiveIndex] = useState(0);
   const [mainSrc, setMainSrc] = useState(images?.[0]?.url || FALLBACK_IMAGE);
@@ -115,17 +116,29 @@ export const ProductGallery: React.FC<{
 
   // When selectedColor changes, switch to exact matching image
   useEffect(() => {
-    if (selectedColor) {
+    if (selectedColor || activeVariantImageUrl) {
       prevColorRef.current = selectedColor;
       setUserHasClickedColor(true); // Flag that color changed
 
-      const matchIdx = findMatchingImageIndex(selectedColor, images);
-      if (matchIdx !== -1) {
-        setActiveIndex(matchIdx);
-        setMainSrc(images[matchIdx].url);
+      if (activeVariantImageUrl) {
+        // Find if this image exists in the gallery array to sync active thumbnail
+        const matchIdx = images.findIndex(img => img.url === activeVariantImageUrl);
+        if (matchIdx !== -1) {
+          setActiveIndex(matchIdx);
+        } else {
+          setActiveIndex(-1); // No matching thumbnail but we have the image
+        }
+        setMainSrc(activeVariantImageUrl);
+      } else if (selectedColor) {
+        // Fallback to guessing by search term if specific variant image isn't available
+        const matchIdx = findMatchingImageIndex(selectedColor, images);
+        if (matchIdx !== -1) {
+          setActiveIndex(matchIdx);
+          setMainSrc(images[matchIdx].url);
+        }
       }
     }
-  }, [selectedColor, images]);
+  }, [selectedColor, images, activeVariantImageUrl]);
 
   const handleSelect = useCallback(
     (idx: number) => {

@@ -46,6 +46,7 @@ const productSchema = new Schema<IProduct>(
         specialPrice: { type: Number },
         stock: { type: Number, default: 0 },
         attributes: { type: Map, of: String },
+        imageUrl: { type: String },
       },
     ],
     status: { type: String, enum: ["draft", "published", "archived"], default: "draft" },

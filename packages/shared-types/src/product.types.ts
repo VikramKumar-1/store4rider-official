@@ -1,5 +1,5 @@
 export interface IProductImage { id: string; url: string; altText?: string; }
-export interface IProductVariant { id: string; sku: string; price: number; stock: number; attributes: Record<string, string>; }
+export interface IProductVariant { id: string; sku: string; price: number; stock: number; attributes: Record<string, string>; imageUrl?: string; }
 export interface IProduct {
   _id: string;
   name: string;

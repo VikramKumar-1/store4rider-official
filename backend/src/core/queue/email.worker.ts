@@ -4,7 +4,7 @@ import { sendEmail } from "../email/ses";
 import { logger } from "../utils/logger";
 import IORedis from "ioredis";
 
-const connection = new IORedis(ENV.REDIS_URL, { maxRetriesPerRequest: null });
+const connection = ENV.REDIS_URL ? new IORedis(ENV.REDIS_URL, { maxRetriesPerRequest: null }) : new IORedis({ maxRetriesPerRequest: null });
 
 export const emailWorker = new Worker("emailQueue", async (job: Job) => {
   const { to, subject, html } = job.data;
