@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { ShoppingCartIcon, ArrowRightIcon, CheckIcon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/solid";
+import { ShoppingCartIcon, ShoppingBagIcon, ArrowRightIcon, CheckIcon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { useRouter } from "next/navigation";
 import { ColorOption } from "../types/product-detail.types";
+import { useCartStore } from "@/stores/useCartStore";
+import { useUIStore } from "@/stores/useUIStore";
 
 interface StickyFooterBarProps {
   productName: string;
@@ -43,9 +45,19 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
   const [hasAdded, setHasAdded] = useState(false);
   const [showSizeChart, setShowSizeChart] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<"color" | "size" | null>(null);
+  
+  const cartItems = useCartStore((state) => state.items);
+  const cartCount = cartItems.reduce((acc, item) => acc + (item.quantity || 1), 0);
+  const setIsBottomModalOpen = useUIStore((state) => state.setIsBottomModalOpen);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   
+  useEffect(() => {
+    setIsBottomModalOpen(openDropdown !== null || showSizeChart);
+    // Cleanup on unmount just in case
+    return () => setIsBottomModalOpen(false);
+  }, [openDropdown, showSizeChart, setIsBottomModalOpen]);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -77,28 +89,45 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
   const isOutOfStock = disabledColors.includes(activeColor) || disabledSizes.includes(activeSize);
 
   return (
-    <div className="fixed bottom-0 left-0 w-full z-40 bg-white/95 supports-[backdrop-filter]:bg-white/90 backdrop-blur-2xl border-t border-neutral-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transform-gpu will-change-transform transition-all duration-200 pb-safe">
+    <div className={`fixed bottom-0 left-0 w-full z-40 bg-white/95 supports-[backdrop-filter]:bg-white/90 backdrop-blur-2xl border-t border-neutral-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transform-gpu will-change-transform transition-all duration-300 pb-safe ${
+      openDropdown || showSizeChart ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
+    }`}>
       
-      {/* Top Floating Mini-Bar (Mobile Size Guide) */}
-      <div className="w-full bg-white/50 backdrop-blur-md border-b border-neutral-200/50 py-1.5 px-4 flex justify-end items-center text-[10px] md:hidden">
-        {sizeChart && (
-          <span 
-            onClick={() => setShowSizeChart(true)}
-            className="text-brand font-bold uppercase tracking-wider cursor-pointer hover:underline flex items-center gap-1"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand">
-              <rect x="2" y="8" width="20" height="8" rx="1" />
-              <line x1="6" y1="16" x2="6" y2="12" />
-              <line x1="10" y1="16" x2="10" y2="12" />
-              <line x1="14" y1="16" x2="14" y2="12" />
-              <line x1="18" y1="16" x2="18" y2="12" />
-            </svg>
-            Size Chart
-          </span>
-        )}
+      {/* Top Floating Mini-Bar (Mobile Size Guide & Rating) */}
+      <div className="w-full bg-white/50 backdrop-blur-md border-b border-neutral-200/50 py-1.5 px-4 grid grid-cols-3 items-center text-[10px] md:hidden relative">
+        <div /> {/* Left Spacer */}
+        
+        {/* CENTER: Rating */}
+        <div className="flex justify-center items-center gap-1 text-neutral-600 font-bold">
+          <span className="text-neutral-400 text-[9px] uppercase tracking-wider mr-0.5">Review</span>
+          <svg className="w-3 h-3 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+          </svg>
+          <span className="leading-none">{rating > 0 ? rating : "4.8"}</span>
+          <span className="text-neutral-400 font-medium leading-none">({reviewCount > 0 ? reviewCount : 800}+)</span>
+        </div>
+
+        {/* RIGHT: Size Chart */}
+        <div className="flex justify-end">
+          {sizeChart && (
+            <span 
+              onClick={() => setShowSizeChart(true)}
+              className="text-brand font-bold uppercase tracking-wider cursor-pointer hover:underline flex items-center gap-1"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand">
+                <rect x="2" y="8" width="20" height="8" rx="1" />
+                <line x1="6" y1="16" x2="6" y2="12" />
+                <line x1="10" y1="16" x2="10" y2="12" />
+                <line x1="14" y1="16" x2="14" y2="12" />
+                <line x1="18" y1="16" x2="18" y2="12" />
+              </svg>
+              Size Chart
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-3 lg:px-6 py-2 md:py-3 relative" ref={dropdownRef}>
+      <div className="max-w-[1400px] mx-auto px-3 lg:px-6 pt-2 pb-5 md:py-3 relative" ref={dropdownRef}>
         
         {/* MOBILE LAYOUT (Exactly as requested by client) */}
         <div className="flex md:hidden flex-col gap-2 w-full">
@@ -117,17 +146,17 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
           <div className="flex items-center justify-between w-full gap-2 relative">
             
             {/* Clean Solid Mobile Bottom Sheet Modal for Variant Selection */}
-            {openDropdown && (
-              <>
+            {openDropdown && typeof document !== "undefined" && createPortal(
+              <div className="fixed inset-0 z-[100] flex items-end">
                 {/* Dark Backdrop Overlay */}
                 <div 
-                  className="fixed inset-0 bg-black/60 z-50 animate-in fade-in duration-200"
+                  className="fixed inset-0 bg-black/60 animate-in fade-in duration-200"
                   onClick={() => setOpenDropdown(null)}
                 />
 
                 {/* Solid Bottom Sheet Drawer */}
                 <div 
-                  className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-[0_-12px_50px_rgba(0,0,0,0.3)] p-5 pb-8 animate-in slide-in-from-bottom duration-200 max-h-[85vh] overflow-y-auto"
+                  className="relative w-full z-[110] bg-white rounded-t-3xl shadow-[0_-12px_50px_rgba(0,0,0,0.3)] p-5 pb-8 animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-y-auto mt-auto"
                 >
                   {/* Pull indicator */}
                   <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-4" />
@@ -244,71 +273,69 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                     Done
                   </button>
                 </div>
-              </>
+              </div>,
+              document.body
             )}
 
             {/* Triggers in bottom bar */}
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex flex-1 items-center gap-2 h-[40px] sm:h-[44px]">
               {/* SIZE BUTTON */}
               <button 
                 onClick={() => setOpenDropdown(openDropdown === "size" ? null : "size")}
-                className={`border rounded-lg px-2.5 py-1.5 flex flex-col items-start min-w-[65px] shadow-2xs transition-all ${
+                className={`border rounded-md px-2 flex flex-col flex-1 items-start justify-center shadow-2xs transition-all h-full ${
                   openDropdown === "size" ? "border-brand bg-orange-50/50 ring-1 ring-brand" : "border-neutral-300 bg-white active:bg-neutral-50"
                 }`}
               >
-                <div className="flex items-center justify-between w-full text-[9px] font-bold text-neutral-500 uppercase leading-none">
+                <div className="flex items-center justify-between w-full text-[8.5px] sm:text-[9px] font-bold text-neutral-500 uppercase leading-none mb-1">
                   <span>SIZE</span>
-                  <ChevronDownIcon className="w-2.5 h-2.5 text-neutral-400 ml-1 shrink-0" />
+                  <ChevronDownIcon className="w-2.5 h-2.5 text-neutral-400 shrink-0" />
                 </div>
-                <span className="text-xs font-black text-neutral-900 mt-1 leading-none">{activeSize || "--"}</span>
+                <div className="w-full flex justify-center items-center leading-none">
+                  <span className="text-[12px] sm:text-[13px] font-black text-neutral-900 leading-none">{activeSize || "--"}</span>
+                </div>
               </button>
 
               {/* COLOR BUTTON */}
               <button 
                 onClick={() => setOpenDropdown(openDropdown === "color" ? null : "color")}
-                className={`border rounded-lg px-2.5 py-1.5 flex flex-col items-start min-w-[75px] max-w-[110px] shadow-2xs transition-all ${
+                className={`border rounded-md px-2 flex flex-col flex-1 items-start justify-center shadow-2xs transition-all h-full ${
                   openDropdown === "color" ? "border-brand bg-orange-50/50 ring-1 ring-brand" : "border-neutral-300 bg-white active:bg-neutral-50"
                 }`}
               >
-                <div className="flex items-center justify-between w-full text-[9px] font-bold text-neutral-500 uppercase leading-none">
-                  <span>COLOR:</span>
-                  <ChevronDownIcon className="w-2.5 h-2.5 text-neutral-400 ml-1" />
+                <div className="flex items-center justify-between w-full text-[8.5px] sm:text-[9px] font-bold text-neutral-500 uppercase leading-none mb-1">
+                  <span>COLOR</span>
+                  <ChevronDownIcon className="w-2.5 h-2.5 text-neutral-400 shrink-0" />
                 </div>
-                <div className="flex items-center gap-1.5 mt-1 leading-none max-w-full">
-                  <span className="w-2.5 h-2.5 rounded-full border border-neutral-300 shrink-0" style={{ background: colors.find(c => c.name === activeColor)?.background || '#111' }} />
-                  <span className="text-xs font-black text-neutral-900 truncate">{activeColor || "--"}</span>
+                <div className="flex items-center justify-center gap-1.5 leading-none w-full">
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-neutral-300 shrink-0" style={{ background: colors.find(c => c.name === activeColor)?.background || '#111' }} />
+                  <span className="text-[12px] sm:text-[13px] font-black text-neutral-900 truncate leading-none mt-0.5">{activeColor || "--"}</span>
                 </div>
               </button>
             </div>
 
             {/* ACTION BUTTON */}
-            <div className="flex-1 ml-2">
+            <div className="w-[38%] shrink-0 h-[40px] sm:h-[44px]">
               {hasAdded ? (
-                <div className="flex items-center gap-1.5 animate-in zoom-in duration-200">
-                  <button onClick={handleAddToCartClick} className="bg-white text-neutral-800 px-3 py-2 rounded-sm font-bold text-xs uppercase border border-neutral-300 shadow-sm active:scale-95 transition-all">
+                <div className="flex items-center gap-1.5 animate-in zoom-in duration-200 w-full h-full">
+                  <button onClick={handleAddToCartClick} className="bg-white text-brand px-3 rounded-md font-black text-[13px] border-2 border-brand/20 shadow-sm active:scale-95 transition-all h-full">
                     +1
                   </button>
-                  <button onClick={() => router.push("/cart")} className="bg-emerald-600 w-full text-white px-2 py-2 rounded-sm font-black tracking-wider text-xs flex justify-center items-center gap-1 shadow-md transition-all active:scale-95">
-                    <CheckIcon className="w-4 h-4 stroke-[3]" />
-                    CART
+                  <button onClick={() => router.push("/cart")} className="flex-1 bg-emerald-600 text-white px-2 rounded-md font-black tracking-wider text-[11px] flex justify-center items-center gap-1.5 shadow-md transition-all active:scale-95 h-full">
+                    <ShoppingBagIcon className="w-4 h-4 shrink-0" />
+                    <span className="leading-none mt-0.5">{cartCount} ITEM{cartCount !== 1 ? 'S' : ''}</span>
                   </button>
                 </div>
               ) : (
                 <button 
                   onClick={handleAddToCartClick}
                   disabled={isOutOfStock}
-                  className={`w-full ${
+                  className={`w-full h-full flex items-center justify-center gap-1 rounded-md font-black uppercase tracking-tighter sm:tracking-wider text-[11px] sm:text-xs shadow-sm active:scale-95 transition-all ${
                     isOutOfStock 
-                      ? 'bg-[#c5e84f] text-neutral-900' 
+                      ? 'bg-[#c5e84f] text-neutral-900 cursor-not-allowed' 
                       : 'bg-gradient-to-r from-banner to-orange-600 text-white hover:from-orange-600 hover:to-orange-700'
-                  } px-1 py-2.5 rounded-sm font-black uppercase tracking-tighter sm:tracking-wider text-[10px] sm:text-xs shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1`}
+                  }`}
                 >
-                  {isOutOfStock ? "RESTOCKING" : (
-                    <>
-                      <ShoppingCartIcon className="w-3.5 h-3.5 hidden sm:block" />
-                      ADD TO CART
-                    </>
-                  )}
+                  {isOutOfStock ? "SOLD OUT" : "ADD TO CART"}
                 </button>
               )}
             </div>
@@ -454,11 +481,11 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
             <div className="p-4 overflow-y-auto min-h-0">
               {sizeChart.includes('<') ? (
                 <div 
-                  className="w-full overflow-x-auto text-sm text-neutral-800 [&_table]:min-w-[600px] [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-neutral-300 [&_th]:p-3 [&_th]:bg-neutral-100 [&_th]:whitespace-nowrap [&_td]:border [&_td]:border-neutral-300 [&_td]:p-3 [&_td]:text-center [&_img]:max-w-full [&_img]:h-auto"
+                  className="w-full overflow-x-auto text-sm text-neutral-800 [&_table]:min-w-[600px] [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-neutral-300 [&_th]:p-3 [&_th]:bg-neutral-100 [&_th]:whitespace-nowrap [&_td]:border [&_td]:border-neutral-300 [&_td]:p-3 [&_td]:text-center [&_img]:w-full [&_img]:max-h-[70vh] [&_img]:object-contain [&_img]:mx-auto"
                   dangerouslySetInnerHTML={{ __html: sizeChart.replace(/""/g, '"') }} 
                 />
               ) : (
-                <img src={sizeChart} alt="Size Chart" className="w-full h-auto object-contain rounded-md" />
+                <img src={sizeChart} alt="Size Chart" className="w-full max-h-[70vh] object-contain rounded-md mx-auto" />
               )}
             </div>
           </div>

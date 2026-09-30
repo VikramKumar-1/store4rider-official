@@ -48,30 +48,30 @@ export const FloatingCatalogBar: React.FC<FloatingCatalogBarProps> = ({
           onClick={() => {
             // Scroll to reviews or open modal logic here
           }}
-          className="pointer-events-auto w-full bg-white/95 backdrop-blur-md border-t-2 border-[#FF5429] text-neutral-900 font-extrabold text-[10px] uppercase tracking-wider py-2 px-4 flex items-center justify-center gap-1.5 active:bg-neutral-50 transition-all cursor-pointer rounded-none"
+          className="pointer-events-auto w-full bg-white/95 backdrop-blur-md border-t-2 border-[#FF5429] text-neutral-900 font-extrabold text-xs uppercase tracking-wider py-2.5 px-4 flex items-center justify-center gap-1.5 active:bg-neutral-50 transition-all cursor-pointer rounded-none shadow-sm"
         >
           <span>REVIEWS-{reviewCount} : {averageRating}</span>
-          <StarIcon className="w-3 h-3 text-[#FF5429] mb-0.5" />
+          <StarIcon className="w-4 h-4 text-[#FF5429] mb-0.5" />
         </button>
 
         {/* 2. CATEGORY FILTER FLOATING BUTTON (Bottom) */}
         <button
           type="button"
           onClick={() => setIsFilterDrawerOpen(true)}
-          className="pointer-events-auto w-full bg-neutral-950 text-white font-extrabold text-[11px] uppercase tracking-wider py-2.5 px-5 flex items-center justify-between border-t border-neutral-800 active:bg-neutral-900 transition-all cursor-pointer rounded-none"
+          className="pointer-events-auto w-full bg-neutral-950 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-5 flex items-center justify-between border-t border-neutral-800 active:bg-neutral-900 transition-all cursor-pointer rounded-none"
         >
-          <div className="flex items-center gap-1.5">
-            <FunnelIcon className="w-3.5 h-3.5 text-[#FF5429] stroke-[2.5]" />
+          <div className="flex items-center gap-2">
+            <FunnelIcon className="w-4 h-4 text-[#FF5429] stroke-[2.5]" />
             <span>CATEGORY FILTER</span>
           </div>
 
           <div className="flex items-center gap-1.5">
             {activeFiltersCount > 0 && (
-              <span className="bg-[#FF5429] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+              <span className="bg-[#FF5429] text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
                 {activeFiltersCount}
               </span>
             )}
-            <span className="text-neutral-400 text-[10px] font-sans">
+            <span className="text-neutral-400 text-[11px] font-sans">
               {totalCount ? `(${totalCount})` : "FILTERS"}
             </span>
           </div>

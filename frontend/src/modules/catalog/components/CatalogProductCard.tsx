@@ -52,12 +52,12 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
       prefetch={false}
     >
       {/* 1. MOBILE CARD (Exact Wireframe Match: Portrait Aspect with Bottom Gradient Overlay & Orange Rating Badge) */}
-      <div className="sm:hidden relative aspect-[3/4] w-full bg-neutral-100 overflow-hidden rounded-lg border border-neutral-200/70 shadow-xs">
+      <div className="sm:hidden relative aspect-[4/5] w-full bg-[#f4f4f4] overflow-hidden rounded-lg border border-neutral-200/70 shadow-xs">
         <Image
           src={imgSrc}
           alt={product.name}
           fill
-          className="object-cover group-active:scale-95 transition-transform duration-300"
+          className="object-contain pb-8 group-active:scale-95 transition-transform duration-300 mix-blend-multiply"
           sizes="50vw"
           onError={() => setImgSrc(FALLBACK_IMAGE)}
         />
@@ -81,12 +81,12 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
 
       {/* 2. DESKTOP CARD (Standard E-Commerce Clean Layout with Hover Quick-Add) */}
       <div className="hidden sm:flex flex-col gap-3 w-full">
-        <div className="relative aspect-square w-full bg-white overflow-hidden rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-neutral-100 p-2">
+        <div className="relative aspect-square w-full bg-[#f4f4f4] overflow-hidden rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-neutral-100">
           <Image
             src={imgSrc}
             alt={product.name}
             fill
-            className="object-contain group-hover:scale-105 transition-transform duration-500 ease-in-out will-change-transform p-4"
+            className="object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500 ease-in-out will-change-transform"
             sizes="(max-width: 768px) 50vw, 33vw"
             onError={() => setImgSrc(FALLBACK_IMAGE)}
           />

@@ -237,7 +237,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
           <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full relative flex flex-col max-h-full overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-4 border-b border-neutral-100 bg-neutral-50 shrink-0">
               <h3 className="font-extrabold text-lg uppercase tracking-wide text-neutral-900">Size Guide</h3>
-              <button onClick={() => setShowSizeChart(false)} className="text-neutral-400 hover:text-red-500 p-1 transition-colors">
+              <button onClick={() => setShowSizeChart(false)} className="text-neutral-400 hover:text-red-500 p-1 hover:scale-110 active:scale-90 transition-all duration-200">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -248,7 +248,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
                   dangerouslySetInnerHTML={{ __html: sizeChart.replace(/""/g, '"') }} 
                 />
               ) : (
-                <img src={sizeChart} alt="Size Chart" className="w-full h-auto object-contain rounded-md" />
+                <img src={sizeChart} alt="Size Chart" className="w-full max-h-[70vh] object-contain rounded-md mx-auto" />
               )}
             </div>
           </div>

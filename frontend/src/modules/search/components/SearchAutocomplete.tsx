@@ -77,7 +77,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
 
   return (
     <div className={`relative flex items-center group ${isMobileFull ? "w-full" : ""}`} ref={containerRef}>
-      <form onSubmit={handleSubmit} className="w-full">
+      <form action="." onSubmit={handleSubmit} className="w-full">
         <div className={`relative flex items-center rounded-full transition-all duration-300 w-full ${
           isMobileFull
             ? "bg-white/90 backdrop-blur-md border border-neutral-200/90 shadow-[0_4px_20px_rgba(0,0,0,0.08)] py-1 px-1 sm:py-0 animate-in fade-in zoom-in-[0.98] duration-200"
@@ -98,7 +98,8 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
           </div>
 
           <input
-            type="text"
+            type="search"
+            enterKeyHint="search"
             placeholder="Search our store"
             value={query}
             autoFocus={isMobileFull}
@@ -107,7 +108,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
               setIsOpen(true);
             }}
             onFocus={() => setIsOpen(true)}
-            className={`w-full bg-transparent text-xs sm:text-[13px] py-2 pl-1 pr-2 focus:outline-none font-medium transition-colors [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden ${
+            className={`w-full bg-transparent text-base sm:text-[13px] py-2 pl-1 pr-2 focus:outline-none font-medium transition-colors [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden ${
               isMobileFull
                 ? "text-neutral-900 placeholder:text-neutral-400 font-sans"
                 : isLight 
@@ -158,7 +159,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
 
       {/* Autocomplete Dropdown */}
       {showDropdown && (
-        <div className={`absolute top-full right-0 mt-2 w-full sm:w-[400px] lg:w-[500px] rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 ${
+        <div className={`absolute top-full right-0 w-full sm:w-[400px] lg:w-[500px] rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 ${
           isMobileFull || isLight
             ? "bg-white/95 backdrop-blur-xl border border-neutral-200/90 shadow-[0_12px_40px_rgba(0,0,0,0.12)]" 
             : "bg-neutral-900/90 backdrop-blur-xl border border-white/15 shadow-[0_12px_40px_rgba(0,0,0,0.4)]"

@@ -14,7 +14,7 @@ const KitImage = ({ src, alt }: { src: string, alt: string }) => {
       alt={alt}
       fill
       unoptimized
-      className={`object-contain p-2 ${error ? 'mix-blend-multiply opacity-50' : ''}`}
+      className={`object-contain mix-blend-multiply ${error ? 'opacity-50' : ''}`}
       sizes="(max-width: 768px) 135px, 150px"
       onError={() => setError(true)}
     />
@@ -86,23 +86,23 @@ export const CompleteKitSlider: React.FC<{ products: KitProduct[] }> = ({ produc
           <Link 
             key={product.id} 
             href={product.productUrl}
-            className="shrink-0 w-[135px] sm:w-[150px] block bg-white/95 rounded-xl border border-neutral-200/80 p-2.5 transform-gpu"
+            className="shrink-0 w-[135px] sm:w-[150px] block group cursor-pointer transform-gpu"
           >
             {/* Image Container */}
-            <div className="relative aspect-square w-full bg-neutral-50/80 rounded-lg overflow-hidden mb-2 border border-neutral-100 pointer-events-none">
+            <div className="relative aspect-square w-full bg-[#f4f4f4] rounded-xl overflow-hidden mb-3 border border-neutral-200/80 group-hover:border-neutral-300 transition-colors pointer-events-none">
               <KitImage src={product.imageUrl} alt={product.name} />
             </div>
 
             {/* Typography Details */}
-            <div className="mt-1">
-              <h4 className="text-xs font-bold text-neutral-900 font-sans line-clamp-2 leading-snug">
+            <div className="px-1">
+              <h4 className="text-xs font-bold text-neutral-900 font-sans line-clamp-2 leading-snug group-hover:text-brand transition-colors">
                 {product.name}
               </h4>
               <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-neutral-100">
                 <span className="text-xs font-extrabold text-brand font-sans">
                   {product.priceFormatted}
                 </span>
-                <span className="w-5 h-5 rounded-full bg-neutral-100 text-neutral-400 flex items-center justify-center text-xs font-bold">
+                <span className="w-5 h-5 rounded-full bg-neutral-100 text-neutral-400 flex items-center justify-center text-xs font-bold group-hover:bg-brand group-hover:text-white transition-colors">
                   +
                 </span>
               </div>

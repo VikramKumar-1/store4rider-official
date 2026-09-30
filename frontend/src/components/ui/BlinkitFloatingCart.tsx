@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCartStore } from "@/stores/useCartStore";
+import { useUIStore } from "@/stores/useUIStore";
 import { formatPrice } from "@store4riders/shared-utils";
 import { ChevronRightIcon, CheckIcon, ShoppingBagIcon } from "@heroicons/react/24/solid";
 
@@ -22,6 +23,7 @@ const FALLBACK_IMAGE = "/no-image.svg";
 export const BlinkitFloatingCart: React.FC = () => {
   const pathname = usePathname();
   const { items, openDrawer } = useCartStore();
+  const isBottomModalOpen = useUIStore((state) => state.isBottomModalOpen);
   const [mounted, setMounted] = useState(false);
   const [lastAddedItem, setLastAddedItem] = useState<{ name: string; price: number; image: string } | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -59,12 +61,27 @@ export const BlinkitFloatingCart: React.FC = () => {
       {items.length > 0 && (
         <aside 
           aria-label="Quick Cart Widget" 
-          className={`fixed ${isPDP ? 'bottom-24 md:bottom-24' : 'bottom-6'} right-4 sm:right-6 z-40 pointer-events-auto`}
+          className={`fixed ${isPDP ? 'bottom-[170px] lg:bottom-6' : 'bottom-[100px] lg:bottom-6'} right-4 sm:right-6 z-40 transition-all duration-300 transform-gpu will-change-transform ${
+            isBottomModalOpen ? "translate-y-[200px] opacity-0 pointer-events-none" : "translate-y-0 opacity-100 pointer-events-auto"
+          }`}
         >
+          {/* MOBILE: Small Bag Icon */}
           <button
             onClick={openDrawer}
             aria-label="Open Cart Drawer"
-            className="group flex items-center gap-2.5 bg-[#0f0f11]/95 hover:bg-black text-white pl-2.5 pr-3.5 py-2 rounded-full shadow-[0_12px_32px_rgba(0,0,0,0.5)] border border-white/15 backdrop-blur-xl transition-all duration-300 transform hover:scale-105 active:scale-95 animate-in slide-in-from-bottom-3"
+            className="sm:hidden relative flex items-center justify-center w-12 h-12 bg-neutral-900 text-white rounded-full shadow-[0_8px_24px_rgba(0,0,0,0.25)] border border-white/10 hover:scale-105 active:scale-90 transition-transform duration-75 animate-in zoom-in"
+          >
+            <ShoppingBagIcon className="w-5 h-5" />
+            <span className="absolute -top-1 -right-1 bg-banner text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+              {totalQuantity > 99 ? "99+" : totalQuantity}
+            </span>
+          </button>
+
+          {/* DESKTOP: Full Pill */}
+          <button
+            onClick={openDrawer}
+            aria-label="Open Cart Drawer"
+            className="hidden sm:flex group items-center gap-2.5 bg-[#0f0f11]/95 hover:bg-black text-white pl-2.5 pr-3.5 py-2 rounded-full shadow-[0_12px_32px_rgba(0,0,0,0.5)] border border-white/15 backdrop-blur-xl transition-all duration-300 active:duration-75 transform hover:scale-105 active:scale-95 animate-in slide-in-from-bottom-3"
           >
             {/* Thumbnails Stack */}
             <div className="flex items-center -space-x-2 shrink-0">

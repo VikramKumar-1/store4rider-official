@@ -65,26 +65,26 @@ export const UpSellProducts: React.FC<{ products: KitProduct[]; title?: string }
           <Link 
             key={product.id} 
             href={product.productUrl}
-            className="shrink-0 w-[170px] sm:w-[200px] md:w-[240px] block bg-white rounded-xl border border-neutral-200/70 p-3 transform-gpu"
+            className="shrink-0 w-[170px] sm:w-[200px] md:w-[240px] block group cursor-pointer transform-gpu"
           >
             {/* Image Box */}
-            <div className="relative aspect-square w-full bg-neutral-50/50 rounded-lg overflow-hidden mb-3 border border-neutral-100">
+            <div className="relative aspect-square w-full bg-[#f4f4f4] rounded-xl overflow-hidden mb-3 border border-neutral-200/70 group-hover:border-neutral-300 transition-colors">
               <Image
                 src={product.imageUrl}
                 alt={product.name}
                 fill
                 unoptimized
-                className="object-contain p-3 pointer-events-none"
+                className="object-contain mix-blend-multiply pointer-events-none group-hover:scale-105 transition-transform duration-500"
                 sizes="(max-width: 640px) 170px, (max-width: 768px) 200px, 240px"
               />
             </div>
 
             {/* Product Meta */}
-            <div className="mt-1">
-              <h3 className="text-xs md:text-sm font-bold text-neutral-900 font-sans line-clamp-2 leading-snug">
+            <div className="px-1 mt-1">
+              <h3 className="text-xs md:text-sm font-bold text-neutral-900 font-sans line-clamp-2 leading-snug group-hover:text-brand transition-colors">
                 {product.name}
               </h3>
-              <div className="text-xs md:text-sm font-extrabold text-brand font-sans mt-2">
+              <div className="text-xs md:text-sm font-extrabold text-brand font-sans mt-1.5">
                 {product.priceFormatted}
               </div>
             </div>

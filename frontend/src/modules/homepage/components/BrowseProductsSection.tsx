@@ -25,12 +25,12 @@ const GridProductCard: React.FC<{ product: BrowseProductData; layout?: "scroll" 
   return (
     <div className={`flex flex-col group cursor-pointer ${containerClass}`}>
       {/* Edge-to-edge Image Container */}
-      <div className="relative aspect-[4/5] w-full bg-white overflow-hidden mb-2 md:mb-3 group/image flex items-center justify-center">
+      <div className="relative aspect-square w-full bg-[#f4f4f4] overflow-hidden mb-2 md:mb-3 group/image flex items-center justify-center rounded-lg">
         <Image
           src={product.imageUrl}
           alt={product.name}
           fill
-          className="object-contain group-hover:scale-105 transition-transform duration-500 ease-out will-change-transform p-2"
+          className="object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500 ease-out will-change-transform"
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
         
@@ -44,7 +44,7 @@ const GridProductCard: React.FC<{ product: BrowseProductData; layout?: "scroll" 
 
         {/* Hover "Add to Cart" Button Overlay */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto bg-black/5 z-20 hidden lg:flex">
-          <button className="bg-white/95 hover:bg-white text-neutral-900 w-[85%] py-2.5 rounded flex items-center justify-center gap-2 text-[10px] font-bold tracking-widest shadow-xl translate-y-4 group-hover:translate-y-0 transition-all duration-300 ease-out">
+          <button className="bg-white hover:bg-[#FF5429] text-neutral-900 hover:text-white w-[85%] py-2.5 rounded flex items-center justify-center gap-2 text-[10px] font-bold tracking-widest shadow-xl translate-y-4 group-hover:translate-y-0 transition-all duration-300 ease-out">
             ADD TO CART
           </button>
         </div>

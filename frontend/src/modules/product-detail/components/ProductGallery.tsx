@@ -21,7 +21,7 @@ const Thumbnail: React.FC<{
   return (
     <button
       onClick={onClick}
-      className={`relative w-20 sm:w-24 aspect-square shrink-0 border-2 rounded-sm overflow-hidden bg-neutral-100 transition-all ${
+      className={`relative w-20 sm:w-24 aspect-square shrink-0 border-2 rounded-sm overflow-hidden bg-[#f4f4f4] transition-all ${
         isActive ? "border-brand" : "border-neutral-200 hover:border-neutral-300"
       }`}
     >
@@ -30,7 +30,7 @@ const Thumbnail: React.FC<{
         alt={`Thumbnail ${idx}`}
         fill
         unoptimized
-        className="object-contain p-1"
+        className="object-contain mix-blend-multiply"
         onError={() => setSrc(FALLBACK_IMAGE)}
       />
     </button>
@@ -163,7 +163,7 @@ export const ProductGallery: React.FC<{
     <div className="flex flex-col gap-4 relative">
       {/* Main Large Image */}
       <div 
-        className="relative aspect-square md:aspect-[10/11] w-full max-h-[500px] md:max-h-[580px] bg-white rounded-xl border border-neutral-200/80 cursor-none overflow-hidden"
+        className="relative aspect-square md:aspect-[10/11] w-full max-h-[500px] md:max-h-[580px] bg-[#f4f4f4] rounded-xl border border-neutral-200/80 cursor-none overflow-hidden"
         onMouseEnter={() => setIsZoomed(true)}
         onMouseLeave={() => setIsZoomed(false)}
         onMouseMove={handleMouseMove}
@@ -174,7 +174,7 @@ export const ProductGallery: React.FC<{
           alt={images[activeIndex]?.altText || "Product image"}
           fill
           unoptimized
-          className="object-contain p-2 md:p-6"
+          className="object-contain mix-blend-multiply"
           priority
           sizes="(max-width: 768px) 100vw, 50vw"
           onError={() => setMainSrc(FALLBACK_IMAGE)}
@@ -190,13 +190,13 @@ export const ProductGallery: React.FC<{
                 clipPath: `circle(125px at ${position.x}% ${position.y}%)`
               }}
             >
-              <div className="relative w-full h-full bg-white">
+              <div className="relative w-full h-full bg-[#f4f4f4]">
                 <Image
                   src={mainSrc}
                   alt="Zoomed"
                   fill
                   unoptimized
-                  className="object-contain p-2 md:p-6"
+                  className="object-contain mix-blend-multiply"
                   style={{
                     transformOrigin: `${position.x}% ${position.y}%`,
                     transform: 'scale(2.5)',

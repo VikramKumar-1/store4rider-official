@@ -419,7 +419,7 @@ export const CartPageModule = () => {
                   <span>•</span>
                   <span>✓ Fast Dispatch</span>
                   <span>•</span>
-                  <span>✓ Easy Returns</span>
+                  <span>✓ Easy Exchange</span>
                 </div>
 
               </div>

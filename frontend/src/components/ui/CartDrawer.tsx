@@ -243,16 +243,9 @@ export const CartDrawer: React.FC = () => {
             <div className="border-t border-neutral-200 p-4 sm:p-5 bg-neutral-50/70 flex flex-col gap-3">
               
               {/* Subtotal */}
-              <div className="flex items-center justify-between text-sm text-neutral-600">
+              <div className="flex items-center justify-between text-sm text-neutral-600 mb-1">
                 <span>Subtotal</span>
                 <span className="font-bold text-base text-neutral-900">{formatPrice(subtotal)}</span>
-              </div>
-
-              <div className="flex items-center justify-between text-[11px] text-neutral-400">
-                <span>Taxes & Shipping calculated at checkout</span>
-                <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                  <ShieldCheckIcon className="w-3.5 h-3.5" /> 100% Safe
-                </span>
               </div>
 
               {/* Checkout Button */}
