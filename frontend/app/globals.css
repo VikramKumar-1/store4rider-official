@@ -227,7 +227,16 @@ html {
   color: #0f172a;
 }
 
-.magento-layout-accordion table,
-.magento-layout-accordion img {
-  display: none !important;
+.magento-layout-accordion table {
+  width: 100% !important;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+}
+
+.magento-layout-accordion table td,
+.magento-layout-accordion table th {
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem;
+  text-align: left;
 }

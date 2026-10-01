@@ -37,72 +37,48 @@ const Thumbnail: React.FC<{
   );
 };
 
+// 100% bulletproof normalization: remove EVERYTHING except letters and numbers!
+const normalizeForCompare = (str: string) => {
+  if (!str) return "";
+  return str.replace(/[^a-z0-9]/gi, '').toLowerCase();
+};
+
 const findMatchingImageIndex = (selectedColor: string | undefined, images: ProductImage[]): number => {
   if (!selectedColor || !images || images.length === 0) return -1;
 
-  const normalizedColor = selectedColor.trim().toLowerCase();
+  const normalizedValue = selectedColor.trim().toLowerCase();
+  const exactNormVal = normalizeForCompare(selectedColor);
+
+  let matchIdx = -1;
+
+  // 1. Exact Match on Color Portion (or full string)
+  matchIdx = images.findIndex(img => {
+    if (!img.altText) return false;
+    const parts = img.altText.split('-');
+    if (parts.length > 1 && normalizeForCompare(parts[parts.length - 1]) === exactNormVal) return true;
+    if (normalizeForCompare(img.altText) === exactNormVal) return true;
+    if (normalizeForCompare(img.altText).endsWith(exactNormVal)) return true;
+    return false;
+  });
+  if (matchIdx !== -1) return matchIdx;
+
+  // 2. Token Matching (Exclusivity Check for Pure Colors)
+  const tokens = normalizedValue.split(/[/\\&\-_+ ]/).filter(Boolean);
+  const isPureColor = tokens.length === 1;
+  const allAccents = ["red", "orange", "blue", "green", "neon", "yellow", "silver", "white", "grey", "gray", "brown", "purple"];
   
-  // 1. Exact suffix match on altText (because inferImageColorLabel appends " - Color")
-  let matchIdx = images.findIndex(img => 
-    (img.altText || "").toLowerCase().endsWith(` - ${normalizedColor}`)
-  );
-  if (matchIdx !== -1) return matchIdx;
-
-  // 1b. Direct exact match or padded match on altText
-  matchIdx = images.findIndex(img => {
-    const alt = (img.altText || "").toLowerCase();
-    const safeColor = normalizedColor.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-    return new RegExp(`(?:^|\\s|-|_)${safeColor}(?:$|\\s|-|_)`).test(alt);
-  });
-  if (matchIdx !== -1) return matchIdx;
-
-  // 2. Direct match on image URL with delimiters
-  matchIdx = images.findIndex(img => {
-    const url = (img.url || "").toLowerCase();
-    const dashFormat = normalizedColor.replace(/\//g, "-");
-    const underscoreFormat = normalizedColor.replace(/\//g, "_");
-    const noSpaceFormat = normalizedColor.replace(/\//g, "");
-    
-    const check = (fmt: string) => {
-      const safe = fmt.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-      return new RegExp(`(?:^|\\/|-|_)${safe}(?:$|\\.|-|_)`).test(url);
-    };
-    return check(normalizedColor) || check(dashFormat) || check(underscoreFormat) || check(noSpaceFormat);
-  });
-  if (matchIdx !== -1) return matchIdx;
-
-  const tokens = normalizedColor.split(/[/\\&\-_+ ]/).filter(Boolean);
-  const accentTokens = tokens.length > 1 ? tokens.filter(t => t !== "black" && t !== "grey") : tokens;
-  const primaryToken = accentTokens[0] || tokens[0];
-
-  const abbreviations: Record<string, string[]> = {
-    yellow: ["ylw", "yel", "yellow"],
-    black: ["blk", "_5_", "_30", "_38", "black"],
-    orange: ["org", "_10", "orange"],
-    blue: ["blu", "_14", "_24", "_19", "blue"],
-    red: ["_25", "_46", "_48", "_3__11zon", "red"],
-    grey: ["gry", "gray", "_9", "_11", "grey"],
-    brown: ["brn", "__1", "brown"],
-    white: ["wht", "white"],
-    green: ["grn", "green"],
-    silver: ["slv", "silver"],
-    purple: ["pur", "prp", "purple"],
-  };
-
-  const searchTerms = [
-    primaryToken,
-    ...(abbreviations[primaryToken] || []),
-    ...tokens,
-  ];
-
   matchIdx = images.findIndex(img => {
     const alt = (img.altText || "").toLowerCase();
     const url = (img.url || "").toLowerCase();
     
-    return searchTerms.some(term => {
-      const safe = term.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-      return new RegExp(`(?:^|\\s|-|_)${safe}(?:$|\\s|-|_)`).test(alt) || 
-             new RegExp(`(?:^|\\/|-|_|\\.)${safe}(?:$|\\.|-|_)`).test(url);
+    if (isPureColor && tokens[0] === "black") {
+       if (allAccents.some(c => alt.includes(c) || url.includes(c))) return false;
+       return alt.includes("black") || url.includes("black");
+    }
+    
+    return tokens.every(t => {
+       const term = t === "flu." || t === "flu" ? "neon" : t;
+       return alt.includes(term) || url.includes(term) || (t === "flu." && (alt.includes("flu") || url.includes("flu")));
     });
   });
 
@@ -112,8 +88,9 @@ const findMatchingImageIndex = (selectedColor: string | undefined, images: Produ
 export const ProductGallery: React.FC<{ 
   images: ProductImage[];
   selectedColor?: string;
+  selectedSize?: string;
   activeVariantImageUrl?: string;
-}> = ({ images, selectedColor, activeVariantImageUrl }) => {
+}> = ({ images, selectedColor, selectedSize, activeVariantImageUrl }) => {
   // Always default to the very first image (base image) which matches Catalog
   const [activeIndex, setActiveIndex] = useState(0);
   const [mainSrc, setMainSrc] = useState(images?.[0]?.url || FALLBACK_IMAGE);
@@ -227,7 +204,7 @@ export const ProductGallery: React.FC<{
                   className="object-contain mix-blend-multiply"
                   style={{
                     transformOrigin: `${position.x}% ${position.y}%`,
-                    transform: 'scale(2.5)',
+                    transform: 'scale(1.8)',
                   }}
                 />
               </div>

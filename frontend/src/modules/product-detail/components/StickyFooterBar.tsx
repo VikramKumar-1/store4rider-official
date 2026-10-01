@@ -13,6 +13,7 @@ interface StickyFooterBarProps {
   priceFormatted: string;
   colors: ColorOption[];
   sizes: string[];
+  sizeLabel?: string;
   selectedColor?: string;
   selectedSize?: string;
   disabledColors?: string[];
@@ -30,6 +31,7 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
   priceFormatted,
   colors,
   sizes,
+  sizeLabel = "SIZE",
   selectedColor,
   selectedSize,
   disabledColors = [],
@@ -85,22 +87,21 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
       openDropdown || showSizeChart ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
     }`}>
       
-      {/* Top Floating Mini-Bar (Mobile Size Guide & Rating) */}
-      <div className="w-full bg-white/50 backdrop-blur-md border-b border-neutral-200/50 py-1.5 px-4 grid grid-cols-3 items-center text-[10px] md:hidden relative">
-        <div /> {/* Left Spacer */}
-        
-        {/* CENTER: Rating */}
-        <div className="flex justify-center items-center gap-1 text-neutral-600 font-bold">
-          <span className="text-neutral-400 text-[9px] uppercase tracking-wider mr-0.5">Review</span>
-          <svg className="w-3 h-3 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-          <span className="leading-none">{rating > 0 ? rating : "4.8"}</span>
-          <span className="text-neutral-400 font-medium leading-none">({reviewCount > 0 ? reviewCount : 800}+)</span>
-        </div>
+      {/* Top Floating Mini-Bar (Rating and Mobile Size Guide) */}
+      <div className="w-full bg-white/50 backdrop-blur-md border-b border-neutral-200/50 py-1.5 border-t border-neutral-100">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6 flex justify-between items-center text-[11px]">
+          {/* LEFT: Rating */}
+          <div className="flex items-center gap-1.5 text-neutral-700 font-bold">
+            <span className="text-neutral-500 text-[10px] uppercase tracking-wider mr-0.5">Review</span>
+            <svg className="w-3.5 h-3.5 text-orange-400 -mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <span className="leading-none text-[12px]">{rating > 0 ? rating : "4.8"}</span>
+            <span className="text-neutral-400 font-medium leading-none text-[11px]">({reviewCount > 0 ? reviewCount : 800}+)</span>
+          </div>
 
-        {/* RIGHT: Size Chart */}
-        <div className="flex justify-end">
+        {/* RIGHT: Size Chart (Mobile Only) */}
+        <div className="flex justify-end md:hidden">
           {sizeChart && (
             <span 
               onClick={() => setShowSizeChart(true)}
@@ -116,6 +117,7 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
               Size Chart
             </span>
           )}
+        </div>
         </div>
       </div>
 
@@ -217,7 +219,7 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                     <div className="flex flex-col gap-2.5 mb-5">
                       <div className="flex items-center justify-between text-[11px] uppercase font-bold tracking-wider">
                         <div className="flex items-center gap-1.5 text-neutral-500">
-                          <span>SELECTED SIZE:</span>
+                          <span>SELECTED {sizeLabel}:</span>
                           <span className="text-neutral-900 font-black">{activeSize}</span>
                         </div>
                         {sizeChart && (
@@ -264,37 +266,41 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
             {/* Triggers in bottom bar */}
             <div className="flex flex-1 items-center gap-2 h-[40px] sm:h-[44px]">
               {/* SIZE BUTTON */}
-              <button 
-                onClick={() => setOpenDropdown(openDropdown === "size" ? null : "size")}
-                className={`border rounded-md px-2 flex flex-col flex-1 items-start justify-center shadow-2xs transition-all h-full ${
-                  openDropdown === "size" ? "border-brand bg-orange-50/50 ring-1 ring-brand" : "border-neutral-300 bg-white active:bg-neutral-50"
-                }`}
-              >
-                <div className="flex items-center justify-between w-full text-[8.5px] sm:text-[9px] font-bold text-neutral-500 uppercase leading-none mb-1">
-                  <span>SIZE</span>
-                  <ChevronDownIcon className="w-2.5 h-2.5 text-neutral-400 shrink-0" />
-                </div>
-                <div className="w-full flex justify-center items-center leading-none">
-                  <span className="text-[12px] sm:text-[13px] font-black text-neutral-900 leading-none">{activeSize || "--"}</span>
-                </div>
-              </button>
+              {sizes && sizes.length > 0 && (
+                <button 
+                  onClick={() => setOpenDropdown(openDropdown === "size" ? null : "size")}
+                  className={`border rounded-md px-2 flex flex-col flex-1 items-start justify-center shadow-2xs transition-all h-full ${
+                    openDropdown === "size" ? "border-brand bg-orange-50/50 ring-1 ring-brand" : "border-neutral-300 bg-white active:bg-neutral-50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full text-[8.5px] sm:text-[9px] font-bold text-neutral-500 uppercase leading-none mb-1">
+                    <span className="truncate max-w-[85%]">{sizeLabel}</span>
+                    <ChevronDownIcon className="w-2.5 h-2.5 text-neutral-400 shrink-0" />
+                  </div>
+                  <div className="w-full flex justify-center items-center leading-none">
+                    <span className="text-[12px] sm:text-[13px] font-black text-neutral-900 leading-none">{activeSize || "--"}</span>
+                  </div>
+                </button>
+              )}
 
               {/* COLOR BUTTON */}
-              <button 
-                onClick={() => setOpenDropdown(openDropdown === "color" ? null : "color")}
-                className={`border rounded-md px-2 flex flex-col flex-1 items-start justify-center shadow-2xs transition-all h-full ${
-                  openDropdown === "color" ? "border-brand bg-orange-50/50 ring-1 ring-brand" : "border-neutral-300 bg-white active:bg-neutral-50"
-                }`}
-              >
-                <div className="flex items-center justify-between w-full text-[8.5px] sm:text-[9px] font-bold text-neutral-500 uppercase leading-none mb-1">
-                  <span>COLOR</span>
-                  <ChevronDownIcon className="w-2.5 h-2.5 text-neutral-400 shrink-0" />
-                </div>
-                <div className="flex items-center justify-center gap-1.5 leading-none w-full">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-neutral-300 shrink-0" style={{ background: colors.find(c => c.name === activeColor)?.background || '#111' }} />
-                  <span className="text-[12px] sm:text-[13px] font-black text-neutral-900 truncate leading-tight mt-px pb-px">{activeColor || "--"}</span>
-                </div>
-              </button>
+              {colors && colors.length > 0 && (
+                <button 
+                  onClick={() => setOpenDropdown(openDropdown === "color" ? null : "color")}
+                  className={`border rounded-md px-2 flex flex-col flex-1 items-start justify-center shadow-2xs transition-all h-full ${
+                    openDropdown === "color" ? "border-brand bg-orange-50/50 ring-1 ring-brand" : "border-neutral-300 bg-white active:bg-neutral-50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full text-[8.5px] sm:text-[9px] font-bold text-neutral-500 uppercase leading-none mb-1">
+                    <span>COLOR</span>
+                    <ChevronDownIcon className="w-2.5 h-2.5 text-neutral-400 shrink-0" />
+                  </div>
+                  <div className="flex items-center justify-center gap-1.5 leading-none w-full">
+                    <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-neutral-300 shrink-0" style={{ background: colors.find(c => c.name === activeColor)?.background || '#111' }} />
+                    <span className="text-[12px] sm:text-[13px] font-black text-neutral-900 truncate leading-tight mt-px pb-px">{activeColor || "--"}</span>
+                  </div>
+                </button>
+              )}
             </div>
 
             {/* ACTION BUTTON */}

@@ -48,18 +48,11 @@ export const CartDrawer: React.FC = () => {
     };
   }, [isDrawerOpen]);
 
-  if (!isDrawerOpen) return null;
-
   const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
   const subtotal = items.reduce((sum, item) => {
     const price = item.product?.basePrice || (item as any).price || 0;
     return sum + price * (item.quantity || 1);
   }, 0);
-
-  const freeShippingThreshold = 2500;
-  const isFreeShipping = subtotal >= freeShippingThreshold;
-  const amountToFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
-  const shippingProgress = Math.min(100, (subtotal / freeShippingThreshold) * 100);
 
   const handleCheckoutClick = () => {
     closeDrawer();
@@ -76,16 +69,26 @@ export const CartDrawer: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-300">
+    <div 
+      className={`fixed inset-0 z-[9999] overflow-hidden transition-all duration-400 ${
+        isDrawerOpen ? "pointer-events-auto" : "pointer-events-none"
+      }`}
+    >
       {/* Backdrop */}
       <div 
         onClick={closeDrawer}
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-400 ${
+          isDrawerOpen ? "opacity-100" : "opacity-0"
+        }`}
       />
 
       {/* Slide-over Side Panel */}
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out animate-in slide-in-from-right duration-300">
+      <div className="absolute inset-y-0 right-0 max-w-full flex">
+        <div 
+          className={`w-screen max-w-md bg-white shadow-2xl flex flex-col transform transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isDrawerOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
           
           {/* 1. Drawer Header */}
           <div className="p-4 sm:p-5 border-b border-neutral-200 flex items-center justify-between bg-neutral-50/70">
@@ -112,27 +115,7 @@ export const CartDrawer: React.FC = () => {
             </button>
           </div>
 
-          {/* Free Shipping Meter */}
-          <div className="bg-orange-50/70 border-b border-orange-100 px-4 py-2.5 flex flex-col gap-1.5 text-xs">
-            <div className="flex items-center gap-1.5 text-neutral-800 font-medium">
-              <TruckIcon className="w-4 h-4 text-banner shrink-0" />
-              {isFreeShipping ? (
-                <span className="text-emerald-700 font-bold">
-                  🎉 You have unlocked <strong>FREE Shipping</strong>!
-                </span>
-              ) : (
-                <span>
-                  Add <strong className="text-banner">{formatPrice(amountToFreeShipping)}</strong> more for <strong>FREE Delivery</strong>
-                </span>
-              )}
-            </div>
-            <div className="w-full h-1.5 bg-neutral-200 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-banner transition-all duration-500 rounded-full"
-                style={{ width: `${shippingProgress}%` }}
-              />
-            </div>
-          </div>
+
 
           {/* 2. Items List */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-5 divide-y divide-neutral-100 space-y-4">

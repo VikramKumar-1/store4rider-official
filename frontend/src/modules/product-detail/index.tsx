@@ -31,18 +31,43 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
   const recentViews = useRecentViewsStore((state) => state.items);
   const router = useRouter();
 
-  // Reset defaults when product changes
+  // Reset defaults when product changes (e.g. navigating via related products)
   useEffect(() => {
     if (product.colors?.length > 0) {
       setSelectedColor(product.colors[0].name);
+    } else {
+      setSelectedColor("");
+    }
+    
+    if (product.sizes?.length > 0) {
+      setSelectedSize(product.sizes[0]);
+    } else {
+      setSelectedSize("");
     }
   }, [product.slug]);
 
-  // We are removing the strict "stock <= 0" check because Magento CSVs often have 0 qty 
-  // even if the product is orderable. Colors will only be disabled if they strictly don't exist.
-  const disabledColors: string[] = [];
+  // Calculate disabled colors based on variant stock
+  const disabledColors = React.useMemo(() => {
+    if (!product.rawVariants) return [];
+    const validColors = new Set<string>();
+    
+    product.rawVariants.forEach(v => {
+      if (v.stock > 0) {
+        const attrs = v.attributes || {};
+        const col = Object.entries(attrs).find(([k]) => {
+          const kl = k.toLowerCase();
+          return kl === 'color' || kl === 'colour' || kl.includes('color') || kl.includes('colour');
+        })?.[1];
+        if (col) validColors.add(String(col).trim().toLowerCase());
+      }
+    });
 
-  // Calculate disabled sizes for the CURRENTLY selected color based on variant existence
+    if (validColors.size === 0) return [];
+    
+    return (product.colors || []).map(c => c.name).filter(c => !validColors.has(c.toLowerCase()));
+  }, [product.colors, product.rawVariants]);
+
+  // Calculate disabled sizes for the CURRENTLY selected color based on variant existence AND stock
   const disabledSizes = React.useMemo(() => {
     if (!product.rawVariants) return [];
     const validSizesForColor = new Set<string>();
@@ -53,18 +78,24 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         const kl = k.toLowerCase();
         return kl === 'color' || kl === 'colour' || kl.includes('color') || kl.includes('colour');
       })?.[1] || "";
+      
       if (!selectedColor || String(col).trim().toLowerCase() === selectedColor.toLowerCase()) {
-        // As long as the variant exists for this color, the size is valid.
-        const sz = Object.entries(attrs).find(([k]) => k.toLowerCase().includes('size'))?.[1];
-        if (sz) validSizesForColor.add(String(sz).trim());
+        // Only mark size as valid if stock is strictly > 0
+        if (v.stock > 0) {
+          const sz = Object.entries(attrs).find(([k]) => {
+            const kl = k.toLowerCase();
+            const isColor = kl === 'color' || kl === 'colour' || kl.includes('color') || kl.includes('colour');
+            return !isColor;
+          })?.[1];
+          if (sz) validSizesForColor.add(String(sz).trim());
+        }
       }
     });
 
-    // If no size restrictions found for this color, keep all sizes enabled
-    if (validSizesForColor.size === 0) return [];
+    // If no size restrictions found for this color (e.g. all out of stock), disable all sizes
+    if (validSizesForColor.size === 0) return product.sizes;
 
-    // If a size is in product.sizes but NOT in validSizesForColor, it means this 
-    // specific Color doesn't manufacture this size. So we disable it.
+    // Disable sizes that are not in validSizesForColor
     return product.sizes.filter(s => !validSizesForColor.has(s));
   }, [selectedColor, product.sizes, product.rawVariants]);
 
@@ -83,15 +114,36 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
       const kl = k.toLowerCase();
       return (kl === 'color' || kl === 'colour' || kl.includes('color') || kl.includes('colour')) && String(val).trim().toLowerCase() === selectedColor.toLowerCase();
     });
-    const sizeMatch = !selectedSize || Object.entries(attrs).some(([k, val]) => k.toLowerCase().includes('size') && String(val).trim() === selectedSize);
+    const sizeMatch = !selectedSize || Object.entries(attrs).some(([k, val]) => {
+      const kl = k.toLowerCase();
+      const isColor = kl === 'color' || kl === 'colour' || kl.includes('color') || kl.includes('colour');
+      return !isColor && String(val).trim() === selectedSize;
+    });
     return colorMatch && sizeMatch;
   });
 
   const baseNumericPrice = parseFloat(product.priceFormatted.replace(/[^0-9.]/g, "")) || 0;
   
-  // Ignore activeVariant.price because Magento variants often just hold the raw un-discounted base price.
-  // This causes the discounted price to be overwritten, showing 5499 as both original and active.
-  const activePrice = baseNumericPrice;
+  let activePrice = baseNumericPrice;
+  let activeOriginalPriceFormatted = product.originalPriceFormatted;
+  let activeDiscountBadge = product.discountBadge;
+
+  if (activeVariant && activeVariant.price > 0) {
+    const vBase = activeVariant.price;
+    const vSpecial = activeVariant.specialPrice;
+    if (vSpecial && vSpecial > 0 && vSpecial < vBase) {
+      activePrice = vSpecial;
+      activeOriginalPriceFormatted = new Intl.NumberFormat("en-IN", {
+        style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 0,
+      }).format(vBase);
+      activeDiscountBadge = `${Math.round(((vBase - vSpecial) / vBase) * 100)}%`;
+    } else {
+      activePrice = vBase;
+      activeOriginalPriceFormatted = undefined;
+      activeDiscountBadge = undefined;
+    }
+  }
+
   const activePriceFormatted = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -152,6 +204,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
             <ProductGallery 
               images={product.images} 
               selectedColor={selectedColor}
+              selectedSize={selectedSize}
               activeVariantImageUrl={activeVariant?.imageUrl}
             />
           </div>
@@ -162,8 +215,8 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
               category={product.category}
               rating={product.rating}
               name={product.name}
-              originalPriceFormatted={product.originalPriceFormatted}
-              discountBadge={product.discountBadge}
+              originalPriceFormatted={activeOriginalPriceFormatted}
+              discountBadge={activeDiscountBadge}
               priceFormatted={activePriceFormatted}
               shortDescription={product.shortDescription}
               colors={product.colors}
@@ -203,7 +256,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         <UpSellProducts products={product.upSellProducts} />
 
         {recentViews.length > 0 && (
-          <div className="mt-[-10px] md:mt-[-100px]">
+          <div className="mt-4 md:mt-8">
             <UpSellProducts 
               products={recentViews.filter(p => p.id !== product.id).slice(0, 8).map(p => ({
                 id: p.id,
@@ -243,6 +296,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         priceFormatted={activePriceFormatted}
         colors={product.colors}
         sizes={product.sizes}
+        sizeLabel={product.sizeLabel}
         selectedColor={selectedColor}
         selectedSize={selectedSize}
         disabledColors={disabledColors}

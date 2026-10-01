@@ -42,6 +42,7 @@ export interface PDPData {
   images: ProductImage[];
   colors: ColorOption[];
   sizes: string[];
+  sizeLabel?: string;
   kitProducts: KitProduct[];
   storeReviews: ReviewData[];
   productReviews: ReviewData[];
@@ -49,6 +50,7 @@ export interface PDPData {
   rawVariants?: Array<{
     sku: string;
     price: number;
+    specialPrice?: number;
     stock: number;
     attributes?: Record<string, string>;
     imageUrl?: string;

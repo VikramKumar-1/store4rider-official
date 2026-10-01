@@ -61,15 +61,15 @@ export const BlinkitFloatingCart: React.FC = () => {
       {items.length > 0 && (
         <aside 
           aria-label="Quick Cart Widget" 
-          className={`fixed ${isPDP ? 'bottom-[170px] lg:bottom-6' : 'bottom-[100px] lg:bottom-6'} right-4 sm:right-6 z-40 transition-all duration-300 transform-gpu will-change-transform ${
-            isBottomModalOpen ? "translate-y-[200px] opacity-0 pointer-events-none" : "translate-y-0 opacity-100 pointer-events-auto"
+          className={`fixed ${isPDP ? 'bottom-[170px] lg:bottom-[100px]' : 'bottom-[100px] lg:bottom-6'} right-4 sm:right-6 z-[50] transition-all duration-300 ${
+            isBottomModalOpen ? "translate-y-[20px] opacity-0 pointer-events-none" : "translate-y-0 opacity-100 pointer-events-auto"
           }`}
         >
           {/* MOBILE: Small Bag Icon */}
           <button
             onClick={openDrawer}
             aria-label="Open Cart Drawer"
-            className="sm:hidden relative flex items-center justify-center w-12 h-12 bg-neutral-900 text-white rounded-full shadow-[0_8px_24px_rgba(0,0,0,0.25)] border border-white/10 hover:scale-105 active:scale-90 transition-transform duration-75 animate-in zoom-in"
+            className="sm:hidden relative flex items-center justify-center w-12 h-12 bg-neutral-900 text-white rounded-full shadow-[0_8px_24px_rgba(0,0,0,0.25)] border border-white/10 hover:bg-black transition-colors animate-in zoom-in"
           >
             <ShoppingBagIcon className="w-5 h-5" />
             <span className="absolute -top-1 -right-1 bg-banner text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
@@ -81,40 +81,40 @@ export const BlinkitFloatingCart: React.FC = () => {
           <button
             onClick={openDrawer}
             aria-label="Open Cart Drawer"
-            className="hidden sm:flex group items-center gap-2.5 bg-[#0f0f11]/95 hover:bg-black text-white pl-2.5 pr-3.5 py-2 rounded-full shadow-[0_12px_32px_rgba(0,0,0,0.5)] border border-white/15 backdrop-blur-xl transition-all duration-300 active:duration-75 transform hover:scale-105 active:scale-95 animate-in slide-in-from-bottom-3"
+            className="hidden sm:flex group items-center gap-3 bg-[#0f0f11] hover:bg-black text-white pl-3 pr-4 py-2.5 rounded-full shadow-[0_12px_32px_rgba(0,0,0,0.4)] border border-white/10 transition-colors duration-200 animate-in slide-in-from-bottom-3 antialiased"
           >
             {/* Thumbnails Stack */}
             <div className="flex items-center -space-x-2 shrink-0">
               {previewThumbnails.map((thumb, idx) => (
                 <div
                   key={idx}
-                  className="relative w-6 h-6 rounded-full overflow-hidden border border-neutral-700 bg-white shrink-0 shadow-xs"
+                  className="relative w-7 h-7 rounded-full overflow-hidden border-2 border-[#0f0f11] bg-white shrink-0 shadow-sm"
                 >
                   <Image
                     src={thumb}
                     alt="Cart preview"
                     fill
                     className="object-contain p-0.5"
-                    sizes="24px"
+                    sizes="28px"
                   />
                 </div>
               ))}
             </div>
 
             {/* Compact Cart Info */}
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2.5 text-[13px]">
               <span className="font-bold text-neutral-300">
                 {totalQuantity} {totalQuantity === 1 ? "Item" : "Items"}
               </span>
-              <span className="text-neutral-500 font-bold">•</span>
+              <span className="text-neutral-600 font-black text-[10px] mb-px">•</span>
               <span className="font-black text-white tracking-tight">
                 {formatPrice(totalAmount)}
               </span>
             </div>
 
             {/* Arrow CTA */}
-            <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-banner group-hover:text-white transition-colors shrink-0 ml-0.5">
-              <ChevronRightIcon className="w-3 h-3 stroke-[2.5]" />
+            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-banner group-hover:text-white transition-colors shrink-0 ml-1">
+              <ChevronRightIcon className="w-3.5 h-3.5 stroke-[2.5]" />
             </div>
           </button>
         </aside>

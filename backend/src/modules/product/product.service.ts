@@ -60,41 +60,63 @@ export class ProductService {
     if (!product) throw new NotFoundError("Product");
 
     // DYNAMIC ORPHAN VARIANT RECOVERY:
-    // If basePrice is 0 and no variants are attached (because CSV configurable_variations was empty)
-    // we search the database for any child variants using the SKU prefix
-    if (!product.basePrice && (!product.variants || product.variants.length === 0)) {
+    // If no variants are attached, we search the database for child variants 
+    // using the explicit SKUs from configurableVariations (accurate mapping) 
+    // or fallback to SKU prefix matching.
+    if (!product.variants || product.variants.length === 0) {
       const { ProductModel } = await import("./product.model");
-      // Find children whose SKU starts with the parent's SKU and have a price
-      const children = await ProductModel.find({ 
-        sku: { $regex: new RegExp(`^${product.sku}[-_]`, "i") },
-        status: "draft",
-        basePrice: { $gt: 0 }
-      }).lean().exec();
+      let childSkus: string[] = [];
+      const skuToAttributes: Record<string, any> = {};
 
-      if (children && children.length > 0) {
-        // Build the variants array dynamically from the orphaned children!
-        product.variants = children.map(c => {
-          // Attempt to extract Size from name
-          let size = "Standard";
-          const nameParts = c.name.split("-");
-          if (nameParts.length > 1) {
-             const potentialSize = nameParts[nameParts.length - 2].trim();
-             if (["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"].includes(potentialSize)) {
-                size = potentialSize;
-             }
+      if (product.configurableVariations) {
+        const variants = product.configurableVariations.split("|");
+        for (const variant of variants) {
+          const attrs = variant.split(",");
+          let sku = "";
+          const attributes: Record<string, string> = {};
+          for (const attr of attrs) {
+            const [key, value] = attr.split("=");
+            if (!key || !value) continue;
+            const k = key.trim().toLowerCase();
+            const v = value.trim();
+            if (k === "sku") {
+              sku = v;
+            } else if (k.includes("color") || k.includes("colour")) {
+              attributes["color"] = v;
+            } else {
+              attributes[k] = v;
+            }
           }
-          return {
+          if (sku) {
+            childSkus.push(sku);
+            skuToAttributes[sku] = attributes;
+          }
+        }
+      }
+
+      if (childSkus.length > 0) {
+        const children = await ProductModel.find({ 
+          sku: { $in: childSkus }
+        }).lean().exec();
+
+        if (children && children.length > 0) {
+          product.variants = children.map(c => ({
             id: c._id ? c._id.toString() : c.sku,
             sku: c.sku,
-            price: c.basePrice,
+            price: c.basePrice || c.specialPrice || 0,
             specialPrice: c.specialPrice,
             stock: c.qty || 10,
-            attributes: { size }
-          };
-        });
-        
-        // Also fix the parent's own price
-        product.basePrice = Math.min(...children.map(c => c.basePrice));
+            attributes: skuToAttributes[c.sku] || {},
+            imageUrl: c.images?.[0]?.url
+          }));
+
+          if (!product.basePrice || product.basePrice === 0) {
+            const validPrices = children.map(c => c.basePrice || c.specialPrice).filter(p => p && p > 0);
+            if (validPrices.length > 0) {
+              product.basePrice = Math.min(...validPrices);
+            }
+          }
+        }
       }
     }
 

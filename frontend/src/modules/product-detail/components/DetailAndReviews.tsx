@@ -145,7 +145,7 @@ export const DetailAndReviews: React.FC<{ fullDescription: string; reviews: Revi
             <span>Product Detail Description</span>
             <span className="w-4 h-[2px] bg-[#ab1509] shrink-0 lg:hidden" />
           </h2>
-          <h2 className="hidden lg:flex font-sans text-sm md:text-base font-bold uppercase tracking-[0.2em] text-white items-center gap-3">
+          <h2 className="hidden lg:flex font-sans text-sm md:text-base font-bold uppercase tracking-[0.2em] text-white items-center gap-3 pl-6">
             <span className="w-8 h-[2px] bg-[#ab1509]" />
             Customer Reviews
           </h2>
@@ -173,22 +173,13 @@ export const DetailAndReviews: React.FC<{ fullDescription: string; reviews: Revi
               </div>
             </div>
 
-            {/* Organized Title / Intro Header */}
-            {intro && formatFeatureTitle(intro) && (
-              <div className="flex items-start gap-2.5 p-3 sm:p-3.5 rounded-xl bg-gradient-to-r from-neutral-50 via-neutral-50/70 to-orange-50/20 border border-neutral-200/80 mb-4 shadow-2xs">
-                <div className="w-5 h-5 rounded-md bg-[#ab1509]/10 text-[#ab1509] flex items-center justify-center shrink-0 mt-0.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#ab1509] block leading-none mb-1">
-                    Features Overview
-                  </span>
-                  <p className="text-xs sm:text-[13px] font-bold text-neutral-800 tracking-tight leading-snug">
-                    {formatFeatureTitle(intro)}
-                  </p>
-                </div>
+            {/* Organized Title / Intro Header (Rendered as HTML to preserve images) */}
+            {intro && (
+              <div className="mb-6">
+                <div 
+                  className="magento-layout text-neutral-700 text-[13.5px] sm:text-[14px] leading-[1.75] sm:leading-[1.8]"
+                  dangerouslySetInnerHTML={{ __html: intro }}
+                />
               </div>
             )}
 

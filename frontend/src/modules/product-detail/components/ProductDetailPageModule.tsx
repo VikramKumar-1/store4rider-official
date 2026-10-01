@@ -55,11 +55,12 @@ const extractCategoryName = (product: IBackendProduct): string => {
  * Helper: Parse configurableVariations string into colors & sizes arrays.
  * Input format: "sku=CL-FR-BL-7,eu_size_for_boots=41,color=Black|sku=CL-FR-BR-7,eu_size_for_boots=41,color=Brown"
  */
-const parseVariations = (variationsStr?: string): { colors: string[]; sizes: string[] } => {
+const parseVariations = (variationsStr?: string): { colors: string[]; sizes: string[]; sizeLabel: string } => {
   const colors = new Set<string>();
   const sizes = new Set<string>();
+  let sizeLabel = "SIZE";
 
-  if (!variationsStr) return { colors: [], sizes: [] };
+  if (!variationsStr) return { colors: [], sizes: [], sizeLabel };
 
   const variants = variationsStr.split("|");
   for (const variant of variants) {
@@ -70,10 +71,13 @@ const parseVariations = (variationsStr?: string): { colors: string[]; sizes: str
       const k = key.trim().toLowerCase();
       const v = value.trim();
 
-      if (k === "color" || k === "colour") {
+      if (k.includes("color") || k.includes("colour")) {
         colors.add(v);
-      } else if (k.includes("size")) {
+      } else {
         sizes.add(v);
+        if (!k.includes("size") && sizeLabel === "SIZE") {
+          sizeLabel = key.trim().replace(/_/g, ' ').toUpperCase();
+        }
       }
     }
   }
@@ -81,6 +85,7 @@ const parseVariations = (variationsStr?: string): { colors: string[]; sizes: str
   return {
     colors: Array.from(colors),
     sizes: Array.from(sizes),
+    sizeLabel,
   };
 };
 
@@ -136,36 +141,38 @@ export const parseColorToBackground = (colorName: string): string => {
     return singleColorMap[clean];
   }
 
-  // Multi-tone colors like "Black/Grey", "Black/Red", "Black-Orange"
-  const parts = colorName.split(/[/\\&_+-]/).map(s => s.trim()).filter(Boolean);
-  if (parts.length > 1) {
-    const hexParts = parts.map(p => {
-      const pClean = p.toLowerCase();
-      if (singleColorMap[pClean]) return singleColorMap[pClean];
-      if (pClean.includes("black")) return "#111111";
-      if (pClean.includes("grey") || pClean.includes("gray")) return "#6B7280";
-      if (pClean.includes("red")) return "#DC2626";
-      if (pClean.includes("blue")) return "#2563EB";
-      if (pClean.includes("orange") || pClean.includes("org")) return "#EA580C";
-      if (pClean.includes("yellow")) return "#EAB308";
-      if (pClean.includes("white")) return "#FFFFFF";
-      if (pClean.includes("brown")) return "#78350F";
-      if (pClean.includes("green")) return "#16A34A";
-      return "#6B7280";
-    });
+  // Extract all known colors from the string (handles "Black Orange", "Black/Orange", "Matte Black Red")
+  // Sort by length descending to match "dark grey" before "grey"
+  const knownKeys = Object.keys(singleColorMap).sort((a, b) => b.length - a.length);
+  const foundColors: string[] = [];
+  let tempStr = clean;
+  
+  for (const key of knownKeys) {
+    // Ensure we match whole color words (e.g., don't match 'red' in 'colored')
+    const regex = new RegExp(`(?:^|[^a-z])${key}(?:$|[^a-z])`);
+    if (regex.test(tempStr)) {
+      foundColors.push(singleColorMap[key]);
+      tempStr = tempStr.replace(regex, " "); // Remove to avoid overlaps
+    }
+  }
 
-    if (hexParts.length === 2) {
-      return `linear-gradient(135deg, ${hexParts[0]} 50%, ${hexParts[1]} 50%)`;
-    } else if (hexParts.length === 3) {
-      return `linear-gradient(135deg, ${hexParts[0]} 33.3%, ${hexParts[1]} 33.3% 66.6%, ${hexParts[2]} 66.6%)`;
+  if (foundColors.length > 1) {
+    if (foundColors.length === 2) {
+      return `linear-gradient(135deg, ${foundColors[0]} 50%, ${foundColors[1]} 50%)`;
+    } else if (foundColors.length === 3) {
+      return `linear-gradient(135deg, ${foundColors[0]} 33.3%, ${foundColors[1]} 33.3% 66.6%, ${foundColors[2]} 66.6%)`;
     } else {
-      const step = 100 / hexParts.length;
-      const stops = hexParts.map((h, i) => `${h} ${i * step}% ${(i + 1) * step}%`).join(", ");
+      const step = 100 / foundColors.length;
+      const stops = foundColors.map((h, i) => `${h} ${i * step}% ${(i + 1) * step}%`).join(", ");
       return `linear-gradient(135deg, ${stops})`;
     }
   }
 
-  // Fallback: check substring match
+  if (foundColors.length === 1) {
+    return foundColors[0];
+  }
+
+  // Fallback: check substring match for any color word (without strict boundaries)
   for (const [key, hex] of Object.entries(singleColorMap)) {
     if (clean.includes(key)) {
       return hex;
@@ -197,96 +204,7 @@ const mapToKitProduct = (p: IBackendProduct): KitProduct => {
   };
 };
 
-/**
- * Known filename to color keyword lookup table extracted from Magento catalog.
- * Provides fallback in case database altText does not yet have the color suffix.
- */
-const filenameToColorMap: Record<string, string> = {
-  // Clan SNKR Stealth Edition
-  "snkr--se-_9": "Black/Grey",
-  "snkr--se-_25": "Black/Red",
-  "snkr--se-_14": "Black/Blue",
-  "snkr--se-_10": "Black/Orange",
-  // Clan FRML 1.0 Formal Shoes
-  "frml-1-_5_.jpg": "Black",
-  "frml-1-_1_.jpg": "Black",
-  "frml-1-_2_.jpg": "Black",
-  "frml-1-_3_.jpg": "Black",
-  "frml-1-_4_.jpg": "Black",
-  "frml-1-_5__1.jpg": "Brown",
-  "frml-1-_1__1.jpg": "Brown",
-  "frml-1-_2__1.jpg": "Brown",
-  "frml-1-_3__1.jpg": "Brown",
-  "frml-1-_4__1.jpg": "Brown",
-  // Clan Scout Waterproof
-  "clan-scout-shoes-_30": "Black",
-  "clan-scout-shoes-_13": "Black",
-  "clan-scout-shoes-_24": "Blue",
-  "clan-scout-shoes-_19__2": "Blue",
-  "clan-scout-shoes-_11": "Grey",
-  "clan-scout-shoes-_5__11zon_1": "Grey",
-  "clan-scout-shoes-_46": "Red",
-  "clan-scout-shoes-_48": "Red",
-  // Clan Scout D3O Waterproof
-  "clan-scout-shoes-_3__11zon_1": "Red",
-  "clan-scout-shoes-_38": "Black",
-  "clan_scout_d3o_waterproof_riding_boots_-_grey": "Grey",
-  "clan-scout-shoes-_19__1": "Blue",
-};
-
-const KNOWN_COLORS = [
-  "black/grey", "grey/black", 
-  "black/red", "red/black", 
-  "black/blue", "blue/black", 
-  "black/orange", "orange/black",
-  "black/yellow", "yellow/black",
-  "black/green", "green/black",
-  "black/white", "white/black",
-  "red/white", "white/red",
-  "blue/white", "white/blue",
-  "black", "brown", "tan", "white", "red", "blue", "green",
-  "grey", "gray", "orange", "yellow", "neon", "navy", "olive",
-  "camo", "silver", "gold", "pink", "purple", "teal", "cyan"
-];
-
-const inferImageColorLabel = (imgUrl: string, existingAlt: string, productName: string): string => {
-  const urlLower = (imgUrl || "").toLowerCase();
-
-  // 1. Check known filename mappings first
-  for (const [key, color] of Object.entries(filenameToColorMap)) {
-    if (urlLower.includes(key.toLowerCase())) {
-      return `${productName} - ${color}`;
-    }
-  }
-
-  // 2. Check if URL contains any known color word (using boundaries to avoid 'colored' matching 'red')
-  for (const c of KNOWN_COLORS) {
-    const dashFormat = c.replace(/\//g, "-");
-    const underscoreFormat = c.replace(/\//g, "_");
-    const noSpaceFormat = c.replace(/\//g, "");
-    
-    const check = (fmt: string) => {
-      const safe = fmt.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-      return new RegExp(`(?:^|\\/|-|_)${safe}(?:$|\\.|-|_)`).test(urlLower);
-    };
-
-    if (check(c) || check(dashFormat) || check(underscoreFormat) || check(noSpaceFormat)) {
-      const capitalized = c.split(/[/\\&\-_+ ]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join("/");
-      return `${productName} - ${capitalized}`;
-    }
-  }
-
-  // 3. Check if existingAlt explicitly mentions a known color
-  const altLower = (existingAlt || "").toLowerCase();
-  for (const c of KNOWN_COLORS) {
-    const safe = c.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-    if (new RegExp(`(?:^|\\s|-|_)${safe}(?:$|\\s|-|_)`).test(altLower)) {
-      return existingAlt;
-    }
-  }
-
-  return existingAlt || productName;
-};
+// Removed obsolete inferImageColorLabel functionality as backend API now provides reliable altText from Magento.
 
 const parseVariationsToRawVariants = (variationsStr?: string) => {
   if (!variationsStr) return [];
@@ -303,10 +221,8 @@ const parseVariationsToRawVariants = (variationsStr?: string) => {
       const v = value.trim();
       if (k === "sku") {
         sku = v;
-      } else if (k === "color" || k === "colour") {
+      } else if (k.includes("color") || k.includes("colour")) {
         attributes["color"] = v;
-      } else if (k.includes("size")) {
-        attributes["size"] = v;
       } else {
         attributes[k] = v;
       }
@@ -387,7 +303,7 @@ const mapProductToPDP = (
   const gallery = product.images?.length > 0
     ? product.images.map(img => ({
         url: img.url,
-        altText: inferImageColorLabel(img.url, img.altText || "", product.name),
+        altText: img.altText || product.name,
       }))
     : [{ url: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80", altText: "Placeholder" }];
 
@@ -400,6 +316,7 @@ const mapProductToPDP = (
 
   let colorNames: string[] = [];
   let sizes: string[] = [];
+  let sizeLabel = "SIZE";
 
   // Prefer extracting from actual child variants if they exist (more accurate)
   if (product.variants && product.variants.length > 0) {
@@ -416,8 +333,16 @@ const mapProductToPDP = (
         Object.entries(attrs).forEach(([key, value]) => {
           const k = key.toLowerCase();
           const v = String(value).trim();
-          if (k === 'color' || k === 'colour') colorSet.add(v);
-          else if (k.includes('size')) sizeSet.add(v);
+          if (k.includes('color') || k.includes('colour')) {
+            colorSet.add(v);
+          } else {
+            // Treat ANY other attribute (size, weight, dimension, fit, etc.) as the secondary variant selector
+            sizeSet.add(v);
+            if (!k.includes('size') && sizeLabel === "SIZE") {
+              // Extract a clean label (e.g. "weight_in_ml" -> "WEIGHT IN ML")
+              sizeLabel = key.replace(/_/g, ' ').trim().toUpperCase();
+            }
+          }
         });
       }
     });
@@ -428,6 +353,7 @@ const mapProductToPDP = (
     const parsed = parseVariations(product.configurableVariations);
     colorNames = parsed.colors;
     sizes = parsed.sizes;
+    sizeLabel = parsed.sizeLabel || "SIZE";
   }
 
   const mappedColors = colorNames.length > 0
@@ -435,15 +361,16 @@ const mapProductToPDP = (
         name,
         background: parseColorToBackground(name),
       }))
-    : [{ name: "Standard", background: "#111111" }];
+    : []; // Hide color selector entirely if no colors are found instead of guessing 'Standard'
 
   const avgRating = reviews && reviews.length > 0 
     ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 
     : 0;
 
-  let rawVariants = product.variants?.map(v => ({
+  let rawVariants = product.variants?.map((v: any) => ({
     sku: v.sku,
     price: v.price,
+    specialPrice: v.specialPrice,
     stock: v.stock,
     attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : (v.attributes || {}),
     imageUrl: v.imageUrl
@@ -474,7 +401,8 @@ const mapProductToPDP = (
     sizeChart: product.sizeChart || product.size_chart,
     images: gallery,
     colors: mappedColors,
-    sizes: sizes.length > 0 ? sizes : ["One Size"],
+    sizes: sizes.length > 0 ? sizes : (sizeLabel !== "SIZE" ? [] : ["One Size"]),
+    sizeLabel,
     kitProducts: finalKitProducts,
     storeReviews: storeReviews || [],
     productReviews: reviews || [],
