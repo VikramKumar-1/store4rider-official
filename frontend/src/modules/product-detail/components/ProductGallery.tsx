@@ -78,7 +78,17 @@ const findMatchingImageIndex = (selectedColor: string | undefined, images: Produ
     
     return tokens.every(t => {
        const term = t === "flu." || t === "flu" ? "neon" : t;
-       return alt.includes(term) || url.includes(term) || (t === "flu." && (alt.includes("flu") || url.includes("flu")));
+       
+       // Standard check
+       let isMatch = alt.includes(term) || url.includes(term);
+       if (t === "flu." && !isMatch) isMatch = alt.includes("flu") || url.includes("flu");
+       
+       // Fallback for Yellow <-> Orange (Hi-Vis gear is often named inconsistently in catalogs)
+       if (term === "yellow" && !isMatch) {
+         isMatch = alt.includes("orange") || url.includes("orange");
+       }
+       
+       return isMatch;
     });
   });
 
@@ -124,10 +134,9 @@ export const ProductGallery: React.FC<{
       } else if (selectedColor) {
         // Fallback to guessing by search term if specific variant image isn't available
         const matchIdx = findMatchingImageIndex(selectedColor, images);
-        if (matchIdx !== -1) {
-          setActiveIndex(matchIdx);
-          setMainSrc(images[matchIdx].url);
-        }
+        const newIdx = matchIdx !== -1 ? matchIdx : 0;
+        setActiveIndex(newIdx);
+        setMainSrc(images[newIdx]?.url || FALLBACK_IMAGE);
       }
     }
   }, [selectedColor, images, activeVariantImageUrl]);

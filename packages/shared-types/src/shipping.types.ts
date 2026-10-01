@@ -60,3 +60,15 @@ export interface IShipment {
   createdAt?: string | Date;
   updatedAt?: string | Date;
 }
+
+export interface IPincode {
+  pincode: string;
+  state: string;
+  district: string;
+  circleName?: string;
+  regionName?: string;
+  divisionName?: string;
+  offices?: string[];
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}

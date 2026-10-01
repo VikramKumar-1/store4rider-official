@@ -14,7 +14,7 @@ export const AuthModule: React.FC<{ type: "login" | "register" }> = ({ type }) =
   const redirectQuery = redirectTarget ? `?redirect=${encodeURIComponent(redirectTarget)}` : "";
 
   return (
-    <div className="w-full h-screen overflow-hidden flex flex-col md:flex-row bg-white">
+    <div className="w-full min-h-[100dvh] md:h-screen overflow-x-hidden md:overflow-hidden flex flex-col md:flex-row bg-white">
       
       {/* Left side: Image and Logo */}
       <div className="relative hidden md:flex md:w-1/2 h-full bg-neutral-900 overflow-hidden shrink-0">
@@ -31,23 +31,35 @@ export const AuthModule: React.FC<{ type: "login" | "register" }> = ({ type }) =
         
         {/* Brand Logo inside image */}
         <div className="absolute top-6 left-6 lg:top-10 lg:left-10 z-10">
-          <Link href="/" className="font-sans font-black text-2xl lg:text-3xl tracking-widest text-white flex items-center hover:opacity-90 transition-opacity">
-            <span className="text-banner">S</span>tore4Riders
+          <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
+            <Image 
+              src="/Store4riders-Logo.jpg" 
+              alt="Store4Riders Logo" 
+              width={160} 
+              height={40} 
+              className="object-contain" 
+            />
           </Link>
         </div>
       </div>
 
       {/* Right side: Form Container (Fits 100vh on Desktop, scrollable on mobile) */}
-      <div className="w-full md:w-1/2 h-full flex flex-col items-center justify-center p-6 sm:p-8 lg:p-12 overflow-y-auto lg:overflow-hidden relative">
+      <div className="w-full md:w-1/2 flex-1 md:h-full flex flex-col items-center justify-center p-6 sm:p-8 lg:p-12 overflow-y-auto lg:overflow-hidden relative">
         
         {/* Mobile Logo */}
         <div className="w-full mb-6 md:hidden">
-          <Link href="/" className="font-sans font-black text-2xl tracking-widest text-neutral-900 flex items-center">
-            <span className="text-banner">S</span>tore4Riders
+          <Link href="/" className="flex items-center">
+            <Image 
+              src="/Store4riders-Logo.jpg" 
+              alt="Store4Riders Logo" 
+              width={150} 
+              height={38} 
+              className="object-contain mix-blend-multiply" 
+            />
           </Link>
         </div>
 
-        <div className="w-full max-w-sm lg:max-w-md flex flex-col gap-6 my-auto">
+        <div className="w-full max-w-sm lg:max-w-md flex flex-col gap-6 my-auto py-8 md:py-0">
           {/* Header */}
           <div className="flex flex-col gap-1">
             <h1 className="font-sans font-black text-3xl lg:text-4xl text-neutral-900 tracking-wide uppercase">

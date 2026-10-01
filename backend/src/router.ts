@@ -19,6 +19,7 @@ import { shippingRouter } from "./modules/shipping/shipping.route";
 import { settingRouter } from "./modules/settings/setting.route";
 import { warehouseRouter } from "./modules/warehouse/warehouse.route";
 import { returnRouter } from "./modules/return/return.route";
+import { pincodeRouter } from "./modules/pincode/pincode.route";
 
 export async function centralRouter(req: NextRequest, routePath: string[]) {
   const [module, ...rest] = routePath;
@@ -44,6 +45,7 @@ export async function centralRouter(req: NextRequest, routePath: string[]) {
     case "settings": return settingRouter(req, rest.join("/"));
     case "warehouses": return warehouseRouter(req, rest);
     case "returns": return returnRouter(req, rest);
+    case "pincodes": return pincodeRouter(req, rest);
     default: return null;
   }
 }
