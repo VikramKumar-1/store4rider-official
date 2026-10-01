@@ -58,16 +58,6 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
     return () => setIsBottomModalOpen(false);
   }, [openDropdown, showSizeChart, setIsBottomModalOpen]);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOpenDropdown(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const activeColor = selectedColor || colors[0]?.name || "";
   const activeSize = selectedSize || sizes[0] || "";
 

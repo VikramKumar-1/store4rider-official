@@ -72,7 +72,7 @@ const parseVariations = (variationsStr?: string): { colors: string[]; sizes: str
 
       if (k === "color" || k === "colour") {
         colors.add(v);
-      } else if (k === "size" || k === "eu_size" || k === "eu_size_for_boots") {
+      } else if (k.includes("size")) {
         sizes.add(v);
       }
     }
@@ -235,7 +235,15 @@ const filenameToColorMap: Record<string, string> = {
 };
 
 const KNOWN_COLORS = [
-  "black/grey", "black/red", "black/blue", "black/orange",
+  "black/grey", "grey/black", 
+  "black/red", "red/black", 
+  "black/blue", "blue/black", 
+  "black/orange", "orange/black",
+  "black/yellow", "yellow/black",
+  "black/green", "green/black",
+  "black/white", "white/black",
+  "red/white", "white/red",
+  "blue/white", "white/blue",
   "black", "brown", "tan", "white", "red", "blue", "green",
   "grey", "gray", "orange", "yellow", "neon", "navy", "olive",
   "camo", "silver", "gold", "pink", "purple", "teal", "cyan"
@@ -251,9 +259,18 @@ const inferImageColorLabel = (imgUrl: string, existingAlt: string, productName: 
     }
   }
 
-  // 2. Check if URL contains any known color word
+  // 2. Check if URL contains any known color word (using boundaries to avoid 'colored' matching 'red')
   for (const c of KNOWN_COLORS) {
-    if (urlLower.includes(c)) {
+    const dashFormat = c.replace(/\//g, "-");
+    const underscoreFormat = c.replace(/\//g, "_");
+    const noSpaceFormat = c.replace(/\//g, "");
+    
+    const check = (fmt: string) => {
+      const safe = fmt.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      return new RegExp(`(?:^|\\/|-|_)${safe}(?:$|\\.|-|_)`).test(urlLower);
+    };
+
+    if (check(c) || check(dashFormat) || check(underscoreFormat) || check(noSpaceFormat)) {
       const capitalized = c.split(/[/\\&\-_+ ]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join("/");
       return `${productName} - ${capitalized}`;
     }
@@ -262,7 +279,8 @@ const inferImageColorLabel = (imgUrl: string, existingAlt: string, productName: 
   // 3. Check if existingAlt explicitly mentions a known color
   const altLower = (existingAlt || "").toLowerCase();
   for (const c of KNOWN_COLORS) {
-    if (altLower.includes(c)) {
+    const safe = c.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    if (new RegExp(`(?:^|\\s|-|_)${safe}(?:$|\\s|-|_)`).test(altLower)) {
       return existingAlt;
     }
   }
@@ -287,7 +305,7 @@ const parseVariationsToRawVariants = (variationsStr?: string) => {
         sku = v;
       } else if (k === "color" || k === "colour") {
         attributes["color"] = v;
-      } else if (k === "size" || k === "eu_size" || k === "eu_size_for_boots") {
+      } else if (k.includes("size")) {
         attributes["size"] = v;
       } else {
         attributes[k] = v;
@@ -399,7 +417,7 @@ const mapProductToPDP = (
           const k = key.toLowerCase();
           const v = String(value).trim();
           if (k === 'color' || k === 'colour') colorSet.add(v);
-          else if (k === 'size' || k === 'eu_size' || k === 'eu_size_for_boots') sizeSet.add(v);
+          else if (k.includes('size')) sizeSet.add(v);
         });
       }
     });

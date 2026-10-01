@@ -49,7 +49,10 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
     
     product.rawVariants.forEach(v => {
       const attrs = v.attributes || {};
-      const col = Object.entries(attrs).find(([k]) => k.toLowerCase() === 'color')?.[1] || "";
+      const col = Object.entries(attrs).find(([k]) => {
+        const kl = k.toLowerCase();
+        return kl === 'color' || kl === 'colour' || kl.includes('color') || kl.includes('colour');
+      })?.[1] || "";
       if (!selectedColor || String(col).trim().toLowerCase() === selectedColor.toLowerCase()) {
         // As long as the variant exists for this color, the size is valid.
         const sz = Object.entries(attrs).find(([k]) => k.toLowerCase().includes('size'))?.[1];
@@ -76,7 +79,10 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
   // Dynamically calculate active price based on selected variants
   const activeVariant = product.rawVariants?.find(v => {
     const attrs = v.attributes || {};
-    const colorMatch = !selectedColor || Object.entries(attrs).some(([k, val]) => k.toLowerCase() === 'color' && String(val).trim().toLowerCase() === selectedColor.toLowerCase());
+    const colorMatch = !selectedColor || Object.entries(attrs).some(([k, val]) => {
+      const kl = k.toLowerCase();
+      return (kl === 'color' || kl === 'colour' || kl.includes('color') || kl.includes('colour')) && String(val).trim().toLowerCase() === selectedColor.toLowerCase();
+    });
     const sizeMatch = !selectedSize || Object.entries(attrs).some(([k, val]) => k.toLowerCase().includes('size') && String(val).trim() === selectedSize);
     return colorMatch && sizeMatch;
   });

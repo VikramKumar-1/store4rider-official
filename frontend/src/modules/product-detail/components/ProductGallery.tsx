@@ -42,16 +42,33 @@ const findMatchingImageIndex = (selectedColor: string | undefined, images: Produ
 
   const normalizedColor = selectedColor.trim().toLowerCase();
   
-  // 1. Direct match on altText
+  // 1. Exact suffix match on altText (because inferImageColorLabel appends " - Color")
   let matchIdx = images.findIndex(img => 
-    (img.altText || "").toLowerCase().includes(normalizedColor)
+    (img.altText || "").toLowerCase().endsWith(` - ${normalizedColor}`)
   );
   if (matchIdx !== -1) return matchIdx;
 
-  // 2. Direct match on image URL
-  matchIdx = images.findIndex(img => 
-    (img.url || "").toLowerCase().includes(normalizedColor)
-  );
+  // 1b. Direct exact match or padded match on altText
+  matchIdx = images.findIndex(img => {
+    const alt = (img.altText || "").toLowerCase();
+    const safeColor = normalizedColor.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    return new RegExp(`(?:^|\\s|-|_)${safeColor}(?:$|\\s|-|_)`).test(alt);
+  });
+  if (matchIdx !== -1) return matchIdx;
+
+  // 2. Direct match on image URL with delimiters
+  matchIdx = images.findIndex(img => {
+    const url = (img.url || "").toLowerCase();
+    const dashFormat = normalizedColor.replace(/\//g, "-");
+    const underscoreFormat = normalizedColor.replace(/\//g, "_");
+    const noSpaceFormat = normalizedColor.replace(/\//g, "");
+    
+    const check = (fmt: string) => {
+      const safe = fmt.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      return new RegExp(`(?:^|\\/|-|_)${safe}(?:$|\\.|-|_)`).test(url);
+    };
+    return check(normalizedColor) || check(dashFormat) || check(underscoreFormat) || check(noSpaceFormat);
+  });
   if (matchIdx !== -1) return matchIdx;
 
   const tokens = normalizedColor.split(/[/\\&\-_+ ]/).filter(Boolean);
@@ -82,13 +99,11 @@ const findMatchingImageIndex = (selectedColor: string | undefined, images: Produ
     const alt = (img.altText || "").toLowerCase();
     const url = (img.url || "").toLowerCase();
     
-    return searchTerms.some(term => 
-      alt.includes(term) || 
-      url.includes(`-${term}`) || 
-      url.includes(`_${term}`) || 
-      url.includes(`/${term}`) || 
-      url.includes(term)
-    );
+    return searchTerms.some(term => {
+      const safe = term.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      return new RegExp(`(?:^|\\s|-|_)${safe}(?:$|\\s|-|_)`).test(alt) || 
+             new RegExp(`(?:^|\\/|-|_|\\.)${safe}(?:$|\\.|-|_)`).test(url);
+    });
   });
 
   return matchIdx;
