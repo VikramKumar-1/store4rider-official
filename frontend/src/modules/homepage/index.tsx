@@ -310,7 +310,7 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
           {/* 2. Header Navigation */}
           <Navbar
             logoText="Store4Riders"
-            navItems={navItems}
+            
             theme="dark"
           />
 

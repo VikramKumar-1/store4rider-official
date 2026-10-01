@@ -36,7 +36,7 @@ export interface NavbarProps {
   /** Brand/Logo text to display (e.g. Store4Riders) */
   logoText: string;
   /** List of navigation links */
-  navItems: NavLinkItem[];
+  navItems?: NavLinkItem[];
   /** Callback triggered when user submits search */
   onSearch?: (query: string) => void;
   /** Callback triggered when user clicks account icon */

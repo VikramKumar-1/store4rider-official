@@ -139,7 +139,7 @@ export const DetailAndReviews: React.FC<{ fullDescription: string; reviews: Revi
 
       {/* ── Section Header Bar ── */}
       <div className="w-full bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950 py-2.5 sm:py-3.5 px-4 sm:px-8 rounded-xl shadow-xs">
-        <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-12">
           <h2 className="font-sans text-[11px] sm:text-sm md:text-base font-bold uppercase tracking-wider sm:tracking-[0.2em] text-white flex items-center justify-center lg:justify-start gap-2 sm:gap-3 whitespace-nowrap overflow-hidden">
             <span className="w-4 sm:w-6 md:w-8 h-[2px] bg-[#ab1509] shrink-0" />
             <span>Product Detail Description</span>
@@ -194,13 +194,13 @@ export const DetailAndReviews: React.FC<{ fullDescription: string; reviews: Revi
 
             {/* Parsed Sections or Clean Full Description */}
             {sections.length > 0 ? (
-              <div className="flex flex-col gap-2.5 sm:gap-3">
+              <div className="w-full flex flex-col gap-2.5 sm:gap-3">
                 {sections.map((section, idx) => {
                   const isOpen = openSections.has(idx);
                   return (
                     <div
                       key={idx}
-                      className={`border rounded-xl overflow-hidden transition-all duration-200 ${
+                      className={`w-full border rounded-xl overflow-hidden transition-all duration-200 ${
                         isOpen
                           ? "border-neutral-300/90 shadow-xs bg-white"
                           : "border-neutral-200 bg-neutral-50/50 hover:border-neutral-300"
@@ -209,19 +209,21 @@ export const DetailAndReviews: React.FC<{ fullDescription: string; reviews: Revi
                       <button
                         type="button"
                         onClick={() => toggleSection(idx)}
-                        className="w-full flex items-center gap-2.5 sm:gap-3.5 px-3.5 sm:px-4 py-3 sm:py-3.5 text-left select-none cursor-pointer"
+                        className="w-full flex items-center justify-between px-3.5 sm:px-4 py-3 sm:py-3.5 text-left select-none cursor-pointer"
                       >
-                        <span
-                          className={`flex-shrink-0 p-1.5 sm:p-2 rounded-lg transition-colors ${
-                            isOpen ? "bg-[#ab1509]/10 text-[#ab1509]" : "bg-neutral-100 text-neutral-500"
-                          }`}
-                        >
-                          {section.icon}
-                        </span>
-                        <span className="flex-1 font-bold text-neutral-900 text-[13px] sm:text-[14px] tracking-tight">
-                          {section.title}
-                        </span>
-                        <span className={isOpen ? "text-[#ab1509]" : "text-neutral-400"}>
+                        <div className="flex items-center gap-2.5 sm:gap-3.5">
+                          <span
+                            className={`flex-shrink-0 p-1.5 sm:p-2 rounded-lg transition-colors ${
+                              isOpen ? "bg-[#ab1509]/10 text-[#ab1509]" : "bg-neutral-100 text-neutral-500"
+                            }`}
+                          >
+                            {section.icon}
+                          </span>
+                          <span className="font-bold text-neutral-900 text-[13px] sm:text-[14px] tracking-tight">
+                            {section.title}
+                          </span>
+                        </div>
+                        <span className={`shrink-0 ml-4 ${isOpen ? "text-[#ab1509]" : "text-neutral-400"}`}>
                           <ChevronIcon open={isOpen} />
                         </span>
                       </button>

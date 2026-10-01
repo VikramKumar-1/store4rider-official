@@ -427,7 +427,8 @@ const mapProductToPDP = (
     sku: v.sku,
     price: v.price,
     stock: v.stock,
-    attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : (v.attributes || {})
+    attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : (v.attributes || {}),
+    imageUrl: v.imageUrl
   }));
 
   if ((!rawVariants || rawVariants.length === 0) && product.configurableVariations) {

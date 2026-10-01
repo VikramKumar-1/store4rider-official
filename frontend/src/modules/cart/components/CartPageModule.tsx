@@ -85,12 +85,7 @@ export const CartPageModule = () => {
           <Navbar
             logoText="Store4Riders"
             theme="light"
-            navItems={[
-              { id: "catalog", label: "Catalog", href: "/products", hasDropdown: true },
-              { id: "sale", label: "Sale", href: "/sale" },
-              { id: "new-arrival", label: "New Arrival", href: "/products?sort=newest" },
-              { id: "about", label: "About", href: "/about" },
-            ]}
+            
           />
         </div>
         <div className="max-w-[1400px] w-full mx-auto px-4 md:px-8 py-16 animate-pulse">
@@ -156,12 +151,7 @@ export const CartPageModule = () => {
         <Navbar
           logoText="Store4Riders"
           theme="light"
-          navItems={[
-            { id: "catalog", label: "Catalog", href: "/products", hasDropdown: true },
-            { id: "sale", label: "Sale", href: "/sale" },
-            { id: "new-arrival", label: "New Arrival", href: "/products?sort=newest" },
-            { id: "about", label: "About", href: "/about" },
-          ]}
+          
         />
       </div>
 

@@ -29,7 +29,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
 }) => {
   return (
     <div
-      className="hidden lg:flex flex-1 items-center justify-center gap-0.5 px-4 pointer-events-auto whitespace-nowrap"
+      className="hidden lg:flex flex-1 items-center justify-start lg:pl-4 xl:justify-center gap-0 px-0.5 xl:px-2.5 pointer-events-auto whitespace-nowrap"
       onMouseLeave={onNavLeave}
     >
       {items.map((item) => {
@@ -42,7 +42,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
           >
             <Link
               href={item.href}
-              className={`relative flex items-center gap-1.5 text-[11px] xl:text-[12px] font-sans font-bold tracking-widest uppercase px-3.5 py-2 rounded-full transition-colors duration-200 z-10 ${
+              className={`relative flex items-center gap-1 xl:gap-1.5 text-[9px] lg:text-[10px] xl:text-[11px] 2xl:text-[12px] font-sans font-bold tracking-wider xl:tracking-widest uppercase px-1.5 lg:px-1.5 xl:px-3 py-2 rounded-full transition-colors duration-200 z-10 ${
                 isLight
                   ? isHovered ? "text-neutral-950" : "text-neutral-700 hover:text-neutral-950"
                   : isHovered ? "text-white" : "text-white/90 hover:text-white drop-shadow-sm"

@@ -229,7 +229,7 @@ export const CheckoutPageModule = () => {
       <div className="w-full min-h-screen bg-white flex flex-col font-sans">
         <TopBanner message="Discount 20% For New Member," highlightText="ONLY FOR TODAY!!" />
         <div className="bg-white border-b border-neutral-200">
-          <Navbar logoText="Store4Riders" theme="light" navItems={[]} />
+          <Navbar logoText="Store4Riders" theme="light"  />
         </div>
         <div className="max-w-[1400px] w-full mx-auto px-4 py-16 animate-pulse">
           <div className="h-12 w-64 bg-neutral-100 rounded mb-8" />
@@ -500,12 +500,7 @@ export const CheckoutPageModule = () => {
         <Navbar
           logoText="Store4Riders"
           theme="light"
-          navItems={[
-            { id: "catalog", label: "Catalog", href: "/products", hasDropdown: true },
-            { id: "sale", label: "Sale", href: "/sale" },
-            { id: "new-arrival", label: "New Arrival", href: "/products?sort=newest" },
-            { id: "about", label: "About", href: "/about" },
-          ]}
+          
         />
       </div>
 

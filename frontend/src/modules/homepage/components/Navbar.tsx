@@ -100,7 +100,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           }`}
         />
 
-        <nav className="relative z-10 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+        <nav className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-3 xl:px-4 py-3.5 flex items-center justify-between">
           {/* Logo (Fades out on mobile when search is open) */}
           <Link 
             href="/" 
@@ -108,7 +108,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               isMobileSearchOpen ? "opacity-0 pointer-events-none sm:flex sm:opacity-100 sm:pointer-events-auto" : "flex opacity-100"
             }`}
           >
-            <div className="relative h-6 w-28 sm:h-7 sm:w-32 md:h-10 md:w-48 transition-transform duration-300 group-hover:scale-105 will-change-transform">
+            <div className="relative h-6 w-28 sm:h-7 sm:w-32 md:h-8 md:w-36 lg:h-8 lg:w-40 xl:h-9 xl:w-44 transition-transform duration-300 group-hover:scale-105 will-change-transform">
               <Image
                 src="/Store4riders-Logo.jpg"
                 alt={logoText || "Store4Riders Logo"}
@@ -138,12 +138,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             isMobileSearchOpen ? "opacity-0 pointer-events-none sm:opacity-100 sm:pointer-events-auto" : "opacity-100"
           }`}>
             
-            {/* Desktop Search Input (Always visible on desktop) */}
-            <div className="hidden sm:block">
+            {/* Desktop Search Input (Hidden on tablets/small laptops to save space) */}
+            <div className="hidden sm:block shrink-0">
               <SearchAutocomplete isLight={isLight} />
             </div>
 
-            {/* Mobile Search Toggle Icon */}
+            {/* Mobile/Tablet Search Toggle Icon */}
             <button
               onClick={() => setIsMobileSearchOpen(true)}
               aria-label="Search"

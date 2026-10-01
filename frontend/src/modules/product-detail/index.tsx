@@ -125,12 +125,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         <Navbar
           logoText="Store4Riders"
           theme="light"
-          navItems={[
-            { id: "catalog", label: "Catalog", href: "/products", hasDropdown: true },
-            { id: "sale", label: "Sale", href: "/sale" },
-            { id: "new-arrival", label: "New Arrival", href: "/products?sort=newest" },
-            { id: "about", label: "About", href: "/about" },
-          ]}
+          
         />
       </div>
 

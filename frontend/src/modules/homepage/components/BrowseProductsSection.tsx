@@ -17,9 +17,9 @@ const GridProductCard: React.FC<{ product: BrowseProductData; layout?: "scroll" 
   product, 
   layout = "scroll" 
 }) => {
-  // Use fixed width for scrolling carousel, but full width for grid layout
+  // Use fixed width for scrolling carousel on all devices so they never shrink to tiny sizes
   const containerClass = layout === "scroll" 
-    ? "w-[140px] sm:w-[180px] lg:w-auto flex-shrink-0 sm:flex-shrink" 
+    ? "w-[140px] sm:w-[180px] md:w-[220px] lg:w-[280px] flex-shrink-0" 
     : "w-full";
 
   return (
@@ -50,11 +50,8 @@ const GridProductCard: React.FC<{ product: BrowseProductData; layout?: "scroll" 
         </div>
       </div>
 
-      {/* Product Details */}
+      {/* Product Details (Category label removed) */}
       <div className="flex flex-col space-y-0.5 md:space-y-1 mt-1">
-        <span className="text-[8px] md:text-[10px] uppercase tracking-widest text-neutral-400 font-sans font-bold">
-          {product.category || "PRODUCT CATEGORY"}
-        </span>
         <h3 className="font-sans font-bold text-[12px] md:text-[15px] text-neutral-900 line-clamp-1 leading-tight">
           {product.name}
         </h3>
@@ -89,7 +86,7 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
       <div className={mobileLayout === "scroll" ? "-mx-4 px-4 sm:mx-0 sm:px-0" : ""}>
         <div className={
           mobileLayout === "scroll" 
-            ? "flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 overflow-x-auto sm:overflow-visible snap-x snap-mandatory pb-4 sm:pb-0 hide-scrollbar"
+            ? "flex gap-4 md:gap-5 lg:gap-6 overflow-x-auto snap-x snap-mandatory pb-4 hide-scrollbar"
             : "grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6"
         }>
           {products.map((product) => (

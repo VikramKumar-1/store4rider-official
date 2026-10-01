@@ -76,14 +76,14 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   const showDropdown = isOpen && (debouncedQuery.length > 1);
 
   return (
-    <div className={`relative flex items-center group ${isMobileFull ? "w-full" : ""}`} ref={containerRef}>
+    <div className={`relative flex items-center group ${isMobileFull ? "w-full" : "sm:w-40 md:w-48 lg:w-48 xl:w-56 2xl:w-72"}`} ref={containerRef}>
       <form action="." onSubmit={handleSubmit} className="w-full">
         <div className={`relative flex items-center rounded-full transition-all duration-300 w-full ${
           isMobileFull
             ? "bg-white/90 backdrop-blur-md border border-neutral-200/90 shadow-[0_4px_20px_rgba(0,0,0,0.08)] py-1 px-1 sm:py-0 animate-in fade-in zoom-in-[0.98] duration-200"
             : isLight
-            ? "sm:w-48 md:w-60 lg:w-72 border bg-neutral-100/90 border-neutral-200/90 shadow-xs focus-within:bg-white focus-within:border-neutral-400 focus-within:ring-2 focus-within:ring-neutral-900/5 sm:focus-within:w-64 lg:focus-within:w-80"
-            : "sm:w-48 md:w-60 lg:w-72 border bg-black/40 backdrop-blur-xl border-white/25 shadow-md focus-within:bg-black/65 focus-within:border-white/50 focus-within:ring-2 focus-within:ring-white/20 sm:focus-within:w-64 lg:focus-within:w-80"
+            ? "border bg-neutral-100/90 border-neutral-200/90 shadow-xs focus-within:bg-white focus-within:border-neutral-400 focus-within:ring-2 focus-within:ring-neutral-900/5"
+            : "border bg-black/40 backdrop-blur-xl border-white/25 shadow-md focus-within:bg-black/65 focus-within:border-white/50 focus-within:ring-2 focus-within:ring-white/20"
         }`}>
           
           {/* Search Icon on the LEFT (Brand orange / neutral) */}
@@ -148,7 +148,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
               </svg>
             </button>
           ) : (
-            <span className={`hidden lg:inline-flex mr-2.5 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider shrink-0 select-none ${
+            <span className={`hidden mr-2.5 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider shrink-0 select-none ${
               isLight ? "bg-neutral-200/70 text-neutral-500" : "bg-white/15 text-white/70"
             }`}>
               ⌘K
@@ -159,10 +159,10 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
 
       {/* Autocomplete Dropdown */}
       {showDropdown && (
-        <div className={`absolute top-full right-0 w-full sm:w-[400px] lg:w-[500px] rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 ${
+        <div className={`absolute top-full mt-2 left-0 w-full min-w-[200px] sm:min-w-full rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 ${
           isMobileFull || isLight
             ? "bg-white/95 backdrop-blur-xl border border-neutral-200/90 shadow-[0_12px_40px_rgba(0,0,0,0.12)]" 
-            : "bg-neutral-900/90 backdrop-blur-xl border border-white/15 shadow-[0_12px_40px_rgba(0,0,0,0.4)]"
+            : "bg-black/65 backdrop-blur-xl border border-white/20 shadow-[0_12px_40px_rgba(0,0,0,0.4)]"
         }`}>
           {isLoading ? (
             <div className="py-4 flex justify-center">
