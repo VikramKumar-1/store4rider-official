@@ -204,7 +204,82 @@ const mapToKitProduct = (p: IBackendProduct): KitProduct => {
   };
 };
 
-// Removed obsolete inferImageColorLabel functionality as backend API now provides reliable altText from Magento.
+const filenameToColorMap: Record<string, string> = {
+  // Clan SNKR Stealth Edition
+  "snkr--se-_9": "Black/Grey",
+  "snkr--se-_25": "Black/Red",
+  "snkr--se-_14": "Black/Blue",
+  "snkr--se-_10": "Black/Orange",
+  // Clan FRML 1.0 Formal Shoes
+  "frml-1-_5_.jpg": "Black",
+  "frml-1-_1_.jpg": "Black",
+  "frml-1-_2_.jpg": "Black",
+  "frml-1-_3_.jpg": "Black",
+  "frml-1-_4_.jpg": "Black",
+  "frml-1-_5__1.jpg": "Brown",
+  "frml-1-_1__1.jpg": "Brown",
+  "frml-1-_2__1.jpg": "Brown",
+  "frml-1-_3__1.jpg": "Brown",
+  "frml-1-_4__1.jpg": "Brown",
+  // Clan Scout Waterproof
+  "clan-scout-shoes-_30": "Black",
+  "clan-scout-shoes-_13": "Black",
+  "clan-scout-shoes-_24": "Blue",
+  "clan-scout-shoes-_19__2": "Blue",
+  "clan-scout-shoes-_11": "Grey",
+  "clan-scout-shoes-_5__11zon_1": "Grey",
+  "clan-scout-shoes-_46": "Red",
+  "clan-scout-shoes-_48": "Red",
+  // Clan Scout D3O Waterproof
+  "clan-scout-shoes-_3__11zon_1": "Red",
+  "clan-scout-shoes-_38": "Black",
+  "clan_scout_d3o_waterproof_riding_boots_-_grey": "Grey",
+  "clan-scout-shoes-_19__1": "Blue",
+};
+
+const KNOWN_COLORS = [
+  "black/grey", "grey/black", "black/red", "red/black", "black/blue", "blue/black", 
+  "black/orange", "orange/black", "black/yellow", "yellow/black", "black/green", "green/black",
+  "black/white", "white/black", "red/white", "white/red", "blue/white", "white/blue",
+  "black", "brown", "tan", "white", "red", "blue", "green", "grey", "gray", "orange", "yellow", 
+  "neon", "navy", "olive", "camo", "silver", "gold", "pink", "purple", "teal", "cyan"
+];
+
+const inferImageColorLabel = (imgUrl: string, existingAlt: string, productName: string): string => {
+  // SMART CHECK: If the database provided a rich alt text with a dash (e.g. "Product - Black/Flu. Green"), trust it!
+  if (existingAlt && existingAlt.includes('-') && existingAlt.length > productName.length + 1) {
+    return existingAlt;
+  }
+
+  const urlLower = (imgUrl || "").toLowerCase();
+
+  // Check known obscure filenames (Magento edge cases)
+  for (const [key, color] of Object.entries(filenameToColorMap)) {
+    if (urlLower.includes(key.toLowerCase())) {
+      return `${productName} - ${color}`;
+    }
+  }
+
+  // Check URL substrings
+  for (const c of KNOWN_COLORS) {
+    const dashFormat = c.replace(/\//g, "-");
+    const underscoreFormat = c.replace(/\//g, "_");
+    const noSpaceFormat = c.replace(/\//g, "");
+    
+    const check = (fmt: string) => {
+      const isShort = fmt === "red" || fmt === "tan";
+      if (isShort) return new RegExp(`(?:^|[^a-z])${fmt}`).test(urlLower);
+      return urlLower.includes(fmt);
+    };
+
+    if (check(c) || check(dashFormat) || check(underscoreFormat) || check(noSpaceFormat)) {
+      const capitalized = c.split(/[/\\&\-_+ ]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join("/");
+      return `${productName} - ${capitalized}`;
+    }
+  }
+
+  return existingAlt || productName;
+};
 
 const parseVariationsToRawVariants = (variationsStr?: string) => {
   if (!variationsStr) return [];
@@ -303,7 +378,7 @@ const mapProductToPDP = (
   const gallery = product.images?.length > 0
     ? product.images.map(img => ({
         url: img.url,
-        altText: img.altText || product.name,
+        altText: inferImageColorLabel(img.url, img.altText || "", product.name),
       }))
     : [{ url: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80", altText: "Placeholder" }];
 
