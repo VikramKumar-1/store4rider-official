@@ -56,7 +56,7 @@ export const CheckoutPersonalInfo = ({
             placeholder="Enter your full name"
             value={formData.name}
             onChange={handleInputChange}
-            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors"
+            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors"
           />
         </div>
 
@@ -79,7 +79,7 @@ export const CheckoutPersonalInfo = ({
               placeholder="Enter your mobile number"
               value={formData.phone}
               onChange={handleInputChange}
-              className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors"
+              className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors"
             />
           </div>
         </div>
@@ -97,7 +97,7 @@ export const CheckoutPersonalInfo = ({
             placeholder="Enter alternate number (optional)"
             value={formData.altPhone}
             onChange={handleInputChange}
-            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors"
+            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors"
           />
         </div>
 
@@ -115,7 +115,7 @@ export const CheckoutPersonalInfo = ({
             placeholder="Enter your email address"
             value={formData.email}
             onChange={handleInputChange}
-            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors"
+            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors"
           />
         </div>
       </div>
@@ -136,9 +136,10 @@ export const CheckoutPersonalInfo = ({
         )}
         <button
           type="submit"
-          className="w-full sm:w-auto min-w-[240px] bg-brand hover:bg-red-800 text-white font-bold tracking-widest text-xs uppercase py-4 px-8 rounded-none shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2 self-start"
+          className="w-full sm:w-auto bg-brand hover:bg-red-800 text-white font-bold tracking-wider text-xs uppercase py-4 px-4 md:px-8 rounded-none shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2 self-start"
         >
-          CONTINUE TO SHIPPING & ADDRESS
+          <span className="sm:hidden">CONTINUE</span>
+          <span className="hidden sm:inline">CONTINUE TO SHIPPING & ADDRESS</span>
           <span className="text-base leading-none">→</span>
         </button>
       </div>

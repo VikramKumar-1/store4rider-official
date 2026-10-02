@@ -49,11 +49,6 @@ export function useRegister() {
       const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
       const redirectTarget = searchParams?.get("redirect") || "/";
 
-      // If user registered normally from homepage (not during checkout), start with clean fresh cart
-      if (redirectTarget !== "/checkout") {
-        useCartStore.getState().clearCart();
-      }
-
       toast.success("Account created successfully!");
       router.push(redirectTarget);
     },

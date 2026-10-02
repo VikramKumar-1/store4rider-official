@@ -57,7 +57,7 @@ const AVAILABLE_PROMOS: PromoCodeItem[] = [
 export const CartPageModule = () => {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
-  const { items, removeItem, updateQuantity } = useCartStore();
+  const { items, removeItem, updateQuantity, isLoaded } = useCartStore();
   const [mounted, setMounted] = useState(false);
   const [showPromoBanner, setShowPromoBanner] = useState(true);
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
@@ -77,7 +77,7 @@ export const CartPageModule = () => {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
+  if (!mounted || !isLoaded) {
     return (
       <div className="w-full min-h-screen bg-white flex flex-col font-sans">
         <TopBanner message="Discount 20% For New Member," highlightText="ONLY FOR TODAY!!" />

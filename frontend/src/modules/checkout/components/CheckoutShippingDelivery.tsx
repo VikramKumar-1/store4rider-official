@@ -451,9 +451,9 @@ export const CheckoutShippingDelivery = ({
           type="button"
           onClick={handleContinueToPayment}
           disabled={isAddingAddress || isNotServiceable || isCheckingServiceability}
-          className="bg-brand hover:bg-red-800 text-white font-bold tracking-widest text-xs uppercase px-8 py-4 rounded-none shadow-md transition-all active:scale-[0.99] flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          className="bg-brand hover:bg-red-800 text-white font-bold tracking-wider text-xs uppercase px-4 md:px-8 py-4 rounded-none shadow-md transition-all active:scale-[0.99] flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          {isAddingAddress ? "SAVING..." : (isCheckingServiceability ? "CHECKING PINCODE..." : "CONTINUE TO PAYMENT")}
+          {isAddingAddress ? "SAVING..." : (isCheckingServiceability ? "CHECKING..." : "CONTINUE TO PAYMENT")}
           {!isAddingAddress && !isCheckingServiceability && <span className="text-base leading-none">→</span>}
         </button>
       </div>

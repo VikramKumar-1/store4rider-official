@@ -25,6 +25,13 @@ export class OrderRepository {
     return OrderModel.findOne({ gatewayOrderId }).session(session || null).lean().exec() as unknown as IOrder | null;
   }
 
+  static async linkGuestOrders(email: string, userId: string): Promise<number> {
+    const result = await OrderModel.updateMany(
+      { "customerInfo.email": email, userId: { $exists: false } },
+      { $set: { userId } }
+    ).exec();
+    return result.modifiedCount;
+  }
   static async findByIdempotencyKey(idempotencyKey: string, session?: ClientSession): Promise<IOrder | null> {
     return OrderModel.findOne({ idempotencyKey }).session(session || null).lean().exec() as unknown as IOrder | null;
   }
@@ -61,3 +68,4 @@ export class OrderRepository {
     ).lean().exec() as unknown as IOrder | null;
   }
 }
+

@@ -15,6 +15,7 @@ import { CheckoutPersonalInfo } from "./CheckoutPersonalInfo";
 import { CheckoutStepper } from "./CheckoutStepper";
 import { CheckoutShippingDelivery } from "./CheckoutShippingDelivery";
 import { CheckoutPaymentStep } from "./CheckoutPaymentStep";
+import { PostCheckoutRegisterForm } from "./PostCheckoutRegisterForm";
 import { useCheckout } from "@/core/hooks/useCheckout";
 import { useUserAddresses, useAddAddress, useUpdateAddress, useDeleteAddress } from "@/core/hooks/useAddresses";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
@@ -98,7 +99,7 @@ export const CheckoutPageModule = () => {
 
   // Form State matching Figma Screen 1
   const [formData, setFormData] = useState({
-    name: user?.name || (user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : ""),
+    name: user?.name || (user?.firstName ? (user.firstName + " " + (user.lastName || "")).trim() : ""),
     countryCode: "IN",
     phone: defaultPhone,
     altPhone: "",
@@ -530,10 +531,7 @@ export const CheckoutPageModule = () => {
             </h1>
 
             <p className="text-neutral-500 text-xs sm:text-sm max-w-lg mb-8 leading-relaxed font-sans">
-              Thank you for shopping with Store4Riders. Your order <strong>#{generatedOrderNumber}</strong> has been confirmed. A receipt and tracking details have been sent to {formData.email || user?.email ? <strong>{formData.email || user?.email}</strong> : "your registered email address"}.
-            </p>
-
-            <Link
+              Thank you for shopping with Store4Riders. Your order <strong>#{generatedOrderNumber}</strong> has been confirmed. A receipt and tracking details have been sent to {formData.email || user?.email ? <strong>{formData.email || user?.email}</strong> : "your registered email address"}.</p>{!user && formData.email && (<div className="w-full max-w-sm mt-2 mb-10 bg-white border border-neutral-200 p-6 shadow-sm text-left"><h3 className="text-sm font-bold uppercase tracking-wider text-neutral-900 mb-2">Track Your Order</h3><p className="text-xs text-neutral-500 mb-5 leading-relaxed">Create an account to easily track this order and speed up future checkouts.</p><PostCheckoutRegisterForm email={formData.email} name={formData.name || ""} /></div>)}<Link
               href="/"
               className="bg-banner hover:bg-orange-600 text-white font-bold tracking-widest text-xs uppercase px-12 py-4 rounded-none shadow-md transition-all active:scale-[0.99]"
             >
@@ -738,3 +736,5 @@ export const CheckoutPageModule = () => {
     </div>
   );
 };
+
+

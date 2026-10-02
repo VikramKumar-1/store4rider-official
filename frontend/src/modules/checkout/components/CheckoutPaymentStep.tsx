@@ -279,7 +279,7 @@ export const CheckoutPaymentStep = ({
           type="button"
           onClick={handleAgreeToPay}
           disabled={isProcessing || !paymentOption}
-          className="bg-banner hover:bg-orange-600 text-white font-bold tracking-widest text-xs uppercase px-12 py-4 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          className="bg-banner hover:bg-orange-600 text-white font-bold tracking-wider text-xs uppercase px-6 md:px-12 py-4 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {isProcessing ? "PROCESSING..." : "PLACE ORDER"}
         </button>

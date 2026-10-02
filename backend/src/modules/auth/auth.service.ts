@@ -22,6 +22,14 @@ export class AuthService {
     const userId = (user as any)._id?.toString() || user.id;
     const tokens = generateTokens(userId);
     
+    // Auto-link any past guest orders made with this email
+    try {
+      const { OrderRepository } = await import("../order/order.repository");
+      await OrderRepository.linkGuestOrders(user.email, userId);
+    } catch (e) {
+      console.error("Failed to link guest orders on register:", e);
+    }
+
     return {
       tokens,
       user: {
@@ -59,6 +67,14 @@ export class AuthService {
 
     const userId = (user as any)._id?.toString() || user.id;
     const tokens = generateTokens(userId);
+
+    // Auto-link any past guest orders made with this email
+    try {
+      const { OrderRepository } = await import("../order/order.repository");
+      await OrderRepository.linkGuestOrders(user.email, userId);
+    } catch (e) {
+      console.error("Failed to link guest orders on login:", e);
+    }
 
     return {
       tokens,
