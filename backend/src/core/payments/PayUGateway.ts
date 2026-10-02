@@ -8,28 +8,32 @@ import { logger } from "../utils/logger";
 export class PayUGateway implements PaymentGateway {
   
   async createOrder(order: IOrder, amount: number): Promise<GatewayOrderResult> {
-    const key = ENV.PAYU_MERCHANT_KEY || process.env.PAYU_MERCHANT_KEY;
-    const salt = ENV.PAYU_SALT || process.env.PAYU_SALT;
+    const key = (ENV.PAYU_MERCHANT_KEY || process.env.PAYU_MERCHANT_KEY || "").trim();
+    const salt = (ENV.PAYU_SALT || process.env.PAYU_SALT || "").trim();
 
     if (!key || !salt) {
       throw new AppError("PayU / UPI credentials are not configured in backend/.env", 400);
     }
     
-    // Generate a unique transaction ID
-    const txnid = `txn_${Date.now()}`;
+    // PayU txnid MUST be strictly <= 25 characters.
+    // "T" (1) + Date.now() (13) + 4 random hex chars = 18 chars total.
+    const txnid = `T${Date.now()}${crypto.randomBytes(2).toString("hex")}`;
     const productInfo = "Store4Riders Order";
-    const firstName = order.shippingAddress?.fullName?.split(" ")[0] || "Customer";
-    const email = "customer@example.com"; // Normally fetched from User record
+    const firstName = (order.shippingAddress?.fullName?.split(" ")[0] || "Customer").trim();
+    const email = ((order as any).userEmail || order.guestEmail || `${firstName.toLowerCase()}@store4riders.com`).trim();
     
     // PayU expects amount formatted with 2 decimal places (e.g. 5002.26)
     const formattedAmount = Number(amount).toFixed(2);
-    const phone = order.shippingAddress?.phone?.replace(/\D/g, "").slice(-10) || "9876543210";
+    const phone = order.shippingAddress?.phone?.replace(/\D/g, "").slice(-10) || "";
 
     // PayU Hash formula: sha512(key|txnid|amount|productinfo|firstname|email|||||||||||salt)
     const hashString = `${key}|${txnid}|${formattedAmount}|${productInfo}|${firstName}|${email}|||||||||||${salt}`;
     const hash = crypto.createHash("sha512").update(hashString).digest("hex");
 
-    const rawApiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || (ENV as any).API_URL || ENV.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    const rawApiUrl = (ENV.API_URL || ENV.NEXT_PUBLIC_API_URL || "").trim();
+    if (!rawApiUrl) {
+      throw new AppError("API_URL is not configured. PayU surl/furl cannot be generated.", 500);
+    }
     const cleanApiBase = rawApiUrl.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
 
     // In a real flow, you return these params so the frontend can submit a form to PayU's URL
@@ -171,8 +175,8 @@ export class PayUGateway implements PaymentGateway {
 
     if (!isValid) {
       logger.warn(`PayU webhook signature mismatch: generated ${generatedHash} vs received ${hash}`);
-      const isDev = process.env.NODE_ENV !== "production";
-      if (!isDev) {
+      // In live mode, strictly reject invalid signatures. In test mode, log and allow.
+      if (ENV.PAYU_MODE === "live") {
         throw new AppError("Invalid PayU webhook signature", 400);
       }
     }
@@ -219,7 +223,7 @@ export class PayUGateway implements PaymentGateway {
       params.append("var2", String(refundAmount));
       params.append("var3", payment.gatewayOrderId);
 
-      const payuUrl = ENV.NODE_ENV === "production" 
+      const payuUrl = (ENV.PAYU_MODE === "live")
         ? "https://info.payu.in/merchant/postservice.php?form=2"
         : "https://test.payu.in/merchant/postservice.php?form=2";
 
@@ -227,6 +231,7 @@ export class PayUGateway implements PaymentGateway {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: params.toString(),
+        signal: AbortSignal.timeout(15000),
       });
 
       const result = await response.json();
@@ -268,7 +273,7 @@ export class PayUGateway implements PaymentGateway {
       params.append("hash", hash);
       params.append("var1", var1);
 
-      const payuUrl = ENV.NODE_ENV === "production" 
+      const payuUrl = (ENV.PAYU_MODE === "live")
         ? "https://info.payu.in/merchant/postservice.php?form=2"
         : "https://test.payu.in/merchant/postservice.php?form=2";
 
@@ -276,6 +281,7 @@ export class PayUGateway implements PaymentGateway {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: params.toString(),
+        signal: AbortSignal.timeout(15000),
       });
 
       return await response.json();
