@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -24,6 +24,12 @@ export const CartDrawer: React.FC = () => {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
   const { items, isDrawerOpen, closeDrawer, removeItem, updateQuantity } = useCartStore();
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // Reset navigating state when drawer opens
+  useEffect(() => {
+    if (isDrawerOpen) setIsNavigating(false);
+  }, [isDrawerOpen]);
 
   // Close drawer on escape key
   useEffect(() => {
@@ -54,18 +60,25 @@ export const CartDrawer: React.FC = () => {
     return sum + price * (item.quantity || 1);
   }, 0);
 
+  const navigateAndClose = (path: string) => {
+    setIsNavigating(true);
+    router.push(path);
+    setTimeout(() => {
+      closeDrawer();
+      setIsNavigating(false);
+    }, 500); // Wait for route transition before hiding drawer
+  };
+
   const handleCheckoutClick = () => {
-    closeDrawer();
     if (!isAuthenticated) {
-      router.push("/login?redirect=/checkout");
+      navigateAndClose("/login?redirect=/checkout");
     } else {
-      router.push("/checkout");
+      navigateAndClose("/checkout");
     }
   };
 
   const handleViewCartClick = () => {
-    closeDrawer();
-    router.push("/cart");
+    navigateAndClose("/cart");
   };
 
   return (
@@ -129,10 +142,7 @@ export const CartDrawer: React.FC = () => {
                   Add riding boots, jackets, and accessories to your cart.
                 </p>
                 <button
-                  onClick={() => {
-                    closeDrawer();
-                    router.push("/products");
-                  }}
+                  onClick={() => navigateAndClose("/products")}
                   className="bg-banner hover:bg-orange-600 text-white font-bold tracking-widest text-xs uppercase px-6 py-3 rounded-sm shadow-sm transition-all"
                 >
                   START SHOPPING
@@ -234,10 +244,11 @@ export const CartDrawer: React.FC = () => {
               {/* Checkout Button */}
               <button
                 onClick={handleCheckoutClick}
-                className="w-full bg-banner hover:bg-orange-600 text-white font-bold tracking-widest text-xs uppercase py-3.5 rounded-sm shadow-md transition-all flex items-center justify-center gap-2 active:scale-[0.99]"
+                disabled={isNavigating}
+                className="w-full bg-banner hover:bg-orange-600 text-white font-bold tracking-widest text-xs uppercase py-3.5 rounded-sm shadow-md transition-all flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-70 disabled:cursor-wait"
               >
-                <span>PROCEED TO CHECKOUT</span>
-                <ArrowRightIcon className="w-3.5 h-3.5" />
+                <span>{isNavigating ? "REDIRECTING..." : "PROCEED TO CHECKOUT"}</span>
+                {!isNavigating && <ArrowRightIcon className="w-3.5 h-3.5" />}
               </button>
 
               {/* View Full Cart Page Link */}

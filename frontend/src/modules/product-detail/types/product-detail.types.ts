@@ -56,6 +56,7 @@ export interface PDPData {
     imageUrl?: string;
   }>;
   isFreeShipping?: boolean;
+  stockStatus?: number;
 }
 
 export interface ProductDetailProps {
