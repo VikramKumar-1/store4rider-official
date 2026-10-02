@@ -57,10 +57,16 @@ export class ProductRepository {
   }
 
   /**
-   * Finds a product by its ID.
+   * Finds a product by its ID, SKU, or slug.
    */
   static async findById(id: string): Promise<IProduct | null> {
-    return ProductModel.findById(id).lean().exec() as unknown as IProduct | null;
+    if (!id) return null;
+    const mongoose = await import("mongoose");
+    if (mongoose.default.Types.ObjectId.isValid(id)) {
+      const prod = await ProductModel.findById(id).lean().exec();
+      if (prod) return prod as unknown as IProduct;
+    }
+    return ProductModel.findOne({ $or: [{ sku: id }, { slug: id }] }).lean().exec() as unknown as IProduct | null;
   }
 
   static async findBySkus(skus: string[]): Promise<IProduct[]> {

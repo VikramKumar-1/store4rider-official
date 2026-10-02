@@ -31,7 +31,7 @@ const paymentSchema = new Schema<PaymentDocument>(
     },
     gateway: {
       type: String,
-      enum: ["payu", "ccavenue", "snapmint"],
+      enum: ["payu", "ccavenue", "snapmint", "upi"],
       required: true,
     },
     refunds: { type: [refundSchema], default: [] },

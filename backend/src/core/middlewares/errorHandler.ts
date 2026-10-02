@@ -17,5 +17,6 @@ export const errorHandler = (error: unknown): NextResponse => {
   }
 
   logger.error("Unhandled Exception:", error);
-  return ApiResponse.error("Internal Server Error", 500);
+  const msg = error instanceof Error ? error.message : "Internal Server Error";
+  return ApiResponse.error(process.env.NODE_ENV === "production" ? "Internal Server Error" : msg, 500);
 };

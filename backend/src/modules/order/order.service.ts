@@ -168,7 +168,7 @@ export class OrderService {
 
     let gatewayAmount = totalAmount;
     let collectGatewayForCod = false;
-    let actualGatewayType = paymentMethod;
+    let actualGatewayType = paymentMethod === "upi" ? "payu" : paymentMethod;
 
     if (paymentMethod === "cod") {
       pricing.codAmountToCollect = totalAmount;
