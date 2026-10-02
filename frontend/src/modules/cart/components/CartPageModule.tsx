@@ -66,11 +66,7 @@ export const CartPageModule = () => {
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
 
   const handleProceedToCheckout = () => {
-    if (!isAuthenticated) {
-      router.push("/login?redirect=/checkout");
-    } else {
-      router.push("/checkout");
-    }
+    router.push("/checkout");
   };
 
   useEffect(() => {

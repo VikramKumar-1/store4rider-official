@@ -3,6 +3,7 @@ import { OrderService } from "./order.service";
 import { OrderRepository } from "./order.repository";
 import { OrderValidator } from "./order.validator";
 import { ApiResponse } from "../../core/response/ApiResponse";
+import { ENV } from "../../core/config/env";
 
 /**
  * @class OrderController
@@ -65,21 +66,33 @@ export class OrderController {
     req.headers.forEach((val, key) => { headers[key.toLowerCase()] = val; });
 
     const gatewayType = (routePath && routePath[1]) || (headers["x-razorpay-signature"] ? "payu" : "unknown");
-    const isPayuReturn = routePath && routePath[1] === "payu";
-    const isSuccess = routePath && routePath[2] === "success";
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    const isRedirect = routePath && ["payu", "snapmint", "ccavenue"].includes(routePath[1]);
+    const frontendUrl = ENV.FRONTEND_URL;
+
+    const getOrderId = () => {
+      try {
+        if (rawBody.trim().startsWith("{")) {
+          const parsed = JSON.parse(rawBody);
+          return parsed.txnid || parsed.order_id || parsed.orderId || parsed.orderNo || "";
+        }
+        const params = new URLSearchParams(rawBody);
+        return params.get("txnid") || params.get("order_id") || params.get("orderId") || params.get("orderNo") || "";
+      } catch {
+        return "";
+      }
+    };
 
     try {
       if (gatewayType && gatewayType !== "unknown") {
         await OrderService.handleWebhook(rawBody, headers, gatewayType);
       }
       
-      // If customer was redirected back by PayU after payment
-      if (isPayuReturn) {
-        const params = new URLSearchParams(rawBody);
-        const txnid = params.get("txnid") || "";
-        const orderParam = txnid ? `&orderId=${encodeURIComponent(txnid)}` : "";
-        if (isSuccess) {
+      if (isRedirect) {
+        const orderId = getOrderId();
+        const orderParam = orderId ? `&orderId=${encodeURIComponent(orderId)}` : "";
+        const isSuccessPath = gatewayType === "ccavenue" || (routePath && routePath[2] === "success");
+
+        if (isSuccessPath) {
           return NextResponse.redirect(`${frontendUrl}/checkout?success=true${orderParam}`, 303);
         } else {
           return NextResponse.redirect(`${frontendUrl}/checkout?failed=true`, 303);
@@ -88,11 +101,12 @@ export class OrderController {
 
       return ApiResponse.success(null, "Webhook processed");
     } catch (err: any) {
-      if (isPayuReturn) {
-        const params = new URLSearchParams(rawBody);
-        const txnid = params.get("txnid") || "";
-        const orderParam = txnid ? `&orderId=${encodeURIComponent(txnid)}` : "";
-        if (isSuccess) {
+      if (isRedirect) {
+        const orderId = getOrderId();
+        const orderParam = orderId ? `&orderId=${encodeURIComponent(orderId)}` : "";
+        const isSuccessPath = gatewayType !== "ccavenue" && (routePath && routePath[2] === "success");
+        
+        if (isSuccessPath) {
           return NextResponse.redirect(`${frontendUrl}/checkout?success=true${orderParam}`, 303);
         }
         return NextResponse.redirect(`${frontendUrl}/checkout?failed=true`, 303);

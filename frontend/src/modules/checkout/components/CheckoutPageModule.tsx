@@ -453,6 +453,8 @@ export const CheckoutPageModule = () => {
   };
 
   const handleAgreeToPay = async () => {
+    if (isProcessing || isPlacingOrder) return;
+
     if (!selectedAddressId && user) {
       toast.error("Please select a shipping address");
       return;

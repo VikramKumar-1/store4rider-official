@@ -32,6 +32,15 @@ export class OrderRepository {
     ).exec();
     return result.modifiedCount;
   }
+
+  static async markStaleOrdersAsFailed(): Promise<number> {
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const result = await OrderModel.updateMany(
+      { status: "pending_payment", createdAt: { $lt: thirtyMinutesAgo } },
+      { $set: { status: "failed" } }
+    ).exec();
+    return result.modifiedCount;
+  }
   static async findByIdempotencyKey(idempotencyKey: string, session?: ClientSession): Promise<IOrder | null> {
     return OrderModel.findOne({ idempotencyKey }).session(session || null).lean().exec() as unknown as IOrder | null;
   }

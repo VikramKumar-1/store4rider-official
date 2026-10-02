@@ -54,8 +54,10 @@ export function useCheckout() {
         toast.success("Redirecting to PayU Payment Gateway...");
 
         // Standard PayU India form submit redirect
-        const isProd = process.env.NODE_ENV === "production";
-        const payuAction = isProd ? "https://secure.payu.in/_payment" : "https://test.payu.in/_payment";
+        // NOTE: Vercel sets NODE_ENV=production on ALL deployments (including preview).
+        // Use a dedicated env var NEXT_PUBLIC_PAYU_MODE to control test vs production.
+        const isPayuLive = process.env.NEXT_PUBLIC_PAYU_MODE === "live";
+        const payuAction = isPayuLive ? "https://secure.payu.in/_payment" : "https://test.payu.in/_payment";
 
         const form = document.createElement("form");
         form.method = "POST";
@@ -76,13 +78,61 @@ export function useCheckout() {
         return;
       }
 
-      // Handle CCAvenue or Snapmint if selected
-      if (paymentMethod === "ccavenue" || paymentMethod === "snapmint") {
-        toast.success(`Redirecting to ${paymentMethod.toUpperCase()}...`);
-        setTimeout(() => {
-          useCartStore.getState().clearCart();
-          router.push("/checkout?success=true");
-        }, 1500);
+      // Handle CCAvenue — form POST with encrypted request
+      if (paymentMethod === "ccavenue" && gatewayResponse) {
+        toast.success("Redirecting to CCAvenue...");
+
+        const isLive = process.env.NEXT_PUBLIC_CCAVENUE_MODE === "live";
+        const ccavAction = isLive
+          ? "https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction"
+          : "https://test.ccavenue.com/transaction/transaction.do?command=initiateTransaction";
+
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = ccavAction;
+
+        // CCAvenue expects encRequest and access_code as form fields
+        Object.entries(gatewayResponse).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = key;
+            input.value = String(value);
+            form.appendChild(input);
+          }
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+        return;
+      }
+
+      // Handle Snapmint — form POST to Snapmint checkout
+      if (paymentMethod === "snapmint" && gatewayResponse) {
+        toast.success("Redirecting to Snapmint...");
+
+        const isLive = process.env.NEXT_PUBLIC_SNAPMINT_MODE === "live";
+        const snapmintAction = isLive
+          ? "https://checkout.snapmint.com/pay"
+          : "https://sandbox-checkout.snapmint.com/pay";
+
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = snapmintAction;
+
+        Object.entries(gatewayResponse).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = key;
+            input.value = String(value);
+            form.appendChild(input);
+          }
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+        return;
       }
     },
     onError: (error: any) => {

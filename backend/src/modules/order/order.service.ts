@@ -218,7 +218,7 @@ export class OrderService {
         
         if (paymentMethod !== "cod" || collectGatewayForCod) {
           const gateway = PaymentGatewayFactory.create(actualGatewayType);
-          const gatewayResult = await gateway.createOrder({ ...orderData, id: orderIdStr } as any, gatewayAmount);
+          const gatewayResult = await gateway.createOrder({ ...orderData, id: orderIdStr, userEmail: user?.email } as any, gatewayAmount);
           gatewayOrderId = gatewayResult.gatewayOrderId;
           gatewayResponse = gatewayResult.gatewayResponse;
           
@@ -715,5 +715,16 @@ export class OrderService {
     const { InvoiceGenerator } = require("../../core/utils/invoiceGenerator");
     const url = await InvoiceGenerator.getOrGenerateInvoiceUrl(order);
     return url;
+  }
+
+  static async cleanupAbandonedOrders() {
+    try {
+      const count = await OrderRepository.markStaleOrdersAsFailed();
+      if (count > 0) {
+        logger.info(`Cleaned up ${count} abandoned orders stuck in pending_payment`);
+      }
+    } catch (error: any) {
+      logger.error("Failed to cleanup abandoned orders", { error: error.message });
+    }
   }
 }

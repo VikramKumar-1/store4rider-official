@@ -70,11 +70,7 @@ export const CartDrawer: React.FC = () => {
   };
 
   const handleCheckoutClick = () => {
-    if (!isAuthenticated) {
-      navigateAndClose("/login?redirect=/checkout");
-    } else {
-      navigateAndClose("/checkout");
-    }
+    navigateAndClose("/checkout");
   };
 
   const handleViewCartClick = () => {
