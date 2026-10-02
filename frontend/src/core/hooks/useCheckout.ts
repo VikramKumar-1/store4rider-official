@@ -16,10 +16,7 @@ export function useCheckout() {
   const router = useRouter();
 
   return useMutation({
-    mutationFn: async ({ shippingAddressId, paymentMethod, couponCode, phone, fullName }: { shippingAddressId: string; paymentMethod: PaymentMethodType; couponCode?: string; phone?: string; fullName?: string }) => {
-      if (!isAuthenticated) {
-        throw new Error("You must be logged in to checkout");
-      }
+    mutationFn: async ({ shippingAddressId, shippingAddress, guestEmail, paymentMethod, couponCode, phone, fullName }: { shippingAddressId?: string; shippingAddress?: any; guestEmail?: string; paymentMethod: PaymentMethodType; couponCode?: string; phone?: string; fullName?: string }) => {
       
       const payloadItems = cartItems.map(item => ({
         productId: item.productId,
@@ -32,6 +29,8 @@ export function useCheckout() {
 
       const response = await apiClient.post("/orders", { 
         shippingAddressId, 
+        shippingAddress,
+        guestEmail,
         paymentMethod, 
         couponCode: couponCode || undefined,
         phone: phone || undefined,

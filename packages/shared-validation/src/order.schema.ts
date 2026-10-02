@@ -1,7 +1,17 @@
 import { z } from "zod";
 
 export const createOrderSchema = z.object({
-  shippingAddressId: z.string().min(1, "Shipping address is required"),
+  shippingAddressId: z.string().optional(),
+  shippingAddress: z.object({
+    fullName: z.string().min(1, "Full name is required"),
+    phone: z.string().min(1, "Phone is required"),
+    street: z.string().min(1, "Street is required"),
+    city: z.string().min(1, "City is required"),
+    state: z.string().min(1, "State is required"),
+    pincode: z.string().min(1, "Pincode is required"),
+    country: z.string().min(1, "Country is required"),
+  }).optional(),
+  guestEmail: z.string().email("Invalid email format").optional(),
   paymentMethod: z.enum(["cod", "payu", "ccavenue", "snapmint", "upi"]),
   couponCode: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
@@ -12,6 +22,9 @@ export const createOrderSchema = z.object({
     quantity: z.number().min(1),
   })).optional(),
   idempotencyKey: z.string().nullable().optional(),
+}).refine(data => data.shippingAddressId || data.shippingAddress, {
+  message: "Either shippingAddressId or shippingAddress is required",
+  path: ["shippingAddressId"]
 });
 
 export const verifyPaymentSchema = z.object({

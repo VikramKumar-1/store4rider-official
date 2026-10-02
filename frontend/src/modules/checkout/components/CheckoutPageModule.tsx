@@ -399,41 +399,43 @@ export const CheckoutPageModule = () => {
           const selectedCountryObj = COUNTRIES.find(c => c.code.toUpperCase() === (formData.country || "").toUpperCase() || c.name.toLowerCase() === (formData.country || "").toLowerCase());
           const selectedCountryName = selectedCountryObj?.name || formData.country;
           
-          let targetAddressId: string | null = null;
+          if (user) {
+            let targetAddressId: string | null = null;
 
-          if (editingAddressId) {
-            await updateAddressAsync({
-              addressId: editingAddressId,
-              addressData: {
+            if (editingAddressId) {
+              await updateAddressAsync({
+                addressId: editingAddressId,
+                addressData: {
+                  street: formData.address,
+                  city: formData.city,
+                  state: formData.state,
+                  pincode: formData.pinCode,
+                  country: selectedCountryName,
+                  isDefault: true,
+                }
+              });
+              targetAddressId = editingAddressId;
+              setEditingAddressId(null);
+              toast.success("Address updated successfully");
+            } else {
+              const updatedUser = await addAddressAsync({
                 street: formData.address,
                 city: formData.city,
                 state: formData.state,
                 pincode: formData.pinCode,
                 country: selectedCountryName,
                 isDefault: true,
-              }
-            });
-            targetAddressId = editingAddressId;
-            setEditingAddressId(null);
-            toast.success("Address updated successfully");
-          } else {
-            const updatedUser = await addAddressAsync({
-              street: formData.address,
-              city: formData.city,
-              state: formData.state,
-              pincode: formData.pinCode,
-              country: selectedCountryName,
-              isDefault: true,
-            });
-            const newAddress = updatedUser.addresses[updatedUser.addresses.length - 1];
-            targetAddressId = newAddress.id || String(newAddress._id);
-            toast.success("Address saved successfully");
-          }
+              });
+              const newAddress = updatedUser.addresses[updatedUser.addresses.length - 1];
+              targetAddressId = newAddress.id || String(newAddress._id);
+              toast.success("Address saved successfully");
+            }
 
-          if (targetAddressId) {
-            setSelectedAddressId(targetAddressId);
+            if (targetAddressId) {
+              setSelectedAddressId(targetAddressId);
+            }
+            setShowAddressForm(false);
           }
-          setShowAddressForm(false);
           setCurrentStep(3);
           window.scrollTo({ top: 0, behavior: "smooth" });
         } catch (error: any) {
@@ -441,7 +443,7 @@ export const CheckoutPageModule = () => {
         }
       }
     } else {
-      if (!selectedAddressId) {
+      if (!selectedAddressId && user) {
         toast.error("Please select a shipping address");
         return;
       }
@@ -451,7 +453,7 @@ export const CheckoutPageModule = () => {
   };
 
   const handleAgreeToPay = async () => {
-    if (!selectedAddressId) {
+    if (!selectedAddressId && user) {
       toast.error("Please select a shipping address");
       return;
     }
@@ -460,6 +462,8 @@ export const CheckoutPageModule = () => {
     // Look up the dial code to construct the full phone number
     const { COUNTRIES } = await import("@/core/utils/countries");
     const dialCode = COUNTRIES.find(c => c.code === formData.countryCode)?.dialCode || "+91";
+    const selectedCountryObj = COUNTRIES.find(c => c.code.toUpperCase() === (formData.country || "").toUpperCase() || c.name.toLowerCase() === (formData.country || "").toLowerCase());
+    const selectedCountryName = selectedCountryObj?.name || formData.country;
     
     if (typeof window !== "undefined") {
       try {
@@ -473,8 +477,20 @@ export const CheckoutPageModule = () => {
       } catch (e) {}
     }
 
+    const shippingAddress = user && selectedAddressId ? undefined : {
+      fullName: formData.name,
+      phone: dialCode + formData.phone,
+      street: formData.address,
+      city: formData.city,
+      state: formData.state,
+      pincode: formData.pinCode,
+      country: selectedCountryName
+    };
+
     placeOrder({ 
-      shippingAddressId: selectedAddressId, 
+      shippingAddressId: user ? (selectedAddressId || undefined) : undefined, 
+      shippingAddress,
+      guestEmail: user ? undefined : formData.email,
       paymentMethod: paymentOption,
       phone: dialCode + formData.phone,
       fullName: formData.name

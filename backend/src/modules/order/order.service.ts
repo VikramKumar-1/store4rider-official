@@ -17,8 +17,8 @@ import { calculateTax } from "@store4riders/shared-utils";
 
 export class OrderService {
   
-  static async createOrder(userId: string, input: any) { 
-    const { shippingAddressId, paymentMethod, couponCode, idempotencyKey } = input;
+  static async createOrder(userId: string | undefined, input: any) { 
+    const { shippingAddressId, shippingAddress, guestEmail, paymentMethod, couponCode, idempotencyKey } = input;
     
     if (idempotencyKey) {
       const existingOrder = await OrderRepository.findByIdempotencyKey(idempotencyKey);
@@ -32,35 +32,49 @@ export class OrderService {
       }
     }
 
-    const user = await UserRepository.findById(userId);
-    if (!user) throw new AppError("User not found", 404);
+    let user: any = null;
+    let shippingAddressSnapshot: any;
+
+    if (userId) {
+      user = await UserRepository.findById(userId);
+      if (!user) throw new AppError("User not found", 404);
+
+      const userAddress = user.addresses?.find((a: any) => a.id === shippingAddressId || String(a._id) === shippingAddressId);
+      if (!userAddress && !shippingAddress) throw new AppError("Shipping address not found", 400);
+      
+      shippingAddressSnapshot = shippingAddress || {
+        fullName: input.fullName || `${user.firstName} ${user.lastName}`.trim(),
+        phone: input.phone || user.phone || "0000000000",
+        addressLine1: userAddress.street,
+        city: userAddress.city,
+        state: userAddress.state,
+        pincode: userAddress.pincode,
+        country: userAddress.country,
+      };
+    } else {
+      if (!shippingAddress) {
+        throw new AppError("Shipping address is required for guest checkout", 400);
+      }
+      shippingAddressSnapshot = {
+        fullName: shippingAddress.fullName || input.fullName,
+        phone: shippingAddress.phone || input.phone,
+        addressLine1: shippingAddress.street,
+        city: shippingAddress.city,
+        state: shippingAddress.state,
+        pincode: shippingAddress.pincode,
+        country: shippingAddress.country,
+      };
+    }
 
     let cartItems = input.items || [];
     
-    // Fallback to database cart if not provided in payload
-    if (cartItems.length === 0) {
+    // Fallback to database cart if not provided in payload (only for logged-in users)
+    if (cartItems.length === 0 && userId) {
       const cart = await CartService.getCart(userId);
       if (cart && cart.items) {
         cartItems = cart.items;
       }
     }
-
-    if (cartItems.length === 0) {
-      throw new AppError("Cart is empty", 400);
-    }
-
-    const userAddress = user.addresses?.find((a: any) => a.id === shippingAddressId || String(a._id) === shippingAddressId);
-    if (!userAddress) throw new AppError("Shipping address not found", 400);
-    
-    const shippingAddressSnapshot = {
-      fullName: input.fullName || `${user.firstName} ${user.lastName}`.trim(),
-      phone: input.phone || user.phone || "0000000000",
-      addressLine1: userAddress.street,
-      city: userAddress.city,
-      state: userAddress.state,
-      pincode: userAddress.pincode,
-      country: userAddress.country,
-    };
 
     // SERVER-SIDE SERVICEABILITY GATE — prevents orders for undeliverable pincodes
     // Frontend check is just UX; this is the real backend guard. Cannot be bypassed.
@@ -186,7 +200,8 @@ export class OrderService {
       await session.withTransaction(async () => {
         const orderData: Partial<IOrder> = {
           orderNumber,
-          userId,
+          ...(userId ? { userId } : {}),
+          ...(guestEmail ? { guestEmail } : {}),
           status: "pending_payment", // Even for pure COD without partial, we might keep it pending until manual confirm, or auto confirm. We will leave it pending_payment
           pricing,
           items: orderItems,
@@ -247,12 +262,15 @@ export class OrderService {
           for (const itm of orderItems) {
             await ProductRepository.incrementSalesCount(itm.productId, itm.quantity, session);
           }
-          if (couponCode) {
+          if (couponCode && userId) {
             await CouponService.incrementUsage(couponCode, userId, session);
           }
-          await CartService.clearCart(userId, session);
-          if (user?.email) {
-            await addEmailJob(user.email, "Order Confirmed (Cash on Delivery)", `Your order #${orderNumber} has been placed successfully via Cash on Delivery.`);
+          if (userId) {
+            await CartService.clearCart(userId, session);
+          }
+          if (user?.email || guestEmail) {
+            const emailTarget = user?.email || guestEmail;
+            await addEmailJob(emailTarget, "Order Confirmed (Cash on Delivery)", `Your order #${orderNumber} has been placed successfully via Cash on Delivery.`);
           }
         }
 
@@ -278,7 +296,7 @@ export class OrderService {
     return resultData;
   }
 
-  static async verifyPayment(userId: string, gatewayOrderId: string, paymentId: string, signature: string) {
+  static async verifyPayment(userId: string | undefined, gatewayOrderId: string, paymentId: string, signature: string) {
     const session = await mongoose.startSession();
     let stockFailed = false;
     let paymentRecord: any = null;
@@ -288,7 +306,7 @@ export class OrderService {
         if (!order) throw new AppError("Order not found", 404);
 
         // Ownership check
-        if (String(order.userId) !== userId) throw new AppError("Order belongs to different user", 403);
+        if (userId && order.userId && String(order.userId) !== userId) throw new AppError("Order belongs to different user", 403);
 
         const payment = await PaymentRepository.findByGatewayOrderId(gatewayOrderId, session);
         if (!payment) throw new AppError("Payment record not found", 404);
@@ -338,14 +356,20 @@ export class OrderService {
             await ProductRepository.incrementSalesCount(itm.productId, itm.quantity, session);
           }
 
-          if (order.pricing && order.pricing.couponCode) {
+          if (order.pricing && order.pricing.couponCode && order.userId) {
             await CouponService.incrementUsage(order.pricing.couponCode, order.userId, session);
           }
-          await CartService.clearCart(order.userId, session);
+          if (order.userId) {
+            await CartService.clearCart(order.userId, session);
+          }
 
-          const user = await UserRepository.findById(userId);
-          if (user) {
-            await addEmailJob(user.email, "Order Confirmed", `Your payment of ${paymentId} was successful.`);
+          if (order.userId) {
+            const user = await UserRepository.findById(order.userId);
+            if (user) {
+              await addEmailJob(user.email, "Order Confirmed", `Your payment of ${paymentId} was successful.`);
+            }
+          } else if (order.guestEmail) {
+            await addEmailJob(order.guestEmail, "Order Confirmed", `Your payment of ${paymentId} was successful.`);
           }
         }
       });
@@ -451,14 +475,20 @@ export class OrderService {
             await ProductRepository.incrementSalesCount(itm.productId, itm.quantity, session);
           }
 
-          if (order.pricing && order.pricing.couponCode) {
+          if (order.pricing && order.pricing.couponCode && order.userId) {
             await CouponService.incrementUsage(order.pricing.couponCode, order.userId, session);
           }
-          await CartService.clearCart(order.userId, session);
+          if (order.userId) {
+            await CartService.clearCart(order.userId, session);
+          }
 
-          const user = await UserRepository.findById(order.userId);
-          if (user) {
-            await addEmailJob(user.email, "Order Confirmed", `Your payment was successfully captured.`);
+          if (order.userId) {
+            const user = await UserRepository.findById(order.userId);
+            if (user) {
+              await addEmailJob(user.email, "Order Confirmed", `Your payment was successfully captured.`);
+            }
+          } else if (order.guestEmail) {
+            await addEmailJob(order.guestEmail, "Order Confirmed", `Your payment was successfully captured.`);
           }
           logger.info(`Webhook successfully processed order ${orderIdStr}`);
         } 
@@ -466,9 +496,14 @@ export class OrderService {
           if (order.status !== "pending_payment") return;
           await OrderRepository.updateStatus(orderIdStr, "failed", null, session);
           await PaymentRepository.atomicStatusTransition(paymentIdStr, ["created", "pending"], "failed", {}, session);
-          const user = await UserRepository.findById(order.userId);
-          if (user) {
-            await addEmailJob(user.email, "Payment Failed", `Your payment attempt failed. Please try again.`);
+          
+          if (order.userId) {
+            const user = await UserRepository.findById(order.userId);
+            if (user) {
+              await addEmailJob(user.email, "Payment Failed", `Your payment attempt failed. Please try again.`);
+            }
+          } else if (order.guestEmail) {
+            await addEmailJob(order.guestEmail, "Payment Failed", `Your payment attempt failed. Please try again.`);
           }
           logger.info(`Webhook processed failure for order ${orderIdStr}`);
         }
@@ -476,9 +511,13 @@ export class OrderService {
           if (order.status === "refunded") return;
           await OrderRepository.updateStatus(orderIdStr, "refunded", null, session);
           await PaymentRepository.atomicStatusTransition(paymentIdStr, "captured", "refunded", {}, session);
-          const user = await UserRepository.findById(order.userId);
-          if (user) {
-            await addEmailJob(user.email, "Refund Processed", `Your refund of INR ${paymentEntity.amount / 100} has been processed.`);
+          if (order.userId) {
+            const user = await UserRepository.findById(order.userId);
+            if (user) {
+              await addEmailJob(user.email, "Refund Processed", `Your refund of INR ${paymentEntity.amount / 100} has been processed.`);
+            }
+          } else if (order.guestEmail) {
+            await addEmailJob(order.guestEmail, "Refund Processed", `Your refund of INR ${paymentEntity.amount / 100} has been processed.`);
           }
           logger.info(`Webhook processed refund for order ${orderIdStr}`);
         }

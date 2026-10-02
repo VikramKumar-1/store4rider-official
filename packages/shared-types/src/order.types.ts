@@ -45,7 +45,8 @@ export interface IOrderNote {
 export interface IOrder {
   id?: string;
   orderNumber: string;
-  userId: string;
+  userId?: string;
+  guestEmail?: string;
   status: IOrderStatus;
   items: IOrderItem[];
   pricing: IOrderPricing;

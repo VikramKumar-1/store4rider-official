@@ -17,7 +17,12 @@ export class OrderValidator {
    * @returns {Promise<{userId: string, data: any}>} The user ID and validated order data.
    */
   static async validateCreate(req: NextRequest) {
-    const userId = extractUserFromAuth(req);
+    let userId: string | undefined = undefined;
+    try {
+      userId = extractUserFromAuth(req);
+    } catch (e) {
+      // Allow guest users without tokens
+    }
     const body = await req.json();
     const data = createOrderSchema.parse(body);
     return { userId, data };

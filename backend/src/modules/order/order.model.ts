@@ -40,7 +40,8 @@ const orderAddressSchema = new Schema<IOrderAddress>({
 const orderSchema = new Schema<IOrder>(
   {
     orderNumber: { type: String, required: true, unique: true },
-    userId: { type: String, required: true, index: true },
+    userId: { type: String, index: true },
+    guestEmail: { type: String },
     status: { type: String, required: true, default: "pending_payment" },
     items: [orderItemSchema],
     pricing: { type: pricingSchema, required: true },

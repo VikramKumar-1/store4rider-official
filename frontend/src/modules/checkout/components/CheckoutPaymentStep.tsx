@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { PaymentMethodType } from "@store4riders/shared-types";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 
@@ -97,17 +98,38 @@ export const CheckoutPaymentStep = ({
 }: CheckoutPaymentStepProps) => {
   const { data: settings, isLoading } = usePublicSettings();
 
-  const GATEWAY_INFO: Record<string, { label: string; desc: string; icon: React.ReactNode }> = {
+  const GATEWAY_INFO: Record<string, { label: React.ReactNode; desc: string; icon: React.ReactNode }> = {
     payu: {
-      label: "PayU",
-      desc: "UPI, Credit / Debit Cards, NetBanking",
+      label: (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span>PayU & UPI</span>
+          <div className="flex items-center ml-auto gap-1">
+            <Image src="/icons/payment/payu.svg?v=4" alt="PayU" width={40} height={20} className="object-contain h-5 w-auto" unoptimized />
+            <Image src="/icons/payment/upi.svg?v=3" alt="UPI" width={30} height={16} className="object-contain h-4 w-auto" unoptimized />
+          </div>
+        </div>
+      ),
+      desc: "Google Pay, PhonePe, Paytm, Cards & NetBanking",
       icon: (
-        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-          <PayULogo />
-          <UpiLogo />
-          <VisaLogo />
-          <MastercardLogo />
-          <RuPayLogo />
+        <div className="flex items-center gap-2 mt-2 flex-wrap opacity-90">
+          <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+            <Image src="/icons/payment/gpay.svg?v=3" alt="GPay" width={40} height={24} className="object-contain w-full h-full" unoptimized />
+          </div>
+          <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+            <Image src="/icons/payment/phonepe.svg?v=3" alt="PhonePe" width={40} height={24} className="object-contain w-full h-full scale-110" unoptimized />
+          </div>
+          <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+            <Image src="/icons/payment/paytm.svg?v=3" alt="Paytm" width={40} height={24} className="object-contain w-full h-full scale-110" unoptimized />
+          </div>
+          <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+            <Image src="/icons/payment/visa.svg?v=3" alt="VISA" width={40} height={24} className="object-contain w-full h-full scale-110" unoptimized />
+          </div>
+          <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+            <Image src="/icons/payment/mastercard.svg?v=4" alt="Mastercard" width={40} height={24} className="object-contain w-full h-full scale-125" unoptimized />
+          </div>
+          <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+            <Image src="/icons/payment/rupay.svg?v=3" alt="RuPay" width={40} height={24} className="object-contain w-full h-full" unoptimized />
+          </div>
         </div>
       )
     },
@@ -224,32 +246,33 @@ export const CheckoutPaymentStep = ({
               <label
                 key={method}
                 onClick={() => setPaymentOption(method as PaymentMethodType)}
-                className={`flex items-center justify-between p-4 border rounded-none cursor-pointer transition-all ${
+                className={`relative flex flex-col p-4 border rounded-none cursor-pointer transition-all overflow-hidden ${
                   isSelected
                     ? "border-banner bg-orange-50/20 ring-1 ring-banner"
                     : "border-neutral-300 hover:border-neutral-400 bg-white"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-3">
                   <input
                     type="radio"
                     name="paymentOption"
                     checked={isSelected}
                     onChange={() => setPaymentOption(method as PaymentMethodType)}
-                    className="accent-orange-600 w-4 h-4 cursor-pointer"
+                    className="accent-orange-600 w-4 h-4 cursor-pointer mt-0.5 shrink-0"
                   />
-                  <div className="flex flex-col">
-                    <span className="font-bold text-sm text-neutral-900">
+                  <div className="flex flex-col w-full">
+                    <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
                       {info.label}
-                    </span>
-                    <span className="text-[11px] text-neutral-500">
+                      {method !== "payu" && <div className="shrink-0 scale-90 origin-right">{info.icon}</div>}
+                    </div>
+                    <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
                       {isCodWithAdvance 
                         ? `${info.desc} (Requires ${settings?.codPartialPaymentType === 'fixed' ? '₹' + settings?.codPartialPaymentValue : settings?.codPartialPaymentValue + '%'} advance)` 
                         : info.desc}
                     </span>
+                    {method === "payu" && info.icon}
                   </div>
                 </div>
-                {info.icon}
               </label>
             );
           })

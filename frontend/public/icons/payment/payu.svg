@@ -1,0 +1,10 @@
+<svg viewBox="0 0 160 60" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .txt { font-family: 'Century Gothic', 'Futura', 'Trebuchet MS', sans-serif; font-weight: 700; font-size: 46px; fill: #3a3a3a; letter-spacing: -2px; }
+    .txt-u { fill: #00b171; }
+    .box { fill: none; stroke: #3a3a3a; stroke-width: 5; stroke-linejoin: miter; stroke-linecap: butt; }
+  </style>
+  <text x="10" y="46" class="txt">pay</text>
+  <text x="106" y="46" class="txt txt-u">u</text>
+  <path d="M 96 22 v -14 l 42 7 v 28 l -42 7 v -14" class="box" />
+</svg>
