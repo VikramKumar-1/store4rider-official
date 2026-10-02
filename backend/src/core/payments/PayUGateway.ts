@@ -30,9 +30,9 @@ export class PayUGateway implements PaymentGateway {
     const hashString = `${key}|${txnid}|${formattedAmount}|${productInfo}|${firstName}|${email}|||||||||||${salt}`;
     const hash = crypto.createHash("sha512").update(hashString).digest("hex");
 
-    const rawApiUrl = (ENV.API_URL || ENV.NEXT_PUBLIC_API_URL || "").trim();
+    const rawApiUrl = (ENV.API_URL || ENV.NEXT_PUBLIC_API_URL || ENV.FRONTEND_URL || "").trim();
     if (!rawApiUrl) {
-      throw new AppError("API_URL is not configured. PayU surl/furl cannot be generated.", 500);
+      throw new AppError("API_URL or FRONTEND_URL is not configured. PayU surl/furl cannot be generated.", 500);
     }
     const cleanApiBase = rawApiUrl.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
 

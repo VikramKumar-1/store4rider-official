@@ -21,9 +21,9 @@ export class SnapmintGateway implements PaymentGateway {
     const hashString = `${merchantId}${orderId}${amount}${secret}`;
     const checksum = crypto.createHash('md5').update(hashString).digest('hex');
 
-    const apiBase = (ENV.API_URL || ENV.NEXT_PUBLIC_API_URL || "").replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
+    const apiBase = (ENV.API_URL || ENV.NEXT_PUBLIC_API_URL || ENV.FRONTEND_URL || "").replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
     if (!apiBase) {
-      throw new AppError("API_URL is not configured. Snapmint callback URLs cannot be generated.", 500);
+      throw new AppError("API_URL or FRONTEND_URL is not configured. Snapmint callback URLs cannot be generated.", 500);
     }
 
     return {

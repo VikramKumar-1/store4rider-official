@@ -39,9 +39,9 @@ export class CCavenueGateway implements PaymentGateway {
 
     const orderId = String((order as any)._id || order.id || order.orderNumber);
     
-    const apiBase = (ENV.API_URL || ENV.NEXT_PUBLIC_API_URL || "").replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
+    const apiBase = (ENV.API_URL || ENV.NEXT_PUBLIC_API_URL || ENV.FRONTEND_URL || "").replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
     if (!apiBase) {
-      throw new AppError("API_URL is not configured. CCAvenue redirect URLs cannot be generated.", 500);
+      throw new AppError("API_URL or FRONTEND_URL is not configured. CCAvenue redirect URLs cannot be generated.", 500);
     }
     
     const redirectUrl = `${apiBase}/api/v1/orders/webhook/ccavenue`;

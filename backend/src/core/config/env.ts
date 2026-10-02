@@ -9,7 +9,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   REDIS_URL: z.string().optional(),
   FRONTEND_URL: z.string().min(1, "FRONTEND_URL is required"),
-  API_URL: z.string().optional(),
+  API_URL: z.string().min(1, "API_URL is required"),
   NEXT_PUBLIC_API_URL: z.string().optional(),
   JWT_ACCESS_SECRET: z.string().min(1, "JWT_ACCESS_SECRET is required"),
   JWT_REFRESH_SECRET: z.string().min(1, "JWT_REFRESH_SECRET is required"),
