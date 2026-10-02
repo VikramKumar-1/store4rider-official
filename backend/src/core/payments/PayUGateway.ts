@@ -36,20 +36,51 @@ export class PayUGateway implements PaymentGateway {
     }
     const cleanApiBase = rawApiUrl.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
 
-    // In a real flow, you return these params so the frontend can submit a form to PayU's URL
+    const payuPayload: Record<string, string> = {
+      key,
+      txnid,
+      amount: formattedAmount,
+      productinfo: productInfo,
+      firstname: firstName,
+      email,
+      phone,
+      hash,
+      surl: `${cleanApiBase}/api/v1/orders/webhook/payu/success`,
+      furl: `${cleanApiBase}/api/v1/orders/webhook/payu/failure`,
+    };
+
+    let redirectUrl: string | undefined = undefined;
+    try {
+      const payuAction = (ENV.PAYU_MODE === "live")
+        ? "https://secure.payu.in/_payment"
+        : "https://test.payu.in/_payment";
+
+      const params = new URLSearchParams(payuPayload);
+      const res = await fetch(payuAction, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
+        redirect: "manual",
+        signal: AbortSignal.timeout(6000),
+      });
+
+      const rawLocation = res.headers.get("location");
+      if (rawLocation) {
+        // Fix PayU sandbox bug where Location header contains a literal space after webcheckoutpro/
+        redirectUrl = rawLocation
+          .replace("/webcheckoutpro/%20", "/webcheckoutpro/")
+          .replace("/webcheckoutpro/ ", "/webcheckoutpro/");
+        logger.info(`[PayUGateway] Cleaned redirect URL generated: ${redirectUrl.slice(0, 60)}...`);
+      }
+    } catch (err: any) {
+      logger.warn(`[PayUGateway] Direct redirect resolution fallback: ${err.message}`);
+    }
+
     return {
-      gatewayOrderId: txnid, // Using txnid as the gateway order ID for PayU
+      gatewayOrderId: txnid,
       gatewayResponse: {
-        key,
-        txnid,
-        amount: formattedAmount,
-        productinfo: productInfo,
-        firstname: firstName,
-        email,
-        phone,
-        hash,
-        surl: `${cleanApiBase}/api/v1/orders/webhook/payu/success`,
-        furl: `${cleanApiBase}/api/v1/orders/webhook/payu/failure`,
+        ...payuPayload,
+        ...(redirectUrl ? { redirectUrl } : {}),
       }
     };
   }

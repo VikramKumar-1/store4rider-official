@@ -53,6 +53,12 @@ export function useCheckout() {
       if (((paymentMethod === "payu" || paymentMethod === "upi") || (paymentMethod === "cod" && gatewayOrderId)) && gatewayResponse) {
         toast.success("Redirecting to PayU Payment Gateway...");
 
+        // If backend already resolved the sanitized redirect URL (bypassing PayU space bug)
+        if (gatewayResponse.redirectUrl) {
+          window.location.href = gatewayResponse.redirectUrl;
+          return;
+        }
+
         // Standard PayU India form submit redirect
         // NOTE: Vercel sets NODE_ENV=production on ALL deployments (including preview).
         // Use a dedicated env var NEXT_PUBLIC_PAYU_MODE to control test vs production.
@@ -64,7 +70,7 @@ export function useCheckout() {
         form.action = payuAction;
 
         Object.entries(gatewayResponse).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
+          if (value !== undefined && value !== null && key !== "redirectUrl") {
             const input = document.createElement("input");
             input.type = "hidden";
             input.name = key;
