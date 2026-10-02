@@ -93,21 +93,6 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
               </button>
             </div>
 
-            {/* Search bar */}
-            <div className="px-5 py-3 border-b border-neutral-100">
-              <form
-                onSubmit={handleSearchSubmit}
-                className="flex items-center gap-2 bg-neutral-100 rounded-xl px-3 py-2"
-              >
-                <MagnifyingGlassIcon className="w-4 h-4 text-neutral-400 shrink-0" />
-                <input
-                  type="search"
-                  placeholder="Search helmets, jackets..."
-                  className="flex-1 bg-transparent text-sm text-neutral-800 placeholder-neutral-400 outline-none"
-                />
-              </form>
-            </div>
-
             {/* Nav links accordion */}
             <nav className="flex-1 overflow-y-auto px-3 py-3">
               {items.map((item) => (
@@ -218,3 +203,5 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
     </AnimatePresence>
   );
 };
+
+

@@ -9,8 +9,7 @@ import { useRegister } from "@/core/hooks/useAuth";
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 
 const registerSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters").max(50, "First name cannot exceed 50 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters").max(50, "Last name cannot exceed 50 characters"),
+  fullName: z.string().min(2, "Name must be at least 2 characters").max(100, "Name cannot exceed 100 characters"),
   email: z.string().email("Please enter a valid email address").max(255, "Email cannot exceed 255 characters"),
   password: z.string().min(8, "Password must be at least 8 characters").max(100, "Password cannot exceed 100 characters"),
 });
@@ -50,39 +49,36 @@ export function RegisterForm() {
     </div>
   );
 
+  const onFormSubmit = (data: RegisterFormInputs) => {
+    const nameParts = data.fullName.trim().split(" ");
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
+    registerMutation.mutate({
+      email: data.email,
+      password: data.password,
+      firstName,
+      lastName,
+    });
+  };
+
   return (
-    <form onSubmit={handleSubmit(data => registerMutation.mutate(data))} className="flex flex-col gap-3.5 w-full">
+    <form onSubmit={handleSubmit(onFormSubmit)} className="flex flex-col gap-3.5 w-full">
       
-      {/* Name Inputs */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] md:text-xs uppercase tracking-wider font-semibold text-neutral-600">
-            First Name
-          </label>
-          <input
-            type="text"
-            placeholder="John"
-            className={`w-full border ${errors.firstName ? 'border-red-500 bg-red-50/20' : 'border-neutral-300'} p-2.5 text-base md:text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white`}
-            {...register("firstName")}
-          />
-          {errors.firstName && (
-            <span className="text-[11px] text-red-500 font-medium">{errors.firstName.message}</span>
-          )}
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] md:text-xs uppercase tracking-wider font-semibold text-neutral-600">
-            Last Name
-          </label>
-          <input
-            type="text"
-            placeholder="Doe"
-            className={`w-full border ${errors.lastName ? 'border-red-500 bg-red-50/20' : 'border-neutral-300'} p-2.5 text-base md:text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white`}
-            {...register("lastName")}
-          />
-          {errors.lastName && (
-            <span className="text-[11px] text-red-500 font-medium">{errors.lastName.message}</span>
-          )}
-        </div>
+      {/* Full Name Input */}
+      <div className="flex flex-col gap-1">
+        <label className="text-[10px] md:text-xs uppercase tracking-wider font-semibold text-neutral-600">
+          Full Name
+        </label>
+        <input
+          type="text"
+          placeholder="John Doe"
+          className={`w-full border ${errors.fullName ? 'border-red-500 bg-red-50/20' : 'border-neutral-300'} p-2.5 text-base md:text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white`}
+          {...register("fullName")}
+        />
+        {errors.fullName && (
+          <span className="text-[11px] text-red-500 font-medium">{errors.fullName.message}</span>
+        )}
       </div>
 
       {/* Email Input */}

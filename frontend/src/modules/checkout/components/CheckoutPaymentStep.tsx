@@ -12,6 +12,7 @@ interface CheckoutPaymentStepProps {
   shippingAddressSummary?: string;
   isFailedParam?: boolean;
   isCodAvailable?: boolean;
+  total?: number;
 }
 
 // Authentic Brand Vector Logos
@@ -92,6 +93,7 @@ export const CheckoutPaymentStep = ({
   shippingAddressSummary,
   isFailedParam,
   isCodAvailable = true,
+  total
 }: CheckoutPaymentStepProps) => {
   const { data: settings, isLoading } = usePublicSettings();
 
@@ -266,20 +268,30 @@ export const CheckoutPaymentStep = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-between gap-4 pt-4 border-t border-neutral-200">
+      <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 bg-white border-t border-neutral-200 z-[60] flex items-center justify-between gap-4 shadow-[0_-8px_16px_-6px_rgba(0,0,0,0.15)] lg:relative lg:p-0 lg:pb-0 lg:border-t-0 lg:z-auto lg:shadow-none lg:bg-transparent">
+        {/* Mobile Total Display */}
+        <div className="flex flex-col lg:hidden min-w-0">
+          <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Total</span>
+          <span className="text-lg font-black text-[#AB1509] leading-none line-clamp-1">
+            {total !== undefined ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(total) : "₹0.00"}
+          </span>
+        </div>
+
+        {/* Back Button (Desktop Only) */}
         <button
           type="button"
           onClick={() => setCurrentStep(2)}
-          className="border border-neutral-300 hover:border-neutral-900 text-neutral-700 hover:text-neutral-900 text-xs uppercase font-bold px-5 py-3.5 transition-colors flex items-center gap-1.5"
+          className="hidden lg:flex border border-neutral-300 hover:border-neutral-900 text-neutral-700 hover:text-neutral-900 text-xs uppercase font-bold px-5 py-3.5 transition-colors items-center gap-1.5"
         >
-          ← Back to Shipping
+          ← Back
         </button>
 
+        {/* Continue Button */}
         <button
           type="button"
           onClick={handleAgreeToPay}
           disabled={isProcessing || !paymentOption}
-          className="bg-banner hover:bg-orange-600 text-white font-bold tracking-wider text-xs uppercase px-6 md:px-12 py-4 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          className="flex-1 lg:flex-none lg:w-auto bg-banner hover:bg-orange-600 text-white font-bold tracking-wider text-xs uppercase py-3.5 lg:py-4 px-4 md:px-12 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap lg:self-start"
         >
           {isProcessing ? "PROCESSING..." : "PLACE ORDER"}
         </button>

@@ -16,6 +16,8 @@ interface CheckoutPersonalInfoProps {
   handleContinueToShipping: (e: React.FormEvent) => void;
   errorMessage?: string;
   setErrorMessage?: (msg: string) => void;
+  fieldErrors?: Record<string, string>;
+  total?: number;
 }
 
 export const CheckoutPersonalInfo = ({ 
@@ -23,7 +25,9 @@ export const CheckoutPersonalInfo = ({
   handleInputChange, 
   handleContinueToShipping,
   errorMessage,
-  setErrorMessage
+  setErrorMessage,
+  fieldErrors = {},
+  total
 }: CheckoutPersonalInfoProps) => {
   const currentCountry = COUNTRIES.find((c) => c.code === formData.countryCode);
   const maxPhoneLength = currentCountry?.phoneLength ? Math.max(...currentCountry.phoneLength) : 15;
@@ -56,8 +60,9 @@ export const CheckoutPersonalInfo = ({
             placeholder="Enter your full name"
             value={formData.name}
             onChange={handleInputChange}
-            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors"
+            className={`w-full border ${fieldErrors.name ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
           />
+          {fieldErrors.name && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.name}</span>}
         </div>
 
         {/* Phone Number with Flag selector */}
@@ -79,9 +84,10 @@ export const CheckoutPersonalInfo = ({
               placeholder="Enter your mobile number"
               value={formData.phone}
               onChange={handleInputChange}
-              className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors"
+              className={`w-full border ${fieldErrors.phone ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors border-l-0`}
             />
           </div>
+          {fieldErrors.phone && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.phone}</span>}
         </div>
 
         {/* Alternate Phone Number */}
@@ -97,8 +103,9 @@ export const CheckoutPersonalInfo = ({
             placeholder="Enter alternate number (optional)"
             value={formData.altPhone}
             onChange={handleInputChange}
-            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors"
+            className={`w-full border ${fieldErrors.altPhone ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
           />
+          {fieldErrors.altPhone && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.altPhone}</span>}
         </div>
 
         {/* Email Address */}
@@ -115,8 +122,9 @@ export const CheckoutPersonalInfo = ({
             placeholder="Enter your email address"
             value={formData.email}
             onChange={handleInputChange}
-            className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors"
+            className={`w-full border ${fieldErrors.email ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
           />
+          {fieldErrors.email && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.email}</span>}
         </div>
       </div>
 
@@ -134,16 +142,26 @@ export const CheckoutPersonalInfo = ({
             </button>
           </div>
         )}
-        <button
-          type="submit"
-          className="w-full sm:w-auto bg-brand hover:bg-red-800 text-white font-bold tracking-wider text-xs uppercase py-4 px-4 md:px-8 rounded-none shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2 self-start"
-        >
-          <span className="sm:hidden">CONTINUE</span>
-          <span className="hidden sm:inline">CONTINUE TO SHIPPING & ADDRESS</span>
-          <span className="text-base leading-none">→</span>
-        </button>
+        <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 bg-white border-t border-neutral-200 z-[60] flex items-center justify-between gap-4 shadow-[0_-8px_16px_-6px_rgba(0,0,0,0.15)] lg:relative lg:p-0 lg:pb-0 lg:border-t-0 lg:z-auto lg:shadow-none lg:bg-transparent lg:block">
+          {/* Mobile Total Display */}
+          <div className="flex flex-col lg:hidden min-w-0">
+            <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Total</span>
+            <span className="text-lg font-black text-[#AB1509] leading-none line-clamp-1">
+              {total !== undefined ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(total) : "₹0.00"}
+            </span>
+          </div>
+          <button
+            type="submit"
+            className="flex-1 lg:flex-none lg:w-auto bg-brand hover:bg-red-800 text-white font-bold tracking-wider text-xs uppercase py-3.5 lg:py-4 px-4 md:px-8 rounded-none shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2 lg:self-start whitespace-nowrap"
+          >
+            <span className="sm:hidden">CONTINUE</span>
+            <span className="hidden sm:inline">CONTINUE TO SHIPPING</span>
+            <span className="text-base leading-none">→</span>
+          </button>
+        </div>
       </div>
 
     </form>
   );
 };
+

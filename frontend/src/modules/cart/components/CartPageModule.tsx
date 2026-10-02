@@ -185,7 +185,7 @@ export const CartPageModule = () => {
           <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
             
             {/* Left Column: Cart Items List */}
-            <div className="w-full lg:w-[62%] flex flex-col divide-y divide-neutral-200">
+            <div className="w-full lg:w-[62%] flex flex-col divide-y divide-neutral-200 pb-28 lg:pb-0">
               {items.map((item, idx) => {
                 const product = item.product || {};
                 const name = product.name || "Riding Gear";
@@ -237,7 +237,7 @@ export const CartPageModule = () => {
 
                           {/* Variant Info (Color / Size) */}
                           {(selectedColor || selectedSize) && (
-                            <div className="flex items-center gap-2 text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+                            <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
                               {selectedColor && <span>Color: {selectedColor}</span>}
                               {selectedColor && selectedSize && <span>•</span>}
                               {selectedSize && <span>Size: {selectedSize}</span>}
@@ -335,13 +335,13 @@ export const CartPageModule = () => {
               <div className="flex flex-col">
                 
                 {/* Heading */}
-                <h2 className="font-sans font-bold text-xl sm:text-2xl text-neutral-900 tracking-tight uppercase mb-6">
+                <h2 className="hidden lg:block font-sans font-bold text-xl sm:text-2xl text-neutral-900 tracking-tight uppercase mb-6">
                   SHOPPING INFO
                 </h2>
 
                 {/* Promo Code Alert Banner (when no promo is applied) */}
                 {!appliedPromo && showPromoBanner && (
-                  <div className="bg-banner text-white px-4 py-3 rounded-sm text-xs font-semibold flex items-center justify-between shadow-sm mb-6 animate-in fade-in duration-300">
+                  <div className="hidden lg:flex bg-banner text-white px-4 py-3 rounded-sm text-xs font-semibold items-center justify-between shadow-sm mb-6 animate-in fade-in duration-300">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span>Hooray! You have promo code!</span>
                       <button
@@ -361,46 +361,65 @@ export const CartPageModule = () => {
                   </div>
                 )}
 
-                {/* Cost Breakdown */}
-                <div className="flex flex-col gap-3.5 py-4 border-t border-b border-neutral-200">
-                  <div className="flex items-center justify-between text-sm md:text-base text-neutral-600">
-                    <span>Subtotal</span>
-                    <span className="font-semibold text-neutral-900">{formatPrice(subtotal)}</span>
-                  </div>
+                {/* Fixed Bottom Bar on Mobile */}
+                <div className="fixed bottom-0 left-0 right-0 w-full bg-white p-4 pb-6 shadow-[0_-8px_16px_-6px_rgba(0,0,0,0.15)] z-[60] lg:relative lg:p-0 lg:pb-0 lg:shadow-none lg:z-auto lg:bg-transparent">
+                  {/* Cost Breakdown */}
+                  <div className="flex flex-col gap-3.5 pb-4 lg:py-4 border-b lg:border-t border-neutral-200">
+                    
+                    {/* Item Total (Only show if promo is applied to avoid redundancy) */}
+                    {appliedPromo && (
+                      <div className="flex items-center justify-between text-sm md:text-base text-neutral-600">
+                        <span>Item Total</span>
+                        <span className="font-semibold text-neutral-900">{formatPrice(subtotal)}</span>
+                      </div>
+                    )}
 
-                  {/* Applied Voucher Row matching Figma screenshot */}
-                  {appliedPromo && (
-                    <div className="flex items-center justify-between text-sm md:text-base font-semibold">
-                      <span className="text-neutral-600">Voucher ({appliedPromo.code})</span>
-                      <span className="text-[#DC2626] font-bold">-{formatPrice(discount)}</span>
+                    {/* Unapplied Promo Row */}
+                    {!appliedPromo && (
+                      <div className="flex items-center justify-between text-sm md:text-base font-semibold">
+                        <span className="text-neutral-600">Promo Code</span>
+                        <button 
+                          onClick={() => setIsPromoModalOpen(true)} 
+                          className="text-[#78350F] font-bold underline cursor-pointer text-xs uppercase tracking-wider"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Applied Voucher Row matching Figma screenshot */}
+                    {appliedPromo && (
+                      <div className="flex items-center justify-between text-sm md:text-base font-semibold">
+                        <div className="flex items-center gap-2">
+                          <span className="text-neutral-600">Voucher ({appliedPromo.code})</span>
+                          <button 
+                            onClick={() => setIsPromoModalOpen(true)} 
+                            className="text-neutral-400 hover:text-neutral-600 underline text-xs cursor-pointer"
+                          >
+                            Change
+                          </button>
+                        </div>
+                        <span className="text-[#DC2626] font-bold">-{formatPrice(discount)}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-base md:text-lg text-neutral-900 font-bold pt-1">
+                      <span>Total</span>
+                      <span className="text-xl md:text-2xl font-extrabold text-neutral-900">
+                        {formatPrice(total)}
+                      </span>
                     </div>
-                  )}
-
-                  <div className="flex items-center justify-between text-base md:text-lg text-neutral-900 font-bold pt-1">
-                    <span>Total</span>
-                    <span className="text-xl md:text-2xl font-extrabold text-neutral-900">
-                      {formatPrice(total)}
-                    </span>
                   </div>
-                </div>
 
-                {/* Action Buttons: CHANGE VOUCHER & PROCEED TO CHECKOUT */}
-                <div className="flex flex-col gap-3 mt-6">
-                  {appliedPromo && (
+                  {/* Action Buttons: PROCEED TO CHECKOUT */}
+                  <div className="flex flex-col gap-3 mt-4 lg:mt-6">
                     <button
-                      onClick={() => setIsPromoModalOpen(true)}
-                      className="w-full bg-white border border-[#78350F] text-[#78350F] hover:bg-neutral-50 font-bold tracking-widest text-xs uppercase py-3.5 rounded-sm transition-colors text-center shadow-xs"
+                      onClick={handleProceedToCheckout}
+                      className="block w-full bg-banner hover:bg-orange-600 text-white text-center py-4 rounded-sm font-bold tracking-widest text-xs md:text-sm uppercase shadow-md transition-all active:scale-[0.99] cursor-pointer"
                     >
-                      CHANGE VOUCHER
+                      PROCEED TO CHECKOUT
                     </button>
-                  )}
-
-                  <button
-                    onClick={handleProceedToCheckout}
-                    className="block w-full bg-[#78350F] hover:bg-[#5E2B0C] text-white text-center py-4 rounded-sm font-bold tracking-widest text-xs md:text-sm uppercase shadow-md transition-all active:scale-[0.99] cursor-pointer"
-                  >
-                    PROCEED TO CHECKOUT
-                  </button>
+                  </div>
                 </div>
 
                 {/* Additional reassuring perks */}
@@ -513,8 +532,14 @@ export const CartPageModule = () => {
       )}
 
       {/* 4. Global Footer */}
-      <Footer />
+      <div className="hidden lg:block">
+        <Footer />
+      </div>
 
     </div>
   );
 };
+
+
+
+

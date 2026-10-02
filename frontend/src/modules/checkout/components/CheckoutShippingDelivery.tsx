@@ -6,12 +6,7 @@ import { CountrySelect } from "./CountrySelect";
 import { COUNTRIES } from "@/core/utils/countries";
 import { useShippingServiceability } from "@/core/hooks/useShippingServiceability";
 
-export const INDIAN_STATES = [
-  "Andhra Pradesh", "Assam", "Bihar", "Chhattisgarh", "Delhi NCR", "Goa", 
-  "Gujarat", "Haryana", "Himachal Pradesh", "Jammu & Kashmir", "Jharkhand", 
-  "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Odisha", "Punjab", 
-  "Rajasthan", "Tamil Nadu", "Telangana", "Uttar Pradesh", "Uttarakhand", "West Bengal"
-];
+import { useIndianStates } from "@/core/hooks/useIndianStates";
 
 interface CheckoutShippingDeliveryProps {
   formData: {
@@ -26,6 +21,7 @@ interface CheckoutShippingDeliveryProps {
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   setErrorMessage: (msg: string) => void;
   errorMessage: string;
+  fieldErrors?: Record<string, string>;
   setCurrentStep: (step: 1 | 2 | 3) => void;
   handleContinueToPayment: () => void;
   shippingCost: number;
@@ -41,6 +37,7 @@ interface CheckoutShippingDeliveryProps {
   setEditingAddressId?: (id: string | null) => void;
   cartWeightKg: number;
   setIsCodAvailable: (avail: boolean) => void;
+  total?: number;
 }
 
 export const CheckoutShippingDelivery = ({
@@ -48,6 +45,7 @@ export const CheckoutShippingDelivery = ({
   handleInputChange,
   setErrorMessage,
   errorMessage,
+  fieldErrors = {},
   setCurrentStep,
   handleContinueToPayment,
   shippingCost,
@@ -63,7 +61,10 @@ export const CheckoutShippingDelivery = ({
   setEditingAddressId,
   cartWeightKg,
   setIsCodAvailable,
+  total
 }: CheckoutShippingDeliveryProps) => {
+  const { data: indianStates = [] } = useIndianStates();
+
   const activePincode = React.useMemo(() => {
     if (!showAddressForm && selectedAddressId) {
       const addr = savedAddresses.find(a => (a.id || String((a as any)._id)) === selectedAddressId);
@@ -239,8 +240,9 @@ export const CheckoutShippingDelivery = ({
                 placeholder="House/Flat No., Building Name, Street"
                 value={formData.address}
                 onChange={handleInputChange}
-                className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors"
+                className={`w-full border ${fieldErrors.address ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors`}
               />
+              {fieldErrors.address && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.address}</span>}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -253,6 +255,7 @@ export const CheckoutShippingDelivery = ({
                   value={formData.country}
                   onChange={(val) => handleInputChange({ target: { name: "country", value: val } } as any)}
                 />
+                {fieldErrors.country && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.country}</span>}
               </div>
 
               {/* State */}
@@ -268,10 +271,10 @@ export const CheckoutShippingDelivery = ({
                       required
                       value={formData.state}
                       onChange={handleInputChange}
-                      className="appearance-none w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-3 py-3 text-sm text-neutral-900 bg-white focus:outline-none transition-colors"
+                      className={`appearance-none w-full border ${fieldErrors.state ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-3 py-3 text-sm text-neutral-900 bg-white focus:outline-none transition-colors`}
                     >
                       <option value="" disabled>Select State</option>
-                      {INDIAN_STATES.map(s => (
+                      {indianStates.map(s => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
@@ -287,9 +290,10 @@ export const CheckoutShippingDelivery = ({
                     placeholder="Enter your state or province"
                     value={formData.state}
                     onChange={handleInputChange}
-                    className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors"
+                    className={`w-full border ${fieldErrors.state ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors`}
                   />
                 )}
+                {fieldErrors.state && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.state}</span>}
               </div>
 
               {/* City */}
@@ -306,8 +310,9 @@ export const CheckoutShippingDelivery = ({
                   placeholder="Enter your city"
                   value={formData.city}
                   onChange={handleInputChange}
-                  className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors"
+                  className={`w-full border ${fieldErrors.city ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors`}
                 />
+                {fieldErrors.city && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.city}</span>}
               </div>
 
               {/* Pin Code */}
@@ -324,8 +329,9 @@ export const CheckoutShippingDelivery = ({
                   placeholder="Enter postal / zip code"
                   value={formData.pinCode}
                   onChange={handleInputChange}
-                  className="w-full border border-neutral-300 focus:border-[#78350F] rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors"
+                  className={`w-full border ${fieldErrors.pinCode ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors`}
                 />
+                {fieldErrors.pinCode && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.pinCode}</span>}
               </div>
             </div>
 
@@ -439,21 +445,33 @@ export const CheckoutShippingDelivery = ({
       )}
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-between gap-4 pt-4 border-t border-neutral-200 mt-2">
+      <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 bg-white border-t border-neutral-200 z-[60] flex items-center justify-between gap-4 shadow-[0_-8px_16px_-6px_rgba(0,0,0,0.15)] lg:relative lg:p-0 lg:pb-0 lg:border-t-0 lg:z-auto lg:shadow-none lg:bg-transparent">
+        {/* Mobile Total Display */}
+        <div className="flex flex-col lg:hidden min-w-0">
+          <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Total</span>
+          <span className="text-lg font-black text-[#AB1509] leading-none line-clamp-1">
+            {total !== undefined ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(total) : "₹0.00"}
+          </span>
+        </div>
+
+        {/* Back Button (Desktop Only) */}
         <button
           type="button"
           onClick={() => setCurrentStep(1)}
-          className="border border-neutral-300 hover:border-neutral-900 text-neutral-700 hover:text-neutral-900 text-xs uppercase font-bold px-5 py-3.5 transition-colors flex items-center gap-1.5"
+          className="hidden lg:flex border border-neutral-300 hover:border-neutral-900 text-neutral-700 hover:text-neutral-900 text-xs uppercase font-bold px-5 py-3.5 transition-colors items-center gap-1.5"
         >
-          ← Back to Personal Info
+          ← Back
         </button>
+
+        {/* Continue Button */}
         <button
           type="button"
           onClick={handleContinueToPayment}
           disabled={isAddingAddress || isNotServiceable || isCheckingServiceability}
-          className="bg-brand hover:bg-red-800 text-white font-bold tracking-wider text-xs uppercase px-4 md:px-8 py-4 rounded-none shadow-md transition-all active:scale-[0.99] flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          className="flex-1 lg:flex-none lg:w-auto bg-brand hover:bg-red-800 text-white font-bold tracking-wider text-xs uppercase py-3.5 lg:py-4 px-4 md:px-8 rounded-none shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed whitespace-nowrap"
         >
-          {isAddingAddress ? "SAVING..." : (isCheckingServiceability ? "CHECKING..." : "CONTINUE TO PAYMENT")}
+          <span className="sm:hidden">{isAddingAddress ? "SAVING..." : (isCheckingServiceability ? "CHECKING..." : "CONTINUE")}</span>
+          <span className="hidden sm:inline">{isAddingAddress ? "SAVING..." : (isCheckingServiceability ? "CHECKING..." : "CONTINUE TO PAYMENT")}</span>
           {!isAddingAddress && !isCheckingServiceability && <span className="text-base leading-none">→</span>}
         </button>
       </div>

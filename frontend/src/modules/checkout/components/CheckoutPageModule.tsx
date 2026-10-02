@@ -19,6 +19,7 @@ import { PostCheckoutRegisterForm } from "./PostCheckoutRegisterForm";
 import { useCheckout } from "@/core/hooks/useCheckout";
 import { useUserAddresses, useAddAddress, useUpdateAddress, useDeleteAddress } from "@/core/hooks/useAddresses";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
+import { usePincodeLookup } from "@/core/hooks/usePincodeLookup";
 import { PaymentMethodType, IUserAddress } from "@store4riders/shared-types";
 import { 
   UserIcon, 
@@ -38,12 +39,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80";
 
-const INDIAN_STATES = [
-  "Andhra Pradesh", "Assam", "Bihar", "Chhattisgarh", "Delhi NCR", "Goa", 
-  "Gujarat", "Haryana", "Himachal Pradesh", "Jammu & Kashmir", "Jharkhand", 
-  "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Odisha", "Punjab", 
-  "Rajasthan", "Tamil Nadu", "Telangana", "Uttar Pradesh", "Uttarakhand", "West Bengal"
-];
+
 
 declare global {
   interface Window {}
@@ -72,6 +68,7 @@ export const CheckoutPageModule = () => {
   
   // Validation error alert
   const [errorMessage, setErrorMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Address state
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
@@ -152,6 +149,29 @@ export const CheckoutPageModule = () => {
       };
     });
   }, [user]);
+
+  // Pincode Auto-fill Logic
+  const { data: pincodeData } = usePincodeLookup(formData.country === "IN" || !formData.country ? formData.pinCode : "");
+
+  useEffect(() => {
+    if (pincodeData) {
+      setFormData(prev => {
+        const rawCity = pincodeData.district || pincodeData.divisionName || pincodeData.regionName || "";
+        const titleCaseCity = rawCity ? rawCity.toLowerCase().replace(/\b\w/g, (s: string) => s.toUpperCase()) : prev.city;
+        
+        let mappedState = prev.state;
+        if (pincodeData.state) {
+          mappedState = pincodeData.state.trim().toLowerCase().replace(/\b\w/g, (s: string) => s.toUpperCase());
+        }
+
+        return {
+          ...prev,
+          city: titleCaseCity,
+          state: mappedState
+        };
+      });
+    }
+  }, [pincodeData]);
 
   // Shipping & Payment Options
   const [paymentOption, setPaymentOption] = useState<PaymentMethodType>("payu");
@@ -257,101 +277,97 @@ export const CheckoutPageModule = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     if (errorMessage) setErrorMessage("");
+    if (fieldErrors[e.target.name]) {
+      setFieldErrors(prev => ({ ...prev, [e.target.name]: "" }));
+    }
   };
 
   const validateStep1 = () => {
-    // Basic presence check
-    if (!formData.name.trim() || !formData.phone.trim() || !formData.email.trim()) {
-      setErrorMessage("Please provide your name, phone number, and email address.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return false;
+    const errors: Record<string, string> = {};
+
+    if (!formData.name.trim()) errors.name = "Please provide your name.";
+    else if (formData.name.trim().length < 2 || formData.name.trim().length > 50 || !/^[a-zA-Z0-9\s.-]+$/.test(formData.name.trim())) {
+      errors.name = "Please enter a valid full name (2-50 characters, special symbols not allowed).";
     }
 
-    // Name validation (at least 2 chars, max 50 chars, letters and spaces)
-    if (formData.name.trim().length < 2 || formData.name.trim().length > 50 || !/^[a-zA-Z\s.-]+$/.test(formData.name.trim())) {
-      setErrorMessage("Please enter a valid full name (2-50 characters).");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return false;
-    }
-
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (formData.email.trim().length > 100 || !emailRegex.test(formData.email.trim())) {
-      setErrorMessage("Please enter a valid email address.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return false;
+    if (!formData.email.trim()) errors.email = "Please provide your email address.";
+    else if (formData.email.trim().length > 100 || !emailRegex.test(formData.email.trim())) {
+      errors.email = "Please enter a valid email address.";
     }
 
-    // Phone validation
-    const phoneClean = formData.phone.replace(/[\s-]/g, "");
-    if (!/^\d+$/.test(phoneClean)) {
-      setErrorMessage("Phone number must contain only digits.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return false;
-    }
-    const currentCountryInfo = COUNTRIES.find(c => c.code === formData.countryCode);
-    const validLengths = currentCountryInfo?.phoneLength || [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-    
-    if (!validLengths.includes(phoneClean.length)) {
-      if (validLengths.length === 1) {
-        setErrorMessage(`Phone numbers for ${currentCountryInfo?.name || "this country"} must be exactly ${validLengths[0]} digits.`);
+    if (!formData.phone.trim()) errors.phone = "Please provide your phone number.";
+    else {
+      const phoneClean = formData.phone.replace(/[\s-]/g, "");
+      if (!/^\d+$/.test(phoneClean)) {
+        errors.phone = "Phone number must contain only digits.";
       } else {
-        setErrorMessage(`Phone numbers for ${currentCountryInfo?.name || "this country"} must be ${validLengths.join(' or ')} digits long.`);
+        const currentCountryInfo = COUNTRIES.find(c => c.code === formData.countryCode);
+        const validLengths = currentCountryInfo?.phoneLength || [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+        if (!validLengths.includes(phoneClean.length)) {
+          errors.phone = `Phone numbers for ${currentCountryInfo?.name || "this country"} must be ${validLengths.length === 1 ? 'exactly ' + validLengths[0] : validLengths.join(' or ')} digits.`;
+        }
       }
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return false;
     }
 
-    // Alternate Phone validation (if provided)
     if (formData.altPhone.trim()) {
       const altPhoneClean = formData.altPhone.trim().replace(/[\s-]/g, "");
       if (!/^\d+$/.test(altPhoneClean)) {
-        setErrorMessage("Alternate phone number must contain only digits.");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return false;
-      }
-      if (!validLengths.includes(altPhoneClean.length)) {
-        setErrorMessage(`Alternate phone number for ${currentCountryInfo?.name || "this country"} has an invalid length.`);
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return false;
+        errors.altPhone = "Alternate phone number must contain only digits.";
+      } else {
+        const currentCountryInfo = COUNTRIES.find(c => c.code === formData.countryCode);
+        const validLengths = currentCountryInfo?.phoneLength || [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+        if (!validLengths.includes(altPhoneClean.length)) {
+          errors.altPhone = `Alternate phone number for ${currentCountryInfo?.name || "this country"} has an invalid length.`;
+        }
       }
     }
 
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setErrorMessage("Please fix the errors below to continue.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return false;
+    }
+
+    setFieldErrors({});
     setErrorMessage("");
     return true;
   };
 
   const validateStep2 = () => {
-    if (!formData.address.trim() || !formData.state.trim() || !formData.pinCode.trim() || !formData.country) {
-      setErrorMessage("Please complete all shipping address fields.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return false;
+    const errors: Record<string, string> = {};
+
+    if (!formData.country) errors.country = "Please select a country.";
+    
+    if (!formData.address.trim()) errors.address = "Please provide your shipping address.";
+    else if (formData.address.trim().length > 200) {
+      errors.address = "Address is too long. Please keep it under 200 characters.";
     }
 
-    if (formData.address.trim().length > 200) {
-      setErrorMessage("Address is too long. Please keep it under 200 characters.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return false;
-    }
-
-    // Zip/Postal Code validation
-    if (formData.country === "IN") {
-      // Strict India Pin Code
+    if (!formData.state.trim()) errors.state = "Please provide your state.";
+    if (!formData.city.trim()) errors.city = "Please provide your city.";
+    
+    if (!formData.pinCode.trim()) errors.pinCode = "Please provide your PIN/postal code.";
+    else if (formData.country === "IN") {
       if (!/^\d{6}$/.test(formData.pinCode.trim())) {
-        setErrorMessage("Indian PIN codes must be exactly 6 digits.");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return false;
+        errors.pinCode = "Indian PIN codes must be exactly 6 digits.";
       }
     } else {
-      // Global Zip validation
       const zipRegex = /^[a-zA-Z0-9\s-]{3,10}$/;
       if (!zipRegex.test(formData.pinCode.trim())) {
-        setErrorMessage("Please enter a valid postal/zip code for your country.");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return false;
+        errors.pinCode = "Please enter a valid postal/zip code for your country.";
       }
     }
 
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setErrorMessage("Please fix the errors below to continue.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return false;
+    }
+
+    setFieldErrors({});
     setErrorMessage("");
     return true;
   };
@@ -567,6 +583,8 @@ export const CheckoutPageModule = () => {
                     handleContinueToShipping={handleContinueToShipping}
                     errorMessage={errorMessage}
                     setErrorMessage={setErrorMessage}
+                    fieldErrors={fieldErrors}
+                    total={total}
                   />
                 )}
 
@@ -579,6 +597,7 @@ export const CheckoutPageModule = () => {
                     handleInputChange={handleInputChange}
                     setErrorMessage={setErrorMessage}
                     errorMessage={errorMessage}
+                    fieldErrors={fieldErrors}
                     setCurrentStep={setCurrentStep as (step: 1 | 2 | 3) => void}
                     handleContinueToPayment={handleContinueToPayment}
                     shippingCost={shippingCost}
@@ -594,6 +613,7 @@ export const CheckoutPageModule = () => {
                     setEditingAddressId={setEditingAddressId}
                     cartWeightKg={cartWeightKg}
                     setIsCodAvailable={setIsCodAvailable}
+                    total={total}
                   />
                 )}
 
@@ -620,6 +640,7 @@ export const CheckoutPageModule = () => {
                         : ""
                     }
                     isCodAvailable={isCodAvailable}
+                    total={total}
                   />
                 )}
 
@@ -731,10 +752,13 @@ export const CheckoutPageModule = () => {
       </main>
 
       {/* Global Footer */}
-      <Footer />
+      <div className="hidden lg:block">
+        <Footer />
+      </div>
 
     </div>
   );
 };
+
 
 

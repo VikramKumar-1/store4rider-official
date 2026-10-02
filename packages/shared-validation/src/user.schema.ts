@@ -29,7 +29,7 @@ export const registerSchema = z.object({
   email: z.string().email().max(255, "Email is too long"),
   password: z.string().min(8, "Password must be at least 8 characters long").max(100, "Password is too long"),
   firstName: z.string().min(2, "First name must be at least 2 characters").max(50, "First name is too long"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters").max(50, "Last name is too long"),
+  lastName: z.string().max(50, "Last name is too long").optional(),
   phone: z.string().min(4, "Phone number is too short").max(15, "Phone number is too long").optional(),
 });
 
@@ -40,7 +40,7 @@ export const loginSchema = z.object({
 
 export const updateProfileSchema = z.object({
   firstName: z.string().min(2).max(50).optional(),
-  lastName: z.string().min(2).max(50).optional(),
+  lastName: z.string().max(50).optional(),
   phone: z.string().min(4).max(15).optional(),
 });
 

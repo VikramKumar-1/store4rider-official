@@ -13,4 +13,8 @@ export class PincodeRepository {
   static async count(): Promise<number> {
     return PincodeModel.countDocuments().exec();
   }
+
+  static async getDistinctStates(): Promise<string[]> {
+    return PincodeModel.distinct("state").exec();
+  }
 }
