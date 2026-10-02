@@ -72,7 +72,7 @@ export const CheckoutPageModule = () => {
 
   // Address state
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
-  const [showAddressForm, setShowAddressForm] = useState<boolean>(false);
+  const [showAddressForm, setShowAddressForm] = useState<boolean>(!user);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
 
   const handleDeleteAddress = async (id: string) => {
@@ -202,18 +202,20 @@ export const CheckoutPageModule = () => {
   }, []);
 
   useEffect(() => {
-    if (savedAddresses && savedAddresses.length > 0) {
+    if (user && savedAddresses && savedAddresses.length > 0) {
       const defaultAddr = savedAddresses.find((a: IUserAddress) => a.isDefault) || savedAddresses[0];
       if (!selectedAddressId) {
          setSelectedAddressId(defaultAddr.id || String((defaultAddr as any)._id));
       }
-      if (showAddressForm === undefined || showAddressForm === null || (savedAddresses.length > 0 && !selectedAddressId)) {
+      if (showAddressForm && savedAddresses.length > 0) {
         setShowAddressForm(false);
       }
-    } else if (savedAddresses && savedAddresses.length === 0) {
-      setShowAddressForm(true);
+    } else if (!user || (savedAddresses && savedAddresses.length === 0)) {
+      if (!showAddressForm) {
+        setShowAddressForm(true);
+      }
     }
-  }, [savedAddresses, selectedAddressId]);
+  }, [user, savedAddresses, selectedAddressId, showAddressForm]);
 
   // Handle successful payment redirect
   useEffect(() => {
@@ -392,7 +394,7 @@ export const CheckoutPageModule = () => {
   };
 
   const handleContinueToPayment = async () => {
-    if (showAddressForm) {
+    if (showAddressForm || !selectedAddressId || !user) {
       if (validateStep2()) {
         try {
           const { COUNTRIES } = await import("@/core/utils/countries");
@@ -443,7 +445,7 @@ export const CheckoutPageModule = () => {
         }
       }
     } else {
-      if (!selectedAddressId && user) {
+      if (!selectedAddressId) {
         toast.error("Please select a shipping address");
         return;
       }
@@ -455,10 +457,25 @@ export const CheckoutPageModule = () => {
   const handleAgreeToPay = async () => {
     if (isProcessing || isPlacingOrder) return;
 
-    if (!selectedAddressId && user) {
+    if (user && !selectedAddressId) {
       toast.error("Please select a shipping address");
+      setCurrentStep(2);
       return;
     }
+
+    if (!user) {
+      if (!formData.address?.trim()) {
+        toast.error("Please provide your delivery address (street / flat / building)");
+        setCurrentStep(2);
+        return;
+      }
+      if (!formData.city?.trim() || !formData.state?.trim() || !formData.pinCode?.trim()) {
+        toast.error("Please complete your delivery address details");
+        setCurrentStep(2);
+        return;
+      }
+    }
+
     setIsProcessing(true);
     
     // Look up the dial code to construct the full phone number

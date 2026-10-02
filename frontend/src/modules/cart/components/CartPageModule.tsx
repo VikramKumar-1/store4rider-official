@@ -64,8 +64,10 @@ export const CartPageModule = () => {
   const [appliedPromo, setAppliedPromo] = useState<PromoCodeItem | null>(null);
   const [orderNotes, setOrderNotes] = useState<Record<string, string>>({});
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleProceedToCheckout = () => {
+    setIsNavigating(true);
     router.push("/checkout");
   };
 
@@ -411,9 +413,17 @@ export const CartPageModule = () => {
                   <div className="flex flex-col gap-3 mt-4 lg:mt-6">
                     <button
                       onClick={handleProceedToCheckout}
-                      className="block w-full bg-banner hover:bg-orange-600 text-white text-center py-4 rounded-sm font-bold tracking-widest text-xs md:text-sm uppercase shadow-md transition-all active:scale-[0.99] cursor-pointer"
+                      disabled={isNavigating}
+                      className="flex items-center justify-center gap-2 w-full bg-banner hover:bg-orange-600 disabled:bg-neutral-400 text-white text-center py-4 rounded-sm font-bold tracking-widest text-xs md:text-sm uppercase shadow-md transition-all active:scale-[0.99] cursor-pointer disabled:cursor-not-allowed"
                     >
-                      PROCEED TO CHECKOUT
+                      {isNavigating ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>REDIRECTING...</span>
+                        </>
+                      ) : (
+                        "PROCEED TO CHECKOUT"
+                      )}
                     </button>
                   </div>
                 </div>
