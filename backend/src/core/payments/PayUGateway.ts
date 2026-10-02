@@ -49,40 +49,14 @@ export class PayUGateway implements PaymentGateway {
       furl: `${cleanApiBase}/api/v1/orders/webhook/payu/failure`,
     };
 
-    let redirectUrl: string | undefined = undefined;
-    try {
-      const payuAction = (ENV.PAYU_MODE === "live")
-        ? "https://secure.payu.in/_payment"
-        : "https://test.payu.in/_payment";
-
-      const params = new URLSearchParams(payuPayload);
-      const res = await fetch(payuAction, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/x-www-form-urlencoded",
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        },
-        body: params.toString(),
-        redirect: "manual",
-        signal: AbortSignal.timeout(8000),
-      });
-
-      const rawLocation = res.headers.get("location");
-      if (rawLocation) {
-        // Fix PayU sandbox bug where Location header contains literal spaces or %20
-        redirectUrl = rawLocation.replace(/%20/g, "").replace(/\s/g, "");
-        logger.info(`[PayUGateway] Cleaned redirect URL generated: ${redirectUrl.slice(0, 100)}...`);
-      }
-    } catch (err: any) {
-      logger.warn(`[PayUGateway] Direct redirect resolution fallback: ${err.message}`);
-    }
-
+    // IMPORTANT: We MUST return the raw payload and let the browser's HTML form submit it.
+    // If we use a server-side fetch to capture the 302 redirect here, PayU's backend 
+    // will lock the transaction token to the Server's IP address. When the user's browser
+    // loads the URL, the IP mismatch causes the token to be rejected, and the PayU 
+    // React App will display a generic "No payment ID found in URL" error.
     return {
       gatewayOrderId: txnid,
-      gatewayResponse: {
-        ...payuPayload,
-        ...(redirectUrl ? { redirectUrl } : {}),
-      }
+      gatewayResponse: payuPayload
     };
   }
 
