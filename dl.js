@@ -16,6 +16,6 @@ async function dl(url, name) {
   }
 }
 async function run() {
-  await dl('https://upload.wikimedia.org/wikipedia/commons/5/5c/Visa_Inc._logo_%282021%E2%80%93present%29.svg', 'visa.svg');
+  await dl('https://upload.wikimedia.org/wikipedia/commons/5/59/RuPay_logo.svg', 'rupay.svg');
 }
 run();
