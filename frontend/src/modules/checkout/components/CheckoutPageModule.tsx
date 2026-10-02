@@ -500,6 +500,7 @@ export const CheckoutPageModule = () => {
       fullName: formData.name,
       phone: dialCode + formData.phone,
       street: formData.address,
+      addressLine1: formData.address,
       city: formData.city,
       state: formData.state,
       pincode: formData.pinCode,

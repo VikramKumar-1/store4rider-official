@@ -35,35 +35,38 @@ export class OrderService {
     let user: any = null;
     let shippingAddressSnapshot: any;
 
-    if (userId) {
+    if (shippingAddress) {
+      shippingAddressSnapshot = {
+        fullName: shippingAddress.fullName || input.fullName || (user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "Customer"),
+        phone: shippingAddress.phone || input.phone || user?.phone || "0000000000",
+        addressLine1: shippingAddress.addressLine1 || shippingAddress.street,
+        street: shippingAddress.street || shippingAddress.addressLine1,
+        addressLine2: shippingAddress.addressLine2 || "",
+        city: shippingAddress.city,
+        state: shippingAddress.state,
+        pincode: shippingAddress.pincode,
+        country: shippingAddress.country,
+      };
+    } else if (userId) {
       user = await UserRepository.findById(userId);
       if (!user) throw new AppError("User not found", 404);
 
       const userAddress = user.addresses?.find((a: any) => a.id === shippingAddressId || String(a._id) === shippingAddressId);
-      if (!userAddress && !shippingAddress) throw new AppError("Shipping address not found", 400);
-      
-      shippingAddressSnapshot = shippingAddress || {
-        fullName: input.fullName || `${user.firstName} ${user.lastName}`.trim(),
+      if (!userAddress) throw new AppError("Shipping address not found", 400);
+
+      shippingAddressSnapshot = {
+        fullName: input.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.name || "Customer",
         phone: input.phone || user.phone || "0000000000",
-        addressLine1: userAddress.street,
+        addressLine1: userAddress.addressLine1 || userAddress.street,
+        street: userAddress.street || userAddress.addressLine1,
+        addressLine2: userAddress.addressLine2 || "",
         city: userAddress.city,
         state: userAddress.state,
         pincode: userAddress.pincode,
         country: userAddress.country,
       };
     } else {
-      if (!shippingAddress) {
-        throw new AppError("Shipping address is required for guest checkout", 400);
-      }
-      shippingAddressSnapshot = {
-        fullName: shippingAddress.fullName || input.fullName,
-        phone: shippingAddress.phone || input.phone,
-        addressLine1: shippingAddress.street,
-        city: shippingAddress.city,
-        state: shippingAddress.state,
-        pincode: shippingAddress.pincode,
-        country: shippingAddress.country,
-      };
+      throw new AppError("Shipping address is required", 400);
     }
 
     let cartItems = input.items || [];
