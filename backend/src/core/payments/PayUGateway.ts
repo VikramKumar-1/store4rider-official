@@ -69,10 +69,9 @@ export class PayUGateway implements PaymentGateway {
 
       const rawLocation = res.headers.get("location");
       if (rawLocation) {
-        // Fix PayU sandbox bug where Location header contains a literal space or is missing the hash routing
-        redirectUrl = rawLocation
-          .replace(/\/webcheckoutpro\/(%20|\s)?/i, "/webcheckoutpro/#/");
-        logger.info(`[PayUGateway] Cleaned redirect URL generated: ${redirectUrl.slice(0, 60)}...`);
+        // Fix PayU sandbox bug where Location header contains literal spaces or %20
+        redirectUrl = rawLocation.replace(/%20/g, "").replace(/\s/g, "");
+        logger.info(`[PayUGateway] Cleaned redirect URL generated: ${redirectUrl.slice(0, 100)}...`);
       }
     } catch (err: any) {
       logger.warn(`[PayUGateway] Direct redirect resolution fallback: ${err.message}`);
