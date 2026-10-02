@@ -98,24 +98,13 @@ export const CheckoutPaymentStep = ({
   const { data: settings, isLoading } = usePublicSettings();
 
   const GATEWAY_INFO: Record<string, { label: string; desc: string; icon: React.ReactNode }> = {
-    upi: {
-      label: "UPI (Google Pay, PhonePe, Paytm, QR)",
-      desc: "Instant payment via any UPI app or QR code scan",
-      icon: (
-        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-          <UpiLogo />
-          <GooglePayLogo />
-          <PhonePeLogo />
-          <PaytmLogo />
-        </div>
-      )
-    },
     payu: {
-      label: "Cards & NetBanking (PayU)",
-      desc: "Credit / Debit Cards (Visa, MasterCard, RuPay, Amex)",
+      label: "PayU",
+      desc: "UPI, Credit / Debit Cards, NetBanking",
       icon: (
         <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
           <PayULogo />
+          <UpiLogo />
           <VisaLogo />
           <MastercardLogo />
           <RuPayLogo />
@@ -168,7 +157,7 @@ export const CheckoutPaymentStep = ({
 
   const baseGateways = settings?.enabledGateways && settings.enabledGateways.length > 0
     ? settings.enabledGateways
-    : ["upi", "payu", "ccavenue", "snapmint", "cod"];
+    : ["payu", "ccavenue", "snapmint", "cod"];
     
   const availableGateways = baseGateways.filter(g => g !== "cod" || isCodAvailable);
 

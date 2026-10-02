@@ -240,7 +240,7 @@ export const CheckoutShippingDelivery = ({
                 placeholder="House/Flat No., Building Name, Street"
                 value={formData.address}
                 onChange={handleInputChange}
-                className={`w-full border ${fieldErrors.address ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors`}
+                className={`w-full border ${fieldErrors.address ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
               />
               {fieldErrors.address && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.address}</span>}
             </div>
@@ -271,7 +271,7 @@ export const CheckoutShippingDelivery = ({
                       required
                       value={formData.state}
                       onChange={handleInputChange}
-                      className={`appearance-none w-full border ${fieldErrors.state ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-3 py-3 text-sm text-neutral-900 bg-white focus:outline-none transition-colors`}
+                      className={`appearance-none w-full border ${fieldErrors.state ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-3 py-3 text-base md:text-sm text-neutral-900 bg-white focus:outline-none transition-colors`}
                     >
                       <option value="" disabled>Select State</option>
                       {indianStates.map(s => (
@@ -290,7 +290,7 @@ export const CheckoutShippingDelivery = ({
                     placeholder="Enter your state or province"
                     value={formData.state}
                     onChange={handleInputChange}
-                    className={`w-full border ${fieldErrors.state ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors`}
+                    className={`w-full border ${fieldErrors.state ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
                   />
                 )}
                 {fieldErrors.state && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.state}</span>}
@@ -310,7 +310,7 @@ export const CheckoutShippingDelivery = ({
                   placeholder="Enter your city"
                   value={formData.city}
                   onChange={handleInputChange}
-                  className={`w-full border ${fieldErrors.city ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors`}
+                  className={`w-full border ${fieldErrors.city ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
                 />
                 {fieldErrors.city && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.city}</span>}
               </div>
@@ -329,14 +329,26 @@ export const CheckoutShippingDelivery = ({
                   placeholder="Enter postal / zip code"
                   value={formData.pinCode}
                   onChange={handleInputChange}
-                  className={`w-full border ${fieldErrors.pinCode ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-sm text-neutral-900 focus:outline-none transition-colors`}
+                  className={`w-full border ${fieldErrors.pinCode ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
                 />
-                {fieldErrors.pinCode && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.pinCode}</span>}
+                {fieldErrors.pinCode ? (
+                  <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.pinCode}</span>
+                ) : (
+                  activePincode.length === 6 && formData.country === "IN" && (
+                    <span className={`text-xs font-semibold animate-in fade-in zoom-in-95 duration-200 ${isCheckingServiceability ? 'text-blue-600' : isNotServiceable ? 'text-red-600' : 'text-green-600'}`}>
+                      {isCheckingServiceability 
+                        ? `Checking delivery availability...`
+                        : isNotServiceable 
+                          ? `Delivery not available for ${activePincode}`
+                          : `Delivery available for ${activePincode}`}
+                    </span>
+                  )
+                )}
               </div>
             </div>
 
-            {/* Flipkart-style SAVE AND DELIVER HERE & CANCEL buttons */}
-            <div className="flex items-center gap-3 pt-3 border-t border-neutral-200">
+            {/* Flipkart-style SAVE AND DELIVER HERE & CANCEL buttons — Desktop only, mobile uses floating bar */}
+            <div className="hidden lg:flex items-center gap-3 pt-3 border-t border-neutral-200">
               <button
                 type="button"
                 onClick={handleContinueToPayment}
@@ -387,9 +399,6 @@ export const CheckoutShippingDelivery = ({
                 <span className="font-sans font-bold text-sm text-neutral-900">
                   Standard Delivery
                 </span>
-                <span className="text-xs text-neutral-500">
-                  Reliable tracking with top couriers
-                </span>
               </div>
             </div>
 
@@ -402,31 +411,7 @@ export const CheckoutShippingDelivery = ({
         </div>
       </div>
 
-      {/* Serviceability Banner */}
-      {activePincode.length === 6 && (
-        <div className="mt-2">
-          {isCheckingServiceability ? (
-            <div className="bg-blue-50 border border-blue-100 text-blue-600 px-4 py-3 rounded-none text-xs font-semibold flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              Checking delivery availability for {activePincode}...
-            </div>
-          ) : isNotServiceable ? (
-            <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-none text-xs font-semibold flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              Delivery is not available for pincode {activePincode}. Please try a different address.
-            </div>
-          ) : (
-            <div className="bg-green-50 border border-green-100 text-green-700 px-4 py-3 rounded-none text-xs font-semibold flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              Delivery available for {activePincode}.
-            </div>
-          )}
-        </div>
-      )}
+
 
       {/* Error Message */}
       {errorMessage && (
@@ -470,7 +455,9 @@ export const CheckoutShippingDelivery = ({
           disabled={isAddingAddress || isNotServiceable || isCheckingServiceability}
           className="flex-1 lg:flex-none lg:w-auto bg-brand hover:bg-red-800 text-white font-bold tracking-wider text-xs uppercase py-3.5 lg:py-4 px-4 md:px-8 rounded-none shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed whitespace-nowrap"
         >
-          <span className="sm:hidden">{isAddingAddress ? "SAVING..." : (isCheckingServiceability ? "CHECKING..." : "CONTINUE")}</span>
+          <span className="sm:hidden">
+            {isAddingAddress ? "SAVING..." : (isCheckingServiceability ? "CHECKING..." : (showAddressForm ? (editingAddressId ? "UPDATE & CONTINUE" : "SAVE & CONTINUE") : "CONTINUE"))}
+          </span>
           <span className="hidden sm:inline">{isAddingAddress ? "SAVING..." : (isCheckingServiceability ? "CHECKING..." : "CONTINUE TO PAYMENT")}</span>
           {!isAddingAddress && !isCheckingServiceability && <span className="text-base leading-none">→</span>}
         </button>
