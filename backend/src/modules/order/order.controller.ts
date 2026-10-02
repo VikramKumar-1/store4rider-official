@@ -65,7 +65,7 @@ export class OrderController {
     const headers: Record<string, string> = {};
     req.headers.forEach((val, key) => { headers[key.toLowerCase()] = val; });
 
-    const gatewayType = (routePath && routePath[1]) || (headers["x-razorpay-signature"] ? "payu" : "unknown");
+    const gatewayType = (routePath && routePath[1]) || "unknown";
     const isRedirect = routePath && ["payu", "snapmint", "ccavenue"].includes(routePath[1]);
     const frontendUrl = ENV.FRONTEND_URL;
 
@@ -87,12 +87,16 @@ export class OrderController {
         await OrderService.handleWebhook(rawBody, headers, gatewayType);
       }
       
+      // Redirect user back to frontend after successful webhook processing
       if (isRedirect) {
         const orderId = getOrderId();
         const orderParam = orderId ? `&orderId=${encodeURIComponent(orderId)}` : "";
-        const isSuccessPath = gatewayType === "ccavenue" || (routePath && routePath[2] === "success");
 
-        if (isSuccessPath) {
+        // PayU/Snapmint: explicit /success or /failure path
+        // CCAvenue: single callback URL — if we reach here (no throw), payment was processed
+        const isSuccess = gatewayType === "ccavenue" || (routePath && routePath[2] === "success");
+
+        if (isSuccess) {
           return NextResponse.redirect(`${frontendUrl}/checkout?success=true${orderParam}`, 303);
         } else {
           return NextResponse.redirect(`${frontendUrl}/checkout?failed=true`, 303);
@@ -102,11 +106,19 @@ export class OrderController {
       return ApiResponse.success(null, "Webhook processed");
     } catch (err: any) {
       if (isRedirect) {
+        // Error occurred during webhook processing
+        // For CCAvenue: error = payment failed (always redirect to failure)
+        // For PayU/Snapmint: use the URL path — if /success path threw, still redirect to success
+        //   because PayU already confirmed payment, our processing just had an issue
+        //   (e.g., stock decrement failed but payment was captured)
+        if (gatewayType === "ccavenue") {
+          return NextResponse.redirect(`${frontendUrl}/checkout?failed=true`, 303);
+        }
+
+        // PayU/Snapmint: respect the URL path even on error
         const orderId = getOrderId();
         const orderParam = orderId ? `&orderId=${encodeURIComponent(orderId)}` : "";
-        const isSuccessPath = gatewayType !== "ccavenue" && (routePath && routePath[2] === "success");
-        
-        if (isSuccessPath) {
+        if (routePath && routePath[2] === "success") {
           return NextResponse.redirect(`${frontendUrl}/checkout?success=true${orderParam}`, 303);
         }
         return NextResponse.redirect(`${frontendUrl}/checkout?failed=true`, 303);

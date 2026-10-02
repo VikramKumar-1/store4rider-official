@@ -717,14 +717,16 @@ export class OrderService {
     return url;
   }
 
-  static async cleanupAbandonedOrders() {
+  static async cleanupAbandonedOrders(): Promise<number> {
     try {
       const count = await OrderRepository.markStaleOrdersAsFailed();
       if (count > 0) {
         logger.info(`Cleaned up ${count} abandoned orders stuck in pending_payment`);
       }
+      return count;
     } catch (error: any) {
       logger.error("Failed to cleanup abandoned orders", { error: error.message });
+      return 0;
     }
   }
 }

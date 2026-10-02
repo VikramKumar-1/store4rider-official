@@ -20,6 +20,7 @@ import { settingRouter } from "./modules/settings/setting.route";
 import { warehouseRouter } from "./modules/warehouse/warehouse.route";
 import { returnRouter } from "./modules/return/return.route";
 import { pincodeRouter } from "./modules/pincode/pincode.route";
+import { cronRouter } from "./modules/cron/cron.route";
 
 export async function centralRouter(req: NextRequest, routePath: string[]) {
   const [module, ...rest] = routePath;
@@ -46,6 +47,7 @@ export async function centralRouter(req: NextRequest, routePath: string[]) {
     case "warehouses": return warehouseRouter(req, rest);
     case "returns": return returnRouter(req, rest);
     case "pincodes": return pincodeRouter(req, rest);
+    case "cron": return cronRouter(req, rest);
     default: return null;
   }
 }

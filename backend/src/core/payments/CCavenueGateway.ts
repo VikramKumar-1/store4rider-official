@@ -39,8 +39,13 @@ export class CCavenueGateway implements PaymentGateway {
 
     const orderId = String((order as any)._id || order.id || order.orderNumber);
     
-    const redirectUrl = `${ENV.NEXT_PUBLIC_API_URL}/api/v1/orders/webhook/ccavenue`;
-    const cancelUrl = `${ENV.NEXT_PUBLIC_API_URL}/api/v1/orders/webhook/ccavenue`;
+    const apiBase = (ENV.API_URL || ENV.NEXT_PUBLIC_API_URL || "").replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
+    if (!apiBase) {
+      throw new AppError("API_URL is not configured. CCAvenue redirect URLs cannot be generated.", 500);
+    }
+    
+    const redirectUrl = `${apiBase}/api/v1/orders/webhook/ccavenue`;
+    const cancelUrl = `${apiBase}/api/v1/orders/webhook/ccavenue`;
     
     const merchantData = `merchant_id=${merchantId}&order_id=${orderId}&currency=INR&amount=${amount}&redirect_url=${redirectUrl}&cancel_url=${cancelUrl}`;
     
@@ -164,14 +169,15 @@ export class CCavenueGateway implements PaymentGateway {
       params.append("version", "1.1");
       params.append("request_data", encryptedData);
 
-      const ccavUrl = ENV.NODE_ENV === "production"
+      const ccavUrl = ENV.CCAVENUE_MODE === "live"
         ? "https://api.ccavenue.com/apis/servlet/DoWebTrans"
         : "https://apitest.ccavenue.com/apis/servlet/DoWebTrans";
 
       const response = await fetch(ccavUrl, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params.toString()
+        body: params.toString(),
+        signal: AbortSignal.timeout(15000)
       });
 
       const responseText = await response.text();
@@ -228,14 +234,15 @@ export class CCavenueGateway implements PaymentGateway {
       params.append("version", "1.1");
       params.append("request_data", encryptedData);
 
-      const ccavUrl = ENV.NODE_ENV === "production"
+      const ccavUrl = ENV.CCAVENUE_MODE === "live"
         ? "https://api.ccavenue.com/apis/servlet/DoWebTrans"
         : "https://apitest.ccavenue.com/apis/servlet/DoWebTrans";
 
       const response = await fetch(ccavUrl, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params.toString()
+        body: params.toString(),
+        signal: AbortSignal.timeout(15000)
       });
 
       const responseText = await response.text();

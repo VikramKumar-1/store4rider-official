@@ -16,11 +16,14 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PAYU_MERCHANT_KEY: z.string().optional(),
   PAYU_SALT: z.string().optional(),
+  PAYU_MODE: z.enum(["test", "live"]).optional(),
   CCAVENUE_MERCHANT_ID: z.string().optional(),
   CCAVENUE_ACCESS_CODE: z.string().optional(),
   CCAVENUE_WORKING_KEY: z.string().optional(),
+  CCAVENUE_MODE: z.enum(["test", "live"]).optional(),
   SNAPMINT_MERCHANT_ID: z.string().optional(),
   SNAPMINT_SECRET: z.string().optional(),
+  SNAPMINT_MODE: z.enum(["test", "live"]).optional(),
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
   AWS_REGION: z.string().optional(),
@@ -32,6 +35,7 @@ const envSchema = z.object({
   SHIPROCKET_WEBHOOK_SECRET: z.string().optional(),
   DELHIVERY_WEBHOOK_TOKEN: z.string().optional(),
   XPRESSBEES_WEBHOOK_TOKEN: z.string().optional(),
+  CRON_SECRET: z.string().optional(),
 });
 
 const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
@@ -47,11 +51,14 @@ export const ENV = envSchema.parse({
   NODE_ENV: process.env.NODE_ENV,
   PAYU_MERCHANT_KEY: process.env.PAYU_MERCHANT_KEY,
   PAYU_SALT: process.env.PAYU_SALT,
+  PAYU_MODE: process.env.PAYU_MODE || "test",
   CCAVENUE_MERCHANT_ID: process.env.CCAVENUE_MERCHANT_ID,
   CCAVENUE_ACCESS_CODE: process.env.CCAVENUE_ACCESS_CODE,
   CCAVENUE_WORKING_KEY: process.env.CCAVENUE_WORKING_KEY,
+  CCAVENUE_MODE: process.env.CCAVENUE_MODE || "test",
   SNAPMINT_MERCHANT_ID: process.env.SNAPMINT_MERCHANT_ID,
   SNAPMINT_SECRET: process.env.SNAPMINT_SECRET,
+  SNAPMINT_MODE: process.env.SNAPMINT_MODE || "test",
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY_ID,
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY || process.env.S3_SECRET_ACCESS_KEY,
   AWS_REGION: process.env.AWS_REGION || process.env.S3_REGION,
@@ -63,4 +70,5 @@ export const ENV = envSchema.parse({
   DELHIVERY_WEBHOOK_TOKEN: process.env.DELHIVERY_WEBHOOK_TOKEN,
   XPRESSBEES_API_KEY: process.env.XPRESSBEES_API_KEY,
   XPRESSBEES_WEBHOOK_TOKEN: process.env.XPRESSBEES_WEBHOOK_TOKEN,
+  CRON_SECRET: process.env.CRON_SECRET,
 });
