@@ -9,10 +9,10 @@ import { useRegister } from "@/core/hooks/useAuth";
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 
 const registerSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  firstName: z.string().min(2, "First name must be at least 2 characters").max(50, "First name cannot exceed 50 characters"),
+  lastName: z.string().min(2, "Last name must be at least 2 characters").max(50, "Last name cannot exceed 50 characters"),
+  email: z.string().email("Please enter a valid email address").max(255, "Email cannot exceed 255 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(100, "Password cannot exceed 100 characters"),
 });
 type RegisterFormInputs = z.infer<typeof registerSchema>;
 
@@ -62,7 +62,7 @@ export function RegisterForm() {
           <input
             type="text"
             placeholder="John"
-            className={`w-full border ${errors.firstName ? 'border-red-500 bg-red-50/20' : 'border-neutral-300'} p-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white`}
+            className={`w-full border ${errors.firstName ? 'border-red-500 bg-red-50/20' : 'border-neutral-300'} p-2.5 text-base md:text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white`}
             {...register("firstName")}
           />
           {errors.firstName && (
@@ -76,7 +76,7 @@ export function RegisterForm() {
           <input
             type="text"
             placeholder="Doe"
-            className={`w-full border ${errors.lastName ? 'border-red-500 bg-red-50/20' : 'border-neutral-300'} p-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white`}
+            className={`w-full border ${errors.lastName ? 'border-red-500 bg-red-50/20' : 'border-neutral-300'} p-2.5 text-base md:text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white`}
             {...register("lastName")}
           />
           {errors.lastName && (
@@ -93,7 +93,7 @@ export function RegisterForm() {
         <input
           type="email"
           placeholder="rider@example.com"
-          className={`w-full border ${errors.email ? 'border-red-500 bg-red-50/20' : 'border-neutral-300'} p-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white`}
+          className={`w-full border ${errors.email ? 'border-red-500 bg-red-50/20' : 'border-neutral-300'} p-2.5 text-base md:text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white`}
           {...register("email")}
         />
         {errors.email && (
@@ -110,7 +110,7 @@ export function RegisterForm() {
           <input
             type={showPassword ? "text" : "password"}
             placeholder="••••••••"
-            className={`w-full border ${errors.password ? 'border-red-500 bg-red-50/20' : 'border-neutral-300'} p-2.5 pr-11 text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white tracking-widest`}
+            className={`w-full border ${errors.password ? 'border-red-500 bg-red-50/20' : 'border-neutral-300'} p-2.5 pr-11 text-base md:text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white tracking-widest`}
             {...register("password")}
           />
           <button

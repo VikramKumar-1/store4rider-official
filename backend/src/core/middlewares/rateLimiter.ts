@@ -4,13 +4,15 @@
  * Uses centralized configuration from rateLimit.config.ts.
  */
 
-import { RateLimiterRedis } from "rate-limiter-flexible";
+import { RateLimiterRedis, RateLimiterMemory } from "rate-limiter-flexible";
 import { redisClient } from "../cache/redis";
 import { AppError } from "../errors/AppError";
 import { RATE_LIMIT_CONFIG, RateLimitTier, RateLimitRule } from "../config/rateLimit.config";
+import { logger } from "../utils/logger";
 
 // Store instances of RateLimiterRedis keyed by tier name
 const limiterInstances = new Map<string, RateLimiterRedis>();
+const memoryLimiterInstances = new Map<string, RateLimiterMemory>();
 
 /**
  * Helper to initialize or retrieve a RateLimiterRedis instance for a given rule
@@ -35,16 +37,46 @@ function getLimiter(rule: RateLimitRule): RateLimiterRedis | null {
 }
 
 /**
+ * Helper to initialize or retrieve a RateLimiterMemory instance for fallback
+ */
+function getMemoryLimiter(rule: RateLimitRule): RateLimiterMemory {
+  if (!memoryLimiterInstances.has(rule.keyPrefix)) {
+    memoryLimiterInstances.set(
+      rule.keyPrefix,
+      new RateLimiterMemory({
+        keyPrefix: rule.keyPrefix,
+        points: rule.points,
+        duration: rule.duration,
+        blockDuration: rule.blockDuration,
+      })
+    );
+  }
+  return memoryLimiterInstances.get(rule.keyPrefix)!;
+}
+
+/**
  * Generic Rate Limit Consumer
  * Consumes points for an IP and throws AppError (HTTP 429) if exceeded.
  */
 export async function consumeRateLimit(rule: RateLimitRule, ip: string): Promise<void> {
   const limiter = getLimiter(rule);
-  if (!limiter) return; // Gracefully bypass if Redis is unavailable in local dev
 
   try {
-    await limiter.consume(ip);
+    if (limiter) {
+      await limiter.consume(ip);
+    } else {
+      await getMemoryLimiter(rule).consume(ip);
+    }
   } catch (rejRes) {
+    if (rejRes instanceof Error) {
+      logger.warn(`Rate limiter Redis error: ${rejRes.message}. Falling back to memory limiter for IP ${ip}.`);
+      try {
+        await getMemoryLimiter(rule).consume(ip);
+      } catch (memRej) {
+        throw new AppError(rule.errorMessage, 429);
+      }
+      return;
+    }
     throw new AppError(rule.errorMessage, 429);
   }
 }

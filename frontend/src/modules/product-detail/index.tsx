@@ -179,7 +179,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         message="Discount 20% For New Member,"
         highlightText="ONLY FOR TODAY!!"
       />
-      <div className="bg-white border-b border-neutral-200 relative z-40">
+      <div className="bg-white border-b border-neutral-200 relative z-[60]">
         <Navbar
           logoText="Store4Riders"
           theme="light"

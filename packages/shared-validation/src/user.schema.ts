@@ -17,31 +17,31 @@ export const updateUserRoleSchema = z.object({
 });
 
 export const addressSchema = z.object({
-  street: z.string().min(3),
-  city: z.string().min(2),
-  state: z.string().min(2),
-  pincode: z.string().min(3),
-  country: z.string().min(2),
+  street: z.string().min(3).max(255),
+  city: z.string().min(2).max(100),
+  state: z.string().min(2).max(100),
+  pincode: z.string().regex(/^[a-zA-Z0-9\s-]{3,10}$/, "Invalid postal code format"),
+  country: z.string().min(2).max(100),
   isDefault: z.boolean().default(false),
 });
 
 export const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8, "Password must be at least 8 characters long"),
-  firstName: z.string().min(2),
-  lastName: z.string().min(2),
-  phone: z.string().optional(),
+  email: z.string().email().max(255, "Email is too long"),
+  password: z.string().min(8, "Password must be at least 8 characters long").max(100, "Password is too long"),
+  firstName: z.string().min(2, "First name must be at least 2 characters").max(50, "First name is too long"),
+  lastName: z.string().min(2, "Last name must be at least 2 characters").max(50, "Last name is too long"),
+  phone: z.string().min(4, "Phone number is too short").max(15, "Phone number is too long").optional(),
 });
 
 export const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email().max(255, "Email is too long"),
+  password: z.string().min(1, "Password is required").max(100, "Password is too long"),
 });
 
 export const updateProfileSchema = z.object({
-  firstName: z.string().min(2).optional(),
-  lastName: z.string().min(2).optional(),
-  phone: z.string().optional(),
+  firstName: z.string().min(2).max(50).optional(),
+  lastName: z.string().min(2).max(50).optional(),
+  phone: z.string().min(4).max(15).optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

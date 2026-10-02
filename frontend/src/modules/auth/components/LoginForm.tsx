@@ -53,7 +53,7 @@ export function LoginForm() {
         <input
           type="email"
           placeholder="rider@example.com"
-          className="w-full border border-neutral-300 p-2.5 md:p-3 text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white"
+          className="w-full border border-neutral-300 p-2.5 md:p-3 text-base md:text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white"
           {...register("email")}
         />
       </div>
@@ -67,7 +67,7 @@ export function LoginForm() {
           <input
             type={showPassword ? "text" : "password"}
             placeholder="••••••••"
-            className="w-full border border-neutral-300 p-2.5 md:p-3 pr-11 text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white tracking-widest"
+            className="w-full border border-neutral-300 p-2.5 md:p-3 pr-11 text-base md:text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-banner rounded-xs transition-colors bg-neutral-50/50 focus:bg-white tracking-widest"
             {...register("password")}
           />
           <button
