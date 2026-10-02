@@ -42,7 +42,8 @@ export async function centralRouter(req: NextRequest, routePath: string[]) {
     case "upload": return uploadRouter(req, rest);
     case "search": return searchRouter(req, rest.join("/"));
     case "payments": return paymentRouter(req, rest.join("/"));
-    case "shipping": return shippingRouter(req, rest);
+    case "shipping": 
+    case "shipments": return shippingRouter(req, rest);
     case "settings": return settingRouter(req, rest.join("/"));
     case "warehouses": return warehouseRouter(req, rest);
     case "returns": return returnRouter(req, rest);

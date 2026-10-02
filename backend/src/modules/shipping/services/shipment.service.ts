@@ -26,7 +26,7 @@ export class ShipmentService {
 
     // 2. Select the Best Provider based on Admin Strategy or Manual Override
     const bestQuote = await RateService.selectBestProvider({
-      pickupPincode: order.warehousePincode,
+      pickupPincode: order.warehousePincode || "110001", // fallback to a generic origin
       deliveryPincode: order.shippingAddress.pincode,
       weightKg: order.totalWeightKg,
       isCod: order.paymentInfo.method === "cod",
@@ -60,6 +60,34 @@ export class ShipmentService {
     await ShipmentQueueService.addProviderCreationJob(newShipment._id);
 
     return newShipment;
+  }
+
+  static async checkServiceability(deliveryPincode: string, weightKg: number, isCod: boolean): Promise<{ serviceable: boolean, codAvailable: boolean }> {
+    try {
+      const rates = await RateService.calculateRates({
+        pickupPincode: "110001", // Assuming a generic default warehouse pincode
+        deliveryPincode,
+        weightKg,
+        isCod,
+        orderValue: 1000,
+      });
+      
+      const eligible = rates.filter(r => r.isEligible);
+      
+      // We check if ANY provider can deliver it
+      const serviceable = eligible.length > 0;
+      
+      return {
+        serviceable,
+        codAvailable: serviceable // simplifying for now
+      };
+    } catch (err: any) {
+      if (err.message && (err.message.includes("SHIPPING_UNAVAILABLE") || err.message.includes("SHIPPING_PAUSED"))) {
+        return { serviceable: false, codAvailable: false };
+      }
+      // Fail open if it's a random API error
+      return { serviceable: true, codAvailable: true };
+    }
   }
 
   /**

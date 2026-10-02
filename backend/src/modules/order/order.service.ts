@@ -88,8 +88,7 @@ export class OrderService {
         const serviceability = await ShipmentService.checkServiceability(pincode, 0.5, paymentMethod === "cod");
         
         // Check if ANY provider can deliver to this pincode
-        const isServiceable = serviceability.some((s: any) => s.serviceable);
-        if (!isServiceable) {
+        if (!serviceability.serviceable) {
           throw new AppError(
             `Delivery is not available for pincode ${pincode}. Please use a different shipping address.`,
             400
@@ -98,8 +97,7 @@ export class OrderService {
 
         // If COD order, check if any provider supports COD at this pincode
         if (paymentMethod === "cod") {
-          const codSupported = serviceability.some((s: any) => s.serviceable && s.codAvailable);
-          if (!codSupported) {
+          if (!serviceability.codAvailable) {
             throw new AppError(
               `Cash on Delivery is not available for pincode ${pincode}. Please use online payment.`,
               400

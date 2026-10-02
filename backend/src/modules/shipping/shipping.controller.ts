@@ -18,6 +18,16 @@ export class ShippingController {
     return ApiResponse.success(rates, "Rates fetched successfully");
   }
 
+  static async checkServiceability(req: NextRequest) {
+    const body = await req.json();
+    const result = await ShipmentService.checkServiceability(
+      body.deliveryPincode,
+      body.weightKg || 0.5,
+      body.isCod || false
+    );
+    return ApiResponse.success(result, "Serviceability fetched successfully");
+  }
+
   // -------------------------------------------------------------------------
   // SHIPMENT CREATION & OVERRIDE
   // -------------------------------------------------------------------------

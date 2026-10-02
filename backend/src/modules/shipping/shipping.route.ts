@@ -30,6 +30,11 @@ export async function shippingRouter(req: NextRequest, routePath: string[]) {
     return await ShippingController.calculateRates(req);
   }
 
+  // POST /api/v1/shipments/serviceability
+  if (method === "POST" && routePath.length === 1 && routePath[0] === "serviceability") {
+    return await ShippingController.checkServiceability(req);
+  }
+
   // POST /api/v1/shipping/create
   if (method === "POST" && routePath.length === 1 && routePath[0] === "create") {
     // Ideally this is called internally by Order service, but kept for manual override test
