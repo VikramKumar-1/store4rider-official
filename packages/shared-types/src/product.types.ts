@@ -24,6 +24,7 @@ export interface IProduct {
   crosssellSkus?: string[];
   brand?: string;
   gender?: string;
+  attributes?: Record<string, string>;
   countryOfManufacture?: string;
   attributeSetCode?: string;
   configurableVariationLabels?: string;

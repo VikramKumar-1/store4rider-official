@@ -12,9 +12,17 @@ export const ProductsPageModule = () => {
   const brand = searchParams.get("brand") || undefined;
   const search = searchParams.get("search") || searchParams.get("q") || undefined;
   const page = searchParams.get("page") ? parseInt(searchParams.get("page")!, 10) : 1;
-  const minPrice = searchParams.get("minPrice") ? parseFloat(searchParams.get("minPrice")!) : undefined;
-  const maxPrice = searchParams.get("maxPrice") ? parseFloat(searchParams.get("maxPrice")!) : undefined;
+  const minPrice = searchParams.has("minPrice") ? parseFloat(searchParams.get("minPrice")!) : undefined;
+  const maxPrice = searchParams.has("maxPrice") ? parseFloat(searchParams.get("maxPrice")!) : undefined;
   const sort = searchParams.get("sort") || undefined;
+
+  // Dynamic attribute filters
+  const dynamicParams: Record<string, string> = {};
+  const DYNAMIC_FILTER_KEYS = ['helmet_type', 'material', 'riding_style', 'certification', 'gender', 'size', 'colour', 'inStock', 'onSale'];
+  for (const key of DYNAMIC_FILTER_KEYS) {
+    const val = searchParams.get(key);
+    if (val) dynamicParams[key] = val;
+  }
 
   const { data: catTreeData } = useCategoryTree();
   let categoryNode = undefined;
@@ -40,7 +48,8 @@ export const ProductsPageModule = () => {
     limit: 12,
     minPrice,
     maxPrice,
-    sort
+    sort,
+    ...dynamicParams
   });
 
   if (error) return <div className="text-center py-32 text-red-500 font-bold">Failed to load products</div>;

@@ -55,6 +55,8 @@ export function useProducts(params?: {
   minPrice?: number;
   maxPrice?: number;
   sort?: string;
+  // Dynamic attribute filters
+  [key: string]: string | number | undefined;
 }) {
   return useQuery({
     queryKey: ["products", params],
@@ -68,6 +70,11 @@ export function useProducts(params?: {
       if (params?.minPrice !== undefined) queryParams.append("minPrice", params.minPrice.toString());
       if (params?.maxPrice !== undefined) queryParams.append("maxPrice", params.maxPrice.toString());
       if (params?.sort) queryParams.append("sort", params.sort);
+      
+      const DYNAMIC_PARAMS = ['helmet_type', 'material', 'riding_style', 'certification', 'gender', 'size', 'colour', 'inStock', 'onSale'];
+      for (const key of DYNAMIC_PARAMS) {
+        if (params?.[key]) queryParams.append(key, String(params[key]));
+      }
       
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : "";
       

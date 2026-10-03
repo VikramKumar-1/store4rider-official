@@ -20,8 +20,15 @@ export class ProductController {
   }
 
   static async getAggregations(req: NextRequest) {
-    const { filters } = ProductValidator.validateListQuery(req);
-    const data = await ProductService.getAggregations(filters);
+    const { filters, category } = ProductValidator.validateListQuery(req);
+    const searchParams = req.nextUrl.searchParams;
+    
+    const rawActiveFilters = {
+      size: searchParams.get('size') ? searchParams.get('size')!.split(',').map(s => s.trim()) : [],
+      colour: searchParams.get('colour') ? searchParams.get('colour')!.split(',').map(c => c.trim()) : []
+    };
+    
+    const data = await ProductService.getAggregations(filters, category || undefined, rawActiveFilters);
     return ApiResponse.success(data, "Aggregations fetched successfully");
   }
 

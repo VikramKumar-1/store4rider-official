@@ -30,6 +30,7 @@ export interface IOrderAddress {
   phone: string;
   addressLine1: string;
   addressLine2?: string;
+  street?: string;
   city: string;
   state: string;
   pincode: string;

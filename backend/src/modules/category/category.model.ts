@@ -12,6 +12,13 @@ const categorySchema = new Schema<ICategory>(
     metaDescription: { type: String },
     metaKeywords: { type: String },
     videoUrl: { type: String },
+    filterConfig: [{
+      code: { type: String, required: true },
+      label: { type: String, required: true },
+      type: { type: String, enum: ["checkbox", "swatch", "range"], default: "checkbox" },
+      sortOrder: { type: Number, default: 0 },
+      isActive: { type: Boolean, default: true },
+    }],
   },
   { timestamps: true }
 );

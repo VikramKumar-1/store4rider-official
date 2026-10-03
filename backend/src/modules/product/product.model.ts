@@ -24,6 +24,7 @@ const productSchema = new Schema<IProduct>(
     crosssellSkus: [{ type: String }],
     brand: { type: String },
     gender: { type: String },
+    attributes: { type: Map, of: String, default: new Map() },
     countryOfManufacture: { type: String },
     attributeSetCode: { type: String },
     configurableVariationLabels: { type: String },
@@ -73,6 +74,13 @@ productSchema.index({ basePrice: -1, _id: -1 });
 productSchema.index({ createdAt: -1, _id: -1 });
 productSchema.index({ salesCount: -1, _id: -1 });
 productSchema.index({ avgRating: -1, _id: -1 });
+
+// Wildcard index for dynamic attribute filtering
+// This allows efficient queries on attributes.* fields
+productSchema.index({ "attributes.helmet_type": 1 });
+productSchema.index({ "attributes.material": 1 });
+productSchema.index({ "attributes.riding_style": 1 });
+productSchema.index({ "attributes.certification": 1 });
 
 // Prevent Mongoose from re-compiling the model during Next.js hot reloads
 export const ProductModel = mongoose.models.Product || mongoose.model<IProduct>("Product", productSchema);

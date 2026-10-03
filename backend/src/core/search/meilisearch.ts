@@ -66,6 +66,10 @@ export const transformProductForSearch = (product: any) => {
     metaKeywords: product.metaKeywords || "",
     // Store first image for quick rendering in autocomplete
     thumbnail: product.images && product.images.length > 0 ? product.images[0].url : "",
+    // Flatten product attributes for Meilisearch filtering
+    ...(product.attributes ? 
+      (product.attributes instanceof Map ? Object.fromEntries(product.attributes) : product.attributes) 
+      : {}),
   };
 };
 
@@ -91,7 +95,13 @@ export const initializeMeilisearch = async () => {
         "basePrice",
         "availableSizes",
         "availableColors",
-        "status"
+        "status",
+        // Dynamic product attributes
+        "helmet_type",
+        "material", 
+        "riding_style",
+        "certification",
+        "gender",
       ],
       sortableAttributes: [
         "createdAt",

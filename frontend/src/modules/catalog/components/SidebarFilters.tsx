@@ -2,27 +2,40 @@
 
 import React, { useMemo } from "react";
 import { 
-  Filter, 
-  RotateCcw, 
   X, 
-  Check,
-  PackageCheck,
-  Tag
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useProductAggregations } from "@/core/hooks/useProducts";
 import { slugify } from "@store4riders/shared-utils";
 
-const DEFAULT_CATEGORIES = [
-  { name: "All Gear", slug: "", count: 0 },
+const PRICE_RANGES = [
+  { label: "< ₹3,000", short: "₹0.00 - ₹2,999.99", id: "under-3k", min: undefined, max: 3000 },
+  { label: "₹3k – ₹6k", short: "₹3,000.00 - ₹5,999.99", id: "3k-6k", min: 3000, max: 6000 },
+  { label: "₹6k – ₹10k", short: "₹6,000.00 - ₹9,999.99", id: "6k-10k", min: 6000, max: 10000 },
+  { label: "> ₹10,000", short: "₹10,000.00 and above", id: "above-10k", min: 10000, max: undefined },
 ];
 
-const PRICE_RANGES = [
-  { label: "< ₹3,000", short: "< ₹3k", id: "under-3k", min: undefined, max: 3000 },
-  { label: "₹3k – ₹6k", short: "₹3k–6k", id: "3k-6k", min: 3000, max: 6000 },
-  { label: "₹6k – ₹10k", short: "₹6k–10k", id: "6k-10k", min: 6000, max: 10000 },
-  { label: "> ₹10,000", short: "> ₹10k", id: "above-10k", min: 10000, max: undefined },
-];
+function AccordionSection({ title, children, defaultOpen = true }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = React.useState(defaultOpen);
+  return (
+    <div className="border-b border-solid border-neutral-200 py-3.5">
+      <button 
+        onClick={() => setIsOpen(!isOpen)} 
+        className="w-full flex items-center justify-between text-left cursor-pointer group outline-none"
+      >
+        <span className="font-bold text-[13px] uppercase tracking-wide text-neutral-900 group-hover:text-banner transition-colors">{title}</span>
+        <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+      {isOpen && (
+        <div className="pt-3.5 flex flex-col gap-2.5">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function SidebarFilters() {
   const router = useRouter();
@@ -42,7 +55,7 @@ export function SidebarFilters() {
     ? aggregations.categories.slice(0, 30).map((c: any) => {
         const parts = c.name.split('>');
         const displayName = parts[parts.length - 1].trim();
-        const indent = (parts.length - 1) * 8; // Slight indent for visual cue if it's a subcategory
+        const indent = (parts.length - 1) * 12; // increased indent for visual hierarchy
         return { 
           fullName: c.name, 
           displayName,
@@ -50,7 +63,7 @@ export function SidebarFilters() {
           count: c.count,
           indent
         };
-      }) // We rely on backend's count-based sorting so most popular (Helmets, etc) stay at the top
+      })
     : [];
     
   const BRANDS = aggregations?.brands 
@@ -58,200 +71,51 @@ export function SidebarFilters() {
     : [];
     
   const SIZES = aggregations?.sizes 
-    ? aggregations.sizes.slice(0, 12).map((s: any) => s.name)
+    ? aggregations.sizes.slice(0, 12).map((s: any) => ({ name: s.name, count: s.count }))
     : [];
     
   const COLOURS = useMemo(() => {
     if (!aggregations?.colors) return [];
     
-    const baseColorsMap = new Map<string, string>();
-    
-    aggregations.colors.forEach((c: any) => {
+    return aggregations.colors.map((c: any) => {
       const nameLower = c.name.toLowerCase();
-      let baseName = "";
-      let hex = "";
+      let hex = "#cccccc";
       
-      // Order matters! Check for distinctive colors first before falling back to black/grey
-      if (nameLower.includes('red')) { baseName = 'Red'; hex = '#DC2626'; }
-      else if (nameLower.includes('blue')) { baseName = 'Blue'; hex = '#2563EB'; }
-      else if (nameLower.includes('green') || nameLower.includes('olive') || nameLower.includes('khaki')) { baseName = 'Green'; hex = '#16A34A'; }
-      else if (nameLower.includes('yellow')) { baseName = 'Yellow'; hex = '#EAB308'; }
-      else if (nameLower.includes('orange') || nameLower.includes('org')) { baseName = 'Orange'; hex = '#EA580C'; }
-      else if (nameLower.includes('white')) { baseName = 'White'; hex = '#FFFFFF'; }
-      else if (nameLower.includes('brown') || nameLower.includes('tan')) { baseName = 'Brown'; hex = '#78350F'; }
-      else if (nameLower.includes('grey') || nameLower.includes('gray') || nameLower.includes('anthracite')) { baseName = 'Grey'; hex = '#6B7280'; }
-      else if (nameLower.includes('black') || nameLower.includes('noir')) { baseName = 'Black'; hex = '#111111'; }
-      
-      if (baseName && !baseColorsMap.has(baseName)) {
-        baseColorsMap.set(baseName, hex);
-      }
-    });
+      if (nameLower.includes('red')) hex = '#DC2626';
+      else if (nameLower.includes('blue')) hex = '#2563EB';
+      else if (nameLower.includes('green') || nameLower.includes('olive') || nameLower.includes('khaki')) hex = '#16A34A';
+      else if (nameLower.includes('yellow')) hex = '#EAB308';
+      else if (nameLower.includes('orange') || nameLower.includes('org')) hex = '#EA580C';
+      else if (nameLower.includes('white')) hex = '#FFFFFF';
+      else if (nameLower.includes('brown') || nameLower.includes('tan')) hex = '#78350F';
+      else if (nameLower.includes('grey') || nameLower.includes('gray') || nameLower.includes('anthracite') || nameLower.includes('titanium')) hex = '#6B7280';
+      else if (nameLower.includes('black') || nameLower.includes('noir') || nameLower.includes('matte')) hex = '#111111';
+      else if (nameLower.includes('silver')) hex = '#9CA3AF';
+      else if (nameLower.includes('hi-viz') || nameLower.includes('neon')) hex = '#D9F99D';
 
-    return Array.from(baseColorsMap.entries())
-      .slice(0, 8)
-      .map(([name, hex]) => ({ name, hex }));
+      return { name: c.name, count: c.count, hex };
+    });
   }, [aggregations?.colors]);
 
+  const DYNAMIC_FILTERS = useMemo(() => {
+    if (!aggregations?.dynamicAttributes) return [];
+    return Object.entries(aggregations.dynamicAttributes).map(([code, values]: [string, any]) => {
+      let label = code.replace(/_/g, " ").toUpperCase();
+      if (code === 'helmet_type') label = 'HELMET TYPE';
+      if (code === 'riding_style') label = 'RIDING STYLE';
+      return { code, label, values };
+    });
+  }, [aggregations?.dynamicAttributes]);
 
-  const activeBrands = useMemo(
-    () => (currentBrandParam ? currentBrandParam.split(",").map((b) => b.trim()) : []),
-    [currentBrandParam]
-  );
-  const currentMinPrice = searchParams.get("minPrice");
-  const currentMaxPrice = searchParams.get("maxPrice");
-  const currentInStock = searchParams.get("inStock") === "true";
-  const currentOnSale = searchParams.get("onSale") === "true";
-  
-  const currentSizeParam = searchParams.get("size") || "";
-  const activeSizes = useMemo(
-    () => (currentSizeParam ? currentSizeParam.split(",").map((s) => s.trim()) : []),
-    [currentSizeParam]
-  );
+  // Active filters parsing
+  const activeBrands = currentBrandParam ? currentBrandParam.split(",").map(b => b.trim()) : [];
+  const activeSizes = searchParams.get("size") ? searchParams.get("size")!.split(",").map(s => s.trim()) : [];
+  const activeColours = searchParams.get("colour") ? searchParams.get("colour")!.split(",").map(c => c.trim()) : [];
+  const currentMinPrice = searchParams.get("minPrice") ? Number(searchParams.get("minPrice")) : undefined;
+  const currentMaxPrice = searchParams.get("maxPrice") ? Number(searchParams.get("maxPrice")) : undefined;
 
-  const currentColourParam = searchParams.get("colour") || "";
-  const activeColours = useMemo(
-    () => (currentColourParam ? currentColourParam.split(",").map((c) => c.trim()) : []),
-    [currentColourParam]
-  );
-
-  // Determine active price ID
-  const activePriceId = (() => {
-    if (!currentMinPrice && !currentMaxPrice) return "all";
-    if (!currentMinPrice && currentMaxPrice === "3000") return "under-3k";
-    if (currentMinPrice === "3000" && currentMaxPrice === "6000") return "3k-6k";
-    if (currentMinPrice === "6000" && currentMaxPrice === "10000") return "6k-10k";
-    if (currentMinPrice === "10000" && !currentMaxPrice) return "above-10k";
-    return "custom";
-  })();
-
-  const activeFilterCount = 
-    Number(Boolean(currentCategory)) + 
-    activeBrands.length + 
-    activeColours.length +
-    Number(Boolean(currentMinPrice || currentMaxPrice)) +
-    Number(currentInStock) +
-    Number(currentOnSale) +
-    activeSizes.length;
-
-  const hasActiveFilters = activeFilterCount > 0;
-
-  const handleCategoryClick = (slug: string) => {
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
-    if (slug) {
-      params.set("category", slug);
-    } else {
-      params.delete("category");
-    }
-    params.set("page", "1");
-    router.push(`/products?${params.toString()}`, { scroll: false });
-  };
-
-  const handleBrandToggle = (brand: string) => {
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
-    let updated: string[];
-
-    if (activeBrands.includes(brand)) {
-      updated = activeBrands.filter((b) => b !== brand);
-    } else {
-      updated = [...activeBrands, brand];
-    }
-
-    if (updated.length > 0) {
-      params.set("brand", updated.join(","));
-    } else {
-      params.delete("brand");
-    }
-    params.set("page", "1");
-    router.push(`/products?${params.toString()}`, { scroll: false });
-  };
-
-  const handleColourToggle = (colour: string) => {
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
-    let updated: string[];
-
-    if (activeColours.includes(colour)) {
-      updated = activeColours.filter((c) => c !== colour);
-    } else {
-      updated = [...activeColours, colour];
-    }
-
-    if (updated.length > 0) {
-      params.set("colour", updated.join(","));
-    } else {
-      params.delete("colour");
-    }
-    params.set("page", "1");
-    router.push(`/products?${params.toString()}`, { scroll: false });
-  };
-
-  const handlePriceSelect = (range: (typeof PRICE_RANGES)[0]) => {
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
-    if (activePriceId === range.id) {
-      // Deselect if already active
-      params.delete("minPrice");
-      params.delete("maxPrice");
-    } else {
-      params.delete("minPrice");
-      params.delete("maxPrice");
-      if (range.min !== undefined) params.set("minPrice", range.min.toString());
-      if (range.max !== undefined) params.set("maxPrice", range.max.toString());
-    }
-    params.set("page", "1");
-    router.push(`/products?${params.toString()}`, { scroll: false });
-  };
-
-  const removePriceFilter = () => {
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
-    params.delete("minPrice");
-    params.delete("maxPrice");
-    params.set("page", "1");
-    router.push(`/products?${params.toString()}`, { scroll: false });
-  };
-
-  const handleToggleInStock = () => {
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
-    if (currentInStock) {
-      params.delete("inStock");
-    } else {
-      params.set("inStock", "true");
-    }
-    params.set("page", "1");
-    router.push(`/products?${params.toString()}`, { scroll: false });
-  };
-
-  const handleToggleOnSale = () => {
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
-    if (currentOnSale) {
-      params.delete("onSale");
-    } else {
-      params.set("onSale", "true");
-    }
-    params.set("page", "1");
-    router.push(`/products?${params.toString()}`, { scroll: false });
-  };
-
-  const handleSizeToggle = (sz: string) => {
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
-    let updated: string[];
-
-    if (activeSizes.includes(sz)) {
-      updated = activeSizes.filter((s) => s !== sz);
-    } else {
-      updated = [...activeSizes, sz];
-    }
-
-    if (updated.length > 0) {
-      params.set("size", updated.join(","));
-    } else {
-      params.delete("size");
-    }
-    params.set("page", "1");
-    router.push(`/products?${params.toString()}`, { scroll: false });
-  };
-
-  const handleResetAll = () => {
-    router.push("/products", { scroll: false });
-  };
+  const activePriceObj = PRICE_RANGES.find(p => p.min === currentMinPrice && p.max === currentMaxPrice);
+  const activePriceId = activePriceObj?.id || (currentMinPrice || currentMaxPrice ? "custom" : "all");
 
   const isCategoryActive = (slug: string) => {
     if (!currentCategory && !slug) return true;
@@ -259,364 +123,337 @@ export function SidebarFilters() {
     return currentCategory.toLowerCase() === slug.toLowerCase();
   };
 
-  return (
-    <div className="w-full select-none space-y-2.5">
-      
-      {/* 1. Master Control Header & Active Badges */}
-      <div className="bg-white rounded-xl border border-neutral-200/80 p-2.5 shadow-xs">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-orange-50 text-banner flex items-center justify-center border border-orange-200/80">
-              <Filter className="w-3.5 h-3.5" />
-            </div>
-            <span className="font-black text-xs uppercase tracking-wider text-neutral-900">
-              Filters
-            </span>
-            {hasActiveFilters && (
-              <span className="w-4 h-4 rounded-full bg-banner text-white text-[9px] font-black flex items-center justify-center">
-                {activeFilterCount}
-              </span>
-            )}
-          </div>
+  const handleCategoryClick = (slug: string) => {
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    if (slug) params.set("category", slug);
+    else params.delete("category");
+    params.set("page", "1");
+    router.push(`/products?${params.toString()}`, { scroll: false });
+  };
 
-          {hasActiveFilters && (
-            <button
-              onClick={handleResetAll}
-              className="text-[11px] font-bold text-neutral-500 hover:text-banner transition-colors flex items-center gap-1 cursor-pointer"
+  const toggleArrayParam = (paramName: string, value: string) => {
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    const current = params.get(paramName) ? params.get(paramName)!.split(",") : [];
+    
+    if (current.includes(value)) {
+      const updated = current.filter(item => item !== value);
+      if (updated.length > 0) params.set(paramName, updated.join(","));
+      else params.delete(paramName);
+    } else {
+      current.push(value);
+      params.set(paramName, current.join(","));
+    }
+    
+    params.set("page", "1");
+    router.push(`/products?${params.toString()}`, { scroll: false });
+  };
+
+  const handleBrandToggle = (brandName: string) => toggleArrayParam("brand", brandName);
+  const handleSizeToggle = (size: string) => toggleArrayParam("size", size);
+  const handleColourToggle = (colour: string) => toggleArrayParam("colour", colour);
+  const handleDynamicFilterToggle = (code: string, val: string) => toggleArrayParam(code, val);
+
+  const handlePriceSelect = (range: any) => {
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    if (range.id === "all") {
+      params.delete("minPrice");
+      params.delete("maxPrice");
+    } else {
+      if (range.min !== undefined) params.set("minPrice", range.min.toString());
+      else params.delete("minPrice");
+      if (range.max !== undefined) params.set("maxPrice", range.max.toString());
+      else params.delete("maxPrice");
+    }
+    params.set("page", "1");
+    router.push(`/products?${params.toString()}`, { scroll: false });
+  };
+
+  const removeArrayParamItem = (paramName: string, value: string) => {
+    toggleArrayParam(paramName, value);
+  };
+
+  const clearAllFilters = () => {
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    const keepKeys = ['search', 'q', 'category']; // Keep search query and category
+    const allKeys = Array.from(params.keys());
+    allKeys.forEach(key => {
+      if (!keepKeys.includes(key)) {
+        params.delete(key);
+      }
+    });
+    params.set("page", "1");
+    router.push(`/products?${params.toString()}`, { scroll: false });
+  };
+
+  // Build active pills list for "Now Shopping By"
+  const activePills: { label: string; param: string; value: string; displayValue: string }[] = [];
+  
+  if (activePriceId !== "all") {
+    let display = activePriceObj ? activePriceObj.label : `₹${currentMinPrice || 0} - ₹${currentMaxPrice || 'Above'}`;
+    activePills.push({ label: "Price", param: "price", value: activePriceId, displayValue: display });
+  }
+  
+  activeBrands.forEach(b => activePills.push({ label: "Brand", param: "brand", value: b, displayValue: b }));
+  activeSizes.forEach(s => activePills.push({ label: "Size", param: "size", value: s, displayValue: s }));
+  activeColours.forEach(c => activePills.push({ label: "Color", param: "colour", value: c, displayValue: c }));
+  
+  DYNAMIC_FILTERS.forEach(df => {
+    const paramValue = searchParams.get(df.code);
+    if (paramValue) {
+      paramValue.split(",").map(v => v.trim()).forEach(val => {
+        activePills.push({ label: df.label, param: df.code, value: val, displayValue: val });
+      });
+    }
+  });
+
+  return (
+    <div className="w-full flex flex-col font-sans">
+      
+      {/* SHOPPING OPTIONS Header */}
+      <div className="mb-2">
+        <h3 className="text-[20px] text-neutral-800 font-medium mb-3">Shop By</h3>
+        <div className="border-t-2 border-neutral-900 w-10 mb-4"></div>
+        <div className="flex items-center justify-between">
+          <h4 className="text-[13px] font-bold uppercase text-neutral-900 tracking-wide">SHOPPING OPTIONS</h4>
+          {activePills.length > 0 && (
+            <button 
+              onClick={clearAllFilters}
+              className="text-[11px] font-bold text-banner hover:text-red-700 uppercase tracking-wider"
             >
-              <RotateCcw className="w-3 h-3" /> Clear All
+              Clear All
             </button>
           )}
         </div>
-
-        {/* Active Filter Badges */}
-        {hasActiveFilters && (
-          <div className="flex flex-wrap gap-1 pt-2 mt-2 border-t border-neutral-100">
-            {currentInStock && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
-                <PackageCheck className="w-2.5 h-2.5" />
-                In Stock
-                <button onClick={handleToggleInStock} className="hover:text-orange-950 cursor-pointer">
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              </span>
-            )}
-            {currentOnSale && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
-                <Tag className="w-2.5 h-2.5" />
-                On Sale
-                <button onClick={handleToggleOnSale} className="hover:text-orange-950 cursor-pointer">
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              </span>
-            )}
-            {currentCategory && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
-                {CATEGORIES.find((c: any) => c.slug === currentCategory)?.name || currentCategory}
-                <button onClick={() => handleCategoryClick("")} className="hover:text-orange-950 cursor-pointer">
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              </span>
-            )}
-            {activeBrands.map((b: string) => (
-              <span key={b} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
-                {b}
-                <button onClick={() => handleBrandToggle(b)} className="hover:text-orange-950 cursor-pointer">
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              </span>
-            ))}
-            {activeColours.map((c: string) => (
-              <span key={c} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
-                {c}
-                <button onClick={() => handleColourToggle(c)} className="hover:text-orange-950 cursor-pointer">
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              </span>
-            ))}
-            {activeSizes.map((sz: string) => (
-              <span key={sz} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
-                Size: {sz}
-                <button onClick={() => handleSizeToggle(sz)} className="hover:text-orange-950 cursor-pointer">
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              </span>
-            ))}
-            {(currentMinPrice || currentMaxPrice) && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-50 text-banner border border-orange-200 shadow-2xs">
-                {PRICE_RANGES.find((p: any) => p.id === activePriceId)?.short || "Custom Price"}
-                <button onClick={removePriceFilter} className="hover:text-orange-950 cursor-pointer">
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Quick Toggles: In Stock & On Sale */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={handleToggleInStock}
-          title="Only in-stock products"
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-            currentInStock
-              ? "bg-banner text-white border-banner shadow-xs"
-              : "bg-white hover:bg-neutral-50 text-neutral-700 border-neutral-200/80 shadow-xs"
-          }`}
-        >
-          <PackageCheck className="w-3.5 h-3.5" />
-          <span>In Stock</span>
-        </button>
-
-        <button
-          onClick={handleToggleOnSale}
-          title="Only on-sale products"
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-            currentOnSale
-              ? "bg-banner text-white border-banner shadow-xs"
-              : "bg-white hover:bg-neutral-50 text-neutral-700 border-neutral-200/80 shadow-xs"
-          }`}
-        >
-          <Tag className="w-3.5 h-3.5" />
-          <span>Sale</span>
-        </button>
-      </div>
-
-      {/* 2. CARD 1: Category Selection (Only shows on 'All Products' page) */}
-      {!currentCategory && (
-        <div className="bg-white rounded-xl border border-neutral-200/80 p-3 shadow-xs space-y-2.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-3.5 bg-banner rounded-full"></span>
-              <span className="font-extrabold text-xs uppercase tracking-wide text-neutral-900">
-                Categories
-              </span>
-            </div>
-          </div>
-
-          {/* Scrollable Categories List */}
-          <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
-            {CATEGORIES.map((cat: any) => {
-              const active = isCategoryActive(cat.slug);
-              return (
-                <button
-                  key={cat.fullName}
-                  style={{ paddingLeft: `${cat.indent + 10}px` }}
-                  onClick={() => handleCategoryClick(cat.slug)}
-                  className={`w-full flex items-center justify-between pr-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer border-l-2 ${
-                    active
-                      ? "bg-orange-50/50 text-banner border-banner font-black"
-                      : "bg-transparent text-neutral-600 hover:text-neutral-950 border-transparent hover:border-neutral-300"
-                  }`}
+      {/* NOW SHOPPING BY - Active Filters Summary */}
+      {activePills.length > 0 && (
+        <div className="bg-neutral-50 border border-neutral-200 p-4 mb-4 mt-2">
+          <h5 className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 mb-2">Now Shopping By</h5>
+          <div className="flex flex-col gap-2">
+            {activePills.map((pill, idx) => (
+              <div key={idx} className="flex items-start justify-between group">
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-bold text-neutral-700 uppercase">{pill.label}:</span>
+                  <span className="text-[13px] font-semibold text-neutral-900">{pill.displayValue}</span>
+                </div>
+                <button 
+                  onClick={() => {
+                    if (pill.param === 'price') handlePriceSelect({ id: 'all' });
+                    else removeArrayParamItem(pill.param, pill.value);
+                  }}
+                  className="mt-1 p-1 rounded hover:bg-neutral-200 text-neutral-400 hover:text-red-600 transition-colors"
                 >
-                  <div className="flex items-center gap-1.5 truncate">
-                    <span className="truncate font-semibold">{cat.displayName}</span>
-                  </div>
-                  <span className={`text-[9px] tabular-nums ${active ? "text-banner font-bold" : "text-neutral-400"}`}>
-                    {cat.count}
-                  </span>
+                  <X className="w-3.5 h-3.5" />
                 </button>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* 3. CARD 2: Rider Specs (Size & Brands) */}
-      <div className="bg-white rounded-xl border border-neutral-200/80 p-3 shadow-xs space-y-3">
-        {/* Size Selection */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-3.5 bg-banner rounded-full"></span>
-              <span className="font-extrabold text-xs uppercase tracking-wide text-neutral-900">
-                Rider Size
-              </span>
-            </div>
-            {activeSizes.length > 0 && (
-              <button 
-                onClick={() => {
-                  const params = new URLSearchParams(Array.from(searchParams.entries()));
-                  params.delete("size");
-                  params.set("page", "1");
-                  router.push(`/products?${params.toString()}`, { scroll: false });
-                }}
-                className="text-[10px] font-bold text-neutral-400 hover:text-banner cursor-pointer"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          {/* Distinct Square Size Boxes */}
-          <div className="grid grid-cols-6 gap-1">
-            {SIZES.map((sz: string) => {
-              const isSelected = activeSizes.includes(sz);
-              return (
-                <button
-                  key={sz}
-                  onClick={() => handleSizeToggle(sz)}
-                  className={`py-1.5 text-center text-xs font-bold rounded-lg transition-all cursor-pointer border ${
-                    isSelected
-                      ? "bg-banner text-white border-banner shadow-xs scale-105 font-black"
-                      : "bg-white text-neutral-700 border-neutral-200 hover:border-banner hover:text-banner hover:bg-orange-50/30"
-                  }`}
-                >
-                  {sz}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Brands Section (Multi-select) */}
-        <div className="pt-2.5 border-t border-neutral-100">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-3.5 bg-banner rounded-full"></span>
-              <span className="font-extrabold text-xs uppercase tracking-wide text-neutral-900">
-                Brands
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {activeBrands.length > 0 && (
-                <button 
-                  onClick={() => {
-                    const params = new URLSearchParams(Array.from(searchParams.entries()));
-                    params.delete("brand");
-                    params.set("page", "1");
-                    router.push(`/products?${params.toString()}`, { scroll: false });
-                  }}
-                  className="text-[10px] font-bold text-neutral-400 hover:text-banner cursor-pointer"
-                >
-                  Clear
-                </button>
-              )}
-              <span className="text-[10px] font-semibold text-neutral-400">
-                {activeBrands.length ? `${activeBrands.length} selected` : "Multi-select"}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-1">
-            {BRANDS.map((brand: any) => {
-              const isSelected = activeBrands.includes(brand.name);
-              return (
-                <button
-                  key={brand.name}
-                  onClick={() => handleBrandToggle(brand.name)}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition-all cursor-pointer border ${
-                    isSelected
-                      ? "bg-banner text-white border-banner shadow-xs font-bold"
-                      : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400 hover:text-neutral-900"
-                  }`}
-                >
-                  {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                  <span>{brand.short}</span>
-                  <span className={`text-[8px] tabular-nums ${isSelected ? "text-orange-100" : "text-neutral-400"}`}>
-                    {brand.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Colours Section */}
-        <div className="pt-2.5 border-t border-neutral-100">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-3.5 bg-banner rounded-full"></span>
-              <span className="font-extrabold text-xs uppercase tracking-wide text-neutral-900">
-                Colours
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {activeColours.length > 0 && (
-                <button 
-                  onClick={() => {
-                    const params = new URLSearchParams(Array.from(searchParams.entries()));
-                    params.delete("colour");
-                    params.set("page", "1");
-                    router.push(`/products?${params.toString()}`, { scroll: false });
-                  }}
-                  className="text-[10px] font-bold text-neutral-400 hover:text-banner cursor-pointer"
-                >
-                  Clear
-                </button>
-              )}
-              <span className="text-[10px] font-semibold text-neutral-400">
-                {activeColours.length ? `${activeColours.length} selected` : "Multi-select"}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {COLOURS.map((color) => {
-              const isSelected = activeColours.includes(color.name);
-              return (
-                <button
-                  key={color.name}
-                  onClick={() => handleColourToggle(color.name)}
-                  title={color.name}
-                  className={`w-6 h-6 rounded-full cursor-pointer flex items-center justify-center transition-all ${
-                    isSelected ? "ring-2 ring-banner ring-offset-1" : "ring-1 ring-neutral-200 hover:ring-neutral-400"
-                  }`}
-                  style={{ backgroundColor: color.hex }}
-                >
-                  {isSelected && (
-                    <Check className={`w-3.5 h-3.5 ${color.name === "White" || color.name === "Yellow" ? "text-neutral-900" : "text-white"} stroke-[3]`} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* 4. CARD 3: Price Budget */}
-      <div className="bg-white rounded-xl border border-neutral-200/80 p-3 shadow-xs space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-3.5 bg-banner rounded-full"></span>
-            <span className="font-extrabold text-xs uppercase tracking-wide text-neutral-900">
-              Price Budget
-            </span>
-          </div>
-          {activePriceId !== "all" && (
-            <button 
-              onClick={removePriceFilter}
-              className="text-[10px] font-bold text-neutral-400 hover:text-banner cursor-pointer"
-            >
-              Reset
-            </button>
-          )}
-        </div>
-
-        {/* 4 Segmented Price Range Pills */}
-        <div className="grid grid-cols-4 gap-1.5">
-          {PRICE_RANGES.map((range) => {
-            const active = activePriceId === range.id;
+      {/* Dynamic Filter Sections powered by Backend filterConfig */}
+      <div className="flex flex-col">
+        {(aggregations?.filterConfig || [
+          { code: "category", label: "Category" },
+          { code: "price", label: "Price" },
+          { code: "size", label: "Size" },
+          { code: "brand", label: "Brand" },
+          { code: "color", label: "Color" }
+        ]).map((config: any) => {
+          
+          // 1. Categories
+          if (config.code === "category" && !currentCategory && CATEGORIES.length > 0) {
             return (
-              <button
-                key={range.id}
-                onClick={() => handlePriceSelect(range)}
-                className={`flex items-center justify-center py-1.5 px-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer border truncate ${
-                  active
-                    ? "bg-banner text-white border-banner shadow-xs"
-                    : "bg-neutral-50/80 hover:bg-neutral-100 text-neutral-700 border-neutral-200/70"
-                }`}
-              >
-                {range.short}
-              </button>
+              <AccordionSection key="category" title={config.label} defaultOpen={true}>
+                <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
+                  {CATEGORIES.map((cat: any) => {
+                    const active = isCategoryActive(cat.slug);
+                    return (
+                      <label 
+                        key={cat.fullName} 
+                        className="flex items-center justify-between cursor-pointer group"
+                        style={{ paddingLeft: `${cat.indent}px` }}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <input 
+                            type="checkbox" 
+                            checked={active}
+                            onChange={() => handleCategoryClick(cat.slug)}
+                            className="w-4 h-4 rounded-sm border-neutral-300 text-banner focus:ring-banner cursor-pointer bg-white transition-colors"
+                          />
+                          <span className={`text-[14px] ${active ? "text-banner font-bold" : "text-neutral-700 group-hover:text-banner"}`}>
+                            {cat.displayName}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-neutral-400">
+                          ({cat.count})
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </AccordionSection>
             );
-          })}
-        </div>
-      </div>
+          }
 
+          // 2. Price
+          if (config.code === "price") {
+            return (
+              <AccordionSection key="price" title={config.label} defaultOpen={true}>
+                <div className="flex flex-col gap-1.5">
+                  {PRICE_RANGES.map((range) => {
+                    const active = activePriceId === range.id;
+                    return (
+                      <button
+                        key={range.id}
+                        onClick={() => handlePriceSelect(range)}
+                        className="flex items-center gap-2 text-[14px] text-left cursor-pointer group py-1"
+                      >
+                        <ChevronRight className={`w-4 h-4 ${active ? "text-banner" : "text-neutral-400 group-hover:text-banner"}`} />
+                        <span className={active ? "text-banner font-bold" : "text-neutral-700 group-hover:text-banner"}>
+                          {range.short}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </AccordionSection>
+            );
+          }
+
+          // 3. Size
+          if (config.code === "size" && SIZES.length > 0) {
+            return (
+              <AccordionSection key="size" title={config.label} defaultOpen={true}>
+                <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
+                  {SIZES.map((sz: any) => {
+                    const active = activeSizes.includes(sz.name);
+                    return (
+                      <label key={sz.name} className="flex items-center justify-between cursor-pointer group">
+                        <div className="flex items-center gap-2.5">
+                          <input 
+                            type="checkbox" 
+                            checked={active}
+                            onChange={() => handleSizeToggle(sz.name)}
+                            className="w-4 h-4 rounded-sm border-neutral-300 text-banner focus:ring-banner cursor-pointer bg-white transition-colors"
+                          />
+                          <span className={`text-[14px] ${active ? "text-banner font-bold" : "text-neutral-700 group-hover:text-banner"}`}>
+                            {sz.name}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-neutral-400">
+                          ({sz.count})
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </AccordionSection>
+            );
+          }
+
+          // 4. Brand
+          if (config.code === "brand" && BRANDS.length > 0) {
+            return (
+              <AccordionSection key="brand" title={config.label} defaultOpen={true}>
+                <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
+                  {BRANDS.map((brand: any) => {
+                    const active = activeBrands.includes(brand.name);
+                    return (
+                      <label key={brand.name} className="flex items-center justify-between cursor-pointer group">
+                        <div className="flex items-center gap-2.5">
+                          <input 
+                            type="checkbox" 
+                            checked={active}
+                            onChange={() => handleBrandToggle(brand.name)}
+                            className="w-4 h-4 rounded-sm border-neutral-300 text-banner focus:ring-banner cursor-pointer bg-white transition-colors"
+                          />
+                          <span className={`text-[14px] ${active ? "text-banner font-bold" : "text-neutral-700 group-hover:text-banner"}`}>
+                            {brand.short}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-neutral-400">
+                          ({brand.count})
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </AccordionSection>
+            );
+          }
+
+          // 5. Color
+          if (config.code === "color" && COLOURS.length > 0) {
+            return (
+              <AccordionSection key="color" title={config.label} defaultOpen={true}>
+                <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
+                  {COLOURS.map((color: any) => {
+                    const active = activeColours.includes(color.name);
+                    return (
+                      <label key={color.name} className="flex items-center justify-between cursor-pointer group">
+                        <div className="flex items-center gap-2.5">
+                          <input 
+                            type="checkbox" 
+                            checked={active}
+                            onChange={() => handleColourToggle(color.name)}
+                            className="w-4 h-4 rounded-sm border-neutral-300 text-banner focus:ring-banner cursor-pointer bg-white transition-colors"
+                          />
+                          <div className="w-3.5 h-3.5 rounded-sm border border-neutral-200" style={{ backgroundColor: color.hex }}></div>
+                          <span className={`text-[14px] ${active ? "text-banner font-bold" : "text-neutral-700 group-hover:text-banner"}`}>
+                            {color.name}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-neutral-400">
+                          ({color.count})
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </AccordionSection>
+            );
+          }
+
+          // 6. Dynamic Filter Attributes (helmet_type, gender, material, etc)
+          const dynamicFilter = DYNAMIC_FILTERS.find((df: any) => df.code === config.code);
+          if (dynamicFilter && dynamicFilter.values.length > 0) {
+            const paramValue = searchParams.get(dynamicFilter.code) || "";
+            const activeValues = Array.from(new Set(paramValue ? paramValue.split(",").map((v) => v.trim()) : []));
+            
+            return (
+              <AccordionSection key={dynamicFilter.code} title={dynamicFilter.label} defaultOpen={true}>
+                <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
+                  {dynamicFilter.values.map((val: any) => {
+                    const active = activeValues.includes(val.name);
+                    return (
+                      <label key={val.name} className="flex items-center justify-between cursor-pointer group">
+                        <div className="flex items-center gap-2.5">
+                          <input 
+                            type="checkbox" 
+                            checked={active}
+                            onChange={() => handleDynamicFilterToggle(dynamicFilter.code, val.name)}
+                            className="w-4 h-4 rounded-sm border-neutral-300 text-banner focus:ring-banner cursor-pointer bg-white transition-colors"
+                          />
+                          <span className={`text-[14px] ${active ? "text-banner font-bold" : "text-neutral-700 group-hover:text-banner"}`}>
+                            {val.name}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-neutral-400">
+                          ({val.count})
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </AccordionSection>
+            );
+          }
+
+          return null;
+        })}
+      </div>
     </div>
   );
 }
-
-

@@ -9,4 +9,13 @@ export interface ICategory {
   metaDescription?: string;
   metaKeywords?: string;
   videoUrl?: string;
+  filterConfig?: ICategoryFilterConfig[];
+}
+
+export interface ICategoryFilterConfig {
+  code: string;
+  label: string;
+  type: "checkbox" | "swatch" | "range";
+  sortOrder: number;
+  isActive: boolean;
 }
