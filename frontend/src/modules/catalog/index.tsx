@@ -103,7 +103,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
         
         {/* --- CLIENT LAYOUT REQUIREMENT: HERO IMAGE --- */}
         {categoryNode?.bannerImage && (
-          <div className="w-full h-48 md:h-64 lg:h-80 relative rounded-lg overflow-hidden mb-4 shadow-sm">
+          <div className="w-full h-24 sm:h-32 md:h-40 lg:h-48 relative rounded-lg overflow-hidden mb-4 shadow-sm">
              {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={categoryNode.bannerImage} alt={pageTitle} className="w-full h-full object-cover" />
           </div>
@@ -114,22 +114,13 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
 
         {/* --- CLIENT LAYOUT REQUIREMENT: TWO ACCORDIONS AT TOP --- */}
         <div className="w-full flex flex-col gap-2 mb-6 mt-4">
-          {/* Accordion 2: Google Reviews */}
-          <details className="group border border-neutral-200/90 rounded-lg overflow-hidden bg-white shadow-xs">
-            <summary className="w-full py-2.5 px-3 sm:py-3 sm:px-4 flex items-center justify-between text-left gap-3 bg-neutral-50/70 hover:bg-neutral-100/70 transition-colors cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
-              <span className="text-[11px] sm:text-[13px] font-bold text-neutral-900 tracking-tight">
-                Google Reviews
-              </span>
-              <span className="transition group-open:rotate-180 text-neutral-700">▼</span>
-            </summary>
-            <div className="p-3 sm:p-4 text-[10px] sm:text-xs text-neutral-600 leading-relaxed font-sans border-t border-neutral-100">
-              <div className="flex items-center gap-1 text-yellow-400 mb-2">
-                ★★★★★ <span className="text-neutral-500 ml-2">(4.9/5 based on Google Reviews)</span>
-              </div>
-              <p>⭐⭐⭐⭐⭐ "Amazing products and fast delivery!" - Rahul M.</p>
-              <p className="mt-1">⭐⭐⭐⭐⭐ "Best collection of riding gear." - Sneha P.</p>
-            </div>
-          </details>
+          <CategorySEOAccordion 
+            categoryName="Category Top Info" 
+            items={[
+              { id: 'acc-1', title: 'Accordion 1', content: 'Dropdown description text goes here. This can be updated in the database later.' },
+              { id: 'acc-2', title: 'Accordion 2', content: 'Dropdown description text goes here. This can be updated in the database later.' }
+            ]}
+          />
         </div>
 
         <CategoryDescriptionBlock description={categoryNode?.description} pageTitle={pageTitle} />
@@ -182,15 +173,17 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
 
         
         {/* --- CLIENT LAYOUT REQUIREMENT: FAQ AT BOTTOM WITH SCHEMA --- */}
-        <div className="mt-12 pt-8 border-t border-neutral-200">
-          <h2 className="font-bold text-lg min-[375px]:text-xl sm:text-2xl uppercase tracking-wide text-neutral-900 leading-tight mb-4">
-            Frequently Asked Questions
-          </h2>
-          {/* If the category node has FAQs from the DB, we pass them. Otherwise it uses default dummies for now */}
-          <CategorySEOAccordion 
-            categoryName={pageTitle} 
-            items={categoryNode?.faqs?.length > 0 ? categoryNode.faqs.map((f: any, i: number) => ({ id: 'faq-'+i, title: f.question, content: f.answer })) : undefined}
-          />
+        <div className="mt-12 pt-8 border-t border-neutral-200 flex flex-col items-center">
+          <div className="w-full max-w-4xl">
+            <h2 className="font-bold text-lg min-[375px]:text-xl sm:text-2xl uppercase tracking-wide text-neutral-900 leading-tight mb-6 text-center">
+              Frequently Asked Questions
+            </h2>
+            {/* If the category node has FAQs from the DB, we pass them. Otherwise it uses default dummies for now */}
+            <CategorySEOAccordion 
+              categoryName={pageTitle} 
+              items={categoryNode?.faqs?.length > 0 ? categoryNode.faqs.map((f: any, i: number) => ({ id: 'faq-'+i, title: f.question, content: f.answer })) : undefined}
+            />
+          </div>
         </div>
 
 

@@ -108,13 +108,13 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
                   onClick={() => togglePanel(item.id)}
                   aria-expanded={isOpen}
                   aria-controls={`accordion-content-${item.id}`}
-                  className="w-full py-2.5 px-3 sm:py-3 sm:px-4 flex items-center justify-between text-left gap-3 bg-neutral-50/70 hover:bg-neutral-100/70 transition-colors cursor-pointer select-none"
+                  className="w-full py-3 px-4 sm:py-4 sm:px-5 flex items-center justify-between text-left gap-3 bg-neutral-50/70 hover:bg-neutral-100/70 transition-colors cursor-pointer select-none"
                 >
-                  <span className="text-[11px] sm:text-[13px] font-bold text-neutral-900 tracking-tight">
+                  <span className="text-sm sm:text-base font-bold text-neutral-900 tracking-tight">
                     {item.title}
                   </span>
                   <ChevronDownIcon
-                    className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-700 shrink-0 transition-transform duration-300 ${
+                    className={`w-4 h-4 sm:w-5 sm:h-5 text-neutral-700 shrink-0 transition-transform duration-300 ${
                       isOpen ? "rotate-180" : "rotate-0"
                     }`}
                   />
@@ -125,20 +125,20 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
                 CRITICAL SEO RULE:
                 Content is ALWAYS present in the DOM for search bot indexing!
                 Never unmount with {isOpen && ...}.
-                We toggle via CSS max-height & opacity.
+                We toggle via CSS grid rows for 100% smooth animation.
               */}
               <div
                 id={`accordion-content-${item.id}`}
                 role="region"
                 aria-labelledby={item.id}
-                className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                  isOpen
-                    ? "max-h-[1000px] opacity-100 py-2.5 px-3 sm:py-3 sm:px-4"
-                    : "max-h-0 opacity-0 py-0 px-3 sm:px-4"
+                className={`grid transition-all duration-300 ease-in-out ${
+                  isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                 }`}
               >
-                <div className="text-[10px] sm:text-xs text-neutral-600 leading-relaxed font-sans border-t border-neutral-100 pt-2">
-                  {item.content}
+                <div className="overflow-hidden">
+                  <div className="text-sm text-neutral-600 leading-relaxed font-sans border-t border-neutral-200 p-4 sm:p-5">
+                    {item.content}
+                  </div>
                 </div>
               </div>
             </div>
