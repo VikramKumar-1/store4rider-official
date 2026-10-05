@@ -10,6 +10,8 @@ export interface IOrderItem {
   sku: string;
   quantity: number;
   unitPrice: number;
+  taxRate: number;
+  taxAmount: number;
 }
 
 export interface IOrderPricing {

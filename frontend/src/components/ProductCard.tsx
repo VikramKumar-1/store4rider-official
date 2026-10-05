@@ -1,25 +1,40 @@
 "use client";
 
 import { memo, useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { formatPrice } from "@store4riders/shared-utils";
 import { ShoppingCart, Check, Star, ShieldCheck } from "lucide-react";
 import { useCartStore } from "@/stores/useCartStore";
 
+import { toast } from "sonner";
+import { apiClient } from "@/core/api/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useWishlist } from "@/core/hooks/useWishlist";
+
 interface ProductCardProps {
   product: any;
+  showBuyNow?: boolean;
 }
 
-const ProductCard = ({ product }: ProductCardProps) => {
+const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
+  const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
   const [isAdded, setIsAdded] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: wishlistIds = [] } = useWishlist();
+  const productId = product.id || product._id;
+
+  useEffect(() => {
+    setIsWishlisted(wishlistIds.includes(productId));
+  }, [wishlistIds, productId]);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     addItem({
       id: crypto.randomUUID(),
       productId: product.id || product._id,
@@ -31,6 +46,20 @@ const ProductCard = ({ product }: ProductCardProps) => {
     setTimeout(() => {
       setIsAdded(false);
     }, 1500);
+  };
+
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    addItem({
+      id: crypto.randomUUID(),
+      productId: product.id || product._id,
+      quantity: 1,
+      product: product,
+    });
+
+    router.push("/checkout");
   };
 
   const searchParams = useSearchParams();
@@ -69,7 +98,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
   return (
     <Link href={`/products/${product.slug || product.id}`}>
-      <div 
+      <div
         className="group relative flex flex-col rounded-2xl bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-slate-200 overflow-hidden h-full"
       >
         {/* Top Section: Image */}
@@ -84,14 +113,55 @@ const ProductCard = ({ product }: ProductCardProps) => {
             className="object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500 ease-out will-change-transform"
             onError={() => setImgSrc(FALLBACK_IMAGE)}
           />
-          
+
           {/* Sleek Liquid Glassmorphism Rating Badge */}
-          <div className="absolute top-2.5 right-2.5 bg-white/40 backdrop-blur-md border border-white/50 shadow-[0_4px_12px_rgba(0,0,0,0.05)] text-neutral-900 text-[10px] md:text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 z-10 transition-transform hover:scale-105">
+          <div className="absolute top-2.5 left-2.5 bg-white/40 backdrop-blur-md border border-white/50 shadow-[0_4px_12px_rgba(0,0,0,0.05)] text-neutral-900 text-[10px] md:text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 z-10 transition-transform hover:scale-105">
             <svg className="w-2.5 h-2.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
             <span>4.9</span>
           </div>
+
+
+
+          {/* Wishlist Button */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const prev = isWishlisted;
+              setIsWishlisted(!prev);
+
+              apiClient.post("/wishlist/toggle", { productId })
+                .then((res) => {
+                  queryClient.invalidateQueries({ queryKey: ["wishlist_ids"] });
+                  queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+                  if (res.data?.data?.added || !prev) {
+                    toast.success("Saved to wishlist!");
+                  } else {
+                    toast.error("Removed from wishlist");
+                  }
+                })
+                .catch((err) => {
+                  setIsWishlisted(prev); // revert on error
+                  if (err.response?.status === 401) {
+                    toast.error("Please login to save to wishlist");
+                  } else {
+                    toast.error("Failed to update wishlist");
+                  }
+                });
+            }}
+            className={`absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center shadow-[0_2px_8px_rgba(0,0,0,0.08)] z-20 transition-all duration-200 active:scale-90 ${isWishlisted
+                ? "bg-red-50 text-red-500 border border-red-200"
+                : "bg-white/80 backdrop-blur-md text-neutral-400 hover:text-brand hover:bg-white"
+              }`}
+            title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill={isWishlisted ? "currentColor" : "none"} viewBox="0 0 24 24" strokeWidth={isWishlisted ? 0 : 2} stroke="currentColor" className="w-3.5 h-3.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+            </svg>
+          </button>
         </div>
 
         {/* Bottom Section: Text Content */}
@@ -112,18 +182,28 @@ const ProductCard = ({ product }: ProductCardProps) => {
               </span>
             </div>
 
-            {/* Add to Cart Icon Button */}
-            <button
-              onClick={handleAddToCart}
-              aria-label="Add to cart"
-              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shrink-0 transition-all shadow-md ${
-                isAdded 
-                  ? "bg-green-500 text-white shadow-green-500/20" 
-                  : "bg-brand text-white hover:bg-brand-dark hover:scale-105 hover:shadow-brand/20 active:scale-95"
-              }`}
-            >
-              {isAdded ? <Check size={14} strokeWidth={3} /> : <ShoppingCart size={14} strokeWidth={2.5} />}
-            </button>
+            {/* Add to Cart / Buy Now Action Area */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleAddToCart}
+                aria-label="Add to cart"
+                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shrink-0 transition-all shadow-md ${isAdded
+                    ? "bg-green-500 text-white shadow-green-500/20"
+                    : "bg-brand text-white hover:bg-brand-dark hover:scale-105 hover:shadow-brand/20 active:scale-95"
+                  }`}
+              >
+                {isAdded ? <Check size={14} strokeWidth={3} /> : <ShoppingCart size={14} strokeWidth={2.5} />}
+              </button>
+
+              {showBuyNow && (
+                <button
+                  onClick={handleBuyNow}
+                  className="h-8 sm:h-9 px-3 sm:px-4 rounded-full bg-slate-900 text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors shadow-md active:scale-95 shrink-0"
+                >
+                  Buy Now
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

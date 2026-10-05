@@ -158,7 +158,8 @@ export class OrderService {
         sku: item.variantId ? (product.variants?.find((v: any) => v.id === item.variantId)?.sku || product.sku) : product.sku,
         quantity: item.quantity,
         unitPrice,
-        taxClassName: product.taxClassName,
+        taxRate: itemTaxRate,
+        taxAmount: calculateTax(itemTotal, itemTaxRate),
         allowBackorders: product.allowBackorders,
       });
     }
@@ -293,7 +294,7 @@ export class OrderService {
           }
           if (user?.email || guestEmail) {
             const emailTarget = user?.email || guestEmail;
-            await addEmailJob(emailTarget, "Order Confirmed (Cash on Delivery)", `Your order #${orderNumber} has been placed successfully via Cash on Delivery.`);
+            addEmailJob(emailTarget, "Order Confirmed (Cash on Delivery)", `Your order #${orderNumber} has been placed successfully via Cash on Delivery.`);
           }
         }
 
@@ -389,10 +390,10 @@ export class OrderService {
           if (order.userId) {
             const user = await UserRepository.findById(order.userId);
             if (user) {
-              await addEmailJob(user.email, "Order Confirmed", `Your payment of ${paymentId} was successful.`);
+              addEmailJob(user.email, "Order Confirmed", `Your payment of ${paymentId} was successful.`);
             }
           } else if (order.guestEmail) {
-            await addEmailJob(order.guestEmail, "Order Confirmed", `Your payment of ${paymentId} was successful.`);
+            addEmailJob(order.guestEmail, "Order Confirmed", `Your payment of ${paymentId} was successful.`);
           }
         }
       });
@@ -508,10 +509,10 @@ export class OrderService {
           if (order.userId) {
             const user = await UserRepository.findById(order.userId);
             if (user) {
-              await addEmailJob(user.email, "Order Confirmed", `Your payment was successfully captured.`);
+              addEmailJob(user.email, "Order Confirmed", `Your payment was successfully captured.`);
             }
           } else if (order.guestEmail) {
-            await addEmailJob(order.guestEmail, "Order Confirmed", `Your payment was successfully captured.`);
+            addEmailJob(order.guestEmail, "Order Confirmed", `Your payment was successfully captured.`);
           }
           logger.info(`Webhook successfully processed order ${orderIdStr}`);
         } 
@@ -523,10 +524,10 @@ export class OrderService {
           if (order.userId) {
             const user = await UserRepository.findById(order.userId);
             if (user) {
-              await addEmailJob(user.email, "Payment Failed", `Your payment attempt failed. Please try again.`);
+              addEmailJob(user.email, "Payment Failed", `Your payment attempt failed. Please try again.`);
             }
           } else if (order.guestEmail) {
-            await addEmailJob(order.guestEmail, "Payment Failed", `Your payment attempt failed. Please try again.`);
+            addEmailJob(order.guestEmail, "Payment Failed", `Your payment attempt failed. Please try again.`);
           }
           logger.info(`Webhook processed failure for order ${orderIdStr}`);
         }
@@ -537,10 +538,10 @@ export class OrderService {
           if (order.userId) {
             const user = await UserRepository.findById(order.userId);
             if (user) {
-              await addEmailJob(user.email, "Refund Processed", `Your refund of INR ${paymentEntity.amount / 100} has been processed.`);
+              addEmailJob(user.email, "Refund Processed", `Your refund of INR ${paymentEntity.amount / 100} has been processed.`);
             }
           } else if (order.guestEmail) {
-            await addEmailJob(order.guestEmail, "Refund Processed", `Your refund of INR ${paymentEntity.amount / 100} has been processed.`);
+            addEmailJob(order.guestEmail, "Refund Processed", `Your refund of INR ${paymentEntity.amount / 100} has been processed.`);
           }
           logger.info(`Webhook processed refund for order ${orderIdStr}`);
         }
@@ -681,6 +682,15 @@ export class OrderService {
 
     const updatedOrder = await OrderRepository.updateStatus(orderId, newStatus);
     return updatedOrder;
+  }
+
+  static async adminDeleteOrder(orderId: string) {
+    const order = await OrderRepository.findById(orderId);
+    if (!order) {
+      throw new AppError("Order not found", 404);
+    }
+    await OrderRepository.deleteById(orderId);
+    return true;
   }
 
   static async requestReturn(orderId: string, userId: string, reason: string, images?: string[]) {

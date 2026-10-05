@@ -56,7 +56,7 @@ export class ProductService {
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
-    const product = await ProductRepository.findBySlug(slug);
+    const product = await ProductRepository.findById(slug);
     if (!product) throw new NotFoundError("Product");
 
     // DYNAMIC ORPHAN VARIANT RECOVERY:

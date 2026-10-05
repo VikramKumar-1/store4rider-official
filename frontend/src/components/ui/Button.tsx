@@ -15,10 +15,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     let baseStyles = "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:pointer-events-none disabled:opacity-50";
     
     let variantStyles = "";
-    if (variant === "primary") variantStyles = "bg-brand text-white hover:bg-brand-dark shadow-md";
-    if (variant === "secondary") variantStyles = "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700";
-    if (variant === "outline") variantStyles = "border border-zinc-200 hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-800";
-    if (variant === "ghost") variantStyles = "hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100";
+    if (variant === "primary") variantStyles = "bg-brand text-white hover:brightness-110 shadow-md hover:shadow-lg active:scale-95";
+    if (variant === "secondary") variantStyles = "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 font-semibold";
+    if (variant === "outline") variantStyles = "border border-zinc-200 text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 hover:text-zinc-900 font-semibold shadow-sm";
+    if (variant === "ghost") variantStyles = "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 font-semibold";
 
     let sizeStyles = "";
     if (size === "sm") sizeStyles = "h-9 px-3 text-xs";

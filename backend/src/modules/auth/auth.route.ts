@@ -31,6 +31,16 @@ export async function authRouter(req: NextRequest, routePath: string[]): Promise
     if (action === "logout") {
       return await AuthController.logout(req);
     }
+
+    if (action === "forgot-password") {
+      await checkRateLimit(ip);
+      return await AuthController.forgotPassword(req);
+    }
+
+    if (action === "reset-password") {
+      await checkRateLimit(ip);
+      return await AuthController.resetPassword(req);
+    }
   }
 
   return null;

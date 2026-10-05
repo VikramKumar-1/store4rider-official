@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { formatPrice } from "@store4riders/shared-utils";
 import { useAdminOrderById } from "@/core/hooks/useOrderById";
-import { useAdminUpdateOrderStatus, useAdminAddOrderNote, useAdminHandleReturn } from "@/core/hooks/useAdminOrders";
+import { useAdminUpdateOrderStatus, useAdminAddOrderNote, useAdminHandleReturn, useAdminDeleteOrder } from "@/core/hooks/useAdminOrders";
 import { useGenerateInvoice } from "@/core/hooks/useOrderActions";
-import { ArrowLeftIcon, DocumentArrowDownIcon, ChatBubbleLeftRightIcon, TruckIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, DocumentArrowDownIcon, ChatBubbleLeftRightIcon, TrashIcon, ChevronDownIcon, CheckIcon } from "@heroicons/react/24/outline";
+import { useRouter } from "next/navigation";
 
 const STATUS_OPTIONS = [
   "pending_payment", "confirmed", "processing", "packed", "shipped", 
@@ -21,9 +22,23 @@ export const AdminOrderDetailModule = ({ orderId }: { orderId: string }) => {
   const addNoteMutation = useAdminAddOrderNote();
   const handleReturnMutation = useAdminHandleReturn();
   const generateInvoiceMutation = useGenerateInvoice();
+  const deleteOrderMutation = useAdminDeleteOrder();
+  const router = useRouter();
 
   const [noteText, setNoteText] = useState("");
   const [returnNote, setReturnNote] = useState("");
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsStatusDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   if (isLoading) {
     return <div className="p-12 text-center animate-pulse text-neutral-500 font-bold uppercase">Loading Order...</div>;
@@ -33,8 +48,9 @@ export const AdminOrderDetailModule = ({ orderId }: { orderId: string }) => {
     return <div className="p-12 text-center text-red-500 font-bold">Order not found.</div>;
   }
 
-  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    updateStatusMutation.mutate({ orderId, status: e.target.value });
+  const handleStatusChange = (newStatus: string) => {
+    updateStatusMutation.mutate({ orderId, status: newStatus });
+    setIsStatusDropdownOpen(false);
   };
 
   const handleAddNote = (e: React.FormEvent) => {
@@ -47,6 +63,16 @@ export const AdminOrderDetailModule = ({ orderId }: { orderId: string }) => {
 
   const handleReturnAction = (action: "approve" | "reject") => {
     handleReturnMutation.mutate({ orderId, action, adminNote: returnNote });
+  };
+
+  const handleDeleteOrder = () => {
+    if (window.confirm("Are you sure you want to completely delete this order? This cannot be undone.")) {
+      deleteOrderMutation.mutate(orderId, {
+        onSuccess: () => {
+          router.push("/admin/orders");
+        }
+      });
+    }
   };
 
   return (
@@ -169,18 +195,37 @@ export const AdminOrderDetailModule = ({ orderId }: { orderId: string }) => {
           <div className="bg-white border border-neutral-200 rounded-lg p-6">
             <h2 className="text-sm font-black uppercase text-neutral-900 mb-4 border-b border-neutral-100 pb-2">Status</h2>
             
-            <div className="mb-4">
+            <div className="mb-4 relative" ref={dropdownRef}>
               <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block mb-1">Current Status</label>
-              <select
-                value={order.status}
-                onChange={handleStatusChange}
+              <button
+                onClick={() => !updateStatusMutation.isPending && setIsStatusDropdownOpen(!isStatusDropdownOpen)}
                 disabled={updateStatusMutation.isPending}
-                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-brand font-bold uppercase text-neutral-800 bg-neutral-50"
+                className="w-full px-4 py-3 border border-neutral-300 rounded text-sm focus:outline-none focus:border-brand font-bold uppercase text-neutral-800 bg-white shadow-sm flex items-center justify-between transition-all hover:border-neutral-400 disabled:opacity-50"
               >
-                {STATUS_OPTIONS.map(s => (
-                  <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
-                ))}
-              </select>
+                <span>{order.status.replace(/_/g, " ")}</span>
+                <ChevronDownIcon className={`w-4 h-4 text-neutral-500 transition-transform duration-300 ${isStatusDropdownOpen ? "rotate-180" : ""}`} />
+              </button>
+              
+              {isStatusDropdownOpen && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-xl max-h-64 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2">
+                  <div className="p-1">
+                    {STATUS_OPTIONS.map(s => (
+                      <button
+                        key={s}
+                        onClick={() => handleStatusChange(s)}
+                        className={`w-full text-left px-3 py-2 text-xs font-bold uppercase rounded flex items-center justify-between transition-colors ${
+                          order.status === s 
+                            ? "bg-brand/10 text-brand" 
+                            : "text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+                        }`}
+                      >
+                        {s.replace(/_/g, " ")}
+                        {order.status === s && <CheckIcon className="w-4 h-4" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <button
@@ -247,9 +292,31 @@ export const AdminOrderDetailModule = ({ orderId }: { orderId: string }) => {
               </div>
               <div>
                 <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">Payment Method</span>
-                <span className="text-neutral-800 uppercase font-bold">{order.paymentMethod}</span>
+                <span className="text-neutral-800 uppercase font-bold">{order.paymentMethod === 'cod' ? 'COD' : 'PREPAID'}</span>
+                <span className={`text-[10px] font-bold block mt-1 ${order.paymentMethod !== 'cod' ? 'text-emerald-600' : 'text-neutral-500'}`}>
+                  STATUS: {order.paymentMethod !== 'cod' ? 'PAID' : 'UNPAID'}
+                </span>
+                {order.paymentMethod !== 'cod' && (
+                  <span className="text-[10px] font-bold block mt-1 text-neutral-400">
+                    GATEWAY: {order.paymentMethod.toUpperCase()}
+                  </span>
+                )}
               </div>
             </div>
+          </div>
+
+          {/* Danger Zone */}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mt-6">
+            <h2 className="text-sm font-black uppercase text-red-900 mb-2">Danger Zone</h2>
+            <p className="text-xs text-red-700 mb-4">Deleting this order will permanently remove it from the system.</p>
+            <button
+              onClick={handleDeleteOrder}
+              disabled={deleteOrderMutation.isPending}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white font-bold text-xs uppercase tracking-wider rounded hover:bg-red-700 transition-colors disabled:opacity-50"
+            >
+              <TrashIcon className="w-4 h-4" />
+              {deleteOrderMutation.isPending ? "Deleting..." : "Delete Order"}
+            </button>
           </div>
 
         </div>

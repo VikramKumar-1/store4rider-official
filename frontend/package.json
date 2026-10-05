@@ -27,6 +27,8 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.50.0",
+    "react-phone-number-input": "^3.3.12",
+    "libphonenumber-js": "^1.10.55",
     "recharts": "^2.15.0",
     "sonner": "^1.4.0",
     "swiper": "^14.2.0",

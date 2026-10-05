@@ -26,9 +26,10 @@ export function AdminSidebar() {
 
   return (
     <aside className="w-64 bg-slate-900 text-white min-h-screen flex flex-col shadow-xl z-10">
-      <div className="p-6 text-xl font-bold tracking-wider border-b border-slate-800 flex items-center space-x-3">
-        <div className="w-8 h-8 bg-brand rounded flex items-center justify-center text-white text-sm">S4</div>
-        <Link href="/admin" className="hover:text-slate-300 transition-colors">Store4Riders</Link>
+      <div className="p-6 border-b border-slate-800 flex items-center">
+        <Link href="/admin" className="hover:opacity-80 transition-opacity block w-full">
+          <img src="/Store4riders-Logo.jpg" alt="Store4Riders" className="h-10 w-full object-contain rounded" />
+        </Link>
       </div>
       
       <nav className="flex-1 p-4 space-y-1.5">

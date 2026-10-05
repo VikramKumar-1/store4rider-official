@@ -65,3 +65,20 @@ export function useAdminHandleReturn() {
     }
   });
 }
+
+export function useAdminDeleteOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const response = await apiClient.delete(`/orders/admin/${orderId}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      toast.success("Order deleted successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "Failed to delete order");
+    }
+  });
+}

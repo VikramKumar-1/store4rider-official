@@ -57,3 +57,36 @@ export function useRegister() {
     },
   });
 }
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: async (data: { email: string }) => {
+      const response = await apiClient.post("/auth/forgot-password", data);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success("If an account exists, a password reset link has been sent.");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || "Failed to request password reset");
+    },
+  });
+}
+
+export function useResetPassword() {
+  const router = useRouter();
+  
+  return useMutation({
+    mutationFn: async (data: { token: string; password: string }) => {
+      const response = await apiClient.post("/auth/reset-password", data);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success("Password reset successfully. You can now log in.");
+      router.push("/login");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || "Failed to reset password. Link may be expired.");
+    },
+  });
+}

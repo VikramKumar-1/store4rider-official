@@ -101,6 +101,10 @@ export async function orderRouter(req: NextRequest, routePath: string[]): Promis
     return await OrderController.adminUpdateStatus(req, routePath[1]);
   }
 
+  if (method === "DELETE" && pathLen === 2 && routePath[0] === "admin") {
+    return await OrderController.adminDeleteOrder(req, routePath[1]);
+  }
+
   if (method === "POST" && pathLen === 3 && routePath[0] === "admin" && routePath[2] === "notes") {
     return await OrderController.adminAddNote(req, routePath[1]);
   }

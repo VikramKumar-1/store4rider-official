@@ -136,24 +136,26 @@ export class ProductRepository {
    */
   static async decrementStock(productId: string, variantId: string | undefined, quantity: number, session?: any): Promise<boolean> {
     if (variantId) {
+      const product = await ProductModel.findOne({ _id: productId }).session(session || null).lean().exec() as any;
+      if (!product) return false;
+
+      const variant = product.variants?.find((v: any) => v.id === variantId || v.sku === variantId);
+      if (!variant) return false;
+
+      if (variant.stock < quantity && !product.allowBackorders) return false;
+
+      const matchKey = variant.sku ? "sku" : "id";
+      const matchValue = variant.sku || variant.id;
+
       const result = await ProductModel.updateOne(
         { 
           _id: productId, 
-          $and: [
-            { $or: [{ "variants.id": variantId }, { "variants.sku": variantId }] },
-            { $or: [{ "variants.stock": { $gte: quantity } }, { allowBackorders: true }] }
-          ]
+          variants: { $elemMatch: { [matchKey]: matchValue } } 
         },
         { $inc: { "variants.$.stock": -quantity } }
       ).session(session || null).exec();
 
-      if (result.modifiedCount > 0) return true;
-
-      // If variant exists but stock was untracked from legacy Magento catalog, check general stock status
-      const product = await ProductModel.findOne(
-        { _id: productId, $or: [{ stockStatus: { $ne: 0 } }, { allowBackorders: true }] }
-      ).session(session || null).select("_id").lean().exec();
-      return !!product;
+      return result.modifiedCount > 0;
     } else {
       const result = await ProductModel.findOne(
         { _id: productId, $or: [{ stockStatus: { $ne: 0 } }, { allowBackorders: true }] }
@@ -164,8 +166,20 @@ export class ProductRepository {
 
   static async incrementStock(productId: string, variantId: string | undefined, quantity: number, session?: any): Promise<void> {
     if (variantId) {
+      const product = await ProductModel.findOne({ _id: productId }).session(session || null).lean().exec() as any;
+      if (!product) return;
+
+      const variant = product.variants?.find((v: any) => v.id === variantId || v.sku === variantId);
+      if (!variant) return;
+
+      const matchKey = variant.sku ? "sku" : "id";
+      const matchValue = variant.sku || variant.id;
+
       await ProductModel.updateOne(
-        { _id: productId, $or: [{ "variants.id": variantId }, { "variants.sku": variantId }] },
+        { 
+          _id: productId, 
+          variants: { $elemMatch: { [matchKey]: matchValue } } 
+        },
         { $inc: { "variants.$.stock": quantity } }
       ).session(session || null).exec();
     }

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { registerSchema, loginSchema } from "@store4riders/shared-validation";
+import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from "@store4riders/shared-validation";
 
 /**
  * AuthValidator
@@ -31,5 +31,15 @@ export class AuthValidator {
   static async validateLogin(req: NextRequest) {
     const body = await req.json();
     return loginSchema.parse(body);
+  }
+
+  static async validateForgotPassword(req: NextRequest) {
+    const body = await req.json();
+    return forgotPasswordSchema.parse(body);
+  }
+
+  static async validateResetPassword(req: NextRequest) {
+    const body = await req.json();
+    return resetPasswordSchema.parse(body);
   }
 }

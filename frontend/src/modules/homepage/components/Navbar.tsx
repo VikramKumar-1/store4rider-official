@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Bars3Icon, ShoppingBagIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { Bars3Icon, ShoppingBagIcon, MagnifyingGlassIcon, XMarkIcon, HeartIcon } from "@heroicons/react/24/outline";
 import { NavbarProps } from "../types/homepage.types";
 import { useCartStore } from "@/stores/useCartStore";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -84,30 +84,27 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <>
       <header
-        className={`w-full z-50 ${
-          theme === "light"
+        className={`w-full z-50 ${theme === "light"
             ? "sticky top-0"
             : `fixed left-0 right-0 transition-all duration-300 ${isScrolled ? "top-0" : "top-[32px]"}`
-        }`}
+          }`}
       >
         {/* Glassmorphic backdrop */}
         <div
-          className={`absolute inset-0 transition-all duration-300 ease-in-out pointer-events-none ${
-            theme === "light"
+          className={`absolute inset-0 transition-all duration-300 ease-in-out pointer-events-none ${theme === "light"
               ? "bg-white/95 backdrop-blur-md border-b border-neutral-200/80 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"
               : isScrolled
-              ? "opacity-100 bg-white/90 backdrop-blur-md border-b border-neutral-200/60 shadow-sm"
-              : "opacity-0 bg-white/0"
-          }`}
+                ? "opacity-100 bg-white/90 backdrop-blur-md border-b border-neutral-200/60 shadow-sm"
+                : "opacity-0 bg-white/0"
+            }`}
         />
 
         <nav className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-3 xl:px-4 py-3.5 flex items-center justify-between">
           {/* Logo (Fades out on mobile when search is open) */}
-          <Link 
-            href="/" 
-            className={`items-center group transition-opacity duration-200 ${
-              isMobileSearchOpen ? "opacity-0 pointer-events-none sm:flex sm:opacity-100 sm:pointer-events-auto" : "flex opacity-100"
-            }`}
+          <Link
+            href="/"
+            className={`items-center group transition-opacity duration-200 ${isMobileSearchOpen ? "opacity-0 pointer-events-none sm:flex sm:opacity-100 sm:pointer-events-auto" : "flex opacity-100"
+              }`}
           >
             <div className="relative h-6 w-28 sm:h-7 sm:w-32 md:h-8 md:w-36 lg:h-8 lg:w-40 xl:h-9 xl:w-44 transition-transform duration-300 group-hover:scale-105 will-change-transform">
               <Image
@@ -135,10 +132,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           />
 
           {/* Right actions (Fades out on mobile when search is open) */}
-          <div className={`flex items-center gap-1 sm:gap-3 transition-opacity duration-200 ${
-            isMobileSearchOpen ? "opacity-0 pointer-events-none sm:opacity-100 sm:pointer-events-auto" : "opacity-100"
-          }`}>
-            
+          <div className={`flex items-center gap-1 sm:gap-3 transition-opacity duration-200 ${isMobileSearchOpen ? "opacity-0 pointer-events-none sm:opacity-100 sm:pointer-events-auto" : "opacity-100"
+            }`}>
+
             {/* Desktop Search Input (Hidden on tablets/small laptops to save space) */}
             <div className="hidden sm:block shrink-0">
               <SearchAutocomplete isLight={isLight} />
@@ -148,11 +144,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => setIsMobileSearchOpen(true)}
               aria-label="Search"
-              className={`sm:hidden p-2.5 rounded-full transition-all duration-200 cursor-pointer active:scale-90 ${
-                isLight
+              className={`sm:hidden p-2.5 rounded-full transition-all duration-200 cursor-pointer active:scale-90 ${isLight
                   ? "text-neutral-700 hover:text-neutral-950 hover:bg-neutral-900/[0.06]"
                   : "text-white/80 hover:text-white hover:bg-white/10"
-              }`}
+                }`}
             >
               <MagnifyingGlassIcon className="w-5 h-5 stroke-[1.75]" />
             </button>
@@ -161,11 +156,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Link
               href="/cart"
               aria-label="Shopping Cart"
-              className={`relative p-2.5 rounded-full transition-all duration-200 cursor-pointer active:scale-95 ${
-                isLight
+              className={`relative p-2.5 rounded-full transition-all duration-200 cursor-pointer active:scale-95 ${isLight
                   ? "text-neutral-700 hover:text-neutral-950 hover:bg-neutral-900/[0.06]"
                   : "text-white/80 hover:text-white hover:bg-white/10"
-              }`}
+                }`}
             >
               <ShoppingBagIcon className="w-5 h-5 stroke-[1.75]" />
               {totalItemCount > 0 && (
@@ -195,11 +189,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Open menu"
-              className={`lg:hidden p-2.5 rounded-full transition-all active:scale-95 ${
-                isLight
+              className={`lg:hidden p-2.5 rounded-full transition-all active:scale-95 ${isLight
                   ? "text-neutral-700 hover:bg-neutral-900/[0.06]"
                   : "text-white/90 hover:bg-white/10"
-              }`}
+                }`}
             >
               <Bars3Icon className="w-5 h-5 stroke-[2]" />
             </button>
@@ -207,14 +200,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Mobile Full-Width Search Overlay with Smooth Fluid Motion */}
           <div
-            className={`absolute inset-x-3.5 top-1/2 -translate-y-1/2 z-30 sm:hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform ${
-              isMobileSearchOpen
+            className={`absolute inset-x-3.5 top-1/2 -translate-y-1/2 z-30 sm:hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform ${isMobileSearchOpen
                 ? "opacity-100 scale-100 translate-y-[-50%] pointer-events-auto"
                 : "opacity-0 scale-95 translate-y-[-45%] pointer-events-none"
-            }`}
+              }`}
           >
-            <SearchAutocomplete 
-              isLight={isLight} 
+            <SearchAutocomplete
+              isLight={isLight}
               isMobileFull={true}
               onClose={() => setIsMobileSearchOpen(false)}
             />

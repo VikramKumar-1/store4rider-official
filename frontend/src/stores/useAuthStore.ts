@@ -54,6 +54,12 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "auth-storage", // stores auth state in localStorage
+      partialize: (state) => ({ 
+        user: state.user, 
+        isAuthenticated: state.isAuthenticated 
+        // SECURITY: NEVER persist `token` or `refreshToken` to localStorage to prevent XSS!
+        // The browser uses secure HttpOnly cookies for ongoing authentication.
+      }),
     }
   )
 );

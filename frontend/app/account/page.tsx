@@ -1,26 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { ProfileForm } from "@/modules/account/components/ProfileForm";
 
 export const metadata: Metadata = {
-  title: "My Account | Store4Riders",
-  description: "Manage your Store4Riders account, profile details, delivery addresses, and preferences.",
+  title: "My Profile | Store4Riders",
+  description: "Manage your Store4Riders account profile details.",
 };
 
 export default function AccountPage() {
   return (
-    <div className="min-h-[70vh] flex flex-col items-center justify-center bg-slate-50 text-slate-900 pt-32 pb-16 px-6">
-      <div className="max-w-3xl w-full bg-white rounded-3xl p-12 shadow-sm border border-slate-200/80 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="w-16 h-16 rounded-full bg-brand/10 text-brand flex items-center justify-center mx-auto mb-6">
-          <span className="font-black text-2xl">A</span>
-        </div>
-        <h1 className="text-4xl font-black tracking-tight mb-4">My Account</h1>
-        <p className="text-slate-500 font-medium mb-8 text-lg">
-          This is a simulated placeholder account page for the portfolio presentation. 
-          In a production environment, this would contain the fully functional user dashboard.
-        </p>
-        <Link href="/" className="inline-block bg-slate-900 text-white font-bold px-8 py-4 rounded-full hover:bg-slate-800 hover:scale-105 transition-all">Return Home</Link>
-      </div>
+    <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <ProfileForm />
     </div>
   );
 }
-

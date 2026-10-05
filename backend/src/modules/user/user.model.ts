@@ -17,11 +17,13 @@ const userSchema = new Schema<IUser>(
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     phone: { type: String },
-    role: { type: String, enum: ["customer", "admin"], default: "customer" },
+    role: { type: String, enum: ["super_admin", "admin", "product_manager", "order_manager", "marketing_manager", "customer_support", "customer"], default: "customer" },
     addresses: [addressSchema],
     // We add password directly to schema although it's not in IUser type,
     // and we mark it select: false so it doesn't leak.
     password: { type: String, required: true, select: false },
+    resetPasswordToken: { type: String, select: false },
+    resetPasswordExpire: { type: Date, select: false },
   } as any, // Type cast to allow password
   { timestamps: true }
 );

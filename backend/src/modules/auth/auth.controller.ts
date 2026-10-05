@@ -91,4 +91,16 @@ export class AuthController {
     clearCookies(res);
     return res;
   }
+
+  static async forgotPassword(req: NextRequest) {
+    const validatedData = await AuthValidator.validateForgotPassword(req);
+    await AuthService.forgotPassword(validatedData);
+    return ApiResponse.success(null, "If an account exists with that email, a reset link has been sent");
+  }
+
+  static async resetPassword(req: NextRequest) {
+    const validatedData = await AuthValidator.validateResetPassword(req);
+    await AuthService.resetPassword(validatedData);
+    return ApiResponse.success(null, "Password reset successfully");
+  }
 }

@@ -141,6 +141,12 @@ export class OrderController {
     return ApiResponse.success(updated, "Order status updated");
   }
 
+  static async adminDeleteOrder(req: NextRequest, id: string) {
+    OrderValidator.extractUserId(req);
+    await OrderService.adminDeleteOrder(id);
+    return ApiResponse.success(null, "Order deleted successfully");
+  }
+
   static async adminAddNote(req: NextRequest, id: string) {
     const userId = OrderValidator.extractUserId(req);
     const { text } = await OrderValidator.validateAdminAddNote(req);

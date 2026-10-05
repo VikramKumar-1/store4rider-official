@@ -217,6 +217,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
           {/* Right: Info, Kit & Reviews (50% width on large screens) */}
           <div className="w-full lg:w-1/2 flex flex-col pt-2 md:pt-4 lg:pt-0 pb-2 md:pb-6">
             <ProductInfo 
+              id={product.id}
               category={product.category}
               rating={product.rating}
               name={product.name}

@@ -1171,7 +1171,7 @@ Once PayU + COD are production-solid:
 
 ### Backend Tasks
 
-- [ ] **7.1** Build forgot password flow
+- [x] **7.1** Build forgot password flow
   - `POST /auth/forgot-password` — sends reset email with token via SES
   - `POST /auth/reset-password` — validates token, sets new password
   - Token stored in Redis with 1-hour expiry
@@ -1181,13 +1181,13 @@ Once PayU + COD are production-solid:
   - `POST /orders` accepts `guestEmail` without auth token
   - Creates temporary guest record or order without userId
   - Send order confirmation to guest email
-- [ ] **7.8** Build profile management & addresses endpoints
+- [x] **7.8** Build profile management & addresses endpoints
   - `GET /users/me` — fetch full user profile
   - `PUT /users/me` — update name, phone, etc.
   - `POST /users/me/addresses` — add new shipping/billing address
   - `PUT /users/me/addresses/:id` — edit address
   - `DELETE /users/me/addresses/:id` — remove address
-- [ ] **7.9** Build wishlist & saved carts endpoints
+- [/] **7.9** Build wishlist & saved carts endpoints
   - `GET /users/me/wishlist` — fetch saved products
   - `POST /users/me/wishlist` — add product to wishlist
   - `DELETE /users/me/wishlist/:productId` — remove from wishlist
@@ -1195,7 +1195,7 @@ Once PayU + COD are production-solid:
 
 ### Frontend Tasks
 
-- [ ] **7.4** Build forgot password page
+- [x] **7.4** Build forgot password page
   - `/forgot-password` — email input form
   - `/reset-password?token=...` — new password form
 - [ ] **7.5** Build change password section in account
@@ -1208,10 +1208,10 @@ Once PayU + COD are production-solid:
 - [ ] **7.7** Build guest checkout flow
   - Email input at checkout start
   - No login required to complete purchase
-- [ ] **7.10** Build profile management & addresses UI
+- [x] **7.10** Build profile management & addresses UI
   - `/account/profile` — form to update user details
   - `/account/addresses` — list of addresses with Add/Edit/Delete modals
-- [ ] **7.11** Build wishlist & saved carts UI
+- [/] **7.11** Build wishlist & saved carts UI
   - `/account/wishlist` — grid of saved products with "Move to Cart" button
   - Heart icon on product cards to toggle wishlist
   - `/account/saved-carts` — list of saved cart sessions

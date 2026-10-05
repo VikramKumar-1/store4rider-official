@@ -8,6 +8,8 @@ const orderItemSchema = new Schema<IOrderItem>({
   sku: { type: String, required: true },
   quantity: { type: Number, required: true },
   unitPrice: { type: Number, required: true },
+  taxRate: { type: Number, required: true },
+  taxAmount: { type: Number, required: true },
 });
 
 const pricingSchema = new Schema<IOrderPricing>(

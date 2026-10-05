@@ -69,6 +69,10 @@ export class OrderRepository {
     return { items, total };
   }
 
+  static async deleteById(id: string, session?: ClientSession): Promise<void> {
+    await OrderModel.findByIdAndDelete(id).session(session || null).exec();
+  }
+
   static async addNote(id: string, note: import("@store4riders/shared-types").IOrderNote, session?: ClientSession): Promise<IOrder | null> {
     return OrderModel.findByIdAndUpdate(
       id,

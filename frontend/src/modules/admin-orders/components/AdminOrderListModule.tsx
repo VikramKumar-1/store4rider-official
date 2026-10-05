@@ -90,6 +90,7 @@ export const AdminOrderListModule = () => {
                 <th className="px-6 py-4">Order ID</th>
                 <th className="px-6 py-4">Date</th>
                 <th className="px-6 py-4">Customer</th>
+                <th className="px-6 py-4">Payment</th>
                 <th className="px-6 py-4">Total</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-right">Action</th>
@@ -98,7 +99,7 @@ export const AdminOrderListModule = () => {
             <tbody className="divide-y divide-neutral-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-neutral-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-neutral-500">
                     <div className="flex flex-col items-center gap-2">
                       <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
                       Loading Orders...
@@ -107,7 +108,7 @@ export const AdminOrderListModule = () => {
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-neutral-500 font-medium">
+                  <td colSpan={7} className="px-6 py-12 text-center text-neutral-500 font-medium">
                     No orders found matching your criteria.
                   </td>
                 </tr>
@@ -123,6 +124,16 @@ export const AdminOrderListModule = () => {
                     <td className="px-6 py-4">
                       <div className="font-bold text-neutral-900">{order.shippingAddress?.fullName}</div>
                       <div className="text-xs text-neutral-500">{order.shippingAddress?.city}, {order.shippingAddress?.state}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-neutral-900 uppercase">
+                          {order.paymentMethod === 'cod' ? 'COD' : 'PREPAID'}
+                        </span>
+                        <span className={`text-[10px] uppercase font-bold ${order.paymentMethod !== 'cod' ? 'text-emerald-600' : 'text-neutral-500'}`}>
+                          {order.paymentMethod !== 'cod' ? `PAID (${order.paymentMethod})` : 'UNPAID'}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 font-bold text-neutral-900">
                       {formatPrice(order.pricing?.total || 0)}

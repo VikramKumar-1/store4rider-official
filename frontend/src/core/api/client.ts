@@ -55,10 +55,11 @@ apiClient.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return apiClient(originalRequest);
         }
-      } catch (refreshError) {
+      } catch (refreshError: any) {
         const { isAuthenticated } = useAuthStore.getState();
-        if (isAuthenticated) {
-          // If refresh fails and user was logged in, log out cleanly
+        
+        // Only log out if it's explicitly an auth error (401/403). Don't log out on 500s or Network Errors
+        if (isAuthenticated && refreshError.response?.status >= 400 && refreshError.response?.status < 500) {
           useAuthStore.getState().logout();
           if (typeof window !== "undefined") {
             window.location.href = "/login?expired=true";

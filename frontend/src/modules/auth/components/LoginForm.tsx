@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLogin } from "@/core/hooks/useAuth";
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
+import Link from "next/link";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -81,6 +82,14 @@ export function LoginForm() {
               <EyeSlashIcon className="w-4 h-4" />
             )}
           </button>
+        </div>
+        <div className="flex justify-end">
+          <Link 
+            href="/forgot-password" 
+            className="text-[10px] md:text-xs font-medium text-neutral-500 hover:text-banner transition-colors uppercase tracking-wider"
+          >
+            Forgot Password?
+          </Link>
         </div>
       </div>
 

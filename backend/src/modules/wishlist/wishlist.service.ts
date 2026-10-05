@@ -1,5 +1,6 @@
 import { WishlistRepository } from "./wishlist.repository";
 import { IWishlist } from "@store4riders/shared-types";
+import { getCache, setCache } from "../../core/cache/redis";
 
 /**
  * @class WishlistService
@@ -7,14 +8,21 @@ import { IWishlist } from "@store4riders/shared-types";
  * Highlights:
  * - Upserts empty wishlists for new users.
  * - Toggles products (adds if missing, removes if present) automatically.
+ * - Optimized with Redis caching to avoid heavy DB loads.
  */
 export class WishlistService {
   
   static async getWishlist(userId: string): Promise<IWishlist> {
-    const wishlist = await WishlistRepository.findByUserId(userId);
+    const cacheKey = `wishlist_${userId}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return cached as IWishlist;
+
+    let wishlist = await WishlistRepository.findByUserId(userId);
     if (!wishlist) {
-      return await WishlistRepository.upsert(userId, []);
+      wishlist = await WishlistRepository.upsert(userId, []);
     }
+
+    await setCache(cacheKey, wishlist, 3600); // 1 hour TTL
     return wishlist;
   }
 
@@ -28,6 +36,11 @@ export class WishlistService {
       wishlist.productIds.push(productId);
     }
     
-    return await WishlistRepository.upsert(userId, wishlist.productIds);
+    const updated = await WishlistRepository.upsert(userId, wishlist.productIds);
+    
+    // Update cache instantly to prevent DB load on next fetch
+    await setCache(`wishlist_${userId}`, updated, 3600);
+    
+    return updated;
   }
 }

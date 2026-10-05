@@ -3,7 +3,9 @@ import { IPincode } from "@store4riders/shared-types";
 
 export class PincodeRepository {
   static async findByPincode(pincode: string): Promise<IPincode | null> {
-    return PincodeModel.findOne({ pincode }).lean().exec() as unknown as IPincode | null;
+    return PincodeModel.findOne({
+      $or: [{ pincode }, { pincode: Number(pincode) }]
+    }).lean().exec() as unknown as IPincode | null;
   }
 
   static async bulkWrite(operations: any[]) {
