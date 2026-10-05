@@ -5,6 +5,12 @@ const categorySchema = new Schema<ICategory>(
   {
     name: { type: String, required: true },
     slug: { type: String, required: true, unique: true },
+    faqs: [
+      {
+        question: { type: String, required: true },
+        answer: { type: String, required: true },
+      },
+    ],
     parentId: { type: String },
     description: { type: String },
     bannerImage: { type: String },

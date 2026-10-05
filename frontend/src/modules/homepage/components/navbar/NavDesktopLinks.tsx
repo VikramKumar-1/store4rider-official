@@ -88,7 +88,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
                 <div
                   className={`${
                     item.megaMenuFeatured
-                      ? ((item.megaMenuItems?.length ?? 0) >= 3 ? "w-[980px] xl:w-[1120px]" : "w-[760px] xl:w-[860px]")
+                      ? ((item.megaMenuItems?.length ?? 0) >= 3 ? "w-[980px] xl:w-[1120px]" : "w-[860px] xl:w-[980px]")
                       : item.megaMenuItems?.length === 4
                       ? "w-[940px] xl:w-[1080px]" // 4 columns need wider space (landscape)
                       : item.megaMenuItems?.length === 3
@@ -111,22 +111,31 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
                         item.megaMenuItems.length === 3 ? "grid-cols-3" :
                         item.megaMenuItems.length === 4 ? "grid-cols-4" :
                         "grid-cols-3" // For 5+ use 3 columns
-                      } gap-x-10 gap-y-8 p-8 ${item.megaMenuFeatured ? "w-[65%] border-r border-neutral-200/60" : "w-full"}`}>
+                      } gap-x-8 gap-y-8 p-8 ${item.megaMenuFeatured ? "w-[65%] border-r border-neutral-200/60" : "w-full"}`}>
                         {item.megaMenuItems.map((menuGroup, idx) => (
-                          <div key={idx}>
-                            <h4 className="text-[13px] font-bold text-neutral-900 uppercase tracking-widest mb-4 border-b border-neutral-200/60 pb-2.5 flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-banner shadow-[0_0_8px_rgba(255,84,41,0.6)]" />
-                              {menuGroup.group}
-                            </h4>
-                            <ul className="flex flex-col gap-1">
+                          <div key={idx} className="min-w-0 w-full">
+                            {menuGroup.groupHref ? (
+                              <Link href={menuGroup.groupHref} className="mb-4 block">
+                                <h4 className="text-[13px] font-bold text-neutral-900 uppercase tracking-widest border-b border-neutral-200/60 pb-2.5 flex items-start gap-2 leading-snug hover:text-brand transition-colors">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-banner shadow-[0_0_8px_rgba(255,84,41,0.6)] shrink-0 mt-1.5" />
+                                  <span className="flex-1 min-w-0 break-words whitespace-normal">{menuGroup.group}</span>
+                                </h4>
+                              </Link>
+                            ) : (
+                              <h4 className="text-[13px] font-bold text-neutral-900 uppercase tracking-widest mb-4 border-b border-neutral-200/60 pb-2.5 flex items-start gap-2 leading-snug">
+                                <span className="w-1.5 h-1.5 rounded-full bg-banner shadow-[0_0_8px_rgba(255,84,41,0.6)] shrink-0 mt-1.5" />
+                                <span className="flex-1 min-w-0 break-words whitespace-normal">{menuGroup.group}</span>
+                              </h4>
+                            )}
+                            <ul className="flex flex-col gap-1 w-full">
                               {menuGroup.items.map((link, lIdx) => (
-                                <li key={lIdx}>
+                                <li key={lIdx} className="w-full">
                                   <Link
                                     href={link.href}
-                                    className="text-[14px] font-medium text-neutral-600 hover:text-neutral-950 hover:bg-neutral-50 rounded-xl px-3 py-2 -mx-3 transition-all duration-300 flex items-center gap-3.5 group"
+                                    className="text-[14px] font-medium text-neutral-600 hover:text-neutral-950 hover:bg-neutral-50 rounded-xl px-3 py-2 -mx-3 transition-all duration-300 flex items-start gap-3.5 group w-full"
                                   >
                                     {link.logoUrl && (
-                                      <div className="w-11 h-6 flex items-center justify-center shrink-0">
+                                      <div className="w-11 h-6 flex items-center justify-center shrink-0 mt-0.5">
                                         <Image 
                                           src={link.logoUrl} 
                                           alt={link.label} 
@@ -136,7 +145,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
                                         />
                                       </div>
                                     )}
-                                    <span className="group-hover:translate-x-1 transition-transform duration-300">{link.label}</span>
+                                    <span className="group-hover:translate-x-1 transition-transform duration-300 flex-1 min-w-0 break-words whitespace-normal leading-tight">{link.label}</span>
                                   </Link>
                                 </li>
                               ))}

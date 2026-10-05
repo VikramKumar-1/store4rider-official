@@ -39,15 +39,39 @@ export class ProductValidator {
     
     // Accurate category matching for Magento paths and product names with word boundaries
     if (category) {
-      const cleanSlug = category.toLowerCase().trim();
+      let cleanSlug = category.toLowerCase().trim();
+      
+      // TRANSLATOR: Map frontend SEO URLs back to the exact Magento DB slugs
+      const slugMap: Record<string, string> = {
+        "full-face-helmets": "full-face",
+        "modular-helmets": "modular-flip-up",
+        "half-face-helmets": "open-face",
+        "off-road-motocross": "off-road-motocross-gear",
+        "off-road-riding-boots": "off-road-riding-boots",
+        "riding-jacket": "riding-jackets",
+        "riding-jean": "riding-jeans",
+        "touring-pant": "touring-pants",
+        "knee-guard": "knee-guards",
+        "saddle-bags": "saddle-bags-bikes",
+        "tail-bags": "motorcycle-tail-bags",
+        "women-riding-gear": "riding-gear-for-women"
+      };
 
-      if (cleanSlug.includes("modular-helmet") || cleanSlug.includes("modular")) {
+      if (slugMap[cleanSlug]) {
+        cleanSlug = slugMap[cleanSlug];
+      }
+
+      const preEngineLength = andConditions.length;
+      
+      // We must re-enable the regex engine because Magento data is missing category tags,
+      // and we MUST search the product names to find all products!
+      if (cleanSlug.includes("modular") || cleanSlug.includes("flip-up")) {
         andConditions.push({
           $or: [
             { magentoCategories: /modular/i },
             { name: /modular/i },
           ],
-          name: { $not: /\b(visor|pinlock|spoiler|deflector|pad|screw|lock)\b/i }
+          name: { $not: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement)\b/i }
         });
       } else if (cleanSlug.includes("half-face") || cleanSlug.includes("open-face")) {
         andConditions.push({
@@ -55,22 +79,38 @@ export class ProductValidator {
             { magentoCategories: /half face|open face/i },
             { name: /half face|open face/i },
           ],
-          name: { $not: /\b(visor|pinlock|spoiler|deflector|pad|screw|lock)\b/i }
+          name: { $not: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement)\b/i }
         });
-      } else if (cleanSlug.includes("off-road") || cleanSlug.includes("motocross")) {
+      } else if (cleanSlug.includes("off-road-boot") || cleanSlug.includes("off-road-riding-boot")) {
         andConditions.push({
           $or: [
-            { magentoCategories: /off road|motocross|mx/i },
-            { name: /off road|motocross|mx/i },
+            { magentoCategories: /off road.*boot|motocross.*boot|mx.*boot/i },
+            { name: /off road.*boot|motocross.*boot|mx.*boot/i }
           ]
         });
+      } else if (cleanSlug.includes("off-road") || cleanSlug.includes("motocross")) {
+        const baseOr = [
+          { magentoCategories: /off road|motocross|mx/i },
+          { name: /off road|motocross|mx/i },
+        ];
+        if (cleanSlug.includes("helmet")) {
+          andConditions.push({
+            $and: [
+              { $or: baseOr },
+              { $or: [{ magentoCategories: /helmet/i }, { name: /helmet/i }] },
+              { name: { $not: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement)\b/i } }
+            ]
+          });
+        } else {
+          andConditions.push({ $or: baseOr });
+        }
       } else if (cleanSlug.includes("full-face")) {
         andConditions.push({
           $or: [
-            { magentoCategories: /full face/i },
-            { name: /full face/i },
+            { magentoCategories: /full.*face/i },
+            { name: /full.*face/i },
           ],
-          name: { $not: /\b(visor|pinlock|spoiler|deflector|pad|screw|lock)\b/i }
+          name: { $not: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement)\b/i }
         });
       } else if (cleanSlug.includes("visor") || cleanSlug.includes("pinlock")) {
         andConditions.push({
@@ -100,38 +140,103 @@ export class ProductValidator {
             { name: /cleaner|cleaning|spray|wash|polish|lube/i },
           ]
         });
+      } else if (cleanSlug.includes("helmet-visor") || cleanSlug.includes("visor")) {
+        andConditions.push({
+          $or: [{ name: /visor/i }, { magentoCategories: /visor/i }]
+        });
+      } else if (cleanSlug.includes("balaclava") || cleanSlug.includes("mask") || cleanSlug.includes("bandana")) {
+        andConditions.push({
+          $or: [{ name: /balaclava|mask|bandana/i }, { magentoCategories: /balaclava|mask|bandana/i }]
+        });
+      } else if (cleanSlug.includes("bluetooth-intercom") || cleanSlug.includes("intercom")) {
+        andConditions.push({
+          $or: [{ name: /bluetooth|intercom|sena|parani/i }, { magentoCategories: /bluetooth|intercom/i }]
+        });
+      } else if (cleanSlug.includes("helmet-cleaner") || cleanSlug.includes("cleaner")) {
+        andConditions.push({
+          $or: [{ name: /cleaner|spray|muc-off/i }, { magentoCategories: /cleaner/i }]
+        });
+      } else if (cleanSlug.includes("full-face-helmet")) {
+        andConditions.push({
+          $or: [{ name: /full.*face/i }, { magentoCategories: /full.*face/i }]
+        });
+      } else if (cleanSlug.includes("modular-helmet") || cleanSlug.includes("flip-up")) {
+        andConditions.push({
+          $or: [{ name: /modular|flip.*up/i }, { magentoCategories: /modular|flip.*up/i }]
+        });
+      } else if (cleanSlug.includes("half-face-helmet") || cleanSlug.includes("open-face")) {
+        andConditions.push({
+          $or: [{ name: /half.*face|open.*face/i }, { magentoCategories: /half.*face|open.*face/i }]
+        });
+      } else if (cleanSlug.includes("off-road-helmet") || cleanSlug.includes("motocross-helmet")) {
+        andConditions.push({
+          $or: [{ name: /off.*road|motocross/i }, { magentoCategories: /off.*road|motocross/i }]
+        });
       } else if (cleanSlug.includes("helmet")) {
+        const keywords = cleanSlug.replace(/-/g, " ").replace(/s$/, "").trim();
         andConditions.push({
           $or: [
-            { name: /\bhelmets?\b/i },
-            { magentoCategories: /\bhelmets?\b/i }
+            { name: new RegExp(keywords.split(" ").join(".*"), "i") },
+            { magentoCategories: new RegExp(keywords, "i") }
           ],
-          name: { $not: /\b(visor|visors|pinlock|nose\s*deflector|breath\s*deflector|cheek\s*pad|cheek\s*pads|spoiler|shield\s*mechanism|anti-fog|helmet\s*cleaner|helmet\s*spray|cleaning\s*spray)\b/i }
+          name: { $not: /\b(visor|visors|pinlock|nose\s*deflector|breath\s*deflector|cheek\s*pad|cheek\s*pads|spoiler|shield\s*mechanism|anti-fog|helmet\s*cleaner|helmet\s*spray|cleaning\s*spray|balaclava|mask|bandana|sleeve|sleeves|combo|chin\s*curtain|ratchet|pivot|screw|lock|vent|vents|replacement)\b/i }
         });
       } else if (cleanSlug.includes("jacket") || cleanSlug.includes("suit")) {
+        const keywords = cleanSlug.replace(/-/g, " ").replace(/s$/, "").trim();
         andConditions.push({
           $or: [
-            { name: /\b(jackets?|suits?|vests?)\b/i },
+            { name: new RegExp(keywords.split(" ").join(".*"), "i") },
             { 
-              magentoCategories: /\b(jackets?|suits?)\b/i,
+              magentoCategories: new RegExp(keywords, "i"),
               name: { $not: /\b(protector|armour|armor|insert|knee|hip|elbow|chest|back\s*armor|base\s*layer|t-shirt|jersey|lower|pants?)\b/i }
             }
           ],
           name: { $not: /\b(hip\s*protector|knee\s*protector|elbow\s*protector|back\s*protector|armour\s*insert|armor\s*insert|back\s*armor|base\s*layer)\b/i }
         });
+      } else if (cleanSlug.includes("short-biking-boot")) {
+        andConditions.push({
+          $or: [{ name: /short.*boot|short.*riding/i }, { magentoCategories: /short.*boot|city/i }]
+        });
+      } else if (cleanSlug.includes("sports-riding-shoe")) {
+        andConditions.push({
+          $or: [{ name: /sport.*shoe|riding.*shoe/i }, { magentoCategories: /sport.*shoe|riding.*shoe/i }]
+        });
+      } else if (cleanSlug.includes("off-road-boot") || cleanSlug.includes("offroad-boot")) {
+        andConditions.push({
+          $or: [{ name: /off.*road.*boot|motocross/i }, { magentoCategories: /off.*road.*boot/i }]
+        });
       } else if (cleanSlug.includes("boot") || cleanSlug.includes("shoe")) {
+        const keywords = cleanSlug.replace(/-/g, " ").replace(/s$/, "").trim();
         andConditions.push({
           $or: [
-            { name: /\b(boots?|shoes?|footwear|sneakers?)\b/i },
-            { magentoCategories: /\b(boots?|shoes?|footwear)\b/i }
+            { name: new RegExp(keywords.split(" ").join(".*"), "i") },
+            { magentoCategories: new RegExp(keywords, "i") }
           ],
           name: { $not: /\b(toe\s*slider|laces?|insole)\b/i }
         });
+      } else if (cleanSlug.includes("full-gauntlet-glove")) {
+        andConditions.push({
+          $or: [{ name: /full.*gauntlet/i }, { magentoCategories: /full.*gauntlet/i }]
+        });
+      } else if (cleanSlug.includes("semi-gauntlet-glove")) {
+        andConditions.push({
+          $or: [{ name: /semi.*gauntlet/i }, { magentoCategories: /semi.*gauntlet/i }]
+        });
+      } else if (cleanSlug.includes("short-motorbike-glove") || cleanSlug.includes("short-glove")) {
+        andConditions.push({
+          $or: [{ name: /short.*glove/i }, { magentoCategories: /short.*glove/i }]
+        });
+      } else if (cleanSlug.includes("winter-glove") || cleanSlug.includes("waterproof-glove")) {
+        andConditions.push({
+          $or: [{ name: /winter|waterproof|rain/i }, { magentoCategories: /winter|waterproof/i }],
+          $and: [{ $or: [{ name: /glove/i }, { magentoCategories: /glove/i }] }]
+        });
       } else if (cleanSlug.includes("glove")) {
+        const keywords = cleanSlug.replace(/-/g, " ").replace(/s$/, "").trim();
         andConditions.push({
           $or: [
-            { name: /\bgloves?\b/i },
-            { magentoCategories: /\bgloves?\b/i }
+            { name: new RegExp(keywords.split(" ").join(".*"), "i") },
+            { magentoCategories: new RegExp(keywords, "i") }
           ]
         });
       } else if (cleanSlug.includes("tank-bag")) {
@@ -160,6 +265,14 @@ export class ProductValidator {
             { name: /\b(luggage|bags?|backpacks?|panniers?|tail\s*bag|tank\s*bag|saddle\s*bag|top\s*box)\b/i },
             { magentoCategories: /\b(luggage|bags?|backpacks?|panniers?|tail\s*bag|tank\s*bag|saddle)\b/i }
           ]
+        });
+      } else if (cleanSlug.includes("touring-pant")) {
+        andConditions.push({
+          $or: [{ name: /touring.*pant/i }, { magentoCategories: /touring.*pant/i }]
+        });
+      } else if (cleanSlug.includes("riding-jeans")) {
+        andConditions.push({
+          $or: [{ name: /\bjeans?\b/i }, { magentoCategories: /\bjeans?\b/i }]
         });
       } else if (cleanSlug.includes("pant") || cleanSlug.includes("trouser")) {
         andConditions.push({
@@ -213,6 +326,22 @@ export class ProductValidator {
             { name: /\b(accessor(y|ies)|cleaner|cover|lock|mount|visor|pinlock|deflector|protector|armour|armor|insert)\b/i }
           ]
         });
+      } else if (cleanSlug.includes("women-riding-gear") || cleanSlug.includes("women") || cleanSlug.includes("riding-gear-for-women")) {
+        andConditions.push({
+          $or: [{ name: /\b(women|womens|lady|ladies|female)\b/i }, { magentoCategories: /\b(women|womens|lady|ladies|female)\b/i }, { gender: /women|female|lady/i }]
+        });
+      } else if (cleanSlug.includes("protectors-armour") || cleanSlug.includes("protector") || cleanSlug.includes("armour")) {
+        andConditions.push({
+          $or: [{ name: /protector|armour|armor|insert/i }, { magentoCategories: /protector|armour|armor/i }]
+        });
+      } else if (cleanSlug.includes("knee-guard") || cleanSlug.includes("knee-slider")) {
+        andConditions.push({
+          $or: [{ name: /knee.*guard|knee.*slider|knee.*brace/i }, { magentoCategories: /knee.*guard|knee.*slider|knee.*brace/i }]
+        });
+      } else if (cleanSlug.includes("off-road-motocross") || cleanSlug.includes("offroad")) {
+        andConditions.push({
+          $or: [{ name: /off.*road|motocross|dirt|mx/i }, { magentoCategories: /off.*road|motocross|dirt|mx/i }]
+        });
       } else if (cleanSlug.includes("riding-gear")) {
         andConditions.push({
           $or: [
@@ -221,17 +350,43 @@ export class ProductValidator {
           ]
         });
       } else {
-        const keywords = cleanSlug
-          .replace(/-/g, " ")
+        const exactPhrase = cleanSlug.replace(/-/g, " ").trim();
+        const keywords = exactPhrase
           .split(/\s+/)
-          .filter((w) => !["motorcycle", "riding", "bike", "for"].includes(w));
-        const pattern = keywords.length > 0 
-          ? `\\b(${keywords.join("|")})\\b` 
-          : `\\b${cleanSlug}\\b`;
+          .filter((w) => !["motorcycle", "riding", "bike", "for", "online"].includes(w) && w.length > 1);
+          
+        if (keywords.length > 0) {
+          // Build a lookahead regex that REQUIRES all keywords to be present in any order
+          const lookaheads = keywords.map(w => `(?=.*\\b${w})`).join("");
+          const andPattern = `^${lookaheads}.*$`;
+          
+          andConditions.push({
+            $or: [
+              { magentoCategories: new RegExp(exactPhrase, "i") },
+              { magentoCategories: new RegExp(andPattern, "i") },
+              { name: new RegExp(andPattern, "i") }
+            ]
+          });
+        } else {
+          andConditions.push({
+            $or: [
+              { magentoCategories: new RegExp(exactPhrase, "i") },
+              { name: new RegExp(exactPhrase, "i") }
+            ]
+          });
+        }
+      }
+
+      // -------------------------------------------------------------
+      // WRAP THE REGEX OUTPUT WITH EXACT DATABASE "CATEGORY SLUGS"
+      // If the Regex Engine matches, OR the Database explicitly says so, include it!
+      // -------------------------------------------------------------
+      if (andConditions.length > preEngineLength) {
+        const regexRule = andConditions.pop();
         andConditions.push({
           $or: [
-            { magentoCategories: { $regex: new RegExp(pattern, "i") } },
-            { name: { $regex: new RegExp(pattern, "i") } }
+            regexRule,
+            { categorySlugs: cleanSlug }
           ]
         });
       }
@@ -241,15 +396,18 @@ export class ProductValidator {
       const brandsList = brand.split(",").map(b => b.trim()).filter(Boolean);
       if (brandsList.length === 1) {
         const b = brandsList[0];
+        // FIX: Use exact match (^...$) to prevent partial brand name collisions.
+        // Previously used contains-match which meant "LS2" could match "XLS2" etc.
+        // This now aligns with how aggregation counts brands (exact equality).
         const regex = b.toLowerCase() === "mt" 
           ? /\bmt\b|mt helmets/i 
-          : new RegExp(ProductValidator.escapeRegExp(b), "i");
+          : new RegExp(`^${ProductValidator.escapeRegExp(b)}$`, "i");
         andConditions.push({ brand: { $regex: regex } });
       } else if (brandsList.length > 1) {
         const brandRegexes = brandsList.map(b => {
           const regex = b.toLowerCase() === "mt" 
             ? /\bmt\b|mt helmets/i 
-            : new RegExp(ProductValidator.escapeRegExp(b), "i");
+            : new RegExp(`^${ProductValidator.escapeRegExp(b)}$`, "i");
           return { brand: { $regex: regex } };
         });
         andConditions.push({ $or: brandRegexes });
@@ -297,7 +455,9 @@ export class ProductValidator {
         $or: [
           { configurableVariations: { $in: configVarRegexes } },
           { "variants.attributes.size": { $in: exactRegexes } },
-          { "variants.attributes.eu_size": { $in: exactRegexes } }
+          { "variants.attributes.eu_size": { $in: exactRegexes } },
+          { "attributes.size": { $in: exactRegexes } },
+          { "attributes.eu_size": { $in: exactRegexes } }
         ],
       });
     }
@@ -309,11 +469,27 @@ export class ProductValidator {
       const configVarRegexes = colours.map(c => new RegExp(`color=${ProductValidator.escapeRegExp(c)}(\\||,|$)`, "i"));
       // Match exact value in structured variants.attributes
       const exactRegexes = colours.map(c => new RegExp(`^${ProductValidator.escapeRegExp(c)}$`, "i"));
+      // FIX: Also check colorImages keys. Since MongoDB Map keys are case-sensitive,
+      // we check the exact, lowercase, UPPERCASE, and TitleCase variations.
+      const colorImageConditions = colours.flatMap(c => {
+        const lower = c.toLowerCase();
+        const upper = c.toUpperCase();
+        const title = lower.charAt(0).toUpperCase() + lower.slice(1);
+        return [
+          { [`colorImages.${c}`]: { $exists: true } },
+          { [`colorImages.${lower}`]: { $exists: true } },
+          { [`colorImages.${upper}`]: { $exists: true } },
+          { [`colorImages.${title}`]: { $exists: true } }
+        ];
+      });
       andConditions.push({
         $or: [
           { configurableVariations: { $in: configVarRegexes } },
           { "variants.attributes.color": { $in: exactRegexes } },
-          { "variants.attributes.colour": { $in: exactRegexes } }
+          { "variants.attributes.colour": { $in: exactRegexes } },
+          { "attributes.color": { $in: exactRegexes } },
+          { "attributes.colour": { $in: exactRegexes } },
+          ...colorImageConditions
         ],
       });
     }

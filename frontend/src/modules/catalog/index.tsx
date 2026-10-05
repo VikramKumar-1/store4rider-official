@@ -7,13 +7,13 @@ import Footer from "@/modules/homepage/components/Footer";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SubcategoryTiles } from "./components/SubcategoryTiles";
 import { CategorySEOAccordion } from "./components/CategorySEOAccordion";
-import { CategoryDescriptionBox } from "./components/CategoryDescriptionBox";
+import { CategoryDescriptionBlock } from "./components/CategoryDescriptionBlock";
 import { FloatingCatalogBar } from "./components/FloatingCatalogBar";
 import { CatalogProps } from "./types/catalog.types";
 import { SidebarFilters } from "./components/SidebarFilters";
 import { CatalogGrid } from "./components/CatalogGrid";
-import { Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useSearchParams, useRouter, useParams, usePathname } from "next/navigation";
 
 /**
  * CatalogContent
@@ -28,7 +28,13 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const categoryParam = searchParams.get("category");
+  const params = useParams();
+  
+  let categoryParam = searchParams.get("category") || "";
+  if (!categoryParam && params?.categorySlug) {
+    const slugArr = params.categorySlug as string[];
+    categoryParam = slugArr[slugArr.length - 1];
+  }
   const sortParam = searchParams.get("sort") || "";
   
   const pageTitle = categoryParam 
@@ -36,13 +42,36 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
     : "ALL PRODUCTS";
 
   const breadcrumbItems: { label: string; href?: string }[] = [
-    { label: "HOME", href: "/" },
-    { label: "PRODUCTS", href: "/products" }
+    { label: "HOME", href: "/" }
   ];
 
-  if (categoryParam) {
+  if (params?.categorySlug && Array.isArray(params.categorySlug)) {
+    const slugArr = params.categorySlug as string[];
+    let currentPath = "";
+    slugArr.forEach((slug, idx) => {
+      currentPath += `/${slug}`;
+      const label = slug.replace(/-/g, " ").toUpperCase();
+      if (idx === slugArr.length - 1) {
+        breadcrumbItems.push({ label });
+      } else {
+        breadcrumbItems.push({ label, href: currentPath });
+      }
+    });
+  } else if (categoryParam) {
+    breadcrumbItems.push({ label: "PRODUCTS", href: "/products" });
     breadcrumbItems.push({ label: pageTitle });
+  } else {
+    breadcrumbItems.push({ label: "PRODUCTS" });
   }
+  
+
+
+
+
+
+
+
+
 
   const handleSortChange = (newSort: string) => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
@@ -52,7 +81,8 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
       current.delete("sort");
     }
     current.set("page", "1");
-    router.push(`/products?${current.toString()}`, { scroll: false });
+    const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+    router.push(`${pathname}?${current.toString()}`, { scroll: false });
   };
 
   return (
@@ -61,7 +91,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
       <Breadcrumb items={breadcrumbItems} />
 
       {/* 2. Main Catalog Area (Structured exactly as user wireframe) */}
-      <main className="max-w-[1400px] w-full mx-auto px-3 sm:px-6 pt-3 pb-16 md:pb-20">
+      <main className="flex-1 max-w-[1400px] w-full mx-auto px-3 sm:px-6 pt-3 pb-16 md:pb-20">
         
         {/* Category Heading (SEO H1) */}
         <div className="mb-2">
@@ -70,20 +100,45 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
           </h1>
         </div>
 
-        {/* 3. Subcategory Tiles (3 in nos.) */}
+        
+        {/* --- CLIENT LAYOUT REQUIREMENT: HERO IMAGE --- */}
+        {categoryNode?.bannerImage && (
+          <div className="w-full h-48 md:h-64 lg:h-80 relative rounded-lg overflow-hidden mb-4 shadow-sm">
+             {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={categoryNode.bannerImage} alt={pageTitle} className="w-full h-full object-cover" />
+          </div>
+        )}
+
+        {/* 3. Subcategory Tiles */}
         <SubcategoryTiles categoryName={pageTitle} categorySlug={categoryParam || ""} />
 
-        {/* 4. SEO-Optimized Accordions (100% Googlebot Crawl-Proof + FAQPage Schema) */}
-        <CategorySEOAccordion categoryName={pageTitle} />
+        {/* --- CLIENT LAYOUT REQUIREMENT: TWO ACCORDIONS AT TOP --- */}
+        <div className="w-full flex flex-col gap-2 mb-6 mt-4">
+          {/* Accordion 2: Google Reviews */}
+          <details className="group border border-neutral-200/90 rounded-lg overflow-hidden bg-white shadow-xs">
+            <summary className="w-full py-2.5 px-3 sm:py-3 sm:px-4 flex items-center justify-between text-left gap-3 bg-neutral-50/70 hover:bg-neutral-100/70 transition-colors cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+              <span className="text-[11px] sm:text-[13px] font-bold text-neutral-900 tracking-tight">
+                Google Reviews
+              </span>
+              <span className="transition group-open:rotate-180 text-neutral-700">▼</span>
+            </summary>
+            <div className="p-3 sm:p-4 text-[10px] sm:text-xs text-neutral-600 leading-relaxed font-sans border-t border-neutral-100">
+              <div className="flex items-center gap-1 text-yellow-400 mb-2">
+                ★★★★★ <span className="text-neutral-500 ml-2">(4.9/5 based on Google Reviews)</span>
+              </div>
+              <p>⭐⭐⭐⭐⭐ "Amazing products and fast delivery!" - Rahul M.</p>
+              <p className="mt-1">⭐⭐⭐⭐⭐ "Best collection of riding gear." - Sneha P.</p>
+            </div>
+          </details>
+        </div>
 
-        {/* 5. Category Short Description Box with [ + MORE VIEW ] (SSR Rendered) */}
-        <CategoryDescriptionBox categoryName={pageTitle} description={categoryNode?.description} />
+        <CategoryDescriptionBlock description={categoryNode?.description} pageTitle={pageTitle} />
 
         {/* 6. Product Grid + Desktop Sidebar Section */}
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start mt-4">
           
           {/* Left Sidebar Filters — Desktop only (On mobile, accessed via bottom floating bar) */}
-          <aside className="hidden lg:block w-72 xl:w-80 shrink-0 lg:sticky lg:top-[90px] self-start max-h-[calc(100vh-120px)] overflow-y-auto hide-scrollbar">
+          <aside className="hidden lg:block w-64 xl:w-72 shrink-0 lg:sticky lg:top-[90px] self-start max-h-[calc(100vh-120px)] overflow-y-auto hide-scrollbar">
             <SidebarFilters />
           </aside>
 
@@ -125,6 +180,20 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
 
         </div>
 
+        
+        {/* --- CLIENT LAYOUT REQUIREMENT: FAQ AT BOTTOM WITH SCHEMA --- */}
+        <div className="mt-12 pt-8 border-t border-neutral-200">
+          <h2 className="font-bold text-lg min-[375px]:text-xl sm:text-2xl uppercase tracking-wide text-neutral-900 leading-tight mb-4">
+            Frequently Asked Questions
+          </h2>
+          {/* If the category node has FAQs from the DB, we pass them. Otherwise it uses default dummies for now */}
+          <CategorySEOAccordion 
+            categoryName={pageTitle} 
+            items={categoryNode?.faqs?.length > 0 ? categoryNode.faqs.map((f: any, i: number) => ({ id: 'faq-'+i, title: f.question, content: f.answer })) : undefined}
+          />
+        </div>
+
+
         {/* 7. Floating Reviews & Category Filter Bar (Mobile only) */}
         <FloatingCatalogBar totalCount={totalCount} />
       </main>
@@ -154,15 +223,15 @@ export const CatalogModule: React.FC<CatalogProps> = ({ products, totalCount, is
         />
       </div>
 
-      <CatalogContent 
-        products={products} 
-        totalCount={totalCount} 
-        isLoading={isLoading}
-        isFetching={isFetching}
-        categoryNode={categoryNode}
-      />
-
-
+      <div className="flex-1 flex flex-col w-full">
+        <CatalogContent 
+          products={products} 
+          totalCount={totalCount} 
+          isLoading={isLoading}
+          isFetching={isFetching}
+          categoryNode={categoryNode}
+        />
+      </div>
 
       {/* 4. Global Footer */}
       <Footer />

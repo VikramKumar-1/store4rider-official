@@ -66,7 +66,7 @@ export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
         {items.slice(0, 3).map((item) => (
           <Link
             key={item.id}
-            href={`/products?category=${item.slug}`}
+            href={`/${item.slug}`}
             className="group flex flex-col items-center select-none"
           >
             {/* Tile Image Card */}

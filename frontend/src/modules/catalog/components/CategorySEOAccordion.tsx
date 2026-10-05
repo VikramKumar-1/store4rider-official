@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ChevronDownIcon } from "@heroicons/react/24/solid";
 
 export interface AccordionItem {
@@ -41,10 +41,27 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
   categoryName = "Riding Gloves",
   items = DEFAULT_GLOVES_ACCORDIONS,
 }) => {
-  // Store open state per panel; default first panel closed or open
+  // Store open state per panel; default first panel closed
   const [openIds, setOpenIds] = useState<Record<string, boolean>>({
     [items[0]?.id || "panel-1"]: false,
   });
+
+  // Handle deep linking for SEO: Expand accordion if URL has matching hash
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash.replace("#", "");
+      if (hash && items.some((item) => item.id === hash)) {
+        setOpenIds((prev) => ({ ...prev, [hash]: true }));
+        // Slight delay to allow smooth scrolling after rendering
+        setTimeout(() => {
+          const element = document.getElementById(hash);
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }, 150);
+      }
+    }
+  }, [items]);
 
   const togglePanel = (id: string) => {
     setOpenIds((prev) => ({
@@ -84,23 +101,25 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
               key={item.id}
               className="border border-neutral-200/90 rounded-lg overflow-hidden bg-white shadow-xs transition-colors duration-200"
             >
-              {/* Accordion Header Button */}
-              <button
-                type="button"
-                onClick={() => togglePanel(item.id)}
-                aria-expanded={isOpen}
-                aria-controls={`accordion-content-${item.id}`}
-                className="w-full py-2.5 px-3 sm:py-3 sm:px-4 flex items-center justify-between text-left gap-3 bg-neutral-50/70 hover:bg-neutral-100/70 transition-colors cursor-pointer select-none"
-              >
-                <h3 className="text-[11px] sm:text-[13px] font-bold text-neutral-900 tracking-tight">
-                  {item.title}
-                </h3>
-                <ChevronDownIcon
-                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-700 shrink-0 transition-transform duration-300 ${
-                    isOpen ? "rotate-180" : "rotate-0"
-                  }`}
-                />
-              </button>
+              {/* Accordion Header - Semantic HTML with unique IDs for anchor linking */}
+              <h3 id={item.id} className="m-0">
+                <button
+                  type="button"
+                  onClick={() => togglePanel(item.id)}
+                  aria-expanded={isOpen}
+                  aria-controls={`accordion-content-${item.id}`}
+                  className="w-full py-2.5 px-3 sm:py-3 sm:px-4 flex items-center justify-between text-left gap-3 bg-neutral-50/70 hover:bg-neutral-100/70 transition-colors cursor-pointer select-none"
+                >
+                  <span className="text-[11px] sm:text-[13px] font-bold text-neutral-900 tracking-tight">
+                    {item.title}
+                  </span>
+                  <ChevronDownIcon
+                    className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-700 shrink-0 transition-transform duration-300 ${
+                      isOpen ? "rotate-180" : "rotate-0"
+                    }`}
+                  />
+                </button>
+              </h3>
 
               {/* 
                 CRITICAL SEO RULE:
@@ -110,9 +129,11 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
               */}
               <div
                 id={`accordion-content-${item.id}`}
+                role="region"
+                aria-labelledby={item.id}
                 className={`transition-all duration-300 ease-in-out overflow-hidden ${
                   isOpen
-                    ? "max-h-[500px] opacity-100 py-2.5 px-3 sm:py-3 sm:px-4"
+                    ? "max-h-[1000px] opacity-100 py-2.5 px-3 sm:py-3 sm:px-4"
                     : "max-h-0 opacity-0 py-0 px-3 sm:px-4"
                 }`}
               >

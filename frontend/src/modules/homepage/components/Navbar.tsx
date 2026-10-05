@@ -8,6 +8,7 @@ import { NavbarProps } from "../types/homepage.types";
 import { useCartStore } from "@/stores/useCartStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { SearchAutocomplete } from "@/modules/search/components/SearchAutocomplete";
+import { NavItem } from "../types/homepage.types";
 import { DEFAULT_NAV_ITEMS } from "./navbar/nav.constants";
 import { NavDesktopLinks } from "./navbar/NavDesktopLinks";
 import { NavUserMenu } from "./navbar/NavUserMenu";

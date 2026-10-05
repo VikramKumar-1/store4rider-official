@@ -6,7 +6,7 @@ import {
   ChevronDown,
   ChevronRight
 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useProductAggregations } from "@/core/hooks/useProducts";
 import { slugify } from "@store4riders/shared-utils";
 
@@ -26,13 +26,15 @@ function AccordionSection({ title, children, defaultOpen = true }: { title: stri
         className="w-full flex items-center justify-between text-left cursor-pointer group outline-none"
       >
         <span className="font-bold text-[13px] uppercase tracking-wide text-neutral-900 group-hover:text-banner transition-colors">{title}</span>
-        <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
       </button>
-      {isOpen && (
-        <div className="pt-3.5 flex flex-col gap-2.5">
-          {children}
+      <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+        <div className="overflow-hidden">
+          <div className="flex flex-col gap-2.5 pt-3.5">
+            {children}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -40,15 +42,28 @@ function AccordionSection({ title, children, defaultOpen = true }: { title: stri
 export function SidebarFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
   
-  // Extract params to pass to API
-  const currentCategory = searchParams.get("category") || "";
+  let currentCategory = searchParams.get("category") || "";
+  if (!currentCategory && params?.categorySlug) {
+    const slugArr = params.categorySlug as string[];
+    currentCategory = slugArr[slugArr.length - 1];
+  }
+
   const currentBrandParam = searchParams.get("brand") || "";
   const currentSearch = searchParams.get("search") || searchParams.get("q") || "";
   
   const { data: aggregations, isLoading } = useProductAggregations({
     category: currentCategory || undefined,
     search: currentSearch || undefined,
+    brand: searchParams.get("brand") || undefined,
+    colour: searchParams.get("colour") || searchParams.get("color") || undefined,
+    size: searchParams.get("size") || undefined,
+    helmet_type: searchParams.get("helmet_type") || undefined,
+    material: searchParams.get("material") || undefined,
+    riding_style: searchParams.get("riding_style") || undefined,
+    certification: searchParams.get("certification") || undefined,
+    gender: searchParams.get("gender") || undefined,
   });
 
   const CATEGORIES = aggregations?.categories 
@@ -56,10 +71,12 @@ export function SidebarFilters() {
         const parts = c.name.split('>');
         const displayName = parts[parts.length - 1].trim();
         const indent = (parts.length - 1) * 12; // increased indent for visual hierarchy
+        const fullSlug = parts.map((p: string) => slugify(p.trim())).join('/');
         return { 
           fullName: c.name, 
           displayName,
           slug: slugify(displayName), 
+          fullSlug,
           count: c.count,
           indent
         };
@@ -123,12 +140,20 @@ export function SidebarFilters() {
     return currentCategory.toLowerCase() === slug.toLowerCase();
   };
 
-  const handleCategoryClick = (slug: string) => {
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
-    if (slug) params.set("category", slug);
-    else params.delete("category");
-    params.set("page", "1");
-    router.push(`/products?${params.toString()}`, { scroll: false });
+  const handleCategoryClick = (slug: string, fullSlug?: string) => {
+    const queryParams = new URLSearchParams(Array.from(searchParams.entries()));
+    queryParams.delete("category"); // Clean it up from search params just in case
+    queryParams.set("page", "1");
+    
+    // If they uncheck the category, they go back to all products
+    if (!slug) {
+      router.push(`/products?${queryParams.toString()}`, { scroll: false });
+    } else {
+      // Use the beautiful nested URL
+      const path = fullSlug ? `/${fullSlug}` : `/${slug}`;
+      const qs = queryParams.toString() ? `?${queryParams.toString()}` : '';
+      router.push(`${path}${qs}`, { scroll: false });
+    }
   };
 
   const toggleArrayParam = (paramName: string, value: string) => {
@@ -145,7 +170,8 @@ export function SidebarFilters() {
     }
     
     params.set("page", "1");
-    router.push(`/products?${params.toString()}`, { scroll: false });
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : '/products';
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const handleBrandToggle = (brandName: string) => toggleArrayParam("brand", brandName);
@@ -165,7 +191,8 @@ export function SidebarFilters() {
       else params.delete("maxPrice");
     }
     params.set("page", "1");
-    router.push(`/products?${params.toString()}`, { scroll: false });
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : '/products';
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const removeArrayParamItem = (paramName: string, value: string) => {
@@ -182,7 +209,8 @@ export function SidebarFilters() {
       }
     });
     params.set("page", "1");
-    router.push(`/products?${params.toString()}`, { scroll: false });
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : '/products';
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   // Build active pills list for "Now Shopping By"
@@ -254,18 +282,28 @@ export function SidebarFilters() {
 
       {/* Dynamic Filter Sections powered by Backend filterConfig */}
       <div className="flex flex-col">
-        {(aggregations?.filterConfig || [
-          { code: "category", label: "Category" },
-          { code: "price", label: "Price" },
-          { code: "size", label: "Size" },
-          { code: "brand", label: "Brand" },
-          { code: "color", label: "Color" }
-        ]).map((config: any) => {
+        {(() => {
+          const baseConfig = aggregations?.filterConfig || [
+            { code: "category", label: "Category" },
+            { code: "price", label: "Price" },
+            { code: "size", label: "Size" },
+            { code: "brand", label: "Brand" },
+            { code: "color", label: "Color" }
+          ];
+          
+          const fullConfig = [...baseConfig];
+          DYNAMIC_FILTERS.forEach((df: any) => {
+            if (!fullConfig.find(c => c.code === df.code)) {
+              fullConfig.push({ code: df.code, label: df.label });
+            }
+          });
+          
+          return fullConfig.map((config: any) => {
           
           // 1. Categories
           if (config.code === "category" && !currentCategory && CATEGORIES.length > 0) {
             return (
-              <AccordionSection key="category" title={config.label} defaultOpen={true}>
+              <AccordionSection key="category" title={config.label} defaultOpen={false}>
                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
                   {CATEGORIES.map((cat: any) => {
                     const active = isCategoryActive(cat.slug);
@@ -279,7 +317,7 @@ export function SidebarFilters() {
                           <input 
                             type="checkbox" 
                             checked={active}
-                            onChange={() => handleCategoryClick(cat.slug)}
+                            onChange={() => handleCategoryClick(active ? "" : cat.slug, cat.fullSlug)}
                             className="w-4 h-4 rounded-sm border-neutral-300 text-banner focus:ring-banner cursor-pointer bg-white transition-colors"
                           />
                           <span className={`text-[14px] ${active ? "text-banner font-bold" : "text-neutral-700 group-hover:text-banner"}`}>
@@ -325,7 +363,7 @@ export function SidebarFilters() {
           // 3. Size
           if (config.code === "size" && SIZES.length > 0) {
             return (
-              <AccordionSection key="size" title={config.label} defaultOpen={true}>
+              <AccordionSection key="size" title={config.label} defaultOpen={false}>
                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
                   {SIZES.map((sz: any) => {
                     const active = activeSizes.includes(sz.name);
@@ -356,7 +394,7 @@ export function SidebarFilters() {
           // 4. Brand
           if (config.code === "brand" && BRANDS.length > 0) {
             return (
-              <AccordionSection key="brand" title={config.label} defaultOpen={true}>
+              <AccordionSection key="brand" title={config.label} defaultOpen={false}>
                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
                   {BRANDS.map((brand: any) => {
                     const active = activeBrands.includes(brand.name);
@@ -387,7 +425,7 @@ export function SidebarFilters() {
           // 5. Color
           if (config.code === "color" && COLOURS.length > 0) {
             return (
-              <AccordionSection key="color" title={config.label} defaultOpen={true}>
+              <AccordionSection key="color" title={config.label} defaultOpen={false}>
                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
                   {COLOURS.map((color: any) => {
                     const active = activeColours.includes(color.name);
@@ -423,7 +461,7 @@ export function SidebarFilters() {
             const activeValues = Array.from(new Set(paramValue ? paramValue.split(",").map((v) => v.trim()) : []));
             
             return (
-              <AccordionSection key={dynamicFilter.code} title={dynamicFilter.label} defaultOpen={true}>
+              <AccordionSection key={dynamicFilter.code} title={dynamicFilter.label} defaultOpen={false}>
                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
                   {dynamicFilter.values.map((val: any) => {
                     const active = activeValues.includes(val.name);
@@ -452,7 +490,7 @@ export function SidebarFilters() {
           }
 
           return null;
-        })}
+        })})()}
       </div>
     </div>
   );

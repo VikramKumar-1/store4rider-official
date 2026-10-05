@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { CatalogProductCard } from "./CatalogProductCard";
 import { CatalogProduct } from "../types/catalog.types";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
@@ -21,6 +21,7 @@ export const CatalogGrid: React.FC<CatalogGridProps> = ({
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   
   const currentPage = parseInt(searchParams.get("page") || "1", 10);
   const itemsPerPage = 12; // Strictly matching the backend API limit
@@ -30,7 +31,7 @@ export const CatalogGrid: React.FC<CatalogGridProps> = ({
     if (newPage < 1 || newPage > totalPages || newPage === currentPage) return;
     const current = new URLSearchParams(Array.from(searchParams.entries()));
     current.set("page", newPage.toString());
-    router.push(`/products?${current.toString()}`, { scroll: false });
+    router.push(`${pathname}?${current.toString()}`, { scroll: false });
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 120, behavior: "smooth" });
     }

@@ -1,6 +1,7 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { formatPrice } from "@store4riders/shared-utils";
@@ -32,14 +33,36 @@ const ProductCard = ({ product }: ProductCardProps) => {
     }, 1500);
   };
 
-  const rawUrl = product.images?.[0]?.url || product.image || "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?q=75&w=600&auto=format&fit=crop";
+  const searchParams = useSearchParams();
+  const activeColorParam = searchParams?.get("colour");
+  const activeColors = activeColorParam ? activeColorParam.split(",").map(c => c.trim().toLowerCase()) : [];
+
+  let bestRawUrl = product.images?.[0]?.url || product.image || "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?q=75&w=600&auto=format&fit=crop";
+
+  // If a color filter is active, try to find an image that matches the color
+  if (activeColors.length > 0 && product.images && product.images.length > 0) {
+    const matchedImage = product.images.find((img: any) => {
+      const altText = (img.altText || "").toLowerCase();
+      const urlText = (img.url || "").toLowerCase();
+      return activeColors.some(color => altText.includes(color) || urlText.includes(color.replace(/\s+/g, '-')));
+    });
+    if (matchedImage) {
+      bestRawUrl = matchedImage.url;
+    }
+  }
+
   // Ensure compressed parameters on CDN URLs for lightning fast load
-  const imageUrl = rawUrl.includes("unsplash.com") && !rawUrl.includes("q=75")
-    ? `${rawUrl.split("?")[0]}?q=75&w=600&auto=format&fit=crop`
-    : rawUrl;
+  const imageUrl = bestRawUrl.includes("unsplash.com") && !bestRawUrl.includes("q=75")
+    ? `${bestRawUrl.split("?")[0]}?q=75&w=600&auto=format&fit=crop`
+    : bestRawUrl;
 
   const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?q=75&w=600&auto=format&fit=crop";
   const [imgSrc, setImgSrc] = useState(imageUrl);
+
+  // Update image if URL changes (e.g. filter changes)
+  useEffect(() => {
+    setImgSrc(imageUrl);
+  }, [imageUrl]);
 
   const price = product.basePrice || product.price || 0;
   const originalPrice = Math.round(price * 1.25);

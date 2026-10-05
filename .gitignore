@@ -51,3 +51,19 @@ backup-data/hide-*.ts
 backup-data/investigate-*.ts
 backup-data/verify-*.ts
 backup-data/get-*.ts
+
+# Random fix & test scripts
+fix*.js
+patch*.js
+update-layout.js
+test*.js
+migrate*.js
+
+# Scratch folders
+scratch/
+backend/scratch/
+
+# Backend temporary .cjs / .ts scripts
+backend/*.cjs
+backend/clear.ts
+backend/temp-*.cjs

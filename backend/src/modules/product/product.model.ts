@@ -5,15 +5,26 @@ const productSchema = new Schema<IProduct>(
   {
     name: { type: String, required: true },
     description: { type: String, required: true },
+    faqs: [
+      {
+        question: { type: String, required: true },
+        answer: { type: String, required: true },
+      },
+    ],
     slug: { type: String, required: true, unique: true, index: true },
     sku: { type: String, required: true, unique: true, index: true },
     categoryId: { type: String, index: true },
     basePrice: { type: Number, required: true },
     specialPrice: { type: Number },
+    specialPriceFromDate: { type: Date },
+    specialPriceToDate: { type: Date },
     weight: { type: Number },
     stockStatus: { type: Number },
+    allowBackorders: { type: Boolean, default: false },
     productType: { type: String },
+    taxClassName: { type: String },
     magentoCategories: { type: String },
+    categorySlugs: [{ type: String, index: true }],
     configurableVariations: { type: String },
     shortDescription: { type: String },
     metaTitle: { type: String },
@@ -39,6 +50,7 @@ const productSchema = new Schema<IProduct>(
         altText: { type: String },
       },
     ],
+    colorImages: { type: Map, of: String },
     variants: [
       {
         id: { type: String },

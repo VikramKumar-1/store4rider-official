@@ -2,7 +2,7 @@ import { CartRepository } from "./cart.repository";
 import { ProductRepository } from "../product/product.repository";
 import { SettingRepository } from "../settings/setting.repository";
 import { ICart, ICartItem } from "@store4riders/shared-types";
-import { calculateTax } from "@store4riders/shared-utils";
+import { calculateTax, getTaxRateFromClass } from "@store4riders/shared-utils";
 
 /**
  * @class CartService
@@ -121,7 +121,19 @@ export class CartService {
     for (const item of cart.items) {
       const product = await ProductRepository.findById(item.productId);
       if (product) {
-        let price = product.specialPrice || product.basePrice;
+        let price = product.basePrice;
+        if (product.specialPrice) {
+          const now = new Date();
+          const fromDate = product.specialPriceFromDate ? new Date(product.specialPriceFromDate) : null;
+          const toDate = product.specialPriceToDate ? new Date(product.specialPriceToDate) : null;
+          
+          const isStarted = fromDate ? now >= fromDate : true;
+          const isNotExpired = toDate ? now <= toDate : true;
+          
+          if (isStarted && isNotExpired) {
+            price = product.specialPrice;
+          }
+        }
         if (item.variantId && product.variants?.length) {
           const variant = product.variants.find(
             (v) => v.id === item.variantId || v.sku === item.variantId
@@ -131,7 +143,12 @@ export class CartService {
           }
         }
         subtotal += price * item.quantity;
-
+        
+        // Calculate per-item tax
+        const settings = await SettingRepository.getSettings();
+        const itemTaxRate = getTaxRateFromClass(product.taxClassName, settings.taxRate);
+        const itemTax = calculateTax(price * item.quantity, itemTaxRate);
+        
         // Enrich product details so all devices receive full render data
         item.product = {
           _id: String((product as any)._id || (product as any).id),
@@ -143,21 +160,37 @@ export class CartService {
           images: product.images || [],
           image: product.images?.[0]?.url || (item.product?.image || ""),
           slug: product.slug,
+          taxClassName: product.taxClassName,
+          allowBackorders: product.allowBackorders,
           ...(item.product || {}),
         };
+        // Pass the calculated tax back up
+        (item as any).calculatedTax = itemTax;
       }
     }
 
     const settings = await SettingRepository.getSettings();
-    const taxRate = settings.taxRate;
     const freeShippingThreshold = settings.freeShippingThreshold;
     const shippingCost = settings.shippingCost;
 
-    const tax = calculateTax(subtotal, taxRate);
-    const shipping = subtotal > 0 && subtotal < freeShippingThreshold ? shippingCost : 0;
-    const total = subtotal + tax + shipping;
+    let totalTax = 0;
+    for (const item of cart.items) {
+      if ((item as any).calculatedTax) {
+        totalTax += (item as any).calculatedTax;
+        delete (item as any).calculatedTax;
+      } else {
+        // Fallback for edge cases
+        totalTax += calculateTax(
+          ((item.product as any)?.price || 0) * item.quantity, 
+          settings.taxRate
+        );
+      }
+    }
 
-    cart.summary = { subtotal, tax, shipping, total };
+    const shipping = subtotal > 0 && subtotal < freeShippingThreshold ? shippingCost : 0;
+    const total = subtotal + totalTax + shipping;
+
+    cart.summary = { subtotal, tax: totalTax, shipping, total };
     return cart;
   }
 }

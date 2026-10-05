@@ -139,8 +139,10 @@ export class ProductRepository {
       const result = await ProductModel.updateOne(
         { 
           _id: productId, 
-          $or: [{ "variants.id": variantId }, { "variants.sku": variantId }],
-          "variants.stock": { $gte: quantity } 
+          $and: [
+            { $or: [{ "variants.id": variantId }, { "variants.sku": variantId }] },
+            { $or: [{ "variants.stock": { $gte: quantity } }, { allowBackorders: true }] }
+          ]
         },
         { $inc: { "variants.$.stock": -quantity } }
       ).session(session || null).exec();
@@ -149,12 +151,12 @@ export class ProductRepository {
 
       // If variant exists but stock was untracked from legacy Magento catalog, check general stock status
       const product = await ProductModel.findOne(
-        { _id: productId, stockStatus: { $ne: 0 } }
+        { _id: productId, $or: [{ stockStatus: { $ne: 0 } }, { allowBackorders: true }] }
       ).session(session || null).select("_id").lean().exec();
       return !!product;
     } else {
       const result = await ProductModel.findOne(
-        { _id: productId, stockStatus: { $ne: 0 } }
+        { _id: productId, $or: [{ stockStatus: { $ne: 0 } }, { allowBackorders: true }] }
       ).session(session || null).select("_id").lean().exec();
       return !!result;
     }

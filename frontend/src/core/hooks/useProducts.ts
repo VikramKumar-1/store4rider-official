@@ -29,6 +29,7 @@ export interface IBackendProduct {
     url: string;
     altText?: string;
   }>;
+  colorImages?: Record<string, string>;
   variants?: Array<{
     id?: string;
     sku: string;
@@ -44,6 +45,7 @@ export interface IBackendProduct {
   metaDescription?: string;
   createdAt?: string;
   updatedAt?: string;
+  allowBackorders?: boolean;
 }
 
 export function useProducts(params?: { 
@@ -187,5 +189,6 @@ export function useProductAggregations(params?: any) {
       return response.data.data;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes cache since it depends on params now
+    placeholderData: keepPreviousData, // PREVENTS SIDEBAR FLICKERING/RELOADING
   });
 }

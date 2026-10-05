@@ -16,6 +16,7 @@ export async function productRouter(req: NextRequest, routePath: string[]): Prom
     return await ProductController.list(req);
   }
 
+
   if (method === "GET" && pathLen === 1 && routePath[0] === "aggregations") {
     return await ProductController.getAggregations(req);
   }

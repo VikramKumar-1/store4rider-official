@@ -125,6 +125,31 @@ export const DetailAndReviews: React.FC<{ fullDescription: string; reviews: Revi
   const [openSections, setOpenSections] = React.useState<Set<number>>(() => new Set());
   const [isMobileDescExpanded, setIsMobileDescExpanded] = React.useState(false);
 
+  // Handle deep linking for SEO: Expand accordion if URL has matching hash
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && sections.length > 0) {
+      const hash = window.location.hash.replace("#", "");
+      if (hash) {
+        const index = sections.findIndex(
+          (s) => s.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") === hash
+        );
+        if (index !== -1) {
+          setOpenSections((prev) => {
+            const next = new Set(prev);
+            next.add(index);
+            return next;
+          });
+          setTimeout(() => {
+            const element = document.getElementById(hash);
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }, 150);
+        }
+      }
+    }
+  }, [sections]);
+
   const toggleSection = (idx: number) => {
     setOpenSections((prev) => {
       const next = new Set(prev);
@@ -188,44 +213,58 @@ export const DetailAndReviews: React.FC<{ fullDescription: string; reviews: Revi
               <div className="w-full flex flex-col gap-2.5 sm:gap-3">
                 {sections.map((section, idx) => {
                   const isOpen = openSections.has(idx);
+                  const sectionId = section.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
                   return (
                     <div
                       key={idx}
-                      className={`w-full border rounded-xl overflow-hidden transition-all duration-200 ${
+                      className={`w-full border rounded-xl overflow-hidden transition-colors duration-200 ${
                         isOpen
                           ? "border-neutral-300/90 shadow-xs bg-white"
                           : "border-neutral-200 bg-neutral-50/50 hover:border-neutral-300"
                       }`}
                     >
-                      <button
-                        type="button"
-                        onClick={() => toggleSection(idx)}
-                        className="w-full flex items-center justify-between px-3.5 sm:px-4 py-3 sm:py-3.5 text-left select-none cursor-pointer"
+                      <h3 id={sectionId} className="m-0">
+                        <button
+                          type="button"
+                          onClick={() => toggleSection(idx)}
+                          aria-expanded={isOpen}
+                          aria-controls={`pdp-accordion-content-${sectionId}`}
+                          className="w-full flex items-center justify-between px-3.5 sm:px-4 py-3 sm:py-3.5 text-left select-none cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2.5 sm:gap-3.5">
+                            <span
+                              className={`flex-shrink-0 p-1.5 sm:p-2 rounded-lg transition-colors ${
+                                isOpen ? "bg-[#ab1509]/10 text-[#ab1509]" : "bg-neutral-100 text-neutral-500"
+                              }`}
+                            >
+                              {section.icon}
+                            </span>
+                            <span className="font-bold text-neutral-900 text-[13px] sm:text-[14px] tracking-tight">
+                              {section.title}
+                            </span>
+                          </div>
+                          <span className={`shrink-0 ml-4 transition-colors ${isOpen ? "text-[#ab1509]" : "text-neutral-400"}`}>
+                            <ChevronIcon open={isOpen} />
+                          </span>
+                        </button>
+                      </h3>
+                      <div
+                        id={`pdp-accordion-content-${sectionId}`}
+                        role="region"
+                        aria-labelledby={sectionId}
+                        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                          isOpen
+                            ? "max-h-[3000px] opacity-100"
+                            : "max-h-0 opacity-0"
+                        }`}
                       >
-                        <div className="flex items-center gap-2.5 sm:gap-3.5">
-                          <span
-                            className={`flex-shrink-0 p-1.5 sm:p-2 rounded-lg transition-colors ${
-                              isOpen ? "bg-[#ab1509]/10 text-[#ab1509]" : "bg-neutral-100 text-neutral-500"
-                            }`}
-                          >
-                            {section.icon}
-                          </span>
-                          <span className="font-bold text-neutral-900 text-[13px] sm:text-[14px] tracking-tight">
-                            {section.title}
-                          </span>
-                        </div>
-                        <span className={`shrink-0 ml-4 ${isOpen ? "text-[#ab1509]" : "text-neutral-400"}`}>
-                          <ChevronIcon open={isOpen} />
-                        </span>
-                      </button>
-                      {isOpen && (
                         <div className="px-3.5 sm:px-5 pb-4 sm:pb-5 pt-1 sm:pt-1 sm:pl-[3.75rem] border-t border-neutral-100/80 bg-neutral-50/30">
                           <div
                             className="magento-layout-accordion text-neutral-700 text-[13.5px] sm:text-[14px] leading-[1.75] sm:leading-[1.8]"
                             dangerouslySetInnerHTML={{ __html: section.htmlContent }}
                           />
                         </div>
-                      )}
+                      </div>
                     </div>
                   );
                 })}

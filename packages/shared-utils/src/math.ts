@@ -7,3 +7,18 @@
 export const calculateTax = (amount: number, rate: number): number => {
   return (amount * rate) / 100;
 };
+
+/**
+ * Extracts tax rate from tax class name string (e.g. "GST 28%" -> 28).
+ * @param taxClassName - The tax class name string from DB
+ * @param defaultRate - Fallback rate if not found
+ * @returns The parsed tax rate
+ */
+export const getTaxRateFromClass = (taxClassName?: string, defaultRate: number = 18): number => {
+  if (!taxClassName) return defaultRate;
+  const match = taxClassName.match(/(\d+)/);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  return defaultRate;
+};

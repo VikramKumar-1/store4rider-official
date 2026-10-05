@@ -74,7 +74,7 @@ const MainNav = () => {
                   {STORE_CATEGORIES.map((cat) => (
                     <div key={cat.slug} className="group/cat">
                       <Link 
-                        href={`/products?category=${cat.slug}`} 
+                        href={`/${cat.slug}`} 
                         className="font-bold text-white hover:text-brand transition-colors text-xs mb-2 flex items-center gap-1.5"
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-brand opacity-0 group-hover/cat:opacity-100 transition-opacity" />
@@ -82,10 +82,10 @@ const MainNav = () => {
                       </Link>
                       {cat.subcategories && (
                         <ul className="space-y-1 pl-2.5 border-l border-white/15">
-                          {cat.subcategories.slice(0, 3).map((sub) => (
+                          {cat.subcategories.slice(0, 4).map((sub: any) => (
                             <li key={sub.slug}>
                               <Link 
-                                href={`/products?category=${cat.slug}&subcategory=${sub.slug}`} 
+                                href={`/${cat.slug}/${sub.slug}`} 
                                 className="text-[11px] font-medium text-slate-400 hover:text-white transition-colors block py-0.5"
                               >
                                 {sub.name}
@@ -102,14 +102,14 @@ const MainNav = () => {
           </div>
           
           <Link 
-            href="/products?category=helmets" 
+            href="/motorcycle-helmets" 
             className="px-4 py-2 rounded-full hover:text-white hover:bg-white/10 transition-all duration-200"
           >
             Helmets
           </Link>
           
           <Link 
-            href="/products?category=riding-jackets" 
+            href="/riding-gear/riding-jacket" 
             className="px-4 py-2 rounded-full hover:text-white hover:bg-white/10 transition-all duration-200"
           >
             Jackets

@@ -57,6 +57,7 @@ export interface PDPData {
   }>;
   isFreeShipping?: boolean;
   stockStatus?: number;
+  allowBackorders?: boolean;
 }
 
 export interface ProductDetailProps {

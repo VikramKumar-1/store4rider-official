@@ -12,11 +12,23 @@ export const productVariantSchema = z.object({
   attributes: z.record(z.string()),
 });
 
+export const faqSchema = z.object({
+  question: z.string().min(3),
+  answer: z.string().min(3),
+});
+
 export const createProductSchema = z.object({
   name: z.string().min(3).max(100),
-  description: z.string().min(10).max(2000),
+  description: z.string().min(10).max(10000), // increased length for HTML
+  faqs: z.array(faqSchema).optional().default([]),
   categoryId: z.string(),
   basePrice: z.number().min(0),
+  specialPrice: z.number().min(0).optional(),
+  specialPriceFromDate: z.union([z.string().datetime(), z.date()]).optional(),
+  specialPriceToDate: z.union([z.string().datetime(), z.date()]).optional(),
+  weight: z.number().min(0).optional(),
+  allowBackorders: z.boolean().optional().default(false),
+  taxClassName: z.string().optional(),
   images: z.array(productImageSchema).min(1),
   variants: z.array(productVariantSchema).default([]),
   status: z.enum(["draft", "published", "archived"]).default("draft"),

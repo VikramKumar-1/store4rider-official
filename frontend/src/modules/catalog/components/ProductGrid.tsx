@@ -15,8 +15,8 @@ const QUICK_FILTER_PILLS = [
   { label: "Jackets", slug: "riding-jackets" },
   { label: "Boots", slug: "riding-boots" },
   { label: "Gloves", slug: "riding-gloves" },
-  { label: "Luggage", slug: "motorcycle-luggage" },
-  { label: "Accessories", slug: "bike-accessories" },
+  { label: "Luggage", slug: "motorcycle-bags-bike-luggage" },
+  { label: "Accessories", slug: "motorcycle-accessories-online" },
 ];
 
 export function ProductGrid({ products }: ProductGridProps) {
@@ -49,7 +49,7 @@ export function ProductGrid({ products }: ProductGridProps) {
           return (
             <Link
               key={pill.slug}
-              href={pill.slug ? `/products?category=${pill.slug}` : "/products"}
+              href={pill.slug ? `/${pill.slug}` : "/products"}
               className={`px-4 py-2 rounded-full text-xs font-extrabold transition-all whitespace-nowrap ${
                 isActive
                   ? "bg-brand text-white shadow-md shadow-brand/20"

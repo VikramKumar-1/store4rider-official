@@ -52,23 +52,23 @@ export const STORE_CATEGORIES: CategoryItem[] = [
   },
   {
     name: "Motorcycle Luggage",
-    slug: "motorcycle-luggage",
+    slug: "motorcycle-bags-bike-luggage",
     image: "https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=1200&auto=format&fit=crop",
     subcategories: [
       { name: "Tank Bags", slug: "tank-bags" },
-      { name: "Saddle Bags", slug: "saddle-bags" },
-      { name: "Tail Bags", slug: "tail-bags" },
+      { name: "Saddle Bags", slug: "saddle-bags-bikes" },
+      { name: "Tail Bags", slug: "motorcycle-tail-bags" },
       { name: "Top Boxes", slug: "top-boxes" },
     ],
   },
   {
     name: "Bike Accessories",
-    slug: "bike-accessories",
+    slug: "motorcycle-accessories-online",
     image: "https://images.unsplash.com/photo-1449426468159-d96dbf08f19f?q=80&w=1200&auto=format&fit=crop",
     subcategories: [
       { name: "Auxiliary Lights", slug: "auxiliary-lights" },
-      { name: "Phone Mounts", slug: "phone-mounts" },
       { name: "Bike Covers", slug: "bike-covers" },
+      { name: "Chain Care", slug: "chain-care" },
       { name: "Performance Parts", slug: "performance-parts" },
     ],
   },

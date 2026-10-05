@@ -12,6 +12,7 @@ const FALLBACK_IMAGE =
 
 export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ product }) => {
   const [imgSrc, setImgSrc] = useState(product.imageUrl);
+  React.useEffect(() => { setImgSrc(product.imageUrl); }, [product.imageUrl]);
   const [isAdded, setIsAdded] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
 

@@ -177,155 +177,354 @@ export class ProductService {
   }
 
 
-  static async getAggregations(filters: Record<string, unknown> = {}, categorySlug?: string, rawActiveFilters?: any): Promise<any> {
-    const serializeFilter = (obj: any): string => {
-      if (!obj || typeof obj !== "object") return String(obj);
-      if (obj instanceof RegExp) return obj.toString();
-      if (Array.isArray(obj)) return `[${obj.map(serializeFilter).join(",")}]`;
-      return Object.entries(obj).map(([k, v]) => `${k}:${serializeFilter(v)}`).sort().join(";");
-    };
-
-    const cacheKey = `product_aggregations_v3_${serializeFilter(filters)}`;
-    const cached = await getCache(cacheKey);
-    if (cached) return cached;
-
-    const { ProductModel } = await import("./product.model");
-    
-    // Only query products matching current filters (search, category, etc)
-    const products = await ProductModel.find(filters).select("brand gender magentoCategories configurableVariations attributes").lean().exec();
-
-    const brandsMap = new Map<string, number>();
-    const categoriesMap = new Map<string, number>();
-    const colorsMap = new Map<string, number>();
-    const sizesMap = new Map<string, number>();
-
-    const attributesMap = new Map<string, Map<string, number>>();
-    const KNOWN_FILTER_ATTRIBUTES = ['helmet_type', 'material', 'riding_style', 'certification', 'gender'];
-
-    products.forEach((p: any) => {
-      // 1. Extract Brands
-      if (p.brand) {
-        brandsMap.set(p.brand, (brandsMap.get(p.brand) || 0) + 1);
-      }
-      
-      // 2. Extract Categories (safely parse Magento path like Root/Gear/Helmets)
-      if (p.magentoCategories) {
-        const paths = p.magentoCategories.split(",");
-        for (const path of paths) {
-          // Clean the path: remove "Root Test 01" and ignore junk price categories
-          const pathLower = path.toLowerCase();
-          if (pathLower.includes("between") || pathLower.includes("under ") || pathLower.includes("price") || pathLower.includes("rs.") || pathLower.includes("₹")) {
-            continue; // Ignore fake price-based categories
-          }
-          
-          // Build a clean path string (e.g. "Riding Gear > Motorcycle Helmets > Full Face")
-          const parts = path.split("/")
-            .map((part: string) => part.trim())
-            .filter((part: string) => part && !part.toLowerCase().includes("root"));
-            
-          if (parts.length > 0) {
-            // We store the full path string to build a tree later
-            const cleanPath = parts.join(" > ");
-            categoriesMap.set(cleanPath, (categoriesMap.get(cleanPath) || 0) + 1);
-          }
-        }
-      }
-
-      // 3. Extract Colors & Sizes from Magento Variations (Smart Faceting)
+  static async getAggregations(filters: Record<string, unknown> = {}, categorySlug?: string, rawActiveFilters?: any): Promise<any> {
+    const serializeFilter = (obj: any): string => {
+      if (!obj || typeof obj !== "object") return String(obj);
+      if (obj instanceof RegExp) return obj.toString();
+      if (Array.isArray(obj)) return `[${obj.map(serializeFilter).join(",")}]`;
+      return Object.entries(obj).map(([k, v]) => `${k}:${serializeFilter(v)}`).sort().join(";");
+    };
+
+    const cacheKey = `product_aggregations_v9_${categorySlug || 'all'}_${serializeFilter(rawActiveFilters || {})}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return cached;
+
+    const { ProductModel } = await import("./product.model");
+    
+    // BUILD BASE QUERY: Only Category + Search + Status
+    const baseFilters: any = {
+      $or: [
+        { status: "published" },
+        { status: { $exists: false } }
+      ],
+      visibility: { $ne: "Not Visible Individually" }
+    };
+    
+    if (rawActiveFilters?.category) {
+      let cleanSlug = rawActiveFilters.category.toLowerCase().trim();
+      
+      const slugMap: Record<string, string> = {
+        "full-face-helmets": "full-face",
+        "modular-helmets": "modular-flip-up",
+        "half-face-helmets": "open-face",
+        "off-road-motocross": "off-road-motocross-gear",
+        "off-road-riding-boots": "off-road-riding-boots",
+        "riding-jacket": "riding-jackets",
+        "riding-jean": "riding-jeans",
+        "touring-pant": "touring-pants",
+        "knee-guard": "knee-guards",
+        "saddle-bags": "saddle-bags-bikes",
+        "tail-bags": "motorcycle-tail-bags",
+        "women-riding-gear": "riding-gear-for-women"
+      };
+
+      if (slugMap[cleanSlug]) {
+        cleanSlug = slugMap[cleanSlug];
+      }
+
+      // We must re-enable the regex engine because Magento data is missing category tags!
+      if (cleanSlug.includes("off-road-boot") || cleanSlug.includes("off-road-riding-boot")) {
+        baseFilters.$or = [
+          { magentoCategories: /off road.*boot|motocross.*boot|mx.*boot/i },
+          { name: /off road.*boot|motocross.*boot|mx.*boot/i }
+        ];
+      } else if (cleanSlug.includes("off-road") || cleanSlug.includes("motocross")) {
+        const baseOr = [
+          { magentoCategories: /off road|motocross|mx/i },
+          { name: /off road|motocross|mx/i },
+        ];
+        if (cleanSlug.includes("helmet")) {
+          baseFilters.$and = [
+            { $or: baseOr },
+            { $or: [{ magentoCategories: /helmet/i }, { name: /helmet/i }] }
+          ];
+        } else {
+          baseFilters.$or = baseOr;
+        }
+      } else if (cleanSlug.includes("women-riding-gear") || cleanSlug.includes("women") || cleanSlug.includes("riding-gear-for-women")) {
+        baseFilters.$or = [
+          { name: /\b(women|womens|lady|ladies|female)\b/i },
+          { magentoCategories: /\b(women|womens|lady|ladies|female)\b/i },
+          { gender: /women|female|lady/i }
+        ];
+      } else {
+        const exactPhrase = cleanSlug.replace(/-/g, " ").trim();
+        const keywords = exactPhrase
+          .split(/\s+/)
+          .filter((w: string) => !["motorcycle", "riding", "bike", "for", "online"].includes(w) && w.length > 1);
+          
+        if (keywords.length > 0) {
+          const lookaheads = keywords.map((w: string) => `(?=.*\\b${w})`).join("");
+          const andPattern = `^${lookaheads}.*$`;
+          
+          baseFilters.$or = [
+            { magentoCategories: new RegExp(exactPhrase, "i") },
+            { magentoCategories: new RegExp(andPattern, "i") },
+            { name: new RegExp(andPattern, "i") }
+          ];
+        } else {
+          baseFilters.$or = [
+            { magentoCategories: new RegExp(exactPhrase, "i") },
+            { name: new RegExp(exactPhrase, "i") }
+          ];
+        }
+      }
+
+      // -------------------------------------------------------------
+      // WRAP THE REGEX OUTPUT WITH EXACT DATABASE "CATEGORY SLUGS"
+      // If the Regex Engine matches, OR the Database explicitly says so, include it!
+      // -------------------------------------------------------------
+      const regexCondition: any = {};
+      
+      // Fix bug where regex engine overwrote the status: published $or condition
+      if (baseFilters.$or && baseFilters.$or.length > 0 && !baseFilters.$or.find((c: any) => c.status === "published")) {
+        regexCondition.$or = baseFilters.$or;
+        baseFilters.$or = [ { status: "published" }, { status: { $exists: false } } ];
+      }
+      
+      if (baseFilters.$and) {
+        regexCondition.$and = baseFilters.$and;
+        delete baseFilters.$and;
+      }
+      
+      baseFilters.$and = baseFilters.$and || [];
+      baseFilters.$and.push({
+        $or: [
+          regexCondition,
+          { categorySlugs: cleanSlug }
+        ]
+      });
+    }
+    
+    if (rawActiveFilters?.search) {
+      const escaped = rawActiveFilters.search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const searchRegex = new RegExp(escaped, "i");
+      baseFilters.$and = [
+        {
+          $or: [
+            { name: { $regex: searchRegex } },
+            { brand: { $regex: searchRegex } },
+            { sku: { $regex: searchRegex } },
+            { magentoCategories: { $regex: searchRegex } },
+          ],
+        }
+      ];
+    }
+
+    const products = await ProductModel.find(baseFilters)
+      .select("brand magentoCategories variants configurableVariations colorImages stockStatus attributes")
+      .lean()
+      .exec();
+
+    const brandsMap = new Map<string, number>();
+    const categoriesMap = new Map<string, number>();
+    const colorsMap = new Map<string, Set<string>>();
+    const sizesMap = new Map<string, Set<string>>();
+    
+    // Track dynamic attributes like gender, helmet_type, material
+    const dynamicAttrsMap = new Map<string, Map<string, Set<string>>>();
+    const TRACKED_ATTRS = ['material', 'riding_style', 'certification', 'gender'];
+
+    const activeBrands = rawActiveFilters?.brand?.map((b: string) => b.toLowerCase()) || [];
+    const activeColors = rawActiveFilters?.colour?.map((c: string) => c.toLowerCase()) || [];
+    const activeSizes = rawActiveFilters?.size?.map((s: string) => s.toLowerCase()) || [];
+
+    products.forEach((p: any) => {
+      const pBrand = p.brand || (p.attributes && (p.attributes.brand || p.attributes.Brand)) || null;
+      let matchesBrand = true;
+      if (activeBrands.length > 0 && pBrand) {
+        matchesBrand = activeBrands.some((b: string) => pBrand.toLowerCase() === b || (b === 'mt' && pBrand.toLowerCase().includes('mt helmets')));
+      } else if (activeBrands.length > 0) {
+        matchesBrand = false;
+      }
+
+      let matchesColor = true;
+      let matchesSize = true;
+      
+            const availableColors = new Set<string>();
+      const availableSizes = new Set<string>();
+      
+      // 1. Extract from strict variants
+      if (p.variants && p.variants.length > 0) {
+        p.variants.forEach((v: any) => {
+          if (v.attributes?.color) availableColors.add(v.attributes.color.toLowerCase());
+          if (v.attributes?.colour) availableColors.add(v.attributes.colour.toLowerCase());
+          if (v.attributes?.size) availableSizes.add(v.attributes.size.toLowerCase());
+          if (v.attributes?.eu_size) availableSizes.add(v.attributes.eu_size.toLowerCase());
+        });
+      } 
+      
+      // 2. Fallback to legacy Magento string
       if (p.configurableVariations) {
-        const variants = p.configurableVariations.split("|");
-        for (const variant of variants) {
+        const vars = p.configurableVariations.split("|");
+        for (const variant of vars) {
           const attrs = variant.split(",");
-          const variantObj: Record<string, string> = {};
           for (const attr of attrs) {
-            const [key, value] = attr.split("=");
-            if (key && value) {
-              variantObj[key.trim().toLowerCase()] = value.trim();
+            const [k, v] = attr.split("=");
+            if (k && v) {
+              const kl = k.trim().toLowerCase();
+              if (kl === 'color' || kl === 'colour') availableColors.add(v.trim().toLowerCase());
+              if (kl === 'size' || kl === 'eu_size') availableSizes.add(v.trim().toLowerCase());
             }
           }
+        }
+      }
+      
+      // 3. Fallback to DB Migrated colorImages (The ultimate source of truth for colors)
+      if (p.colorImages && typeof p.colorImages === 'object') {
+        Object.keys(p.colorImages).forEach(c => availableColors.add(c.trim().toLowerCase()));
+      }
+
+      if (activeColors.length > 0) {
+        matchesColor = activeColors.some((c: string) => availableColors.has(c));
+      }
+      if (activeSizes.length > 0) {
+        matchesSize = activeSizes.some((s: string) => availableSizes.has(s));
+      }
+
+      // 1. EXTRACT BRANDS (Must match Color + Size filters)
+      if (pBrand && matchesColor && matchesSize) {
+        brandsMap.set(pBrand, (brandsMap.get(pBrand) || 0) + 1);
+      }
+
+      // 2. EXTRACT CATEGORIES (Must match Brand + Color + Size filters)
+      if (p.magentoCategories && matchesBrand && matchesColor && matchesSize) {
+        const paths = p.magentoCategories.split(",");
+        for (const path of paths) {
+          const pathLower = path.toLowerCase();
+          if (pathLower.includes("between") || pathLower.includes("under ") || pathLower.includes("price") || pathLower.includes("rs.") || pathLower.includes("₹")) continue;
           
-          const vColor = variantObj.color;
-          const vSize = variantObj.size || variantObj.eu_size;
-          
-          // Facet: Only count this color if the variant matches the active size filter
-          let matchSize = true;
-          if (rawActiveFilters && rawActiveFilters.size && rawActiveFilters.size.length > 0 && vSize) {
-             matchSize = rawActiveFilters.size.some((s: string) => s.toLowerCase() === vSize.toLowerCase());
-          }
-          if (matchSize && vColor) {
-             colorsMap.set(vColor, (colorsMap.get(vColor) || 0) + 1);
-          }
-          
-          // Facet: Only count this size if the variant matches the active color filter
-          let matchColor = true;
-          if (rawActiveFilters && rawActiveFilters.colour && rawActiveFilters.colour.length > 0 && vColor) {
-             matchColor = rawActiveFilters.colour.some((c: string) => c.toLowerCase() === vColor.toLowerCase());
-          }
-          if (matchColor && vSize) {
-             sizesMap.set(vSize, (sizesMap.get(vSize) || 0) + 1);
+          const parts = path.split("/").map((part: string) => part.trim()).filter((part: string) => part && !part.toLowerCase().includes("root"));
+          if (parts.length > 0) {
+            const cleanPath = parts.join(" > ");
+            categoriesMap.set(cleanPath, (categoriesMap.get(cleanPath) || 0) + 1);
           }
         }
       }
 
-      // 4. Extract dynamic attributes from the attributes Map
-      if (p.attributes) {
-        // Handle both Map and plain object
-        const attrs = p.attributes instanceof Map 
-          ? Object.fromEntries(p.attributes) 
-          : p.attributes;
-        
-        for (const key of KNOWN_FILTER_ATTRIBUTES) {
-          if (attrs[key]) {
-            if (!attributesMap.has(key)) {
-              attributesMap.set(key, new Map());
-            }
-            const valueMap = attributesMap.get(key)!;
-            const value = attrs[key];
-            valueMap.set(value, (valueMap.get(value) || 0) + 1);
-          }
-        }
-      }
-      
-      // Also check top-level gender field (legacy)
-      if (p.gender && !attributesMap.get('gender')?.has(p.gender)) {
-        if (!attributesMap.has('gender')) {
-          attributesMap.set('gender', new Map());
-        }
-        const genderMap = attributesMap.get('gender')!;
-        genderMap.set(p.gender, (genderMap.get(p.gender) || 0) + 1);
-      }
-    });
-
-    const dynamicAttributes: Record<string, Array<{name: string, count: number}>> = {};
-    for (const [attrCode, valueMap] of attributesMap) {
-      dynamicAttributes[attrCode] = Array.from(valueMap.entries())
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count);
-    }
-
-    let filterConfig = undefined;
-    if (categorySlug) {
-      const { CategoryModel } = await import("../category/category.model");
-      const categoryDoc = await CategoryModel.findOne({ slug: categorySlug }).lean().exec() as any;
-      if (categoryDoc && categoryDoc.filterConfig) {
-        filterConfig = categoryDoc.filterConfig;
-      }
-    }
-
-    const result = {
-      brands: Array.from(brandsMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
-      categories: Array.from(categoriesMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
-      colors: Array.from(colorsMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
-      sizes: Array.from(sizesMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
-      dynamicAttributes,
-      filterConfig,
-    };
-
-    // Cache for 1 hour to keep UI fast
-    await setCache(cacheKey, result, 3600);
-    return result;
-  }
-
+      // 3. EXTRACT COLORS & SIZES
+      const extractedVariants: any[] = [];
+      
+      if (p.variants && p.variants.length > 0) {
+        p.variants.forEach((v: any) => {
+          extractedVariants.push({ color: v.attributes?.color || v.attributes?.colour, size: v.attributes?.size || v.attributes?.eu_size });
+        });
+      }
+      
+      if (p.configurableVariations) {
+        const vars = p.configurableVariations.split("|");
+        for (const variant of vars) {
+          const vObj: any = {};
+          variant.split(",").forEach((attr: string) => {
+            const [k, v] = attr.split("=");
+            if (k && v) vObj[k.trim().toLowerCase()] = v.trim();
+          });
+          extractedVariants.push({ color: vObj.color || vObj.colour, size: vObj.size || vObj.eu_size });
+        }
+      }
+      
+      // Add colors from DB migrated colorImages
+      if (p.colorImages && typeof p.colorImages === 'object') {
+        Object.keys(p.colorImages).forEach(c => {
+          extractedVariants.push({ color: c, size: undefined });
+        });
+      }
+
+      // Add colors and sizes from top-level attributes (migrated from CSV/Magento)
+      if (p.attributes && typeof p.attributes === 'object') {
+        const topColor = (p.attributes as any).color || (p.attributes as any).colour;
+        const topSize = (p.attributes as any).size || (p.attributes as any).eu_size;
+        if (topColor || topSize) {
+          extractedVariants.push({ color: topColor, size: topSize });
+        }
+      }
+
+      extractedVariants.forEach((v: any) => {
+        const vColor = v.color;
+        const vSize = v.size;
+        
+        let vMatchesSize = true;
+        if (activeSizes.length > 0 && vSize) {
+          vMatchesSize = activeSizes.includes(vSize.toLowerCase());
+        }
+        
+        if (matchesBrand && vMatchesSize && vColor) {
+          if (!colorsMap.has(vColor)) colorsMap.set(vColor, new Set());
+          colorsMap.get(vColor)!.add(p._id.toString());
+        }
+
+        let vMatchesColor = true;
+        if (activeColors.length > 0 && vColor) {
+          vMatchesColor = activeColors.includes(vColor.toLowerCase());
+        }
+        
+        if (matchesBrand && vMatchesColor && vSize) {
+          if (!sizesMap.has(vSize)) sizesMap.set(vSize, new Set());
+          sizesMap.get(vSize)!.add(p._id.toString());
+        }
+      });
+
+      // 4. EXTRACT DYNAMIC ATTRIBUTES (gender, material, etc.)
+      // Note: We only add these to the map if they match the primary filters (brand, color, size)
+      if (matchesBrand && matchesColor && matchesSize) {
+        TRACKED_ATTRS.forEach(attrName => {
+          let attrValue = '';
+          // Gender can be top-level or inside attributes
+          if (attrName === 'gender' && p.gender) {
+            attrValue = p.gender;
+          } else if (p.attributes && typeof p.attributes === 'object') {
+            const capName = attrName.charAt(0).toUpperCase() + attrName.slice(1);
+            const upperName = attrName.toUpperCase();
+            attrValue = p.attributes[attrName] || p.attributes[capName] || p.attributes[upperName];
+          }
+
+          if (attrValue) {
+            const cleanVal = attrValue.trim();
+            if (!dynamicAttrsMap.has(attrName)) dynamicAttrsMap.set(attrName, new Map());
+            const valMap = dynamicAttrsMap.get(attrName)!;
+            if (!valMap.has(cleanVal)) valMap.set(cleanVal, new Set());
+            valMap.get(cleanVal)!.add(p._id.toString());
+          }
+        });
+      }
+    });
+
+    const dynamicAttributesResponse: Record<string, any[]> = {};
+    for (const [attrName, valMap] of dynamicAttrsMap.entries()) {
+      // Prevent dirty data from showing irrelevant filters
+      if (attrName === 'helmet_type' && rawActiveFilters?.category && !rawActiveFilters.category.toLowerCase().includes('helmet')) {
+        continue;
+      }
+      if (attrName === 'certification' && rawActiveFilters?.category && rawActiveFilters.category.toLowerCase().includes('boot')) {
+        continue;
+      }
+      
+      dynamicAttributesResponse[attrName] = Array.from(valMap.entries())
+        .map(([name, set]) => ({ name, count: set.size }))
+        .sort((a, b) => b.count - a.count);
+    }
+
+    const result = {
+      brands: Array.from(brandsMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+      categories: Array.from(categoriesMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+      colors: Array.from(colorsMap.entries()).map(([name, set]) => ({ name, count: set.size })).sort((a, b) => b.count - a.count),
+      sizes: Array.from(sizesMap.entries()).map(([name, set]) => ({ name, count: set.size })).sort((a, b) => b.count - a.count),
+      dynamicAttributes: dynamicAttributesResponse,
+      filterConfig: undefined,
+    };
+
+    if (categorySlug) {
+      const { CategoryModel } = await import("../category/category.model");
+      const categoryDoc = await CategoryModel.findOne({ slug: categorySlug }).lean().exec() as any;
+      if (categoryDoc && categoryDoc.filterConfig) {
+        result.filterConfig = categoryDoc.filterConfig;
+      }
+    }
+
+    await setCache(cacheKey, result, 3600);
+    return result;
+  }
+
   static async createProduct(data: Partial<IProduct>): Promise<IProduct> {
     const slug = slugify(data.name || "");
     const productData = { ...data, slug };

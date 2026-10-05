@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { useCartStore } from "@/stores/useCartStore";
@@ -30,10 +30,15 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
   const addItem = useCartStore((state) => state.addItem);
   const recentViews = useRecentViewsStore((state) => state.items);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const colorQuery = searchParams.get("color");
 
   // Reset defaults when product changes (e.g. navigating via related products)
   useEffect(() => {
-    if (product.colors?.length > 0) {
+    if (colorQuery && product.colors?.some((c: any) => c.name.toLowerCase() === colorQuery.toLowerCase())) {
+      const match = product.colors.find((c: any) => c.name.toLowerCase() === colorQuery.toLowerCase());
+      if (match) setSelectedColor(match.name);
+    } else if (product.colors?.length > 0) {
       setSelectedColor(product.colors[0].name);
     } else {
       setSelectedColor("");
@@ -44,7 +49,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
     } else {
       setSelectedSize("");
     }
-  }, [product.slug]);
+  }, [product.slug, colorQuery, product.colors, product.sizes]);
 
   // Calculate disabled colors based on variant stock
   const disabledColors = React.useMemo(() => {
@@ -52,7 +57,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
     const validColors = new Set<string>();
     
     product.rawVariants.forEach(v => {
-      if (v.stock > 0) {
+      if (v.stock > 0 || product.allowBackorders) {
         const attrs = v.attributes || {};
         const col = Object.entries(attrs).find(([k]) => {
           const kl = k.toLowerCase();
@@ -80,8 +85,8 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
       })?.[1] || "";
       
       if (!selectedColor || String(col).trim().toLowerCase() === selectedColor.toLowerCase()) {
-        // Only mark size as valid if stock is strictly > 0
-        if (v.stock > 0) {
+        // Only mark size as valid if stock is strictly > 0 OR backorders are allowed
+        if (v.stock > 0 || product.allowBackorders) {
           const sz = Object.entries(attrs).find(([k]) => {
             const kl = k.toLowerCase();
             const isColor = kl === 'color' || kl === 'colour' || kl.includes('color') || kl.includes('colour');
@@ -191,7 +196,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
       <Breadcrumb items={[
         { label: "HOME", href: "/" },
         { label: "PRODUCTS", href: "/products" },
-        ...(product.category ? [{ label: product.category, href: `/products?category=${product.category.toLowerCase()}` }] : []),
+        ...(product.category ? [{ label: product.category, href: `/${product.category.toLowerCase()}` }] : []),
         { label: product.name }
       ]} />
 

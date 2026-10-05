@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation";
 import { useProducts } from "@/core/hooks/useProducts";
 import { useCategoryTree } from "@/core/hooks/useCategories";
 import { CatalogModule } from "@/modules/catalog";
@@ -8,13 +8,20 @@ import { CatalogProduct } from "@/modules/catalog/types/catalog.types";
 
 export const ProductsPageModule = () => {
   const searchParams = useSearchParams();
-  const category = searchParams.get("category") || undefined;
+  const params = useParams();
+  
+  let category = searchParams.get("category") || undefined;
+  if (!category && params?.categorySlug) {
+    const slugArr = params.categorySlug as string[];
+    category = slugArr[slugArr.length - 1];
+  }
   const brand = searchParams.get("brand") || undefined;
   const search = searchParams.get("search") || searchParams.get("q") || undefined;
   const page = searchParams.get("page") ? parseInt(searchParams.get("page")!, 10) : 1;
   const minPrice = searchParams.has("minPrice") ? parseFloat(searchParams.get("minPrice")!) : undefined;
   const maxPrice = searchParams.has("maxPrice") ? parseFloat(searchParams.get("maxPrice")!) : undefined;
   const sort = searchParams.get("sort") || undefined;
+  const activeColorParam = searchParams.get("colour") || searchParams.get("color");
 
   // Dynamic attribute filters
   const dynamicParams: Record<string, string> = {};
@@ -134,9 +141,67 @@ export const ProductsPageModule = () => {
       name: p.name,
       category: cleanCat,
       priceFormatted,
-      imageUrl: p.images?.[0]?.url || "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80",
+      imageUrl: (() => {
+        const defaultUrl = p.images?.[0]?.url || "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80";
+        if (!activeColorParam) return defaultUrl;
+        
+        const activeColors = activeColorParam.split(",").map((c: string) => c.trim().toLowerCase());
+        
+        // 1. Try colorImages map (case-insensitive key lookup)
+        if (p.colorImages) {
+          const imageKeys = Object.keys(p.colorImages);
+          for (const color of activeColors) {
+            const matchedKey = imageKeys.find(k => k.toLowerCase() === color);
+            if (matchedKey && p.colorImages[matchedKey]) {
+              return p.colorImages[matchedKey];
+            }
+          }
+        }
+        
+        // 2. Try variant imageUrl matching the active color
+        if (p.variants && Array.isArray(p.variants)) {
+          for (const color of activeColors) {
+            const matchedVariant = p.variants.find((v: any) => {
+              const vColor = v.attributes?.color || v.attributes?.colour;
+              return vColor && vColor.toLowerCase() === color && v.imageUrl;
+            });
+            if (matchedVariant?.imageUrl) return matchedVariant.imageUrl;
+          }
+        }
+        
+        // 3. Try to guess from parent images array (URL or Alt Text)
+        if (p.images && Array.isArray(p.images)) {
+          const ALL_COLORS = ["black", "white", "red", "blue", "green", "yellow", "orange", "grey", "gray", "pink", "purple", "brown", "silver", "gold", "neon", "flu", "matte", "gloss"];
+          for (const color of activeColors) {
+            const colorWords = color.split(/[\/\s-]/).filter((w: string) => w.length > 2 && w.toLowerCase() !== 'flu.');
+            
+            let bestImg = null;
+            let bestScore = -1;
+
+            for (const img of p.images) {
+              const textToSearch = (img.url + " " + (img.altText || "")).toLowerCase();
+              if (colorWords.length > 0 && colorWords.every((w: string) => textToSearch.includes(w))) {
+                let penalty = 0;
+                for (const c of ALL_COLORS) {
+                  if (!colorWords.map((w: string) => w.toLowerCase()).includes(c) && textToSearch.includes(c)) {
+                    penalty += 10;
+                  }
+                }
+                const score = 100 - penalty;
+                if (score > bestScore) {
+                  bestScore = score;
+                  bestImg = img;
+                }
+              }
+            }
+            if (bestImg) return bestImg.url;
+          }
+        }
+        
+        return defaultUrl;
+      })(),
       rating: 4.9,
-      productUrl: `/products/${p.slug}`
+      productUrl: `/products/${p.slug}${activeColorParam ? `?color=${encodeURIComponent(activeColorParam.split(',')[0].trim())}` : ''}`
     };
   });
 

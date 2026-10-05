@@ -485,6 +485,7 @@ const mapProductToPDP = (
     rawVariants,
     isFreeShipping,
     stockStatus: product.stockStatus ?? 1,
+    allowBackorders: product.allowBackorders ?? false,
   };
 };
 

@@ -13,7 +13,7 @@ import { AppError } from "../../core/errors/AppError";
 import { addEmailJob } from "../../core/queue/email.queue";
 import { logger } from "../../core/utils/logger";
 import { ENV } from "../../core/config/env";
-import { calculateTax } from "@store4riders/shared-utils";
+import { calculateTax, getTaxRateFromClass } from "@store4riders/shared-utils";
 
 export class OrderService {
   
@@ -113,7 +113,13 @@ export class OrderService {
       }
     }
 
+    const settings = await SettingRepository.getSettings();
+    const defaultTaxRate = settings.taxRate || 18;
+    const freeShippingThreshold = settings.freeShippingThreshold || 0;
+    const shippingCost = settings.shippingCost || 0;
+
     let subtotal = 0;
+    let totalTax = 0;
     let discount = 0;
     const orderItems: any[] = [];
 
@@ -121,13 +127,29 @@ export class OrderService {
       const product = await ProductRepository.findById(item.productId);
       if (!product) throw new AppError(`Product ${item.productId} not found`, 404);
 
-      let unitPrice = product.specialPrice || product.basePrice;
+      let unitPrice = product.basePrice;
+      if (product.specialPrice) {
+        const now = new Date();
+        const fromDate = product.specialPriceFromDate ? new Date(product.specialPriceFromDate) : null;
+        const toDate = product.specialPriceToDate ? new Date(product.specialPriceToDate) : null;
+        
+        const isStarted = fromDate ? now >= fromDate : true;
+        const isNotExpired = toDate ? now <= toDate : true;
+        
+        if (isStarted && isNotExpired) {
+          unitPrice = product.specialPrice;
+        }
+      }
       if (item.variantId) {
         const variant = product.variants?.find((v: any) => v.id === item.variantId);
         if (variant) unitPrice = variant.price;
       }
 
-      subtotal += unitPrice * item.quantity;
+      const itemTotal = unitPrice * item.quantity;
+      subtotal += itemTotal;
+      
+      const itemTaxRate = getTaxRateFromClass(product.taxClassName, defaultTaxRate);
+      totalTax += calculateTax(itemTotal, itemTaxRate);
 
       orderItems.push({
         productId: String(product._id),
@@ -136,6 +158,8 @@ export class OrderService {
         sku: item.variantId ? (product.variants?.find((v: any) => v.id === item.variantId)?.sku || product.sku) : product.sku,
         quantity: item.quantity,
         unitPrice,
+        taxClassName: product.taxClassName,
+        allowBackorders: product.allowBackorders,
       });
     }
 
@@ -143,26 +167,24 @@ export class OrderService {
     if (couponCode) {
       const couponResult = await CouponService.validateCoupon(couponCode, subtotal);
       couponDiscount = couponResult.discountAmount;
+      // Pro-rate tax reduction if coupon applies (simplified logic: reduce tax proportionally)
+      if (subtotal > 0) {
+        totalTax = totalTax * (1 - (couponDiscount / subtotal));
+      }
     }
 
     const discountedSubtotal = Math.max(0, subtotal - couponDiscount);
 
-    const settings = await SettingRepository.getSettings();
-    const taxRate = settings.taxRate || 18;
-    const freeShippingThreshold = settings.freeShippingThreshold || 0;
-    const shippingCost = settings.shippingCost || 0;
-
-    const tax = calculateTax(discountedSubtotal, taxRate);
     const shipping = (discountedSubtotal > 0 && discountedSubtotal < freeShippingThreshold) ? shippingCost : 0;
-    const totalAmount = discountedSubtotal + tax + shipping;
+    const totalAmount = discountedSubtotal + totalTax + shipping;
 
     const pricing: any = {
       subtotal,
       discount,
       couponCode,
       couponDiscount,
-      tax,
-      taxRate,
+      tax: totalTax,
+      taxRate: defaultTaxRate, // Keep for backward compatibility or display
       shipping,
       total: totalAmount
     };

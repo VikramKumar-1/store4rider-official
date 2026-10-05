@@ -54,19 +54,19 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
       id: "cat-helmets",
       title: "HELMETS",
       imageUrl: "/helmetcat.jpg",
-      linkUrl: "/products?category=helmets"
+      linkUrl: "/motorcycle-helmets"
     },
     gloves: {
       id: "cat-gloves",
       title: "GLOVES",
       imageUrl: "/glovescat.jpg",
-      linkUrl: "/products?category=gloves"
+      linkUrl: "/gloves"
     },
     jackets: {
       id: "cat-jackets",
       title: "JACKETS",
       imageUrl: "/jacketcat.jpg",
-      linkUrl: "/products?category=jackets"
+      linkUrl: "/jackets"
     }
   };
 

@@ -1165,7 +1165,7 @@ Once PayU + COD are production-solid:
 
 ## Phase 7 — Customer Account Enhancement
 
-**Status:** ⬜ NOT STARTED
+**Status:** 🔄 IN PROGRESS
 **Modules:** Customer Account (6)
 **Depends on:** Phase 5 (tracking), Phase 6 (returns, invoices)
 
@@ -1181,6 +1181,17 @@ Once PayU + COD are production-solid:
   - `POST /orders` accepts `guestEmail` without auth token
   - Creates temporary guest record or order without userId
   - Send order confirmation to guest email
+- [ ] **7.8** Build profile management & addresses endpoints
+  - `GET /users/me` — fetch full user profile
+  - `PUT /users/me` — update name, phone, etc.
+  - `POST /users/me/addresses` — add new shipping/billing address
+  - `PUT /users/me/addresses/:id` — edit address
+  - `DELETE /users/me/addresses/:id` — remove address
+- [ ] **7.9** Build wishlist & saved carts endpoints
+  - `GET /users/me/wishlist` — fetch saved products
+  - `POST /users/me/wishlist` — add product to wishlist
+  - `DELETE /users/me/wishlist/:productId` — remove from wishlist
+  - `POST /users/me/saved-carts` — save current cart state for later
 
 ### Frontend Tasks
 
@@ -1197,6 +1208,13 @@ Once PayU + COD are production-solid:
 - [ ] **7.7** Build guest checkout flow
   - Email input at checkout start
   - No login required to complete purchase
+- [ ] **7.10** Build profile management & addresses UI
+  - `/account/profile` — form to update user details
+  - `/account/addresses` — list of addresses with Add/Edit/Delete modals
+- [ ] **7.11** Build wishlist & saved carts UI
+  - `/account/wishlist` — grid of saved products with "Move to Cart" button
+  - Heart icon on product cards to toggle wishlist
+  - `/account/saved-carts` — list of saved cart sessions
 
 ### Verification
 
@@ -1204,6 +1222,8 @@ Once PayU + COD are production-solid:
 - [ ] Password reset works and old password is invalidated
 - [ ] Guest can complete checkout without registration
 - [ ] Order history shows all status, tracking, invoice, return actions
+- [ ] Profile updates and address management persist correctly
+- [ ] Wishlist toggle works and displays on `/account/wishlist`
 
 ---
 
@@ -1836,6 +1856,11 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
   - Field coverage: which fields have data, which are empty
   - Image audit: which product images are accessible on S3
   - Generate final audit `.md` file
+- [x] **15.6** Advanced Schema Mapping (Backorders & Tax Classes)
+  - Update `product.model.ts` with `allowBackorders` and `taxClassName`
+  - Update Cart/Order services to calculate taxes dynamically based on `taxClassName`
+  - Update Cart validation to permit checkout of OOS items if `allowBackorders === true`
+  - Map `allow_backorders` and `tax_class_name` from CSV during migration
 
 ### Verification
 

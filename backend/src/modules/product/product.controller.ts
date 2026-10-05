@@ -24,6 +24,9 @@ export class ProductController {
     const searchParams = req.nextUrl.searchParams;
     
     const rawActiveFilters = {
+      category: searchParams.get('category') || '',
+      search: searchParams.get('search') || searchParams.get('q') || '',
+      brand: searchParams.get('brand') ? searchParams.get('brand')!.split(',').map(b => b.trim()) : [],
       size: searchParams.get('size') ? searchParams.get('size')!.split(',').map(s => s.trim()) : [],
       colour: searchParams.get('colour') ? searchParams.get('colour')!.split(',').map(c => c.trim()) : []
     };

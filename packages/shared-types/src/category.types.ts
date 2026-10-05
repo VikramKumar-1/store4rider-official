@@ -1,7 +1,10 @@
+import { IFaq } from "./product.types";
+
 export interface ICategory {
   _id: string;
   name: string;
   slug: string;
+  faqs?: IFaq[];
   parentId?: string;
   description?: string;
   bannerImage?: string;

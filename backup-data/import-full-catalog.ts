@@ -39,7 +39,7 @@ dotenv.config({ path: path.join(process.cwd(), 'backend', '.env') });
 // ──────────────────────────────────────────────────────────────
 // Configuration
 // ──────────────────────────────────────────────────────────────
-const CSV_FILE_PATH = 'C:\\Users\\vikur\\Downloads\\Edited product csv of all brands.csv';
+const CSV_FILE_PATH = 'C:\\Users\\vikur\\Downloads\\All product export csv-17.9.26.csv';
 const S3_BASE_URL = 'https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product';
 const MAGENTO_MEDIA_BASE = 'https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product';
 const BATCH_SIZE = 50;
@@ -52,6 +52,7 @@ const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     description: { type: String, required: true },
+      faqs: [{ question: String, answer: String }],
     slug: { type: String, required: true, unique: true, index: true },
     sku: { type: String, required: true, unique: true, index: true },
     categoryId: { type: String, index: true },
@@ -703,9 +704,12 @@ async function processProducts(): Promise<void> {
           }
 
           // ─── DESCRIPTION (resolve Magento media URLs) ───
-          const description = resolveDescriptionMediaUrls(
-            row.description || row.short_description || 'No description available.'
-          );
+          
+          let rawDescription = row.description || row.short_description || 'No description available.';
+          if (attrs.codazon_custom_tab) {
+            rawDescription += '\n\n' + attrs.codazon_custom_tab;
+          }
+          const description = resolveDescriptionMediaUrls(rawDescription);
           const shortDescription = row.short_description?.trim() || undefined;
 
           // ─── STOCK STATUS & QTY ───
@@ -749,7 +753,8 @@ async function processProducts(): Promise<void> {
             relatedSkus,
             upsellSkus,
             crosssellSkus,
-            brand,
+            faqs: [],
+              brand,
             gender,
             countryOfManufacture,
             attributeSetCode: row.attribute_set_code?.trim() || undefined,
