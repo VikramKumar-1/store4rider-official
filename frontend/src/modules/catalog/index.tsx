@@ -133,7 +133,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
           </aside>
 
           {/* Right Product Grid (2 columns on mobile with dark gradient name & price overlay) */}
-          <section className="flex-1 w-full min-w-0">
+          <section className="flex-1 w-full min-w-0 min-h-[80vh]">
             {/* Sort & Count Header on Desktop */}
             <div className="hidden sm:flex items-center justify-between pb-4 border-b border-neutral-100 mb-6">
               <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
