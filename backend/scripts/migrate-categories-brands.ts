@@ -1,10 +1,74 @@
-import { connectToDatabase } from "../src/core/db/mongoose";
+import dotenv from "dotenv";
+import path from "path";
+dotenv.config({ path: path.resolve(process.cwd(), "backend", ".env.local") });
+dotenv.config({ path: path.resolve(process.cwd(), "backend", ".env") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+
+import { connectToDatabase } from "../src/core/database/connection";
 import { ProductModel } from "../src/modules/product/product.model";
 import { CategoryModel } from "../src/modules/category/category.model";
 import { BrandModel } from "../src/modules/brand/brand.model";
 
 function generateSlug(text: string) {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const baseSlug = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  
+  // SEO URL preservation from old site
+  const seoMap: Record<string, string> = {
+    // Helmets
+    'helmets': 'motorcycle-helmets',
+    'full-face': 'full-face-helmets',
+    'full-face-helmets': 'full-face-helmets',
+    'modular-flip-up': 'modular-helmets',
+    'open-face': 'half-face-helmets',
+    'off-road-motocross': 'off-road-helmets',
+    'visor': 'helmet-visors',
+    'balaclava': 'balaclava',
+    'bluetooth-intercom': 'bluetooth-intercoms',
+    'helmet-cleaner': 'helmet-cleaners',
+    
+    // Riding Gear
+    'riding-gear': 'riding-gear',
+    'riding-jackets': 'riding-jacket',
+    'riding-jacket': 'riding-jacket',
+    'protector-armour': 'protectors-armour',
+    'riding-jeans': 'riding-jeans',
+    'touring-pants': 'touring-pants',
+    'knee-guards': 'knee-guards',
+    'knee-guard': 'knee-guards',
+    'full-gauntlet': 'full-gauntlet-gloves',
+    'semi-gauntlet': 'semi-gauntlet-gloves',
+    'short-glove': 'short-motorbike-gloves',
+    'short-motorbike-gloves': 'short-motorbike-gloves',
+    'city-short-boots': 'short-biking-boots',
+    'sports-riding-shoes': 'sports-riding-shoes',
+    'off-road-riding-boots': 'off-road-riding-boots',
+    'riding-gear-for-women': 'women-riding-gear',
+    'off-road-motocross-gear': 'off-road-motocross',
+
+    // Luggage
+    'motorcycle-bags-bike-luggage': 'motorcycle-bags-bike-luggage',
+    'tank-bags': 'tank-bags',
+    'saddle-bags-bikes': 'saddle-bags-bikes',
+    'motorcycle-tail-bags': 'motorcycle-tail-bags',
+    'tail-bags': 'motorcycle-tail-bags',
+    'top-box': 'top-box',
+    'hydration-bags': 'hydration-bags',
+
+    // Accessories
+    'motorcycle-accessories': 'motorcycle-accessories-online',
+    'auxiliary-light-filter': 'bike-auxiliary-lights-filters-flashers',
+    'auxiliary-lights': 'auxiliary-lights',
+    'clamps-and-mounts-for-lights': 'clamps-and-mounts-for-lights',
+    'auxiliary-light-wiring-harness-and-switch': 'auxiliary-light-wiring-harness-and-switch',
+    'off-beat-accessories': 'off-beat-accessories',
+    'performance-parts': 'performance-parts',
+    'rally-towers-navigation-tower': 'rally-towers-navigation-tower',
+    'bike-covers': 'bike-covers',
+    'chain-care': 'chain-care'
+  };
+
+  return seoMap[baseSlug] || baseSlug;
 }
 
 function capitalize(text: string) {
@@ -177,7 +241,14 @@ async function runMigration() {
     }
 
     if (changed) {
-      await p.save();
+      await ProductModel.updateOne(
+        { _id: p._id },
+        { $set: { 
+          brandId: p.brandId, 
+          categoryId: p.categoryId, 
+          categorySlugs: p.categorySlugs 
+        }}
+      );
       updatedCount++;
     }
   }

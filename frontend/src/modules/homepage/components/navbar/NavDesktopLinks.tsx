@@ -89,8 +89,8 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
                   className={`${
                     item.megaMenuFeatured
                       ? ((item.megaMenuItems?.length ?? 0) >= 3 ? "w-[980px] xl:w-[1120px]" : "w-[860px] xl:w-[980px]")
-                      : item.megaMenuItems?.length === 4
-                      ? "w-[940px] xl:w-[1080px]" // 4 columns need wider space (landscape)
+                      : (item.megaMenuItems?.length ?? 0) >= 4
+                      ? "w-[940px] xl:w-[1080px]" // 4+ columns need wider space (landscape)
                       : item.megaMenuItems?.length === 3
                       ? "w-[720px] xl:w-[840px]" // 3 columns
                       : item.megaMenuItems?.length === 2

@@ -31,6 +31,7 @@ export interface IProduct {
   upsellSkus?: string[];
   crosssellSkus?: string[];
   brand?: string;
+  brandId?: string;
   gender?: string;
   attributes?: Record<string, string>;
   countryOfManufacture?: string;

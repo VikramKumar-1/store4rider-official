@@ -82,14 +82,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const totalItemCount = mounted ? items.reduce((sum, i) => sum + (i.quantity || 1), 0) : 0;
   const isLight = theme === "light" || isScrolled;
-  const { data: categoryTree } = useCategoryTree();
-  const { data: brands } = useBrands();
+  // The old hardcoded navbar is completely restored. No API fetching required.
   
-  const activeNavItems = navItems ?? (
-    categoryTree && categoryTree.length > 0
-      ? generateNavItems(categoryTree, brands || [])
-      : DEFAULT_NAV_ITEMS
-  );
+  const activeNavItems = navItems ?? DEFAULT_NAV_ITEMS;
 
   return (
     <>

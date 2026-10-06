@@ -5,8 +5,18 @@ import { NavItem } from "../../types/homepage.types";
 export const generateNavItems = (categories: ICategoryTree[], brands: IBrand[]): NavItem[] => {
   const navItems: NavItem[] = [];
 
-  // Sort categories just in case
-  const sortedCategories = [...(categories || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+  // EXPLICIT ROOT CATEGORIES TO SHOW IN NAVBAR
+  const ALLOWED_NAV_SLUGS = [
+    'motorcycle-helmets',
+    'riding-gear',
+    'motorcycle-bags-bike-luggage',
+    'motorcycle-accessories-online'
+  ];
+
+  // Filter and sort the categories explicitly
+  const sortedCategories = [...(categories || [])]
+    .filter(c => ALLOWED_NAV_SLUGS.includes(c.slug))
+    .sort((a, b) => ALLOWED_NAV_SLUGS.indexOf(a.slug) - ALLOWED_NAV_SLUGS.indexOf(b.slug));
 
   sortedCategories.forEach((category) => {
     // Only top level categories
@@ -18,15 +28,36 @@ export const generateNavItems = (categories: ICategoryTree[], brands: IBrand[]):
     };
 
     if (category.children && category.children.length > 0) {
-      navItem.megaMenuItems = category.children.map((child) => ({
-        group: child.name,
-        items: child.children 
-          ? child.children.map((grandchild) => ({
-              label: grandchild.name,
-              href: `/${category.slug}/${child.slug}/${grandchild.slug}`, // Full hierarchical path
-            }))
-          : [],
-      }));
+      // Check if any child has grandchildren (3-level hierarchy)
+      const hasGrandchildren = category.children.some(c => c.children && c.children.length > 0);
+
+      if (hasGrandchildren) {
+        // 3-level hierarchy: map children to groups, grandchildren to items
+        navItem.megaMenuItems = category.children.map((child) => ({
+          group: child.name,
+          items: child.children 
+            ? child.children.map((grandchild) => ({
+                label: grandchild.name,
+                href: `/${category.slug}/${child.slug}/${grandchild.slug}`,
+              }))
+            : [],
+        }));
+      } else {
+        // 2-level hierarchy: chunk children into columns (e.g., 6 per column)
+        const CHUNK_SIZE = 6;
+        const columns = [];
+        for (let i = 0; i < category.children.length; i += CHUNK_SIZE) {
+          columns.push(category.children.slice(i, i + CHUNK_SIZE));
+        }
+
+        navItem.megaMenuItems = columns.map((col, idx) => ({
+          group: idx === 0 ? "Categories" : "More Categories",
+          items: col.map((child) => ({
+            label: child.name,
+            href: `/${category.slug}/${child.slug}`,
+          })),
+        }));
+      }
     }
 
     navItems.push(navItem);
