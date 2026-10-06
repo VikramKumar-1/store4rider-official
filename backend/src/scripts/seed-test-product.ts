@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { config } from "dotenv";
 import { ProductModel } from "../modules/product/product.model.js"; // Note: Added .js for ESM
+import { indexProduct } from "../core/search/meilisearch.js";
 
 config(); // Loads .env from the current working directory (backend/)
 
@@ -22,9 +23,11 @@ async function seedTestProduct() {
           $inc: { "variants.$[].stock": 100 }
         }
       );
+      const updated = await ProductModel.findById(testProductId).lean().exec();
+      if (updated) await indexProduct(updated);
     } else {
       console.log("Creating test product...");
-      await ProductModel.create({
+      const created = await ProductModel.create({
         _id: new mongoose.Types.ObjectId(testProductId),
         name: "Test Checkout Product",
         slug: "test-checkout-product",
@@ -57,6 +60,7 @@ async function seedTestProduct() {
           }
         ]
       });
+      await indexProduct(created.toObject());
     }
 
     console.log("Seeding complete. Test Product ID:", testProductId);

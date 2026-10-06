@@ -41,6 +41,11 @@ export async function authRouter(req: NextRequest, routePath: string[]): Promise
       await checkRateLimit(ip);
       return await AuthController.resetPassword(req);
     }
+
+    if (action === "check-email") {
+      await checkRateLimit(ip);
+      return await AuthController.checkEmail(req);
+    }
   }
 
   return null;

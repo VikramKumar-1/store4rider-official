@@ -13,6 +13,9 @@ import { DEFAULT_NAV_ITEMS } from "./navbar/nav.constants";
 import { NavDesktopLinks } from "./navbar/NavDesktopLinks";
 import { NavUserMenu } from "./navbar/NavUserMenu";
 import { NavMobileDrawer } from "./navbar/NavMobileDrawer";
+import { useCategoryTree } from "@/core/hooks/useCategories";
+import { useBrands } from "@/core/hooks/useBrands";
+import { generateNavItems } from "../utils/navigation.utils";
 
 /**
  * Navbar — thin orchestration shell.
@@ -79,7 +82,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const totalItemCount = mounted ? items.reduce((sum, i) => sum + (i.quantity || 1), 0) : 0;
   const isLight = theme === "light" || isScrolled;
-  const activeNavItems = navItems ?? DEFAULT_NAV_ITEMS;
+  const { data: categoryTree } = useCategoryTree();
+  const { data: brands } = useBrands();
+  
+  const activeNavItems = navItems ?? (
+    categoryTree && categoryTree.length > 0
+      ? generateNavItems(categoryTree, brands || [])
+      : DEFAULT_NAV_ITEMS
+  );
 
   return (
     <>

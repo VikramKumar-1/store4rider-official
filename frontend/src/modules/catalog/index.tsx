@@ -110,18 +110,17 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
         )}
 
         {/* 3. Subcategory Tiles */}
-        <SubcategoryTiles categoryName={pageTitle} categorySlug={categoryParam || ""} />
+        <SubcategoryTiles categoryName={pageTitle} categorySlug={categoryParam || ""} subcategories={categoryNode?.children || []} />
 
         {/* --- CLIENT LAYOUT REQUIREMENT: TWO ACCORDIONS AT TOP --- */}
-        <div className="w-full flex flex-col gap-2 mb-6 mt-4">
-          <CategorySEOAccordion 
-            categoryName="Category Top Info" 
-            items={[
-              { id: 'acc-1', title: 'Accordion 1', content: 'Dropdown description text goes here. This can be updated in the database later.' },
-              { id: 'acc-2', title: 'Accordion 2', content: 'Dropdown description text goes here. This can be updated in the database later.' }
-            ]}
-          />
-        </div>
+        {categoryNode?.topAccordions && categoryNode.topAccordions.length > 0 && (
+          <div className="w-full flex flex-col gap-2 mb-6 mt-4">
+            <CategorySEOAccordion 
+              categoryName="Category Top Info" 
+              items={categoryNode.topAccordions.map((a: any, i: number) => ({ id: 'acc-'+i, title: a.title, content: a.content }))}
+            />
+          </div>
+        )}
 
         <CategoryDescriptionBlock description={categoryNode?.description} pageTitle={pageTitle} />
 
@@ -173,18 +172,19 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
 
         
         {/* --- CLIENT LAYOUT REQUIREMENT: FAQ AT BOTTOM WITH SCHEMA --- */}
-        <div className="mt-12 pt-8 border-t border-neutral-200 flex flex-col items-center">
-          <div className="w-full max-w-4xl">
-            <h2 className="font-bold text-lg min-[375px]:text-xl sm:text-2xl uppercase tracking-wide text-neutral-900 leading-tight mb-6 text-center">
-              Frequently Asked Questions
-            </h2>
-            {/* If the category node has FAQs from the DB, we pass them. Otherwise it uses default dummies for now */}
-            <CategorySEOAccordion 
-              categoryName={pageTitle} 
-              items={categoryNode?.faqs?.length > 0 ? categoryNode.faqs.map((f: any, i: number) => ({ id: 'faq-'+i, title: f.question, content: f.answer })) : undefined}
-            />
+        {categoryNode?.faqs && categoryNode.faqs.length > 0 && (
+          <div className="mt-12 pt-8 border-t border-neutral-200 flex flex-col items-center">
+            <div className="w-full max-w-4xl">
+              <h2 className="font-bold text-lg min-[375px]:text-xl sm:text-2xl uppercase tracking-wide text-neutral-900 leading-tight mb-6 text-center">
+                Frequently Asked Questions
+              </h2>
+              <CategorySEOAccordion 
+                categoryName={pageTitle} 
+                items={categoryNode.faqs.map((f: any, i: number) => ({ id: 'faq-'+i, title: f.question, content: f.answer }))}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
 
         {/* 7. Floating Reviews & Category Filter Bar (Mobile only) */}

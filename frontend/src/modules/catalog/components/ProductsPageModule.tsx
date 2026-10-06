@@ -72,29 +72,7 @@ export const ProductsPageModule = () => {
   });
 
   const mappedProducts: CatalogProduct[] = uniqueProducts.map((p) => {
-    const rawCat = (p.magentoCategories || "").toLowerCase();
-    const nameLower = (p.name || "").toLowerCase();
-
-    let cleanCat = "ACCESSORIES";
-    if (nameLower.includes("protector") || nameLower.includes("armour") || nameLower.includes("armor") || nameLower.includes("guard")) {
-      cleanCat = "PROTECTION";
-    } else if (nameLower.includes("base layer") || nameLower.includes("innerwear") || nameLower.includes("thermal")) {
-      cleanCat = "BASE LAYER";
-    } else if (nameLower.includes("visor") || nameLower.includes("pinlock") || nameLower.includes("deflector")) {
-      cleanCat = "ACCESSORY";
-    } else if (nameLower.includes("helmet") || rawCat.includes("helmet")) {
-      cleanCat = "HELMET";
-    } else if (nameLower.includes("jacket") || nameLower.includes("suit") || nameLower.includes("vest") || rawCat.includes("jacket")) {
-      cleanCat = "JACKET";
-    } else if (nameLower.includes("boot") || nameLower.includes("shoe") || rawCat.includes("boot") || rawCat.includes("shoe")) {
-      cleanCat = "BOOTS";
-    } else if (nameLower.includes("glove") || rawCat.includes("glove")) {
-      cleanCat = "GLOVES";
-    } else if (nameLower.includes("pant") || nameLower.includes("trouser") || rawCat.includes("pant")) {
-      cleanCat = "PANTS";
-    } else if (nameLower.includes("bag") || nameLower.includes("luggage") || rawCat.includes("luggage") || rawCat.includes("bag")) {
-      cleanCat = "LUGGAGE";
-    }
+    let cleanCat = (p.category && p.category.name) ? p.category.name : (typeof p.category === 'string' ? p.category : p.magentoCategories || "ACCESSORIES");
 
     let effectivePrice = p.basePrice || 0;
 

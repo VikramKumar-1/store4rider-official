@@ -196,7 +196,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
       <Breadcrumb items={[
         { label: "HOME", href: "/" },
         { label: "PRODUCTS", href: "/products" },
-        ...(product.category ? [{ label: product.category, href: `/${product.category.toLowerCase()}` }] : []),
+        ...(product.category ? [{ label: product.category, href: `/${product.category.toLowerCase().replace(/\s+/g, '-')}` }] : []),
         { label: product.name }
       ]} />
 

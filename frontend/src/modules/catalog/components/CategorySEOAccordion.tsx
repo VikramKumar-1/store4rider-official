@@ -14,37 +14,16 @@ interface CategorySEOAccordionProps {
   items?: AccordionItem[];
 }
 
-const DEFAULT_GLOVES_ACCORDIONS: AccordionItem[] = [
-  {
-    id: "panel-1",
-    title: "How to Choose the Right Motorcycle Riding Gloves? (Dummy)",
-    content:
-      "When selecting riding gloves, evaluate palm abrasion resistance, knuckle protection (carbon fiber, TPU, or D3O), cuff length (full gauntlet for track/highway, short cuff for city commuting), and CE Level certification (EN 13594:2015 KP Level 1 or Level 2). Ensure a snug fit across the palm without pinching finger tips when gripping handlebars.",
-  },
-  {
-    id: "panel-2",
-    title: "Difference Between Full Gauntlet, Semi Gauntlet & Short Gloves (Dummy)",
-    content:
-      "Full Gauntlet gloves extend over your jacket wrist to prevent skin exposure in high-speed track or touring slides. Semi Gauntlet offers extended wrist coverage with lighter everyday flexibility. Short cuff gloves provide maximum ventilation and quick wearability for daily city traffic.",
-  },
-];
-
-/**
- * CategorySEOAccordion
- * 
- * 100% Googlebot & SEO Crawl Optimized:
- * 1. Content is ALWAYS rendered in the initial HTML DOM (zero {isOpen && ...} unmounting).
- * 2. Uses CSS max-height transition so bots crawl every single keyword in initial SSR.
- * 3. Injects Schema.org JSON-LD FAQPage structured data for Google Search Rich Snippets.
- */
 export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
   categoryName = "Riding Gloves",
-  items = DEFAULT_GLOVES_ACCORDIONS,
+  items,
 }) => {
   // Store open state per panel; default first panel closed
-  const [openIds, setOpenIds] = useState<Record<string, boolean>>({
-    [items[0]?.id || "panel-1"]: false,
-  });
+  const [openIds, setOpenIds] = useState<Record<string, boolean>>({});
+
+  if (!items || items.length === 0) {
+    return null;
+  }
 
   // Handle deep linking for SEO: Expand accordion if URL has matching hash
   useEffect(() => {

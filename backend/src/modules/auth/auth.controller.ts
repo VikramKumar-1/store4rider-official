@@ -103,4 +103,21 @@ export class AuthController {
     await AuthService.resetPassword(validatedData);
     return ApiResponse.success(null, "Password reset successfully");
   }
+
+  static async checkEmail(req: NextRequest) {
+    try {
+      const body = await req.json();
+      const email = body?.email?.toLowerCase()?.trim();
+      if (!email) {
+        return ApiResponse.error("Email is required", 400);
+      }
+      
+      const { UserModel } = await import("../user/user.model");
+      const user = await UserModel.findOne({ email }).select("_id").lean().exec();
+      
+      return ApiResponse.success({ exists: !!user }, "Email checked successfully");
+    } catch (e: any) {
+      return ApiResponse.error("Failed to check email", 500);
+    }
+  }
 }

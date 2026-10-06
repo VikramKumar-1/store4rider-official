@@ -68,10 +68,13 @@ export function SidebarFilters() {
 
   const CATEGORIES = aggregations?.categories 
     ? aggregations.categories.slice(0, 30).map((c: any) => {
-        const parts = c.name.split('>');
-        const displayName = parts[parts.length - 1].trim();
-        const indent = (parts.length - 1) * 12; // increased indent for visual hierarchy
-        const fullSlug = parts.map((p: string) => slugify(p.trim())).join('/');
+        const rawParts = c.name.split('>');
+        const parts = rawParts.map((p: string) => p.trim()).filter((p: string) => 
+          !p.toLowerCase().includes('root') && !p.toLowerCase().includes('default category')
+        );
+        const displayName = parts.length > 0 ? parts[parts.length - 1] : rawParts[rawParts.length - 1].trim();
+        const indent = Math.max(0, parts.length - 1) * 12; // increased indent for visual hierarchy
+        const fullSlug = parts.length > 0 ? parts.map((p: string) => slugify(p)).join('/') : slugify(displayName);
         return { 
           fullName: c.name, 
           displayName,

@@ -1,6 +1,7 @@
 import { OrderModel } from "../order/order.model";
 import { UserModel } from "../user/user.model";
 import { ProductModel } from "../product/product.model";
+import { indexProduct, removeProductFromIndex } from "../../core/search/meilisearch";
 
 export class AdminService {
   static async getDashboardStats() {
@@ -105,10 +106,19 @@ export class AdminService {
       { new: true, upsert: true }
     ).lean().exec();
 
+    if (product) {
+      await indexProduct(product);
+    }
+
     return product;
   }
 
   static async deleteTestProduct() {
+    const product = await ProductModel.findOne({ sku: "TEST-SANDBOX-001" }).lean().exec();
+    if (product) {
+      await removeProductFromIndex((product as any)._id.toString());
+    }
+
     await ProductModel.deleteMany({
       $or: [{ sku: "TEST-SANDBOX-001" }, { slug: "store4riders-test-product" }]
     }).exec();

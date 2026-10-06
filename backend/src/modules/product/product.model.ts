@@ -34,6 +34,7 @@ const productSchema = new Schema<IProduct>(
     upsellSkus: [{ type: String }],
     crosssellSkus: [{ type: String }],
     brand: { type: String },
+    brandId: { type: String, index: true },
     gender: { type: String },
     attributes: { type: Map, of: String, default: new Map() },
     countryOfManufacture: { type: String },
