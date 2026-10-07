@@ -43,6 +43,7 @@ export interface IProduct {
   isFreeShipping?: boolean;
   configurableVariations?: string;
   status?: "draft" | "published" | "archived";
+  visibility?: string;
   isFeatured?: boolean;
   tags?: string[];
   videoUrl?: string;

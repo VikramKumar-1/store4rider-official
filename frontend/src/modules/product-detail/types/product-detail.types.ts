@@ -56,8 +56,11 @@ export interface PDPData {
     imageUrl?: string;
   }>;
   isFreeShipping?: boolean;
-  stockStatus?: number;
   allowBackorders?: boolean;
+  weight?: number;
+  stockStatus?: number;
+  videoUrl?: string;
+  attributes?: Record<string, string>;
 }
 
 export interface ProductDetailProps {

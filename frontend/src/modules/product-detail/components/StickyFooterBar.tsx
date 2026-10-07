@@ -159,7 +159,7 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                   <div className="flex items-center justify-between pb-3 mb-4 border-b border-neutral-100">
                     <div>
                       <h4 className="font-sans font-extrabold text-xs uppercase tracking-wider text-neutral-900">
-                        {openDropdown === "color" ? "Select Color" : "Select Size (EU)"}
+                        {openDropdown === "color" ? "Select Color" : `Select ${sizeLabel}`}
                       </h4>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-xs text-neutral-500 font-medium line-clamp-1 max-w-[200px]">{productName}</span>
@@ -384,7 +384,7 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
             {/* Desktop: Full Size Selector */}
             <div className="flex flex-col gap-1 border-l border-neutral-200/80 pl-4 min-w-[150px]">
               <div className="flex items-center justify-between">
-                <span className="text-[9px] uppercase font-bold tracking-wider text-neutral-500">SIZE (EU)</span>
+                <span className="text-[9px] uppercase font-bold tracking-wider text-neutral-500">{sizeLabel}</span>
                 {sizeChart && (
                   <button 
                     onClick={() => setShowSizeChart(true)}

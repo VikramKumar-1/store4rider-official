@@ -74,6 +74,9 @@ export const UpSellProducts: React.FC<{ products: KitProduct[]; title?: string }
                 alt={product.name}
                 fill
                 unoptimized
+                onError={(e) => {
+                  e.currentTarget.src = "/no-image.svg";
+                }}
                 className="object-contain mix-blend-multiply pointer-events-none group-hover:scale-105 transition-transform duration-500"
                 sizes="(max-width: 640px) 170px, (max-width: 768px) 200px, 240px"
               />

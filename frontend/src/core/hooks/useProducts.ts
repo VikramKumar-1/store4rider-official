@@ -46,6 +46,8 @@ export interface IBackendProduct {
   createdAt?: string;
   updatedAt?: string;
   allowBackorders?: boolean;
+  videoUrl?: string;
+  attributes?: Record<string, string>;
 }
 
 export function useProducts(params?: { 

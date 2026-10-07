@@ -94,12 +94,24 @@ export class ProductService {
         }
       }
 
-      if (childSkus.length > 0) {
-        const children = await ProductModel.find({ 
-          sku: { $in: childSkus }
-        }).lean().exec();
+      let children: any[] = [];
+      if (childSkus.length > 0) {
+        children = await ProductModel.find({ sku: { $in: childSkus } }).lean().exec();
+      } else if (product.productType === 'configurable' && product.sku) {
+        children = await ProductModel.find({ sku: { $regex: new RegExp(`^${product.sku}[-_]`, "i") } }).lean().exec();
+        children.forEach(c => {
+          if (!skuToAttributes[c.sku]) {
+            const parts = c.sku.replace(new RegExp(`^${product.sku}[-_]`, "i"), "").split(/[-_]/);
+            skuToAttributes[c.sku] = { color: parts[0] || 'Standard', size: parts[1] || 'Standard' };
+          }
+        });
+      }
+      if (children && children.length > 0) {
+ 
 
-        if (children && children.length > 0) {
+
+
+
           product.variants = children.map(c => ({
             id: c._id ? c._id.toString() : c.sku,
             sku: c.sku,
@@ -116,7 +128,7 @@ export class ProductService {
               product.basePrice = Math.min(...validPrices);
             }
           }
-        }
+
       }
     }
 
@@ -185,7 +197,7 @@ export class ProductService {
       return Object.entries(obj).map(([k, v]) => `${k}:${serializeFilter(v)}`).sort().join(";");
     };
 
-    const cacheKey = `product_aggregations_v9_${categorySlug || 'all'}_${serializeFilter(rawActiveFilters || {})}`;
+    const cacheKey = `product_aggregations_v12_${categorySlug || 'all'}_${serializeFilter(rawActiveFilters || {})}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -245,7 +257,7 @@ export class ProductService {
         baseFilters.$or = [
           { name: /\b(women|womens|lady|ladies|female)\b/i },
           { magentoCategories: /\b(women|womens|lady|ladies|female)\b/i },
-          { gender: /women|female|lady/i }
+          { "attributes.gender": /^(women|womens|lady|ladies|female)$/i }
         ];
       } else {
         const exactPhrase = cleanSlug.replace(/-/g, " ").trim();
@@ -316,7 +328,7 @@ export class ProductService {
     }
 
     const products = await ProductModel.find(baseFilters)
-      .select("brand magentoCategories variants configurableVariations colorImages stockStatus attributes")
+      .select("brand magentoCategories variants configurableVariations colorImages stockStatus attributes basePrice specialPrice")
       .lean()
       .exec();
 
@@ -333,13 +345,21 @@ export class ProductService {
     const activeColors = rawActiveFilters?.colour?.map((c: string) => c.toLowerCase()) || [];
     const activeSizes = rawActiveFilters?.size?.map((s: string) => s.toLowerCase()) || [];
 
+    let overallMinPrice = Infinity;
+    let overallMaxPrice = 0;
+
     products.forEach((p: any) => {
-      const pBrand = p.brand || (p.attributes && (p.attributes.brand || p.attributes.Brand)) || null;
+      const pName = (p.name || "").toLowerCase();
+      const pBrand = (p.brand || (p.attributes && (p.attributes.brand || p.attributes.Brand)) || "").toLowerCase();
       let matchesBrand = true;
-      if (activeBrands.length > 0 && pBrand) {
-        matchesBrand = activeBrands.some((b: string) => pBrand.toLowerCase() === b || (b === 'mt' && pBrand.toLowerCase().includes('mt helmets')));
-      } else if (activeBrands.length > 0) {
-        matchesBrand = false;
+      if (activeBrands.length > 0) {
+        matchesBrand = activeBrands.some((b: string) => {
+          if (!b) return false;
+          if (pBrand && (pBrand === b || pBrand.includes(b))) return true;
+          // Also match brand name inside product title with word boundary
+          const wordRegex = new RegExp(`\\b${b}\\b`, "i");
+          return wordRegex.test(pName);
+        });
       }
 
       let matchesColor = true;
@@ -483,13 +503,41 @@ export class ProductService {
           }
 
           if (attrValue) {
-            const cleanVal = attrValue.trim();
+            const cleanVals = attrValue.split(',').map(v => v.trim()).filter(Boolean);
             if (!dynamicAttrsMap.has(attrName)) dynamicAttrsMap.set(attrName, new Map());
             const valMap = dynamicAttrsMap.get(attrName)!;
-            if (!valMap.has(cleanVal)) valMap.set(cleanVal, new Set());
-            valMap.get(cleanVal)!.add(p._id.toString());
+            cleanVals.forEach(cleanVal => {
+              if (!valMap.has(cleanVal)) valMap.set(cleanVal, new Set());
+              valMap.get(cleanVal)!.add(p._id.toString());
+            });
           }
         });
+      }
+
+      // 5. EXTRACT PRICE
+      if (matchesBrand && matchesColor && matchesSize) {
+        let pBase = p.basePrice || 0;
+        let pSpecial = p.specialPrice;
+
+        if (!pBase && p.variants && p.variants.length > 0) {
+          const vPrices = p.variants.map((v: any) => v.price).filter((pr: number) => pr > 0);
+          if (vPrices.length > 0) pBase = Math.min(...vPrices);
+          if (!pSpecial) {
+            const vSpecials = p.variants.map((v: any) => v.specialPrice).filter((pr: number) => pr > 0);
+            if (vSpecials.length > 0) pSpecial = Math.min(...vSpecials);
+          }
+        }
+        
+        if (!pBase && pSpecial && pSpecial > 0) {
+          pBase = pSpecial;
+          pSpecial = undefined;
+        }
+
+        const finalPrice = (pSpecial && pSpecial > 0 && pBase > 0 && pSpecial < pBase) ? pSpecial : pBase;
+        if (finalPrice > 0) {
+          if (finalPrice < overallMinPrice) overallMinPrice = finalPrice;
+          if (finalPrice > overallMaxPrice) overallMaxPrice = finalPrice;
+        }
       }
     });
 
@@ -499,8 +547,18 @@ export class ProductService {
       if (attrName === 'helmet_type' && rawActiveFilters?.category && !rawActiveFilters.category.toLowerCase().includes('helmet')) {
         continue;
       }
-      if (attrName === 'certification' && rawActiveFilters?.category && rawActiveFilters.category.toLowerCase().includes('boot')) {
-        continue;
+      if (attrName === 'certification' && rawActiveFilters?.category) {
+        const catLow = rawActiveFilters.category.toLowerCase();
+        if (catLow.includes('boot') || catLow.includes('women')) {
+          continue;
+        }
+      }
+      if (attrName === 'gender' && rawActiveFilters?.category) {
+        const cat = rawActiveFilters.category.toLowerCase();
+        // Hide gender for hardware categories where it makes no sense
+        if (cat.includes('helmet') || cat.includes('visor') || cat.includes('gadget') || cat.includes('luggage') || cat.includes('spare') || cat.includes('accessori') || cat.includes('parts') || cat.includes('mount') || cat.includes('intercom')) {
+          continue;
+        }
       }
       
       dynamicAttributesResponse[attrName] = Array.from(valMap.entries())
@@ -508,19 +566,23 @@ export class ProductService {
         .sort((a, b) => b.count - a.count);
     }
 
-    const result = {
+    const result: any = {
       brands: Array.from(brandsMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
       categories: Array.from(categoriesMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
       colors: Array.from(colorsMap.entries()).map(([name, set]) => ({ name, count: set.size })).sort((a, b) => b.count - a.count),
       sizes: Array.from(sizesMap.entries()).map(([name, set]) => ({ name, count: set.size })).sort((a, b) => b.count - a.count),
       dynamicAttributes: dynamicAttributesResponse,
+      priceStats: { 
+        min: overallMinPrice === Infinity ? 0 : overallMinPrice, 
+        max: overallMaxPrice 
+      },
       filterConfig: undefined,
     };
 
     if (categorySlug) {
       const { CategoryModel } = await import("../category/category.model");
       const categoryDoc = await CategoryModel.findOne({ slug: categorySlug }).lean().exec() as any;
-      if (categoryDoc && categoryDoc.filterConfig) {
+      if (categoryDoc && Array.isArray(categoryDoc.filterConfig) && categoryDoc.filterConfig.length > 0) {
         result.filterConfig = categoryDoc.filterConfig;
       }
     }

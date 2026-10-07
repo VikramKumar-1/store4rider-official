@@ -13,12 +13,18 @@ export const ProductsPageModule = () => {
   let category = searchParams.get("category") || undefined;
   if (!category && params) {
     const rawParam = params.categorySlug || params.slug || params.category;
-    if (rawParam) {
+    if (rawParam && !params.brandSlug) {
       const slugArr = Array.isArray(rawParam) ? rawParam : [rawParam];
       category = slugArr[slugArr.length - 1];
     }
   }
-  const brand = searchParams.get("brand") || undefined;
+  
+  let brand = searchParams.get("brand") || undefined;
+  if (!brand && params?.brandSlug) {
+    const slugArr = Array.isArray(params.brandSlug) ? params.brandSlug : [params.brandSlug];
+    brand = slugArr[slugArr.length - 1];
+  }
+  
   const search = searchParams.get("search") || searchParams.get("q") || undefined;
   const page = searchParams.get("page") ? parseInt(searchParams.get("page")!, 10) : 1;
   const minPrice = searchParams.has("minPrice") ? parseFloat(searchParams.get("minPrice")!) : undefined;

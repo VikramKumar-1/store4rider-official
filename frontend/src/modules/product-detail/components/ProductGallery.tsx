@@ -122,14 +122,19 @@ export const ProductGallery: React.FC<{
       setUserHasClickedColor(true); // Flag that color changed
 
       if (activeVariantImageUrl) {
-        // Find if this image exists in the gallery array to sync active thumbnail
+        // Find if this image exists in the gallery array
         const matchIdx = images.findIndex(img => img.url === activeVariantImageUrl);
         if (matchIdx !== -1) {
           setActiveIndex(matchIdx);
+          setMainSrc(activeVariantImageUrl);
         } else {
-          setActiveIndex(-1); // No matching thumbnail but we have the image
+          // Variant image is not in parent gallery. Often means it's broken in DB.
+          // Fallback to searching the main gallery by color name!
+          const colorMatchIdx = findMatchingImageIndex(selectedColor, images);
+          const newIdx = colorMatchIdx !== -1 ? colorMatchIdx : 0;
+          setActiveIndex(newIdx);
+          setMainSrc(images[newIdx]?.url || FALLBACK_IMAGE);
         }
-        setMainSrc(activeVariantImageUrl);
       } else if (selectedColor) {
         // Fallback to guessing by search term if specific variant image isn't available
         const matchIdx = findMatchingImageIndex(selectedColor, images);

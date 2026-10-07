@@ -33,7 +33,9 @@ export class ProductValidator {
     const filters: Record<string, unknown> = {
       // Hide child variants (draft) and disabled products (archived)
       // Products with status=published OR status=undefined (old data) will show
-      status: { $nin: ["draft", "archived"] }
+      status: { $nin: ["draft", "archived"] },
+      // Magento visibility "1" means "Not Visible Individually", but text exports say "Not Visible Individually"
+      visibility: { $nin: ["1", "Not Visible Individually"] }
     };
     const andConditions: any[] = [];
     
@@ -108,11 +110,18 @@ export class ProductValidator {
             { name: /balaclava|face mask|head mask/i },
           ]
         });
-      } else if (cleanSlug.includes("intercom") || cleanSlug.includes("bluetooth")) {
+      } else if (cleanSlug.includes("helmet-cleaner") || (cleanSlug.includes("helmet") && cleanSlug.includes("cleaner"))) {
         andConditions.push({
           $or: [
-            { magentoCategories: /intercom|bluetooth|communication/i },
-            { name: /intercom|bluetooth|sena|cardo|parani/i },
+            { magentoCategories: /helmet.*cleaner/i },
+            { name: /helmet.*cleaner|helmet.*spray|muc-off.*helmet/i }
+          ]
+        });
+      } else if (cleanSlug.includes("chain-lube") || cleanSlug.includes("chain-cleaner") || cleanSlug.includes("chain-care")) {
+        andConditions.push({
+          $or: [
+            { magentoCategories: /chain/i },
+            { name: /chain.*lube|chain.*clean|chain.*paste|chain.*spray/i }
           ]
         });
       } else if (cleanSlug.includes("cleaner") || cleanSlug.includes("spray") || cleanSlug.includes("care")) {
@@ -130,13 +139,9 @@ export class ProductValidator {
         andConditions.push({
           $or: [{ name: /balaclava|mask|bandana/i }, { magentoCategories: /balaclava|mask|bandana/i }]
         });
-      } else if (cleanSlug.includes("bluetooth-intercom") || cleanSlug.includes("intercom")) {
+      } else if (cleanSlug.includes("intercom") || cleanSlug.includes("bluetooth")) {
         andConditions.push({
-          $or: [{ name: /bluetooth|intercom|sena|parani/i }, { magentoCategories: /bluetooth|intercom/i }]
-        });
-      } else if (cleanSlug.includes("helmet-cleaner") || cleanSlug.includes("cleaner")) {
-        andConditions.push({
-          $or: [{ name: /cleaner|spray|muc-off/i }, { magentoCategories: /cleaner/i }]
+          $or: [{ name: /bluetooth|intercom|sena|cardo|parani/i }, { magentoCategories: /bluetooth|intercom|communication/i }]
         });
       } else if (cleanSlug.includes("full-face-helmet")) {
         andConditions.push({
@@ -198,15 +203,18 @@ export class ProductValidator {
         });
       } else if (cleanSlug.includes("full-gauntlet-glove")) {
         andConditions.push({
-          $or: [{ name: /full.*gauntlet/i }, { magentoCategories: /full.*gauntlet/i }]
+          $or: [{ name: /full.*gauntlet/i }, { magentoCategories: /full.*gauntlet/i }],
+          name: { $not: /semi.*gauntlet|short/i }
         });
       } else if (cleanSlug.includes("semi-gauntlet-glove")) {
         andConditions.push({
-          $or: [{ name: /semi.*gauntlet/i }, { magentoCategories: /semi.*gauntlet/i }]
+          $or: [{ name: /semi.*gauntlet/i }, { magentoCategories: /semi.*gauntlet/i }],
+          name: { $not: /full.*gauntlet|short/i }
         });
       } else if (cleanSlug.includes("short-motorbike-glove") || cleanSlug.includes("short-glove")) {
         andConditions.push({
-          $or: [{ name: /short.*glove/i }, { magentoCategories: /short.*glove/i }]
+          $or: [{ name: /short/i }, { magentoCategories: /short/i }],
+          name: { $not: /full.*gauntlet|semi.*gauntlet/i }
         });
       } else if (cleanSlug.includes("winter-glove") || cleanSlug.includes("waterproof-glove")) {
         andConditions.push({
@@ -287,7 +295,11 @@ export class ProductValidator {
         });
       } else if (cleanSlug.includes("performance-parts") || cleanSlug.includes("performance")) {
         andConditions.push({
-          $or: [{ magentoCategories: /performance/i }, { name: /performance|exhaust|air filter/i }]
+          $or: [
+            { magentoCategories: /\/performance parts/i }, 
+            { name: /performance part|exhaust|air filter/i },
+            { categorySlugs: cleanSlug }
+          ]
         });
       } else if (cleanSlug.includes("rally-tower") || cleanSlug.includes("navigation-tower")) {
         andConditions.push({
@@ -310,7 +322,12 @@ export class ProductValidator {
         });
       } else if (cleanSlug.includes("women-riding-gear") || cleanSlug.includes("women") || cleanSlug.includes("riding-gear-for-women")) {
         andConditions.push({
-          $or: [{ name: /\b(women|womens|lady|ladies|female)\b/i }, { magentoCategories: /\b(women|womens|lady|ladies|female)\b/i }, { gender: /women|female|lady/i }]
+          $or: [
+            { name: /\b(women|womens|lady|ladies|female)\b/i },
+            { magentoCategories: /\b(women|womens|lady|ladies|female)\b/i },
+            // Exact match for gender so we don't accidentally match "Male, Female, Unisex"
+            { "attributes.gender": /^(women|womens|lady|ladies|female)$/i }
+          ]
         });
       } else if (cleanSlug.includes("protectors-armour") || cleanSlug.includes("protector") || cleanSlug.includes("armour")) {
         andConditions.push({
@@ -397,21 +414,32 @@ export class ProductValidator {
 
     if (brand) {
       const brandsList = brand.split(",").map(b => b.trim()).filter(Boolean);
-      if (brandsList.length === 1) {
-        const b = brandsList[0];
-        // Relaxed match to handle variations like 'AGV Helmets' or trailing spaces
+      const makeBrandCondition = (b: string) => {
+        // Replace hyphens with a regex that allows both hyphen and space
+        // This ensures frontend slugs like "royal-enfield" match "Royal Enfield" in the DB.
+        const flexibleBrand = ProductValidator.escapeRegExp(b).replace(/-/g, '[\\s\\-]');
+        
         const regex = b.toLowerCase() === "mt" 
           ? /\bmt\b|mt helmets/i 
-          : new RegExp(ProductValidator.escapeRegExp(b), "i");
-        andConditions.push({ brand: { $regex: regex } });
+          : new RegExp(flexibleBrand, "i");
+          
+        const wordRegex = b.toLowerCase() === "mt"
+          ? /\bmt\b/i
+          : new RegExp(`\\b${flexibleBrand}\\b`, "i");
+          
+        return {
+          $or: [
+            { brand: { $regex: regex } },
+            { "attributes.brand": { $regex: regex } },
+            { name: { $regex: wordRegex } }
+          ]
+        };
+      };
+
+      if (brandsList.length === 1) {
+        andConditions.push(makeBrandCondition(brandsList[0]));
       } else if (brandsList.length > 1) {
-        const brandRegexes = brandsList.map(b => {
-          const regex = b.toLowerCase() === "mt" 
-            ? /\bmt\b|mt helmets/i 
-            : new RegExp(ProductValidator.escapeRegExp(b), "i");
-          return { brand: { $regex: regex } };
-        });
-        andConditions.push({ $or: brandRegexes });
+        andConditions.push({ $or: brandsList.map(b => makeBrandCondition(b)) });
       }
     }
 
@@ -430,6 +458,7 @@ export class ProductValidator {
       }
       andConditions.push({
         $or: [
+          { specialPrice: { ...baseCond, $gt: 0 } },
           { basePrice: { ...baseCond, $gt: 0 } },
           { "variants.price": variantCond },
         ],
@@ -452,13 +481,15 @@ export class ProductValidator {
       // Match "size=X" or "eu_size=X" inside configurableVariations
       const configVarRegexes = sizes.map(s => new RegExp(`(?:size|eu_size)=${ProductValidator.escapeRegExp(s)}(\\||,|$)`, "i"));
       const exactRegexes = sizes.map(s => new RegExp(`^${ProductValidator.escapeRegExp(s)}$`, "i"));
+      const skuSizeRegexes = sizes.map(s => new RegExp(`[-_]${ProductValidator.escapeRegExp(s)}(?:[-_]|$)`, "i"));
       andConditions.push({
         $or: [
           { configurableVariations: { $in: configVarRegexes } },
           { "variants.attributes.size": { $in: exactRegexes } },
           { "variants.attributes.eu_size": { $in: exactRegexes } },
           { "attributes.size": { $in: exactRegexes } },
-          { "attributes.eu_size": { $in: exactRegexes } }
+          { "attributes.eu_size": { $in: exactRegexes } },
+          { sku: { $in: skuSizeRegexes } }
         ],
       });
     }
@@ -470,8 +501,10 @@ export class ProductValidator {
       const configVarRegexes = colours.map(c => new RegExp(`color=${ProductValidator.escapeRegExp(c)}(\\||,|$)`, "i"));
       // Match exact value in structured variants.attributes
       const exactRegexes = colours.map(c => new RegExp(`^${ProductValidator.escapeRegExp(c)}$`, "i"));
-      // FIX: Also check colorImages keys. Since MongoDB Map keys are case-sensitive,
-      // we check the exact, lowercase, UPPERCASE, and TitleCase variations.
+      const nameColorRegexes = colours.map(c => new RegExp(`\\b${ProductValidator.escapeRegExp(c)}\\b`, "i"));
+      const skuColorRegexes = colours.map(c => new RegExp(`[-_]${ProductValidator.escapeRegExp(c)}[-_]`, "i"));
+      
+      // Also check colorImages keys
       const colorImageConditions = colours.flatMap(c => {
         const lower = c.toLowerCase();
         const upper = c.toUpperCase();
@@ -490,6 +523,8 @@ export class ProductValidator {
           { "variants.attributes.colour": { $in: exactRegexes } },
           { "attributes.color": { $in: exactRegexes } },
           { "attributes.colour": { $in: exactRegexes } },
+          { name: { $in: nameColorRegexes } },
+          { sku: { $in: skuColorRegexes } },
           ...colorImageConditions
         ],
       });

@@ -55,10 +55,25 @@ const extractCategoryName = (product: IBackendProduct): string => {
  * Helper: Parse configurableVariations string into colors & sizes arrays.
  * Input format: "sku=CL-FR-BL-7,eu_size_for_boots=41,color=Black|sku=CL-FR-BR-7,eu_size_for_boots=41,color=Brown"
  */
-const parseVariations = (variationsStr?: string): { colors: string[]; sizes: string[]; sizeLabel: string } => {
+const parseVariations = (
+  variationsStr?: string,
+  variationLabelsStr?: string
+): { colors: string[]; sizes: string[]; sizeLabel: string } => {
   const colors = new Set<string>();
   const sizes = new Set<string>();
   let sizeLabel = "SIZE";
+
+  if (variationLabelsStr) {
+    // E.g. "eu_size_for_boots=EU Size for boots,color=Color"
+    const labelPairs = variationLabelsStr.split(",");
+    for (const pair of labelPairs) {
+      const [k, lbl] = pair.split("=");
+      if (k && lbl && !k.toLowerCase().includes("color") && !k.toLowerCase().includes("colour")) {
+        sizeLabel = lbl.trim().toUpperCase();
+        break;
+      }
+    }
+  }
 
   if (!variationsStr) return { colors: [], sizes: [], sizeLabel };
 
@@ -71,12 +86,18 @@ const parseVariations = (variationsStr?: string): { colors: string[]; sizes: str
       const k = key.trim().toLowerCase();
       const v = value.trim();
 
+      if (k === "sku") continue;
+
       if (k.includes("color") || k.includes("colour")) {
         colors.add(v);
       } else {
         sizes.add(v);
-        if (!k.includes("size") && sizeLabel === "SIZE") {
-          sizeLabel = key.trim().replace(/_/g, ' ').toUpperCase();
+        if (sizeLabel === "SIZE") {
+          if (k === "eu_size_for_boots") {
+            sizeLabel = "EU SIZE FOR BOOTS";
+          } else if (!k.includes("size")) {
+            sizeLabel = key.trim().replace(/_/g, ' ').toUpperCase();
+          }
         }
       }
     }
@@ -408,12 +429,15 @@ const mapProductToPDP = (
         Object.entries(attrs).forEach(([key, value]) => {
           const k = key.toLowerCase();
           const v = String(value).trim();
+          if (k === 'sku') return;
           if (k.includes('color') || k.includes('colour')) {
             colorSet.add(v);
           } else {
             // Treat ANY other attribute (size, weight, dimension, fit, etc.) as the secondary variant selector
             sizeSet.add(v);
-            if (!k.includes('size') && sizeLabel === "SIZE") {
+            if (k === 'eu_size_for_boots' && sizeLabel === "SIZE") {
+              sizeLabel = "EU SIZE FOR BOOTS";
+            } else if (!k.includes('size') && sizeLabel === "SIZE") {
               // Extract a clean label (e.g. "weight_in_ml" -> "WEIGHT IN ML")
               sizeLabel = key.replace(/_/g, ' ').trim().toUpperCase();
             }
@@ -425,7 +449,7 @@ const mapProductToPDP = (
     sizes = Array.from(sizeSet);
   } else {
     // Fallback to parsing the legacy Magento string
-    const parsed = parseVariations(product.configurableVariations);
+    const parsed = parseVariations(product.configurableVariations, (product as any).configurableVariationLabels);
     colorNames = parsed.colors;
     sizes = parsed.sizes;
     sizeLabel = parsed.sizeLabel || "SIZE";
@@ -486,6 +510,9 @@ const mapProductToPDP = (
     isFreeShipping,
     stockStatus: product.stockStatus ?? 1,
     allowBackorders: product.allowBackorders ?? false,
+    weight: product.weight,
+    videoUrl: product.videoUrl,
+    attributes: product.attributes instanceof Map ? Object.fromEntries(product.attributes) : (product.attributes || {}),
   };
 };
 
@@ -511,11 +538,36 @@ export const ProductDetailPageModule = () => {
 
   useEffect(() => {
     if (product) {
+      let base = product.basePrice || 0;
+      let special = product.specialPrice;
+
+      if (!base && product.variants && product.variants.length > 0) {
+        const vp = product.variants.map((v: any) => v.price).filter((pr: number) => pr > 0);
+        if (vp.length > 0) base = Math.min(...vp);
+        if (!special) {
+          const vs = product.variants.map((v: any) => v.specialPrice).filter((p: any) => p && p > 0);
+          if (vs.length > 0) special = Math.min(...vs);
+        }
+      }
+      if (!base && special && special > 0) {
+        base = special;
+        special = undefined;
+      }
+      if (!base && product.metaTitle) {
+        const match = product.metaTitle.match(/(?:rs\.?|inr|₹)\s*([0-9,]+)/i);
+        if (match && match[1]) {
+          base = parseFloat(match[1].replace(/,/g, ""));
+        }
+      }
+
+      const hasDiscount = special && special > 0 && base > 0 && special < base;
+      const finalPrice = (hasDiscount ? special : base) || 0;
+
       addRecentView({
         id: product._id,
         name: product.name,
         category: extractCategoryName(product),
-        priceFormatted: formatINR((product.specialPrice && product.specialPrice < product.basePrice) ? product.specialPrice : product.basePrice),
+        priceFormatted: finalPrice > 0 ? formatINR(finalPrice) : "Contact for Price",
         imageUrl: product.images?.[0]?.url || "/no-image.svg",
         rating: 4.95,
         productUrl: `/products/${product.slug}`,

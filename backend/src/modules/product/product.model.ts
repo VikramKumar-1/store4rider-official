@@ -36,6 +36,7 @@ const productSchema = new Schema<IProduct>(
     brand: { type: String },
     brandId: { type: String, index: true },
     gender: { type: String },
+    visibility: { type: String },
     attributes: { type: Map, of: String, default: new Map() },
     countryOfManufacture: { type: String },
     attributeSetCode: { type: String },

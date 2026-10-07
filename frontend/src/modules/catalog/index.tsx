@@ -101,16 +101,10 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
         </div>
 
         
-        {/* --- CLIENT LAYOUT REQUIREMENT: HERO IMAGE --- */}
-        {categoryNode?.bannerImage && (
-          <div className="w-full h-24 sm:h-32 md:h-40 lg:h-48 relative rounded-lg overflow-hidden mb-4 shadow-sm">
-             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={categoryNode.bannerImage} alt={pageTitle} className="w-full h-full object-cover" />
-          </div>
-        )}
-
-        {/* 3. Subcategory Tiles */}
-        <SubcategoryTiles categoryName={pageTitle} categorySlug={categoryParam || ""} subcategories={categoryNode?.children || []} />
+        {/* 3. Subcategory Tiles (Hidden on Desktop as per client request) */}
+        <div className="block lg:hidden">
+          <SubcategoryTiles categoryName={pageTitle} categorySlug={categoryParam || ""} subcategories={categoryNode?.children || []} />
+        </div>
 
         {/* --- CLIENT LAYOUT REQUIREMENT: TWO ACCORDIONS AT TOP --- */}
         {categoryNode?.topAccordions && categoryNode.topAccordions.length > 0 && (

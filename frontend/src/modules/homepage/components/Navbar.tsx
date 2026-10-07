@@ -34,6 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const items = useCartStore((state) => state.items);
   const { user, isAuthenticated, logout } = useAuthStore();
+  const { data: brands } = useBrands();
 
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -82,8 +83,37 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const totalItemCount = mounted ? items.reduce((sum, i) => sum + (i.quantity || 1), 0) : 0;
   const isLight = theme === "light" || isScrolled;
-  // The client explicitly requested the hardcoded navbar only
-  const activeNavItems = navItems ?? DEFAULT_NAV_ITEMS;
+  
+  // The client explicitly requested the hardcoded navbar only, but we will filter out empty brands later
+  // We will clone DEFAULT_NAV_ITEMS and inject the real database brands into the "Shop By Brand" dropdown
+  const activeNavItems = React.useMemo(() => {
+    if (navItems) return navItems;
+    
+    // Deep clone to avoid mutating the constant
+    const cloned = JSON.parse(JSON.stringify(DEFAULT_NAV_ITEMS));
+    
+    // Find the Shop By Brand item
+    const brandItem = cloned.find((item: any) => item.id === "shop-by-brand");
+    
+    if (brandItem && brands && brands.length > 0) {
+      // Chunk brands into groups of 9 for the mega menu columns
+      const brandGroups = [];
+      for (let i = 0; i < brands.length; i += 9) {
+        brandGroups.push(brands.slice(i, i + 9));
+      }
+      
+      brandItem.megaMenuItems = brandGroups.map((group, index) => ({
+        group: `Brands Part ${index + 1}`,
+        items: group.map((b: any) => ({
+          label: b.name,
+          href: `/brands/${b.slug}`,
+          logoUrl: b.logoUrl || undefined,
+        })),
+      }));
+    }
+    
+    return cloned;
+  }, [navItems, brands]);
 
   return (
     <>

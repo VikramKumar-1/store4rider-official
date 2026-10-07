@@ -187,7 +187,8 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
           { label: "Macna", href: "/products?brand=macna", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/macna-100x51.png" },
           { label: "Furygan", href: "/products?brand=furygan", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/furygan_logo.jpg" },
           { label: "Raida", href: "/products?brand=raida", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Raida.png" },
-          { label: "Knox", href: "/products?brand=knox", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/knox.png" }
+          { label: "Knox", href: "/products?brand=knox", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/knox.png" },
+          { label: "Forma Boots", href: "/products?brand=forma" }
         ],
       },
       {
@@ -211,7 +212,9 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
           { label: "Motul", href: "/products?brand=motul", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Motul-logo.png" },
           { label: "K&N", href: "/products?brand=k&n", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/K_N-Logo.png" },
           { label: "NGK", href: "/products?brand=ngk", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/NGK.png" },
-          { label: "BMC Air Filter", href: "/products?brand=bmc", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/BMC_Air_filter_logo.png" }
+          { label: "BMC Air Filter", href: "/products?brand=bmc", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/BMC_Air_filter_logo.png" },
+          { label: "Moto Torque", href: "/products?brand=moto-torque" },
+          { label: "Barrel Exhaust", href: "/products?brand=barrel-exhaust" }
         ],
       }
     ],

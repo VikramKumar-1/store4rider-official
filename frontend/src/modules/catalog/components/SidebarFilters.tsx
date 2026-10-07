@@ -340,10 +340,22 @@ export function SidebarFilters() {
 
           // 2. Price
           if (config.code === "price") {
+            const minPrice = aggregations?.priceStats?.min || 0;
+            const maxPrice = aggregations?.priceStats?.max || Infinity;
+            
+            // Only show price ranges that overlap with the actual products on this page
+            const applicableRanges = PRICE_RANGES.filter(range => {
+              const rangeMin = range.min || 0;
+              const rangeMax = range.max || Infinity;
+              return rangeMax >= minPrice && rangeMin <= maxPrice;
+            });
+            
+            if (applicableRanges.length === 0) return null;
+            
             return (
               <AccordionSection key="price" title={config.label} defaultOpen={true}>
                 <div className="flex flex-col gap-1.5">
-                  {PRICE_RANGES.map((range) => {
+                  {applicableRanges.map((range) => {
                     const active = activePriceId === range.id;
                     return (
                       <button
