@@ -7,8 +7,7 @@ import { StarIcon, ShoppingBagIcon, CheckIcon } from "@heroicons/react/24/solid"
 import { CatalogProduct } from "../types/catalog.types";
 import { useCartStore } from "@/stores/useCartStore";
 
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80";
+const FALLBACK_IMAGE = "/no-image.svg";
 
 export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ product }) => {
   const [imgSrc, setImgSrc] = useState(product.imageUrl);

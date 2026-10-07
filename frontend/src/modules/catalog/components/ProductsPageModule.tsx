@@ -11,9 +11,12 @@ export const ProductsPageModule = () => {
   const params = useParams();
   
   let category = searchParams.get("category") || undefined;
-  if (!category && params?.categorySlug) {
-    const slugArr = params.categorySlug as string[];
-    category = slugArr[slugArr.length - 1];
+  if (!category && params) {
+    const rawParam = params.categorySlug || params.slug || params.category;
+    if (rawParam) {
+      const slugArr = Array.isArray(rawParam) ? rawParam : [rawParam];
+      category = slugArr[slugArr.length - 1];
+    }
   }
   const brand = searchParams.get("brand") || undefined;
   const search = searchParams.get("search") || searchParams.get("q") || undefined;
@@ -72,7 +75,17 @@ export const ProductsPageModule = () => {
   });
 
   const mappedProducts: CatalogProduct[] = uniqueProducts.map((p) => {
-    let cleanCat = (p.category && p.category.name) ? p.category.name : (typeof p.category === 'string' ? p.category : p.magentoCategories || "ACCESSORIES");
+    let cleanCat = "ACCESSORIES";
+    const pAny = p as any;
+    if (pAny.category && pAny.category.name) {
+      cleanCat = pAny.category.name;
+    } else if (pAny.categorySlugs && pAny.categorySlugs.length > 0) {
+      const lastSlug = pAny.categorySlugs[pAny.categorySlugs.length - 1];
+      cleanCat = lastSlug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+    } else if (p.magentoCategories) {
+      const parts = p.magentoCategories.split(/[\/,|]/).map((s: string) => s.trim()).filter((s: string) => s && !s.toLowerCase().includes("root test") && !s.toLowerCase().includes("default"));
+      cleanCat = parts.length > 0 ? parts[parts.length - 1] : "ACCESSORIES";
+    }
 
     let effectivePrice = p.basePrice || 0;
 

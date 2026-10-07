@@ -1,22 +1,12 @@
 import { ICategoryTree } from "@/core/hooks/useCategories";
 import { IBrand } from "@store4riders/shared-types";
-import { NavItem } from "../../types/homepage.types";
+import { NavItem } from "../types/homepage.types";
 
 export const generateNavItems = (categories: ICategoryTree[], brands: IBrand[]): NavItem[] => {
   const navItems: NavItem[] = [];
 
-  // EXPLICIT ROOT CATEGORIES TO SHOW IN NAVBAR
-  const ALLOWED_NAV_SLUGS = [
-    'motorcycle-helmets',
-    'riding-gear',
-    'motorcycle-bags-bike-luggage',
-    'motorcycle-accessories-online'
-  ];
-
-  // Filter and sort the categories explicitly
-  const sortedCategories = [...(categories || [])]
-    .filter(c => ALLOWED_NAV_SLUGS.includes(c.slug))
-    .sort((a, b) => ALLOWED_NAV_SLUGS.indexOf(a.slug) - ALLOWED_NAV_SLUGS.indexOf(b.slug));
+  // Map all root categories from the database directly
+  const sortedCategories = [...(categories || [])];
 
   sortedCategories.forEach((category) => {
     // Only top level categories
@@ -81,7 +71,7 @@ export const generateNavItems = (categories: ICategoryTree[], brands: IBrand[]):
         items: group.map((b) => ({
           label: b.name,
           href: `/products?brand=${b.slug}`,
-          logoUrl: b.logoUrl || undefined, // Or use actual property
+          logoUrl: (b as any).logoUrl || undefined,
         })),
       })),
     });

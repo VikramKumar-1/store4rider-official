@@ -32,7 +32,7 @@ export function useLogin(options?: { disableRedirect?: boolean }) {
   });
 }
 
-export function useRegister() {
+export function useRegister(options?: { disableRedirect?: boolean }) {
   const setAuth = useAuthStore((state) => state.setAuth);
   const router = useRouter();
 
@@ -46,11 +46,15 @@ export function useRegister() {
         setAuth(data.data.user, data.data.accessToken, data.data.refreshToken);
       }
 
-      const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-      const redirectTarget = searchParams?.get("redirect") || "/";
+      if (!options?.disableRedirect) {
+        const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+        const redirectTarget = searchParams?.get("redirect") || "/";
 
-      toast.success("Account created successfully!");
-      router.push(redirectTarget);
+        toast.success("Account created successfully!");
+        router.push(redirectTarget);
+      } else {
+        toast.success("Account created successfully!");
+      }
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || "Registration failed");

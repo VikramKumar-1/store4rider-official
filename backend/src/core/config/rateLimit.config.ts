@@ -27,8 +27,8 @@ export const RATE_LIMIT_CONFIG = {
    * Purpose: Prevents credential stuffing, dictionary brute-force, and account enumeration.
    */
   AUTH: {
-    keyPrefix: "rl_auth",
-    points: 5,               // 5 attempts
+    keyPrefix: process.env.NODE_ENV === "development" ? "rl_auth_dev" : "rl_auth",
+    points: process.env.NODE_ENV === "development" ? 100 : 10,  // 10 attempts in prod, 100 in dev
     duration: 15 * 60,       // per 15 minutes
     blockDuration: 15 * 60,  // Block IP for 15 minutes if exceeded
     errorMessage: "Too many login/registration attempts from this IP. Please try again after 15 minutes.",

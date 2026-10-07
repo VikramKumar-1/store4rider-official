@@ -37,7 +37,7 @@ import { COUNTRIES } from "@/core/utils/countries";
 
 import { useAuthStore } from "@/stores/useAuthStore";
 
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80";
+const FALLBACK_IMAGE = "/no-image.svg";
 
 
 
@@ -74,6 +74,14 @@ export const CheckoutPageModule = () => {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [showAddressForm, setShowAddressForm] = useState<boolean>(!user);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+
+  // Keep register form mounted on success screen even after user auth state changes
+  const [showRegisterForm, setShowRegisterForm] = useState(false);
+  useEffect(() => {
+    if (currentStep === 4 && !user) {
+      setShowRegisterForm(true);
+    }
+  }, [currentStep]);
 
   const handleDeleteAddress = async (id: string) => {
     if (confirm("Are you sure you want to delete this address?")) {
@@ -586,7 +594,7 @@ export const CheckoutPageModule = () => {
               Thank you for shopping with Store4Riders. Your order <strong>#{generatedOrderNumber}</strong> has been confirmed. A receipt and tracking details have been sent to {formData.email || user?.email ? <strong>{formData.email || user?.email}</strong> : "your registered email address"}.
             </p>
             
-            {!user && formData.email && (
+            {showRegisterForm && formData.email && (
               <PostCheckoutRegisterForm email={formData.email} name={formData.name || ""} />
             )}
             

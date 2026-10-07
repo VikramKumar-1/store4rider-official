@@ -66,7 +66,7 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
   const activeColorParam = searchParams?.get("colour");
   const activeColors = activeColorParam ? activeColorParam.split(",").map(c => c.trim().toLowerCase()) : [];
 
-  let bestRawUrl = product.images?.[0]?.url || product.image || "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?q=75&w=600&auto=format&fit=crop";
+  let bestRawUrl = product.images?.[0]?.url || product.image || "/no-image.svg";
 
   // If a color filter is active, try to find an image that matches the color
   if (activeColors.length > 0 && product.images && product.images.length > 0) {
@@ -85,7 +85,7 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
     ? `${bestRawUrl.split("?")[0]}?q=75&w=600&auto=format&fit=crop`
     : bestRawUrl;
 
-  const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?q=75&w=600&auto=format&fit=crop";
+  const FALLBACK_IMAGE = "/no-image.svg";
   const [imgSrc, setImgSrc] = useState(imageUrl);
 
   // Update image if URL changes (e.g. filter changes)

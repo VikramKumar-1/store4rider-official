@@ -199,7 +199,7 @@ const mapToKitProduct = (p: IBackendProduct): KitProduct => {
     name: p.name,
     category: catName.toUpperCase(),
     priceFormatted: price > 0 ? formatINR(price) : "Contact for Price",
-    imageUrl: p.images?.[0]?.url || "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80",
+    imageUrl: p.images?.[0]?.url || "/no-image.svg",
     productUrl: `/products/${p.slug}`,
   };
 };
@@ -380,7 +380,7 @@ const mapProductToPDP = (
         url: img.url,
         altText: inferImageColorLabel(img.url, img.altText || "", product.name),
       }))
-    : [{ url: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80", altText: "Placeholder" }];
+    : [{ url: "/no-image.svg", altText: "Placeholder" }];
 
   const category = extractCategoryName(product);
 
@@ -516,7 +516,7 @@ export const ProductDetailPageModule = () => {
         name: product.name,
         category: extractCategoryName(product),
         priceFormatted: formatINR((product.specialPrice && product.specialPrice < product.basePrice) ? product.specialPrice : product.basePrice),
-        imageUrl: product.images?.[0]?.url || "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80",
+        imageUrl: product.images?.[0]?.url || "/no-image.svg",
         rating: 4.95,
         productUrl: `/products/${product.slug}`,
       });

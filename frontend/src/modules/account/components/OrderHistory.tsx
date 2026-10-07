@@ -80,7 +80,7 @@ export function OrderHistory() {
         {orders.map((order: any) => {
           const statusConfig = getStatusDisplay(order.status);
           const firstItem = order.items?.[0];
-          const productImg = firstItem?.product?.images?.[0]?.url || firstItem?.product?.image || "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80";
+          const productImg = firstItem?.product?.images?.[0]?.url || firstItem?.product?.image || "/no-image.svg";
           const additionalItemsCount = Math.max(0, (order.items?.length || 0) - 1);
           
           return (

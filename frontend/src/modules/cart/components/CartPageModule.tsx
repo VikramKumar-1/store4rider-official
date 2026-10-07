@@ -15,7 +15,7 @@ import { TrashIcon, PlusIcon, MinusIcon, XMarkIcon, CheckCircleIcon } from "@her
 import { ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80";
+const FALLBACK_IMAGE = "/no-image.svg";
 
 interface PromoCodeItem {
   code: string;

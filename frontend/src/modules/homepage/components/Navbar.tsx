@@ -82,8 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const totalItemCount = mounted ? items.reduce((sum, i) => sum + (i.quantity || 1), 0) : 0;
   const isLight = theme === "light" || isScrolled;
-  // The old hardcoded navbar is completely restored. No API fetching required.
-  
+  // The client explicitly requested the hardcoded navbar only
   const activeNavItems = navItems ?? DEFAULT_NAV_ITEMS;
 
   return (

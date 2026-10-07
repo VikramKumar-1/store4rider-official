@@ -162,7 +162,7 @@ export function OrderDetails({ orderId }: { orderId: string }) {
                     <Link href={`/products/${item.product.slug}`} className="shrink-0">
                       <div className="relative w-24 h-24 bg-neutral-50 border border-neutral-100 flex items-center justify-center p-2 hover:border-brand transition-colors">
                         <Image 
-                          src={item.product?.images?.[0]?.url || item.product?.image || "https://images.unsplash.com/photo-1551028719-00167b16eac5"} 
+                          src={item.product?.images?.[0]?.url || item.product?.image || "/no-image.svg"} 
                           alt="Product" 
                           fill 
                           className="object-contain p-1 mix-blend-multiply" 
@@ -173,7 +173,7 @@ export function OrderDetails({ orderId }: { orderId: string }) {
                   ) : (
                     <div className="shrink-0 relative w-24 h-24 bg-neutral-50 border border-neutral-100 flex items-center justify-center p-2">
                       <Image 
-                        src={item.product?.images?.[0]?.url || item.product?.image || "https://images.unsplash.com/photo-1551028719-00167b16eac5"} 
+                        src={item.product?.images?.[0]?.url || item.product?.image || "/no-image.svg"} 
                         alt="Product" 
                         fill 
                         className="object-contain p-1 mix-blend-multiply" 

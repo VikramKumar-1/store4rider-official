@@ -41,25 +41,7 @@ export class ProductValidator {
     if (category) {
       let cleanSlug = category.toLowerCase().trim();
       
-      // TRANSLATOR: Map frontend SEO URLs back to the exact Magento DB slugs
-      const slugMap: Record<string, string> = {
-        "full-face-helmets": "full-face",
-        "modular-helmets": "modular-flip-up",
-        "half-face-helmets": "open-face",
-        "off-road-motocross": "off-road-motocross-gear",
-        "off-road-riding-boots": "off-road-riding-boots",
-        "riding-jacket": "riding-jackets",
-        "riding-jean": "riding-jeans",
-        "touring-pant": "touring-pants",
-        "knee-guard": "knee-guards",
-        "saddle-bags": "saddle-bags-bikes",
-        "tail-bags": "motorcycle-tail-bags",
-        "women-riding-gear": "riding-gear-for-women"
-      };
-
-      if (slugMap[cleanSlug]) {
-        cleanSlug = slugMap[cleanSlug];
-      }
+      // No more reverse mapping! The database is now fully populated with the exact SEO slugs from the frontend.
 
       const preEngineLength = andConditions.length;
       
@@ -379,16 +361,37 @@ export class ProductValidator {
 
       // -------------------------------------------------------------
       // WRAP THE REGEX OUTPUT WITH EXACT DATABASE "CATEGORY SLUGS"
-      // If the Regex Engine matches, OR the Database explicitly says so, include it!
+      // If the Regex Engine matches (to catch untagged Magento products), 
+      // OR the Database explicitly says so (via our migration), include it!
+      // CRITICAL: We must extract exclusions (e.g. $not visor) and apply them to BOTH,
+      // otherwise wrongly tagged accessories in the DB will bypass the exclusions!
       // -------------------------------------------------------------
       if (andConditions.length > preEngineLength) {
         const regexRule = andConditions.pop();
-        andConditions.push({
+        
+        // Extract top-level exclusions
+        const exclusions: any[] = [];
+        if (regexRule.name && regexRule.name.$not) {
+          exclusions.push({ name: regexRule.name });
+          delete regexRule.name;
+        }
+
+        const combinedOr = cleanSlug.includes("women") ? regexRule : {
           $or: [
             regexRule,
             { categorySlugs: cleanSlug }
           ]
-        });
+        };
+
+        if (exclusions.length > 0) {
+          andConditions.push({
+            $and: [combinedOr, ...exclusions]
+          });
+        } else {
+          andConditions.push(combinedOr);
+        }
+      } else {
+        andConditions.push({ categorySlugs: cleanSlug });
       }
     }
 
@@ -396,18 +399,16 @@ export class ProductValidator {
       const brandsList = brand.split(",").map(b => b.trim()).filter(Boolean);
       if (brandsList.length === 1) {
         const b = brandsList[0];
-        // FIX: Use exact match (^...$) to prevent partial brand name collisions.
-        // Previously used contains-match which meant "LS2" could match "XLS2" etc.
-        // This now aligns with how aggregation counts brands (exact equality).
+        // Relaxed match to handle variations like 'AGV Helmets' or trailing spaces
         const regex = b.toLowerCase() === "mt" 
           ? /\bmt\b|mt helmets/i 
-          : new RegExp(`^${ProductValidator.escapeRegExp(b)}$`, "i");
+          : new RegExp(ProductValidator.escapeRegExp(b), "i");
         andConditions.push({ brand: { $regex: regex } });
       } else if (brandsList.length > 1) {
         const brandRegexes = brandsList.map(b => {
           const regex = b.toLowerCase() === "mt" 
             ? /\bmt\b|mt helmets/i 
-            : new RegExp(`^${ProductValidator.escapeRegExp(b)}$`, "i");
+            : new RegExp(ProductValidator.escapeRegExp(b), "i");
           return { brand: { $regex: regex } };
         });
         andConditions.push({ $or: brandRegexes });

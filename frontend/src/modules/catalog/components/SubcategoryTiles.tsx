@@ -37,19 +37,19 @@ export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
     <section className="w-full my-4">
       {/* 3 Tiles in a row on mobile, matching wireframe exact layout */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        {subcategories.slice(0, 3).map((item) => {
+        {subcategories.slice(0, 3).map((item: any, index: number) => {
           const basePath = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
           const href = `${basePath}/${item.slug}`;
           return (
             <Link
-              key={item.id}
+              key={item.id || item._id || item.slug || index}
               href={href}
               className="group flex flex-col items-center select-none"
             >
               {/* Tile Image Card */}
               <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200/80 shadow-xs transition-transform duration-300 group-hover:scale-105 will-change-transform">
                 <Image
-                  src={item.imageUrl || "https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=500&q=80"}
+                  src={item.imageUrl || "/no-image.svg"}
                   alt={item.name}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-110"

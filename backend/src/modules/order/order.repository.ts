@@ -27,7 +27,7 @@ export class OrderRepository {
 
   static async linkGuestOrders(email: string, userId: string): Promise<number> {
     const result = await OrderModel.updateMany(
-      { "customerInfo.email": email, userId: { $exists: false } },
+      { guestEmail: email, userId: { $exists: false } },
       { $set: { userId } }
     ).exec();
     return result.modifiedCount;

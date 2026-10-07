@@ -4,8 +4,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { ProductImage } from "../types/product-detail.types";
 
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=800&q=80";
+const FALLBACK_IMAGE = "/no-image.svg";
 
 /**
  * Thumbnail with its own error state so one broken image

@@ -43,7 +43,9 @@ export async function authRouter(req: NextRequest, routePath: string[]): Promise
     }
 
     if (action === "check-email") {
-      await checkRateLimit(ip);
+      // Intentionally NOT using checkRateLimit (which is 10 attempts / 15 mins) here.
+      // It is already protected by the global GENERAL_API rate limit.
+      // Otherwise, checking email on checkout easily blocks the user from logging in.
       return await AuthController.checkEmail(req);
     }
   }

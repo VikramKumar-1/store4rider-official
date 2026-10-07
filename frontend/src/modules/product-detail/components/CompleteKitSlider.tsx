@@ -10,7 +10,7 @@ const KitImage = ({ src, alt }: { src: string, alt: string }) => {
   
   return (
     <Image
-      src={error ? "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80" : src}
+      src={error ? "/no-image.svg" : src}
       alt={alt}
       fill
       unoptimized

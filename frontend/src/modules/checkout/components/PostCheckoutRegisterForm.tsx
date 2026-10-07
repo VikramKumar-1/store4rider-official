@@ -22,7 +22,7 @@ export function PostCheckoutRegisterForm({ email, name }: { email: string; name:
   const [isExistingAccount, setIsExistingAccount] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   
-  const registerMutation = useRegister();
+  const registerMutation = useRegister({ disableRedirect: true });
   const loginMutation = useLogin({ disableRedirect: true });
   const router = useRouter();
 
@@ -55,11 +55,11 @@ export function PostCheckoutRegisterForm({ email, name }: { email: string; name:
   useEffect(() => {
     if (registerMutation.isSuccess || loginMutation.isSuccess) {
       const timer = setTimeout(() => {
-        router.push("/");
-      }, 1500);
+        window.location.href = "/account/orders";
+      }, 800);
       return () => clearTimeout(timer);
     }
-  }, [registerMutation.isSuccess, loginMutation.isSuccess, router]);
+  }, [registerMutation.isSuccess, loginMutation.isSuccess]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,10 +95,16 @@ export function PostCheckoutRegisterForm({ email, name }: { email: string; name:
 
   if (registerMutation.isSuccess || loginMutation.isSuccess) {
     return (
-      <div className="w-full max-w-sm mt-2 mb-10 bg-white border border-emerald-200 p-6 shadow-sm text-left h-[280px] flex items-center justify-center">
-        <div className="bg-emerald-50 border border-emerald-100 p-4 rounded text-emerald-800 text-xs font-medium text-center w-full">
-          {loginMutation.isSuccess ? "Logged in successfully! " : "Account created successfully! "} 
-          <br/> Redirecting to home...
+      <div className="w-full max-w-sm mt-2 mb-10 bg-white border border-emerald-200 p-6 shadow-sm text-left h-[280px] flex flex-col items-center justify-center animate-in fade-in duration-300">
+        <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mb-4">
+          <CheckCircleIcon className="w-8 h-8" />
+        </div>
+        <h3 className="text-emerald-800 font-bold text-sm tracking-wide uppercase mb-1">
+          {loginMutation.isSuccess ? "Logged In Successfully!" : "Account Created!"}
+        </h3>
+        <div className="flex items-center gap-2 mt-4 text-neutral-500 text-xs font-medium">
+          <div className="w-3.5 h-3.5 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
+          Redirecting to your orders...
         </div>
       </div>
     );

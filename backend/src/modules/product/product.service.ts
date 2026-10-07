@@ -288,12 +288,16 @@ export class ProductService {
       }
       
       baseFilters.$and = baseFilters.$and || [];
-      baseFilters.$and.push({
-        $or: [
-          regexCondition,
-          { categorySlugs: cleanSlug }
-        ]
-      });
+      if (cleanSlug.includes("women")) {
+        baseFilters.$and.push(regexCondition);
+      } else {
+        baseFilters.$and.push({
+          $or: [
+            regexCondition,
+            { categorySlugs: cleanSlug }
+          ]
+        });
+      }
     }
     
     if (rawActiveFilters?.search) {
