@@ -36,7 +36,7 @@ export class ProductService {
         .join(";");
     };
 
-    const cacheKey = `products_v6_${page}_${limit}_${serializeFilter(filters)}_${serializeFilter(sort)}`;
+    const cacheKey = `products_v12_${page}_${limit}_${serializeFilter(filters)}_${serializeFilter(sort)}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -138,7 +138,7 @@ export class ProductService {
 
   static async getProductsBySkus(skus: string[]): Promise<IProduct[]> {
     if (!skus || skus.length === 0) return [];
-    const cacheKey = `products_skus_${skus.slice().sort().join("_")}`;
+    const cacheKey = `products_skus_v2_${skus.slice().sort().join("_")}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -160,7 +160,7 @@ export class ProductService {
    * No smart matching, no upsellSkus fallback.
    */
   static async getKitRecommendations(slugOrId: string): Promise<IProduct[]> {
-    const cacheKey = `product_kit_v6_${slugOrId}`;
+    const cacheKey = `product_kit_v7_${slugOrId}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -197,7 +197,7 @@ export class ProductService {
       return Object.entries(obj).map(([k, v]) => `${k}:${serializeFilter(v)}`).sort().join(";");
     };
 
-    const cacheKey = `product_aggregations_v12_${categorySlug || 'all'}_${serializeFilter(rawActiveFilters || {})}`;
+    const cacheKey = `product_aggregations_v18_${categorySlug || 'all'}_${serializeFilter(rawActiveFilters || {})}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -214,6 +214,9 @@ export class ProductService {
     
     if (rawActiveFilters?.category) {
       let cleanSlug = rawActiveFilters.category.toLowerCase().trim();
+      if (cleanSlug.includes('/')) {
+        cleanSlug = cleanSlug.split('/').pop() || cleanSlug;
+      }
       
       const slugMap: Record<string, string> = {
         "full-face-helmets": "full-face",
@@ -258,6 +261,30 @@ export class ProductService {
           { name: /\b(women|womens|lady|ladies|female)\b/i },
           { magentoCategories: /\b(women|womens|lady|ladies|female)\b/i },
           { "attributes.gender": /^(women|womens|lady|ladies|female)$/i }
+        ];
+      } else if (cleanSlug.includes("riding-jeans") || cleanSlug.includes("jeans")) {
+        baseFilters.$and = [
+          { $or: [{ name: /\b(jeans?|denims?)\b/i }, { magentoCategories: /\b(jeans?|denims?)\b/i }] },
+          { name: { $not: /\b(jacket|shirt|top)\b/i } }
+        ];
+      } else if (cleanSlug.includes("bike-phone-holder") || cleanSlug.includes("mobile-mount")) {
+        baseFilters.$or = [
+          { name: /phone holder|mobile holder|phone mount|mobile mount|ram mount|bobo mount/i },
+          { magentoCategories: /phone holder|mobile holder|phone mount|mobile mount/i }
+        ];
+      } else if (cleanSlug.includes("communicator") || cleanSlug.includes("intercom")) {
+        baseFilters.$and = [
+          { $or: [
+              { name: /communicator|intercom|bluetooth headset|sena|parani|bluarmor/i },
+              { magentoCategories: /communicator|intercom|bluetooth/i }
+            ] 
+          },
+          { name: { $not: /\b(cable|wire|battery|clamp|mount|pad)\b/i } }
+        ];
+      } else if (cleanSlug.includes("gadget")) {
+        baseFilters.$or = [
+          { name: /phone holder|mobile holder|phone mount|mobile mount|communicator|intercom|bluetooth/i },
+          { magentoCategories: /phone holder|mobile holder|phone mount|mobile mount|communicator|intercom|gadget/i }
         ];
       } else {
         const exactPhrase = cleanSlug.replace(/-/g, " ").trim();
@@ -355,9 +382,12 @@ export class ProductService {
       if (activeBrands.length > 0) {
         matchesBrand = activeBrands.some((b: string) => {
           if (!b) return false;
-          if (pBrand && (pBrand === b || pBrand.includes(b))) return true;
-          // Also match brand name inside product title with word boundary
-          const wordRegex = new RegExp(`\\b${b}\\b`, "i");
+          // Make it flexible like the validator: allow hyphens or spaces
+          const flexibleB = b.replace(/-/g, '[\\s\\-]');
+          const regex = new RegExp(flexibleB, 'i');
+          if (pBrand && regex.test(pBrand)) return true;
+          
+          const wordRegex = new RegExp(`\\b${flexibleB}\\b`, "i");
           return wordRegex.test(pName);
         });
       }

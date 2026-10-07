@@ -36,10 +36,15 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
     categoryParam = slugArr[slugArr.length - 1];
   }
   const sortParam = searchParams.get("sort") || "";
+  let brandParam = searchParams.get("brand") || "";
+  if (!brandParam && params?.brandSlug) {
+    const slugArr = Array.isArray(params.brandSlug) ? params.brandSlug : [params.brandSlug];
+    brandParam = slugArr[slugArr.length - 1];
+  }
   
-  const pageTitle = categoryParam 
+  let pageTitle = categoryParam 
     ? categoryParam.replace(/-/g, " ").toUpperCase() 
-    : "ALL PRODUCTS";
+    : (brandParam ? brandParam.replace(/-/g, " ").toUpperCase() : "ALL PRODUCTS");
 
   const breadcrumbItems: { label: string; href?: string }[] = [
     { label: "HOME", href: "/" }
@@ -57,9 +62,16 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
         breadcrumbItems.push({ label, href: currentPath });
       }
     });
+  } else if (brandParam && categoryParam) {
+    breadcrumbItems.push({ label: "BRANDS", href: "/brands" });
+    breadcrumbItems.push({ label: brandParam.replace(/-/g, " ").toUpperCase(), href: `/brands/${brandParam}` });
+    breadcrumbItems.push({ label: categoryParam.replace(/-/g, " ").toUpperCase() });
   } else if (categoryParam) {
     breadcrumbItems.push({ label: "PRODUCTS", href: "/products" });
-    breadcrumbItems.push({ label: pageTitle });
+    breadcrumbItems.push({ label: categoryParam.replace(/-/g, " ").toUpperCase() });
+  } else if (brandParam) {
+    breadcrumbItems.push({ label: "BRANDS", href: "/brands" });
+    breadcrumbItems.push({ label: brandParam.replace(/-/g, " ").toUpperCase() });
   } else {
     breadcrumbItems.push({ label: "PRODUCTS" });
   }

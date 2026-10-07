@@ -60,7 +60,7 @@ export const CatalogGrid: React.FC<CatalogGridProps> = ({
   const paginationRange = getPaginationRange();
 
   return (
-    <div className="flex flex-col w-full">
+    <div className="flex flex-col w-full min-h-[800px]">
       
       {isLoading ? (
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-6 md:gap-8">

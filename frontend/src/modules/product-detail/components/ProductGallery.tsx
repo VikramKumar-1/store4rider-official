@@ -64,7 +64,7 @@ const findMatchingImageIndex = (selectedColor: string | undefined, images: Produ
   // 2. Token Matching (Exclusivity Check for Pure Colors)
   const tokens = normalizedValue.split(/[/\\&\-_+ ]/).filter(Boolean);
   const isPureColor = tokens.length === 1;
-  const allAccents = ["red", "orange", "blue", "green", "neon", "yellow", "silver", "white", "grey", "gray", "brown", "purple"];
+  const allAccents = ["red", "orange", "blue", "green", "neon", "yellow", "silver", "white", "grey", "gray", "brown", "purple", "flu", "fluo", "hiviz", "hi-viz", "hi", "viz"];
   
   matchIdx = images.findIndex(img => {
     const alt = (img.altText || "").toLowerCase();

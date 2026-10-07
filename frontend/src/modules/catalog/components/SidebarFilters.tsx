@@ -50,13 +50,15 @@ export function SidebarFilters() {
     currentCategory = slugArr[slugArr.length - 1];
   }
 
-  const currentBrandParam = searchParams.get("brand") || "";
+  // Extract brand from either URL search params or dynamic path segment (for Brand Pages)
+  const isBrandPage = !!params?.brandSlug;
+  const currentBrandParam = searchParams.get("brand") || (params?.brandSlug as string) || "";
   const currentSearch = searchParams.get("search") || searchParams.get("q") || "";
   
   const { data: aggregations, isLoading } = useProductAggregations({
     category: currentCategory || undefined,
     search: currentSearch || undefined,
-    brand: searchParams.get("brand") || undefined,
+    brand: currentBrandParam || undefined,
     colour: searchParams.get("colour") || searchParams.get("color") || undefined,
     size: searchParams.get("size") || undefined,
     helmet_type: searchParams.get("helmet_type") || undefined,
@@ -145,9 +147,20 @@ export function SidebarFilters() {
 
   const handleCategoryClick = (slug: string, fullSlug?: string) => {
     const queryParams = new URLSearchParams(Array.from(searchParams.entries()));
-    queryParams.delete("category"); // Clean it up from search params just in case
     queryParams.set("page", "1");
     
+    if (isBrandPage) {
+      if (!slug) {
+        queryParams.delete("category");
+      } else {
+        queryParams.set("category", slug);
+      }
+      const qs = queryParams.toString() ? `?${queryParams.toString()}` : '';
+      router.push(`/brands/${currentBrandParam}${qs}`, { scroll: false });
+      return;
+    }
+
+    queryParams.delete("category"); // Clean it up from search params just in case
     // If they uncheck the category, they go back to all products
     if (!slug) {
       router.push(`/products?${queryParams.toString()}`, { scroll: false });
@@ -258,8 +271,8 @@ export function SidebarFilters() {
       </div>
 
       {/* NOW SHOPPING BY - Active Filters Summary */}
-      {activePills.length > 0 && (
-        <div className="bg-neutral-50 border border-neutral-200 p-4 mb-4 mt-2">
+      <div className={`transition-all duration-300 ease-in-out overflow-hidden ${activePills.length > 0 ? "max-h-[500px] opacity-100 mb-4 mt-2" : "max-h-0 opacity-0 mb-0 mt-0"}`}>
+        <div className="bg-neutral-50 border border-neutral-200 p-4">
           <h5 className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 mb-2">Now Shopping By</h5>
           <div className="flex flex-col gap-2">
             {activePills.map((pill, idx) => (
@@ -281,7 +294,7 @@ export function SidebarFilters() {
             ))}
           </div>
         </div>
-      )}
+      </div>
 
       {/* Dynamic Filter Sections powered by Backend filterConfig */}
       <div className="flex flex-col">
@@ -407,7 +420,7 @@ export function SidebarFilters() {
           }
 
           // 4. Brand
-          if (config.code === "brand" && BRANDS.length > 0) {
+          if (config.code === "brand" && BRANDS.length > 0 && !isBrandPage) {
             return (
               <AccordionSection key="brand" title={config.label} defaultOpen={false}>
                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">

@@ -125,9 +125,15 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
                             <div className="pl-3 pb-2">
                               {item.megaMenuItems.map((group, gIdx) => (
                                 <div key={gIdx} className="mb-3">
-                                  <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 px-3 mb-1">
-                                    {group.group}
-                                  </p>
+                                  {group.groupHref ? (
+                                    <Link href={group.groupHref} onClick={onClose} className="block text-[10px] font-bold uppercase tracking-widest text-neutral-400 hover:text-brand px-3 mb-1">
+                                      {group.group}
+                                    </Link>
+                                  ) : (
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 px-3 mb-1">
+                                      {group.group}
+                                    </p>
+                                  )}
                                   {group.items.map((link, lIdx) => (
                                     <Link
                                       key={lIdx}

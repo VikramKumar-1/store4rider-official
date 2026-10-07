@@ -42,9 +42,9 @@ export class ProductValidator {
     // Accurate category matching for Magento paths and product names with word boundaries
     if (category) {
       let cleanSlug = category.toLowerCase().trim();
-      
-      // No more reverse mapping! The database is now fully populated with the exact SEO slugs from the frontend.
-
+      if (cleanSlug.includes('/')) {
+        cleanSlug = cleanSlug.split('/').pop() || cleanSlug;
+      }
       const preEngineLength = andConditions.length;
       
       // We must re-enable the regex engine because Magento data is missing category tags,
@@ -262,7 +262,8 @@ export class ProductValidator {
         });
       } else if (cleanSlug.includes("riding-jeans")) {
         andConditions.push({
-          $or: [{ name: /\bjeans?\b/i }, { magentoCategories: /\bjeans?\b/i }]
+          $or: [{ name: /\b(jeans?|denims?)\b/i }, { magentoCategories: /\b(jeans?|denims?)\b/i }],
+          name: { $not: /\b(jacket|shirt|top)\b/i }
         });
       } else if (cleanSlug.includes("pant") || cleanSlug.includes("trouser")) {
         andConditions.push({
@@ -283,8 +284,32 @@ export class ProductValidator {
         });
       } else if (cleanSlug.includes("clamps-mount") || cleanSlug.includes("mounts")) {
         andConditions.push({
-          $or: [{ magentoCategories: /clamp|mount|bracket/i }, { name: /clamp|mount|bracket/i }]
+          $or: [{ magentoCategories: /clamp|mount/i }, { name: /clamp|mount/i }],
+          $and: [{ $or: [{ magentoCategories: /light|fog/i }, { name: /light|fog/i }] }]
         });
+      } else if (cleanSlug.includes("bike-phone-holder") || cleanSlug.includes("mobile-mount")) {
+        andConditions.push({
+          $or: [
+            { name: /phone holder|mobile holder|phone mount|mobile mount|ram mount|bobo mount/i },
+            { magentoCategories: /phone holder|mobile holder|phone mount|mobile mount/i }
+          ]
+        });
+      } else if (cleanSlug.includes("communicator") || cleanSlug.includes("intercom")) {
+        andConditions.push({
+          $or: [
+            { name: /communicator|intercom|bluetooth headset|sena|parani|bluarmor/i },
+            { magentoCategories: /communicator|intercom|bluetooth/i }
+          ],
+          name: { $not: /\b(cable|wire|battery|clamp|mount|pad)\b/i }
+        });
+      } else if (cleanSlug.includes("gadget")) {
+        andConditions.push({
+          $or: [
+            { name: /phone holder|mobile holder|phone mount|mobile mount|communicator|intercom|bluetooth/i },
+            { magentoCategories: /phone holder|mobile holder|phone mount|mobile mount|communicator|intercom|gadget/i }
+          ]
+        });
+
       } else if (cleanSlug.includes("wiring-harness") || cleanSlug.includes("switch")) {
         andConditions.push({
           $or: [{ magentoCategories: /wiring|harness|switch|relay/i }, { name: /wiring|harness|switch|relay/i }]
@@ -300,6 +325,26 @@ export class ProductValidator {
             { name: /performance part|exhaust|air filter/i },
             { categorySlugs: cleanSlug }
           ]
+        });
+      } else if (cleanSlug.includes("sprocket")) {
+        andConditions.push({
+          $or: [{ name: /sprocket/i }, { magentoCategories: /sprocket/i }]
+        });
+      } else if (cleanSlug.includes("spark-plug")) {
+        andConditions.push({
+          $or: [{ name: /spark plug/i }, { magentoCategories: /spark plug/i }]
+        });
+      } else if (cleanSlug.includes("air-filter")) {
+        andConditions.push({
+          $or: [{ name: /air filter/i }, { magentoCategories: /air filter/i }]
+        });
+      } else if (cleanSlug.includes("brake-pad")) {
+        andConditions.push({
+          $or: [{ name: /brake pad/i }, { magentoCategories: /brake pad/i }]
+        });
+      } else if (cleanSlug === "spares") {
+        andConditions.push({
+          $or: [{ name: /sprocket|spark plug|air filter|brake pad/i }, { magentoCategories: /spare|sprocket|spark plug|air filter|brake pad/i }]
         });
       } else if (cleanSlug.includes("rally-tower") || cleanSlug.includes("navigation-tower")) {
         andConditions.push({

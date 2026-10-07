@@ -26,23 +26,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         ],
       },
     ],
-    megaMenuFeatured: {
-      title: "Trending",
-      items: [
-        {
-          name: "HJC RPHA 12 VENOM 3",
-          priceFormatted: "₹ 69,000",
-          imageUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmM2Y2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjYTFhMWFhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+SGVsbWV0PC90ZXh0Pjwvc3ZnPg==",
-          href: "/products/hjc-rpha-12-venom-3",
-        },
-        {
-          name: "LS2 FF901 ADVANT X",
-          priceFormatted: "₹ 41,000",
-          imageUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmM2Y2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjYTFhMWFhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+SGVsbWV0PC90ZXh0Pjwvc3ZnPg==",
-          href: "/products/ls2-ff901-advant-x",
-        },
-      ],
-    },
   },
   {
     id: "riding-gear",
@@ -52,14 +35,17 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
     megaMenuItems: [
       {
         group: "Riding Jackets",
+        groupHref: "/riding-gear/riding-jacket",
         items: [
-          { label: "Riding Jacket", href: "/riding-gear/riding-jacket" },
+          { label: "All Riding Jackets", href: "/riding-gear/riding-jacket" },
           { label: "Protectors / Armour", href: "/riding-gear/protectors-armour" },
         ],
       },
       {
         group: "Riding Pants",
+        groupHref: "/riding-gear/riding-pants",
         items: [
+          { label: "All Riding Pants", href: "/riding-gear/riding-pants" },
           { label: "Riding Jeans", href: "/riding-gear/riding-jeans" },
           { label: "Touring Pants", href: "/riding-gear/touring-pants" },
           { label: "Knee Guards for bikers", href: "/riding-gear/knee-guards" },
@@ -67,7 +53,9 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
       },
       {
         group: "Riding Gloves",
+        groupHref: "/riding-gear/motorcycle-riding-gloves",
         items: [
+          { label: "All Riding Gloves", href: "/riding-gear/motorcycle-riding-gloves" },
           { label: "Full Gauntlet Gloves", href: "/riding-gear/full-gauntlet-gloves" },
           { label: "Semi Gauntlet Gloves", href: "/riding-gear/semi-gauntlet-gloves" },
           { label: "Short Motorbike Gloves", href: "/riding-gear/short-motorbike-gloves" },
@@ -75,7 +63,9 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
       },
       {
         group: "Riding Boots",
+        groupHref: "/riding-gear/motorcycle-riding-boots",
         items: [
+          { label: "All Riding Boots", href: "/riding-gear/motorcycle-riding-boots" },
           { label: "Short biking boots", href: "/riding-gear/short-biking-boots" },
           { label: "Sports riding shoes", href: "/riding-gear/sports-riding-shoes" },
           { label: "Off-road boots", href: "/riding-gear/motorcycle-riding-boots/off-road-riding-boots" },
@@ -89,13 +79,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         ],
       }
     ],
-    megaMenuFeatured: {
-      bannerImage: {
-        imageUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmM2Y2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjYTFhMWFhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UmlkaW5nIEdlYXIgQmFubmVyPC90ZXh0Pjwvc3ZnPg==",
-        href: "/riding-gear",
-        altText: "Riding Gear Collection"
-      }
-    }
   },
   {
     id: "luggage",
@@ -148,13 +131,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         ],
       }
     ],
-    megaMenuFeatured: {
-      bannerImage: {
-        imageUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmM2Y2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjYTFhMWFhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+QWNjZXNzb3JpZXMgQmFubmVyPC90ZXh0Pjwvc3ZnPg==",
-        href: "/motorcycle-accessories-online",
-        altText: "Bike Accessories Workshop"
-      }
-    }
   },
   {
     id: "shop-by-brand",
@@ -219,7 +195,39 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
       }
     ],
   },
-  { id: "gadgets", label: "Gadgets", href: "/gadgets", hasDropdown: false },
-  { id: "spares", label: "Spares", href: "/spares", hasDropdown: false },
+  { 
+    id: "spares", 
+    label: "Spares", 
+    href: "/spares", 
+    hasDropdown: true,
+    megaMenuItems: [
+      {
+        group: "Spares & Parts",
+        groupHref: "/spares",
+        items: [
+          { label: "All", href: "/spares" },
+          { label: "Chain Sprocket Kits", href: "/spares/chain-sprocket-kits" },
+          { label: "Iridium Spark Plugs", href: "/spares/iridium-spark-plugs" },
+          { label: "Performance Air Filters", href: "/spares/performance-air-filters" },
+          { label: "Brake Pads", href: "/spares/brake-pads" },
+        ],
+      },
+    ],
+  },
+  { 
+    id: "gadgets", 
+    label: "Gadgets", 
+    href: "/gadgets", 
+    hasDropdown: true,
+    megaMenuItems: [
+      {
+        group: "Gadgets",
+        items: [
+          { label: "Bike Phone Holders", href: "/gadgets/bike-phone-holders" },
+          { label: "Communicators", href: "/gadgets/communicators" },
+        ],
+      }
+    ]
+  },
   { id: "guides", label: "Guides", href: "/guides", hasDropdown: false },
 ];

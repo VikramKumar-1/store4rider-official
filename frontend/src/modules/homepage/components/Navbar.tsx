@@ -35,6 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const items = useCartStore((state) => state.items);
   const { user, isAuthenticated, logout } = useAuthStore();
   const { data: brands } = useBrands();
+  const { data: categoryTreeData } = useCategoryTree();
 
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -102,7 +103,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         brandGroups.push(brands.slice(i, i + 9));
       }
       
-      brandItem.megaMenuItems = brandGroups.map((group, index) => ({
+      brandItem.megaMenuItems = brandGroups.map((group: any[], index: number) => ({
         group: `Brands Part ${index + 1}`,
         items: group.map((b: any) => ({
           label: b.name,
@@ -113,7 +114,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
     
     return cloned;
-  }, [navItems, brands]);
+  }, [navItems, categoryTreeData, brands]);
 
   return (
     <>

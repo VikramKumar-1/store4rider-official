@@ -25,12 +25,16 @@ export const generateNavItems = (categories: ICategoryTree[], brands: IBrand[]):
         // 3-level hierarchy: map children to groups, grandchildren to items
         navItem.megaMenuItems = category.children.map((child) => ({
           group: child.name,
-          items: child.children 
-            ? child.children.map((grandchild) => ({
-                label: grandchild.name,
-                href: `/${category.slug}/${child.slug}/${grandchild.slug}`,
-              }))
-            : [],
+          groupHref: `/${category.slug}/${child.slug}`,
+          items: [
+            { label: `All`, href: `/${category.slug}/${child.slug}` },
+            ...(child.children 
+              ? child.children.map((grandchild) => ({
+                  label: grandchild.name,
+                  href: `/${category.slug}/${child.slug}/${grandchild.slug}`,
+                }))
+              : [])
+          ],
         }));
       } else {
         // 2-level hierarchy: chunk children into columns (e.g., 6 per column)
@@ -42,15 +46,39 @@ export const generateNavItems = (categories: ICategoryTree[], brands: IBrand[]):
 
         navItem.megaMenuItems = columns.map((col, idx) => ({
           group: idx === 0 ? "Categories" : "More Categories",
-          items: col.map((child) => ({
-            label: child.name,
-            href: `/${category.slug}/${child.slug}`,
-          })),
+          items: [
+            ...(idx === 0 ? [{ label: `All`, href: `/${category.slug}` }] : []),
+            ...col.map((child) => ({
+              label: child.name,
+              href: `/${category.slug}/${child.slug}`,
+            }))
+          ],
         }));
       }
     }
 
     navItems.push(navItem);
+  });
+
+  // Inject Custom Hardcoded Categories like "Spares"
+  navItems.push({
+    id: "spares",
+    label: "Spares",
+    href: "/spares",
+    hasDropdown: true,
+    megaMenuItems: [
+      {
+        group: "Spares & Parts",
+        groupHref: "/spares",
+        items: [
+          { label: "All", href: "/spares" },
+          { label: "Chain Sprocket Kits", href: "/spares/chain-sprocket-kits" },
+          { label: "Iridium Spark Plugs", href: "/spares/iridium-spark-plugs" },
+          { label: "Performance Air Filters", href: "/spares/performance-air-filters" },
+          { label: "Brake Pads", href: "/spares/brake-pads" },
+        ],
+      },
+    ],
   });
 
   // Shop By Brand

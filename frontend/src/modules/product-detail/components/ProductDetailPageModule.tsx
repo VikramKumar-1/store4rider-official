@@ -48,7 +48,12 @@ const extractCategoryName = (product: IBackendProduct): string => {
       }
     }
   }
-  return product.productType?.toUpperCase() || "GEAR";
+  const categorySlugs = (product as any).categorySlugs;
+  if (categorySlugs && categorySlugs.length > 0) {
+    const slug = categorySlugs[categorySlugs.length - 1];
+    return slug.replace(/-/g, " ").toUpperCase();
+  }
+  return "GEAR";
 };
 
 /**
@@ -259,11 +264,13 @@ const filenameToColorMap: Record<string, string> = {
 };
 
 const KNOWN_COLORS = [
+  "black/flu. green", "black-flu-green", "black/flu green", "black/neon", "black/hiviz", "black/hi-viz",
   "black/grey", "grey/black", "black/red", "red/black", "black/blue", "blue/black", 
   "black/orange", "orange/black", "black/yellow", "yellow/black", "black/green", "green/black",
   "black/white", "white/black", "red/white", "white/red", "blue/white", "white/blue",
   "black", "brown", "tan", "white", "red", "blue", "green", "grey", "gray", "orange", "yellow", 
-  "neon", "navy", "olive", "camo", "silver", "gold", "pink", "purple", "teal", "cyan"
+  "neon", "navy", "olive", "camo", "silver", "gold", "pink", "purple", "teal", "cyan",
+  "flu green", "hi-viz", "hiviz"
 ];
 
 const inferImageColorLabel = (imgUrl: string, existingAlt: string, productName: string): string => {
@@ -396,11 +403,40 @@ const mapProductToPDP = (
     ? `${Math.round(((base - special!) / base) * 100)}%`
     : undefined;
 
-  const gallery = product.images?.length > 0
-    ? product.images.map(img => ({
+  const galleryMap = new Map<string, any>();
+  
+  // 1. Add Parent Images
+  if (product.images?.length > 0) {
+    product.images.forEach(img => {
+      galleryMap.set(img.url, {
         url: img.url,
         altText: inferImageColorLabel(img.url, img.altText || "", product.name),
-      }))
+      });
+    });
+  }
+
+  // 2. Add Variant Specific Images (Trust the DB Swatch/Variant Image!)
+  if (product.variants && Array.isArray(product.variants)) {
+    product.variants.forEach(v => {
+      if (v.imageUrl && v.imageUrl !== "/no-image.svg" && !galleryMap.has(v.imageUrl)) {
+        // Extract color from variant attributes
+        let vColor = "";
+        if (v.attributes) {
+          const attrs = v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes;
+          const colorKey = Object.keys(attrs).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
+          if (colorKey) vColor = attrs[colorKey];
+        }
+        
+        galleryMap.set(v.imageUrl, {
+          url: v.imageUrl,
+          altText: vColor ? `${product.name} - ${vColor}` : product.name,
+        });
+      }
+    });
+  }
+
+  const gallery = galleryMap.size > 0 
+    ? Array.from(galleryMap.values())
     : [{ url: "/no-image.svg", altText: "Placeholder" }];
 
   const category = extractCategoryName(product);

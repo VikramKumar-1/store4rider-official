@@ -39,7 +39,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
         return (
           <div
             key={item.id}
-            className="group"
+            className={`group ${(item.megaMenuItems?.length ?? 0) <= 2 ? "relative" : "static"}`}
             onMouseEnter={() => onNavEnter(item.id, !!item.megaMenuItems)}
           >
             <Link
@@ -81,9 +81,9 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
             {/* Mega Menu Dropdown */}
             {item.hasDropdown && (item.megaMenuItems || item.megaMenuFeatured) && (
               <div
-                className={`absolute top-full left-1/2 -translate-x-1/2 pt-3 z-50 ${
+                className={`absolute top-full pt-3 z-50 ${
                   hoveredMenuId === item.id ? "pointer-events-auto" : "pointer-events-none"
-                }`}
+                } left-1/2 -translate-x-1/2`}
               >
                 <div
                   className={`${
