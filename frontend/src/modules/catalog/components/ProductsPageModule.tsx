@@ -7,7 +7,7 @@ import { CatalogModule } from "@/modules/catalog";
 import { CatalogProduct } from "@/modules/catalog/types/catalog.types";
 import { inferRichColorFromUrl } from "@/modules/product-detail/components/ProductDetailPageModule";
 
-export const ProductsPageModule = () => {
+export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNode?: any }) => {
   const searchParams = useSearchParams();
   const params = useParams();
   
@@ -42,8 +42,8 @@ export const ProductsPageModule = () => {
   }
 
   const { data: catTreeData } = useCategoryTree();
-  let categoryNode = undefined;
-  if (category && catTreeData) {
+  let categoryNode = initialCategoryNode;
+  if (!categoryNode && category && catTreeData) {
     const findNode = (nodes: any[]): any => {
       for (const n of nodes) {
         if (n.slug === category) return n;

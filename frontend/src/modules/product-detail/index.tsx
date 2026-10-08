@@ -35,9 +35,21 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
 
   // Reset defaults when product changes (e.g. navigating via related products)
   useEffect(() => {
-    if (colorQuery && product.colors?.some((c: any) => c.name.toLowerCase() === colorQuery.toLowerCase())) {
-      const match = product.colors.find((c: any) => c.name.toLowerCase() === colorQuery.toLowerCase());
-      if (match) setSelectedColor(match.name);
+    if (colorQuery && product.colors?.length > 0) {
+      const exactMatch = product.colors.find((c: any) => c.name.toLowerCase() === colorQuery.toLowerCase());
+      if (exactMatch) {
+        setSelectedColor(exactMatch.name);
+      } else {
+        const partialMatch = product.colors.find((c: any) => 
+          c.name.toLowerCase().includes(colorQuery.toLowerCase()) || 
+          colorQuery.toLowerCase().includes(c.name.toLowerCase())
+        );
+        if (partialMatch) {
+          setSelectedColor(partialMatch.name);
+        } else {
+          setSelectedColor(product.colors[0].name);
+        }
+      }
     } else if (product.colors?.length > 0) {
       setSelectedColor(product.colors[0].name);
     } else {

@@ -59,11 +59,39 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  // We can add logic to 404 if it's not a category, but for now we render ProductsPageModule
-  // Next.js static/pre-defined folders like /cart, /account will take precedence over this catch-all automatically!
+  const resolvedParams = await params;
+  const slugArray = resolvedParams.categorySlug;
+  const category = slugArray[slugArray.length - 1];
+  
+  let initialCategoryNode = undefined;
+  
+  if (category) {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+      const fetchUrl = baseUrl.includes('/v1') ? `${baseUrl}/categories/tree` : `${baseUrl}/v1/categories/tree`;
+      const res = await fetch(fetchUrl, { next: { revalidate: 60 } });
+      if (res.ok) {
+        const data = await res.json();
+        const findCategory = (nodes: any[]): any => {
+          for (const n of nodes) {
+            if (n.slug === category) return n;
+            if (n.children) {
+              const found = findCategory(n.children);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+        initialCategoryNode = findCategory(data?.data || []);
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }
+
   return (
     <Suspense fallback={<ProductsLoading />}>
-      <ProductsPageModule />
+      <ProductsPageModule initialCategoryNode={initialCategoryNode} />
     </Suspense>
   );
 }

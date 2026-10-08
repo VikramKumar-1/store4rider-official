@@ -143,15 +143,21 @@ html {
 }
 
 /* Render legacy Magento tables & images properly instead of hiding them */
-.magento-layout table {
+.magento-layout table,
+.magento-layout-accordion table {
   width: 100% !important;
   border-collapse: collapse;
   margin: 1.5rem 0;
   font-size: 0.875rem;
+  table-layout: fixed;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .magento-layout table td,
-.magento-layout table th {
+.magento-layout table th,
+.magento-layout-accordion table td,
+.magento-layout-accordion table th {
   border: 1px solid #e2e8f0;
   padding: 0.75rem;
   text-align: left;
