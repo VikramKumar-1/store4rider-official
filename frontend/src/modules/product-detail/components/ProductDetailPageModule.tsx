@@ -395,8 +395,14 @@ const mapProductToPDP = (
   reviews: any[],
   storeReviews: any[]
 ): PDPData => {
-  // Only show real related products from database (no dummy placeholders)
-  const finalKitProducts = kitProducts || [];
+  // Only show real related products from database that actually have a price
+  const finalKitProducts = (kitProducts || []).filter(
+    (p) => p.priceFormatted && p.priceFormatted !== "Contact for Price"
+  );
+  
+  const finalUpSellProducts = (upSellProducts || []).filter(
+    (p) => p.priceFormatted && p.priceFormatted !== "Contact for Price"
+  );
 
   let rawVariants = product.variants?.map((v: any) => ({
     sku: v.sku,
@@ -645,7 +651,7 @@ const mapProductToPDP = (
     kitProducts: finalKitProducts,
     storeReviews: storeReviews || [],
     productReviews: reviews || [],
-    upSellProducts,
+    upSellProducts: finalUpSellProducts,
     rawVariants,
     isFreeShipping,
     stockStatus: product.stockStatus ?? 1,

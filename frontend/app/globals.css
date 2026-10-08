@@ -100,15 +100,7 @@ html {
   margin-bottom: 1rem;
 }
 
-.magento-layout p:has(> strong:only-child) {
-  font-size: 1.05rem;
-  color: #0f172a;
-  margin-top: 2rem;
-  margin-bottom: 0.5rem;
-  font-weight: 700;
-  border-bottom: 1px solid #f1f5f9;
-  padding-bottom: 0.25rem;
-}
+
 
 .magento-layout strong {
   color: #1e293b;

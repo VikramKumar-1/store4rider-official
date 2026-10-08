@@ -452,15 +452,15 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
               ) : (
                 <button 
                   onClick={handleAddToCartClick}
-                  disabled={isOutOfStock}
+                  disabled={isOutOfStock || priceFormatted === "Contact for Price"}
                   className={`${
-                    isOutOfStock 
-                      ? 'bg-[#c5e84f] text-neutral-900 hover:bg-[#b0d146]' 
+                    (isOutOfStock || priceFormatted === "Contact for Price")
+                      ? 'bg-neutral-200 text-neutral-500 cursor-not-allowed border border-neutral-300' 
                       : 'bg-gradient-to-r from-banner to-orange-600 hover:from-orange-600 hover:to-brand text-white'
-                  } px-8 py-3 rounded-xl font-extrabold tracking-widest text-sm flex items-center gap-2 shadow-md active:scale-95 transition-all whitespace-nowrap`}
+                  } px-8 py-3 rounded-xl font-extrabold tracking-widest text-sm flex items-center gap-2 shadow-md transition-all whitespace-nowrap`}
                 >
-                  {!isOutOfStock && <ShoppingCartIcon className="w-4 h-4" />}
-                  <span>{isOutOfStock ? "RESTOCKING SOON" : "ADD TO CART"}</span>
+                  {!(isOutOfStock || priceFormatted === "Contact for Price") && <ShoppingCartIcon className="w-4 h-4" />}
+                  <span>{priceFormatted === "Contact for Price" ? "PRICE UNAVAILABLE" : isOutOfStock ? "RESTOCKING SOON" : "ADD TO CART"}</span>
                 </button>
               )}
             </div>

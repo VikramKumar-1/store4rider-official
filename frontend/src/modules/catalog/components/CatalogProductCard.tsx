@@ -60,8 +60,11 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
     }, 1500);
   };
 
-  const dynamicHref = selectedColorName 
-    ? `/products/${product.rawSlug || product.productUrl.split("?")[0].split("/").pop()}?color=${encodeURIComponent(selectedColorName)}`
+  const defaultColorMatch = product.colors?.find(c => c.imageUrl === imgSrc);
+  const activeColor = selectedColorName || (defaultColorMatch ? defaultColorMatch.name : null);
+
+  const dynamicHref = activeColor 
+    ? `/products/${product.rawSlug || product.productUrl.split("?")[0].split("/").pop()}?color=${encodeURIComponent(activeColor)}`
     : product.productUrl;
 
   return (

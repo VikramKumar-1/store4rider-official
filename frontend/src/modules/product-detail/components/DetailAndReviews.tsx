@@ -91,22 +91,7 @@ const formatFeatureTitle = (rawText: string): string => {
   return text;
 };
 
-const parseDescriptionToSections = (html: string): { intro: string; sections: DescriptionSection[] } => {
-  if (!html) return { intro: "", sections: [] };
-  const parts = html.split(/<p>\s*<strong>([^<]+)<\/strong>\s*<\/p>/gi);
-  if (parts.length <= 2) return { intro: "", sections: [] };
 
-  const intro = parts[0]?.trim() || "";
-  const sections: DescriptionSection[] = [];
-  for (let i = 1; i < parts.length; i += 2) {
-    const title = parts[i]?.trim();
-    const content = parts[i + 1]?.trim();
-    if (title && content) {
-      sections.push({ title, htmlContent: content, icon: getIconForTitle(title) });
-    }
-  }
-  return { intro, sections };
-};
 
 /**
  * DetailAndReviews Component
@@ -116,48 +101,7 @@ const parseDescriptionToSections = (html: string): { intro: string; sections: De
  */
 export const DetailAndReviews: React.FC<{ fullDescription: string; reviews: ReviewData[] }> = ({ fullDescription, reviews }) => {
   const parsedDescription = React.useMemo(() => cleanHtml(fullDescription), [fullDescription]);
-  const { intro, sections } = React.useMemo(
-    () => parseDescriptionToSections(parsedDescription),
-    [parsedDescription]
-  );
-
-  // Initialize: open on desktop (>=768), closed by default on mobile (<768)
-  const [openSections, setOpenSections] = React.useState<Set<number>>(() => new Set());
   const [isMobileDescExpanded, setIsMobileDescExpanded] = React.useState(false);
-
-  // Handle deep linking for SEO: Expand accordion if URL has matching hash
-  React.useEffect(() => {
-    if (typeof window !== "undefined" && sections.length > 0) {
-      const hash = window.location.hash.replace("#", "");
-      if (hash) {
-        const index = sections.findIndex(
-          (s) => s.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") === hash
-        );
-        if (index !== -1) {
-          setOpenSections((prev) => {
-            const next = new Set(prev);
-            next.add(index);
-            return next;
-          });
-          setTimeout(() => {
-            const element = document.getElementById(hash);
-            if (element) {
-              element.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
-          }, 150);
-        }
-      }
-    }
-  }, [sections]);
-
-  const toggleSection = (idx: number) => {
-    setOpenSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
-      return next;
-    });
-  };
 
   return (
     <div className="w-full">
@@ -198,111 +142,46 @@ export const DetailAndReviews: React.FC<{ fullDescription: string; reviews: Revi
               </div>
             </div>
 
-            {/* Organized Title / Intro Header (Rendered as HTML to preserve images) */}
-            {intro && (
-              <div className="mb-6">
-                <div 
-                  className="magento-layout text-neutral-700 text-[13.5px] sm:text-[14px] leading-[1.75] sm:leading-[1.8]"
-                  dangerouslySetInnerHTML={{ __html: intro }}
-                />
-              </div>
-            )}
-
-            {/* Parsed Sections or Clean Full Description */}
-            {sections.length > 0 ? (
-              <div className="w-full flex flex-col gap-2.5 sm:gap-3">
-                {sections.map((section, idx) => {
-                  const isOpen = openSections.has(idx);
-                  const sectionId = section.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-                  return (
-                    <div
-                      key={idx}
-                      className={`w-full border rounded-xl overflow-hidden transition-colors duration-200 ${
-                        isOpen
-                          ? "border-neutral-300/90 shadow-xs bg-white"
-                          : "border-neutral-200 bg-neutral-50/50 hover:border-neutral-300"
-                      }`}
-                    >
-                      <h3 id={sectionId} className="m-0">
-                        <button
-                          type="button"
-                          onClick={() => toggleSection(idx)}
-                          aria-expanded={isOpen}
-                          aria-controls={`pdp-accordion-content-${sectionId}`}
-                          className="w-full flex items-center justify-between px-3.5 sm:px-4 py-3 sm:py-3.5 text-left select-none cursor-pointer"
-                        >
-                          <div className="flex items-center gap-2.5 sm:gap-3.5">
-                            <span
-                              className={`flex-shrink-0 p-1.5 sm:p-2 rounded-lg transition-colors ${
-                                isOpen ? "bg-[#ab1509]/10 text-[#ab1509]" : "bg-neutral-100 text-neutral-500"
-                              }`}
-                            >
-                              {section.icon}
-                            </span>
-                            <span className="font-bold text-neutral-900 text-[13px] sm:text-[14px] tracking-tight">
-                              {section.title}
-                            </span>
-                          </div>
-                          <span className={`shrink-0 ml-4 transition-colors ${isOpen ? "text-[#ab1509]" : "text-neutral-400"}`}>
-                            <ChevronIcon open={isOpen} />
-                          </span>
-                        </button>
-                      </h3>
-                      <div
-                        id={`pdp-accordion-content-${sectionId}`}
-                        role="region"
-                        aria-labelledby={sectionId}
-                        className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                          isOpen
-                            ? "max-h-[3000px] opacity-100"
-                            : "max-h-0 opacity-0"
-                        }`}
-                      >
-                        <div className="px-3.5 sm:px-5 pb-4 sm:pb-5 pt-1 sm:pt-1 sm:pl-[3.75rem] border-t border-neutral-100/80 bg-neutral-50/30">
-                          <div
-                            className="magento-layout-accordion text-neutral-700 text-[13.5px] sm:text-[14px] leading-[1.75] sm:leading-[1.8]"
-                            dangerouslySetInnerHTML={{ __html: section.htmlContent }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="magento-layout text-neutral-700 text-[13.5px] sm:text-[14.5px] leading-[1.8] sm:leading-[1.85]">
+            {/* Render legacy Magento HTML exactly as it is without accordions */}
+            <div className="magento-layout text-neutral-700 text-[13.5px] sm:text-[14.5px] leading-[1.8] sm:leading-[1.85]">
                 <div
-                  className={!isMobileDescExpanded ? "max-h-[350px] overflow-hidden relative md:max-h-none" : ""}
+                  className={!isMobileDescExpanded ? "max-h-[250px] sm:max-h-[350px] overflow-hidden relative" : ""}
                   dangerouslySetInnerHTML={{
                     __html:
                       parsedDescription ||
                       "<p class='text-neutral-400 italic'>Detailed specifications will be updated shortly.</p>",
                   }}
                 />
-                {!isMobileDescExpanded && parsedDescription && (
-                  <div className="md:hidden flex justify-center mt-3 pt-3 bg-gradient-to-t from-white via-white/80 to-transparent">
-                    <button
-                      type="button"
-                      onClick={() => setIsMobileDescExpanded(true)}
-                      className="text-xs font-bold text-[#ab1509] uppercase tracking-wider py-1.5 px-4 border border-[#ab1509]/30 rounded-full hover:bg-[#ab1509]/5"
-                    >
-                      Read Full Description
-                    </button>
+                
+                {!isMobileDescExpanded && parsedDescription.length > 300 && (
+                  <div className="relative mt-2">
+                    <div className="absolute bottom-full left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+                    <div className="flex justify-center pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsMobileDescExpanded(true)}
+                        className="flex items-center gap-2 text-[13px] font-bold text-white uppercase tracking-wider py-2 px-5 bg-[#FF5429] hover:bg-[#E0441D] rounded-sm transition-colors shadow-sm"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+                        View More
+                      </button>
+                    </div>
                   </div>
                 )}
+                
                 {isMobileDescExpanded && (
-                  <div className="md:hidden flex justify-center mt-3">
+                  <div className="flex justify-center mt-6 pt-4 border-t border-neutral-100">
                     <button
                       type="button"
                       onClick={() => setIsMobileDescExpanded(false)}
-                      className="text-xs font-bold text-neutral-600 uppercase tracking-wider py-1.5 px-4 border border-neutral-200 rounded-full"
+                      className="flex items-center gap-2 text-[13px] font-bold text-white uppercase tracking-wider py-2 px-5 bg-[#FF5429] hover:bg-[#E0441D] rounded-sm transition-colors shadow-sm"
                     >
-                      Show Less
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/></svg>
+                      View Less
                     </button>
                   </div>
                 )}
               </div>
-            )}
           </div>
 
           {/* ─── RIGHT: Reviews (Desktop only: side-by-side with specifications) ─── */}
