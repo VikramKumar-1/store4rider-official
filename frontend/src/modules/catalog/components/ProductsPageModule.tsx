@@ -5,6 +5,7 @@ import { useProducts } from "@/core/hooks/useProducts";
 import { useCategoryTree } from "@/core/hooks/useCategories";
 import { CatalogModule } from "@/modules/catalog";
 import { CatalogProduct } from "@/modules/catalog/types/catalog.types";
+import { inferRichColorFromUrl } from "@/modules/product-detail/components/ProductDetailPageModule";
 
 export const ProductsPageModule = () => {
   const searchParams = useSearchParams();
@@ -198,7 +199,118 @@ export const ProductsPageModule = () => {
         return defaultUrl;
       })(),
       rating: 4.9,
-      productUrl: `/products/${p.slug}${activeColorParam ? `?color=${encodeURIComponent(activeColorParam.split(',')[0].trim())}` : ''}`
+      productUrl: `/products/${p.slug}${activeColorParam ? `?color=${encodeURIComponent(activeColorParam.split(',')[0].trim())}` : ''}`,
+      rawSlug: p.slug,
+      colors: (() => {
+        const colorNames = new Set<string>();
+        if (p.variants && Array.isArray(p.variants)) {
+          p.variants.forEach((v: any) => {
+            if (v.attributes) {
+              const attrs = v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes;
+              const colorKey = Object.keys(attrs).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
+              if (colorKey && attrs[colorKey]) colorNames.add(attrs[colorKey]);
+            }
+          });
+        }
+        if (colorNames.size === 0 && p.configurableVariations) {
+          const variants = p.configurableVariations.split("|");
+          variants.forEach((variant: string) => {
+            const attrs = variant.split(",");
+            attrs.forEach((attr: string) => {
+              const [key, value] = attr.split("=");
+              if (key && value && (key.trim().toLowerCase().includes('color') || key.trim().toLowerCase().includes('colour'))) {
+                colorNames.add(value.trim());
+              }
+            });
+          });
+        }
+        if (colorNames.size === 0 && p.colorImages) {
+          Object.keys(p.colorImages).forEach(color => colorNames.add(color));
+        }
+        if (colorNames.size === 0 && p.attributes) {
+          const attrs = p.attributes instanceof Map ? Object.fromEntries(p.attributes) : p.attributes;
+          const colorKey = Object.keys(attrs).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
+          if (colorKey && attrs[colorKey]) colorNames.add(attrs[colorKey]);
+        }
+        return Array.from(colorNames).map(name => {
+          const colorLower = name.trim().toLowerCase();
+          let imageUrl = undefined;
+          
+          if (p.colorImages) {
+            const imageKeys = Object.keys(p.colorImages);
+            const matchedKey = imageKeys.find(k => k.toLowerCase() === colorLower);
+            if (matchedKey && p.colorImages[matchedKey]) imageUrl = p.colorImages[matchedKey];
+          }
+          
+          if (!imageUrl && p.variants && Array.isArray(p.variants)) {
+            const matchedVariant = p.variants.find((v: any) => {
+              const vColor = v.attributes?.color || v.attributes?.colour;
+              return vColor && vColor.toLowerCase() === colorLower;
+            });
+            
+            if (matchedVariant?.imageUrl) {
+              imageUrl = matchedVariant.imageUrl;
+            } else if (matchedVariant?.sku && p.images && Array.isArray(p.images)) {
+              // Smart SKU to Image Matching!
+              // The user's crucial clue: Variant SKU (e.g. SMK-TYPH-RD1-GL186-M) matches image URLs (..._gl186_...).
+              const skuTokens = matchedVariant.sku.toLowerCase().split(/[-_/\s+]/).filter((t: string) => t.length > 2);
+              
+              let bestImg = null;
+              let bestScore = 0;
+              
+              for (const img of p.images) {
+                const urlLower = img.url.toLowerCase();
+                let score = 0;
+                for (const token of skuTokens) {
+                  if (urlLower.includes(token)) {
+                    score += token.length; // Longer matches (like gl186) give higher score
+                  }
+                }
+                if (score > bestScore) {
+                  bestScore = score;
+                  bestImg = img;
+                }
+              }
+              
+              if (bestImg && bestScore > 3) {
+                imageUrl = bestImg.url;
+              }
+            }
+          }
+          
+          if (!imageUrl && p.images && Array.isArray(p.images)) {
+            const ALL_COLORS = ["black", "white", "red", "blue", "green", "yellow", "orange", "grey", "gray", "pink", "purple", "brown", "silver", "gold", "neon", "flu", "matte", "gloss"];
+            const colorWords = colorLower.split(/[\/\s-]/).filter((w: string) => w.length > 2 && w.toLowerCase() !== 'flu.');
+            
+            let bestImg = null;
+            let bestScore = -1;
+            for (const img of p.images) {
+              const textToSearch = (img.url + " " + (img.altText || "")).toLowerCase();
+              if (colorWords.length > 0 && colorWords.every((w: string) => textToSearch.includes(w))) {
+                let penalty = 0;
+                for (const c of ALL_COLORS) {
+                  if (!colorWords.map((w: string) => w.toLowerCase()).includes(c) && textToSearch.includes(c)) {
+                    penalty += 10;
+                  }
+                }
+                const score = 100 - penalty;
+                if (score > bestScore) {
+                  bestScore = score;
+                  bestImg = img;
+                }
+              }
+            }
+            if (bestImg) imageUrl = bestImg.url;
+          }
+          
+          let enhancedName = name;
+          if (imageUrl) {
+            enhancedName = inferRichColorFromUrl(imageUrl, name.trim());
+          }
+          
+          return { name: enhancedName, imageUrl };
+        });
+      })(),
     };
   });
 

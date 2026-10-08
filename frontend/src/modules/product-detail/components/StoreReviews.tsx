@@ -127,8 +127,8 @@ export const StoreReviews: React.FC<{ reviews?: ReviewData[] }> = ({ reviews: pr
           ref={sliderRef}
           className="flex gap-3 overflow-x-auto scrollbar-none py-1 items-start"
         >
-          {reviews.map((review) => (
-            <ReviewCard key={review.id} review={review} />
+          {reviews.map((review, index) => (
+            <ReviewCard key={review._id || review.id || `review-${index}`} review={review} />
           ))}
           {hasNextPage && (
             <div className="shrink-0 w-[120px] flex items-center justify-center h-[130px]">

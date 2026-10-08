@@ -16,7 +16,10 @@ const Thumbnail: React.FC<{
   isActive: boolean;
   onClick: () => void;
 }> = ({ img, idx, isActive, onClick }) => {
-  const [src, setSrc] = useState(img.url);
+  const [src, setSrc] = useState(img.url || FALLBACK_IMAGE);
+  useEffect(() => {
+    if (img.url) setSrc(img.url);
+  }, [img.url]);
   return (
     <button
       onClick={onClick}
@@ -24,12 +27,10 @@ const Thumbnail: React.FC<{
         isActive ? "border-brand" : "border-neutral-200 hover:border-neutral-300"
       }`}
     >
-      <Image
+      <img
         src={src}
         alt={`Thumbnail ${idx}`}
-        fill
-        unoptimized
-        className="object-contain mix-blend-multiply"
+        className="w-full h-full object-contain mix-blend-multiply absolute inset-0"
         onError={() => setSrc(FALLBACK_IMAGE)}
       />
     </button>

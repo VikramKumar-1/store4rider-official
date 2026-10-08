@@ -2,6 +2,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import axios from "axios";
 
 export interface IStoreReview {
+  _id?: string;
   id: string;
   author: string;
   rating: number;

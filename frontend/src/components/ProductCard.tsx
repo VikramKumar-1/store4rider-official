@@ -13,6 +13,8 @@ import { apiClient } from "@/core/api/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWishlist } from "@/core/hooks/useWishlist";
 
+import { parseColorToBackground } from "@/modules/product-detail/components/ProductDetailPageModule";
+
 interface ProductCardProps {
   product: any;
   showBuyNow?: boolean;
@@ -93,8 +95,43 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
     setImgSrc(imageUrl);
   }, [imageUrl]);
 
-  const price = product.basePrice || product.price || 0;
-  const originalPrice = Math.round(price * 1.25);
+  const basePrice = product.basePrice || product.price || 0;
+  const specialPrice = product.specialPrice || 0;
+  const price = (specialPrice > 0 && specialPrice < basePrice) ? specialPrice : basePrice;
+  const originalPrice = specialPrice > 0 && specialPrice < basePrice ? basePrice : Math.round(price * 1.25);
+
+  // Extract unique colors for swatches
+  const colorNames = new Set<string>();
+  if (product.variants && Array.isArray(product.variants)) {
+    product.variants.forEach((v: any) => {
+      if (v.attributes) {
+        const attrs = v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes;
+        const colorKey = Object.keys(attrs).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
+        if (colorKey && attrs[colorKey]) colorNames.add(attrs[colorKey]);
+      }
+    });
+  }
+  if (colorNames.size === 0 && product.configurableVariations) {
+    const variants = product.configurableVariations.split("|");
+    variants.forEach((variant: string) => {
+      const attrs = variant.split(",");
+      attrs.forEach((attr: string) => {
+        const [key, value] = attr.split("=");
+        if (key && value && (key.trim().toLowerCase().includes('color') || key.trim().toLowerCase().includes('colour'))) {
+          colorNames.add(value.trim());
+        }
+      });
+    });
+  }
+  if (colorNames.size === 0 && product.colorImages) {
+    Object.keys(product.colorImages).forEach(color => colorNames.add(color));
+  }
+  if (colorNames.size === 0 && product.attributes) {
+     const attrs = product.attributes instanceof Map ? Object.fromEntries(product.attributes) : product.attributes;
+     const colorKey = Object.keys(attrs).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
+     if (colorKey && attrs[colorKey]) colorNames.add(attrs[colorKey]);
+  }
+  const uniqueColors = Array.from(colorNames);
 
   return (
     <Link href={`/products/${product.slug || product.id}`}>
@@ -121,8 +158,6 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
             </svg>
             <span>4.9</span>
           </div>
-
-
 
           {/* Wishlist Button */}
           <button
@@ -162,6 +197,31 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
             </svg>
           </button>
+
+          {/* Hover Overlay: Color Swatches */}
+          {uniqueColors.length > 0 && (
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+              <div className="flex flex-wrap gap-1.5 bg-white/70 backdrop-blur-sm px-2.5 py-1.5 rounded-lg shadow-sm border border-white/40">
+                {uniqueColors.slice(0, 5).map((color) => (
+                  <button
+                    key={color}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      router.push(`/products/${product.slug || product.id}?color=${encodeURIComponent(color)}`);
+                    }}
+                    className="w-4 h-4 sm:w-4 sm:h-4 border border-black/80 shadow-sm transition-transform hover:scale-110"
+                    style={{ background: parseColorToBackground(color) }}
+                    title={color}
+                    aria-label={`View ${color} variant`}
+                  />
+                ))}
+                {uniqueColors.length > 5 && (
+                  <span className="text-[10px] text-slate-800 self-center font-bold pl-1">+{uniqueColors.length - 5}</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bottom Section: Text Content */}
@@ -174,11 +234,13 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
           {/* Pricing & Action */}
           <div className="mt-auto flex items-end justify-between">
             <div className="flex flex-col">
-              <span className="text-[10px] sm:text-xs font-semibold text-slate-400 line-through mb-0.5">
-                {formatPrice(originalPrice)}
-              </span>
+              {price > 0 && (
+                <span className="text-[10px] sm:text-xs font-semibold text-slate-400 line-through mb-0.5">
+                  {formatPrice(originalPrice)}
+                </span>
+              )}
               <span className="text-sm sm:text-base font-black text-brand tracking-tight leading-none">
-                {formatPrice(price)}
+                {price > 0 ? formatPrice(price) : "Contact for Price"}
               </span>
             </div>
 

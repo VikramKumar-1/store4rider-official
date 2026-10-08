@@ -264,13 +264,14 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
         const json = await res.json();
         if (json.success && json.data) {
           let mappedReviews: TestimonialData[] = json.data.map((r: any) => ({
-            id: r.id,
+            id: r._id || r.id,
             authorName: r.author,
             date: r.date,
             rating: r.rating || 5,
             content: r.text,
             verified: true,
             link: r.link,
+            avatarUrl: r.avatarUrl,
           }));
 
           // Force exactly 10 reviews to show in the UI slider

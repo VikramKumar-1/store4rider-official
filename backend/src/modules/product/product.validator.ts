@@ -37,7 +37,15 @@ export class ProductValidator {
       // Magento visibility "1" means "Not Visible Individually", but text exports say "Not Visible Individually"
       visibility: { $nin: ["1", "Not Visible Individually"] }
     };
-    const andConditions: any[] = [];
+    const andConditions: any[] = [
+      {
+        $or: [
+          { basePrice: { $gt: 0 } },
+          { specialPrice: { $gt: 0 } },
+          { "variants.price": { $gt: 0 } }
+        ]
+      }
+    ];
     
     // Accurate category matching for Magento paths and product names with word boundaries
     if (category) {

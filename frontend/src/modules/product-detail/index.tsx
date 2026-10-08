@@ -149,12 +149,14 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
     }
   }
 
-  const activePriceFormatted = new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(activePrice);
+  const activePriceFormatted = activePrice > 0 
+    ? new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(activePrice)
+    : product.priceFormatted;
 
   const handleAddToCart = (color: string, size: string) => {
     addItem({

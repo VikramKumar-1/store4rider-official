@@ -13,7 +13,8 @@ export interface KitProduct {
 }
 
 export interface ReviewData {
-  id: string;
+  _id?: string;
+  id?: string;
   author: string;
   rating: number;
   date: string;

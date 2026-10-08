@@ -142,6 +142,10 @@ const singleColorMap: Record<string, string> = {
   neon: "#CCFF00",
   "hi-vis": "#CCFF00",
   "hi-vis yellow": "#CCFF00",
+  "flu green": "#CCFF00",
+  "flu. green": "#CCFF00",
+  "flu.green": "#CCFF00",
+  "fluorescent green": "#CCFF00",
   navy: "#1E3A8A",
   olive: "#556B2F",
   camo: "#4A5D4E",
@@ -230,7 +234,9 @@ const mapToKitProduct = (p: IBackendProduct): KitProduct => {
   };
 };
 
-const filenameToColorMap: Record<string, string> = {
+export const filenameToColorMap: Record<string, string> = {
+  // SMK Typhoon
+  "_gl186_": "Green/Black/White",
   // Clan SNKR Stealth Edition
   "snkr--se-_9": "Black/Grey",
   "snkr--se-_25": "Black/Red",
@@ -309,6 +315,29 @@ const inferImageColorLabel = (imgUrl: string, existingAlt: string, productName: 
   return existingAlt || productName;
 };
 
+export const inferRichColorFromUrl = (url: string, fallback: string): string => {
+  if (!url) return fallback;
+  const parts = url.toLowerCase().split(/[-_/+.\s]/);
+  const colors: string[] = [];
+  let finish = "";
+  
+  const knownKeys = Object.keys(singleColorMap);
+  for (const p of parts) {
+    if (knownKeys.includes(p) && !colors.includes(p.charAt(0).toUpperCase() + p.slice(1))) {
+      colors.push(p.charAt(0).toUpperCase() + p.slice(1));
+    } else if (p === 'gloss' || p === 'matte') {
+      finish = p.charAt(0).toUpperCase() + p.slice(1);
+    }
+  }
+  
+  if (colors.length > 1 || (colors.length === 1 && finish && fallback.toLowerCase() !== colors[0].toLowerCase())) {
+    const colorStr = colors.join("/");
+    return finish ? `${colorStr} ${finish}` : colorStr;
+  }
+  
+  return fallback;
+};
+
 const parseVariationsToRawVariants = (variationsStr?: string) => {
   if (!variationsStr) return [];
   const result: any[] = [];
@@ -316,26 +345,39 @@ const parseVariationsToRawVariants = (variationsStr?: string) => {
   for (const variant of variants) {
     const attrs = variant.split(",");
     let sku = "";
+    let price = 0;
+    let specialPrice = undefined;
+    let stock = 1;
     const attributes: Record<string, string> = {};
+    
     for (const attr of attrs) {
       const [key, value] = attr.split("=");
       if (!key || !value) continue;
       const k = key.trim().toLowerCase();
       const v = value.trim();
+      
       if (k === "sku") {
         sku = v;
+      } else if (k === "price" || k === "baseprice") {
+        price = parseFloat(v) || 0;
+      } else if (k === "special_price" || k === "specialprice") {
+        specialPrice = parseFloat(v) || undefined;
+      } else if (k === "qty" || k === "quantity" || k === "stock") {
+        stock = parseInt(v, 10) || 0;
       } else if (k.includes("color") || k.includes("colour")) {
         attributes["color"] = v;
       } else {
         attributes[k] = v;
       }
     }
+    
     if (sku || Object.keys(attributes).length > 0) {
       result.push({
         sku,
         attributes,
-        price: 0,
-        stock: 1,
+        price,
+        specialPrice,
+        stock,
       });
     }
   }
@@ -356,12 +398,64 @@ const mapProductToPDP = (
   // Only show real related products from database (no dummy placeholders)
   const finalKitProducts = kitProducts || [];
 
+  let rawVariants = product.variants?.map((v: any) => ({
+    sku: v.sku,
+    price: v.price,
+    specialPrice: v.specialPrice,
+    stock: v.stock,
+    attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : (v.attributes || {}),
+    imageUrl: v.imageUrl
+  }));
+
+  if ((!rawVariants || rawVariants.length === 0) && product.configurableVariations) {
+    rawVariants = parseVariationsToRawVariants(product.configurableVariations);
+  }
+
+  // Pre-process variants to enhance simple color names if image URL has rich color names
+  if (rawVariants && rawVariants.length > 0) {
+    rawVariants.forEach((v: any) => {
+      // SMART MATCHING: If variant is missing an image, guess it from product.images using SKU tokens!
+      if (!v.imageUrl && v.sku && product.images && product.images.length > 0) {
+        const skuTokens = v.sku.toLowerCase().split(/[-_/\s+]/).filter((t: string) => t.length > 2);
+        let bestImg = null;
+        let bestScore = 0;
+        
+        for (const img of product.images) {
+          const urlLower = img.url.toLowerCase();
+          let score = 0;
+          for (const token of skuTokens) {
+            if (urlLower.includes(token)) {
+              score += token.length;
+            }
+          }
+          if (score > bestScore) {
+            bestScore = score;
+            bestImg = img;
+          }
+        }
+        
+        if (bestImg && bestScore > 3) {
+          v.imageUrl = bestImg.url;
+        }
+      }
+
+      const colorKey = Object.keys(v.attributes).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
+      if (colorKey && v.imageUrl) {
+        const originalColor = String(v.attributes[colorKey]).trim();
+        const richColor = inferRichColorFromUrl(v.imageUrl, originalColor);
+        if (richColor !== originalColor) {
+          v.attributes[colorKey] = richColor; // Upgrade variant attribute
+        }
+      }
+    });
+  }
+
   let base = product.basePrice;
   let special = product.specialPrice;
 
-  // Fallback 1: If base is 0, get lowest price from variants
-  if (!base && product.variants && product.variants.length > 0) {
-    const variantPrices = product.variants
+  // Fallback 1: If base is 0, get lowest price from rawVariants
+  if (!base && rawVariants && rawVariants.length > 0) {
+    const variantPrices = rawVariants
       .map((v: any) => v.price)
       .filter((p: number) => p > 0);
     if (variantPrices.length > 0) {
@@ -369,7 +463,7 @@ const mapProductToPDP = (
     }
     // Also check variant specialPrices
     if (!special) {
-      const variantSpecials = product.variants
+      const variantSpecials = rawVariants
         .map((v: any) => v.specialPrice)
         .filter((p: number | undefined) => p && p > 0);
       if (variantSpecials.length > 0) {
@@ -404,11 +498,13 @@ const mapProductToPDP = (
     : undefined;
 
   const galleryMap = new Map<string, any>();
+  const normalizeUrlForMap = (url: string) => url ? url.split('?')[0].replace('http://', 'https://').trim().toLowerCase() : "";
   
   // 1. Add Parent Images
   if (product.images?.length > 0) {
     product.images.forEach(img => {
-      galleryMap.set(img.url, {
+      if (!img.url) return;
+      galleryMap.set(normalizeUrlForMap(img.url), {
         url: img.url,
         altText: inferImageColorLabel(img.url, img.altText || "", product.name),
       });
@@ -416,21 +512,20 @@ const mapProductToPDP = (
   }
 
   // 2. Add Variant Specific Images (Trust the DB Swatch/Variant Image!)
-  if (product.variants && Array.isArray(product.variants)) {
-    product.variants.forEach(v => {
-      if (v.imageUrl && v.imageUrl !== "/no-image.svg" && !galleryMap.has(v.imageUrl)) {
-        // Extract color from variant attributes
-        let vColor = "";
-        if (v.attributes) {
-          const attrs = v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes;
-          const colorKey = Object.keys(attrs).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
-          if (colorKey) vColor = attrs[colorKey];
+  if (rawVariants && rawVariants.length > 0) {
+    rawVariants.forEach((v: any) => {
+      if (v.imageUrl && v.imageUrl !== "/no-image.svg") {
+        const norm = normalizeUrlForMap(v.imageUrl);
+        if (!galleryMap.has(norm)) {
+          let vColor = "";
+          const colorKey = Object.keys(v.attributes).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
+          if (colorKey) vColor = v.attributes[colorKey];
+          
+          galleryMap.set(norm, {
+            url: v.imageUrl,
+            altText: vColor ? `${product.name} - ${vColor}` : product.name,
+          });
         }
-        
-        galleryMap.set(v.imageUrl, {
-          url: v.imageUrl,
-          altText: vColor ? `${product.name} - ${vColor}` : product.name,
-        });
       }
     });
   }
@@ -450,46 +545,66 @@ const mapProductToPDP = (
   let sizes: string[] = [];
   let sizeLabel = "SIZE";
 
-  // Prefer extracting from actual child variants if they exist (more accurate)
-  if (product.variants && product.variants.length > 0) {
-    const colorSet = new Set<string>();
-    const sizeSet = new Set<string>();
-    
-    product.variants.forEach(variant => {
+  // Prefer extracting from rawVariants
+  const colorSet = new Set<string>();
+  const sizeSet = new Set<string>();
+
+  if (rawVariants && rawVariants.length > 0) {
+    rawVariants.forEach((variant: any) => {
       if (variant.attributes) {
-        // Handle Mongoose Map or POJO
-        const attrs = variant.attributes instanceof Map 
-          ? Object.fromEntries(variant.attributes)
-          : variant.attributes;
-          
-        Object.entries(attrs).forEach(([key, value]) => {
+        Object.entries(variant.attributes).forEach(([key, value]) => {
           const k = key.toLowerCase();
           const v = String(value).trim();
           if (k === 'sku') return;
           if (k.includes('color') || k.includes('colour')) {
             colorSet.add(v);
           } else {
-            // Treat ANY other attribute (size, weight, dimension, fit, etc.) as the secondary variant selector
             sizeSet.add(v);
             if (k === 'eu_size_for_boots' && sizeLabel === "SIZE") {
               sizeLabel = "EU SIZE FOR BOOTS";
             } else if (!k.includes('size') && sizeLabel === "SIZE") {
-              // Extract a clean label (e.g. "weight_in_ml" -> "WEIGHT IN ML")
               sizeLabel = key.replace(/_/g, ' ').trim().toUpperCase();
             }
           }
         });
       }
     });
-    colorNames = Array.from(colorSet);
-    sizes = Array.from(sizeSet);
   } else {
     // Fallback to parsing the legacy Magento string
     const parsed = parseVariations(product.configurableVariations, (product as any).configurableVariationLabels);
-    colorNames = parsed.colors;
-    sizes = parsed.sizes;
+    parsed.colors.forEach(c => colorSet.add(c));
+    parsed.sizes.forEach(s => sizeSet.add(s));
     sizeLabel = parsed.sizeLabel || "SIZE";
   }
+
+  // Add colors from colorImages map if any exist that weren't in variants
+  if (product.colorImages) {
+    const cMap = product.colorImages instanceof Map ? Object.fromEntries(product.colorImages) : product.colorImages;
+    Object.keys(cMap).forEach(color => {
+      // Find if we already have this color case-insensitively
+      const existing = Array.from(colorSet).find(c => c.toLowerCase() === color.toLowerCase());
+      if (!existing) colorSet.add(color);
+    });
+  }
+  
+  // Add colors inferred from gallery images if they have explicit alt text color mappings
+  if (product.images && Array.isArray(product.images)) {
+    product.images.forEach(img => {
+      const alt = img.altText || "";
+      if (alt.includes(" - ")) {
+        const parts = alt.split(" - ");
+        const inferredColor = parts[parts.length - 1].trim();
+        const existing = Array.from(colorSet).find(c => c.toLowerCase() === inferredColor.toLowerCase());
+        // Only add if it's a known rich color string, not random alt text
+        if (!existing && (inferredColor.includes("/") || Object.keys(singleColorMap).includes(inferredColor.toLowerCase()))) {
+          colorSet.add(inferredColor);
+        }
+      }
+    });
+  }
+
+  colorNames = Array.from(colorSet);
+  sizes = Array.from(sizeSet);
 
   const mappedColors = colorNames.length > 0
     ? colorNames.map(name => ({
@@ -502,18 +617,7 @@ const mapProductToPDP = (
     ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 
     : 0;
 
-  let rawVariants = product.variants?.map((v: any) => ({
-    sku: v.sku,
-    price: v.price,
-    specialPrice: v.specialPrice,
-    stock: v.stock,
-    attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : (v.attributes || {}),
-    imageUrl: v.imageUrl
-  }));
 
-  if ((!rawVariants || rawVariants.length === 0) && product.configurableVariations) {
-    rawVariants = parseVariationsToRawVariants(product.configurableVariations);
-  }
 
   // Determine free shipping eligibility
   const hasShippingCharge = (product as any).shippingFee > 0 || (product as any).shipping_charge > 0 || (product as any).shippingCost > 0;

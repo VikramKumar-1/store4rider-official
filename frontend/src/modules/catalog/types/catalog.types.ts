@@ -6,6 +6,8 @@ export interface CatalogProduct {
   imageUrl: string;
   rating: number; // e.g. 4.95
   productUrl: string;
+  colors?: { name: string; imageUrl?: string }[];
+  rawSlug?: string;
 }
 
 export interface CatalogProps {
