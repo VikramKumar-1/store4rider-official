@@ -11,7 +11,7 @@ const ReviewCard: React.FC<{ review: ReviewData }> = ({ review }) => {
     <a 
       href={review.link || "#"} 
       target={review.link ? "_blank" : "_self"} 
-      className="group shrink-0 w-[180px] md:w-[200px] border border-neutral-200/70 p-3 rounded-xl flex flex-col justify-between bg-white h-[110px] hover:border-neutral-300 relative cursor-pointer block"
+      className="group shrink-0 w-full md:w-[200px] border border-neutral-200/70 p-3 rounded-xl flex flex-col justify-between bg-white h-auto min-h-[110px] hover:border-neutral-300 relative cursor-pointer block"
     >
       <div>
         {/* Top: Stars + Verified tag */}
@@ -84,10 +84,10 @@ export const StoreReviews: React.FC<{ reviews?: ReviewData[] }> = ({ reviews: pr
   return (
     <div className="w-full relative flex flex-col">
       {/* Header with Google Badge and See All */}
-      <div className="flex items-center justify-between mb-4 pb-2 border-b border-neutral-200/60">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-neutral-50 border border-neutral-100 flex items-center justify-center shrink-0 shadow-sm">
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <div className="flex items-center justify-between mb-4 pb-2 border-b border-neutral-200/60 flex-wrap gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="w-[28px] h-[28px] rounded-full bg-neutral-50 border border-neutral-100 flex items-center justify-center shrink-0 shadow-sm">
+            <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -97,7 +97,7 @@ export const StoreReviews: React.FC<{ reviews?: ReviewData[] }> = ({ reviews: pr
           <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-neutral-900">
             Store Reviews
           </h3>
-          <span className="hidden sm:inline-flex items-center gap-1.5 bg-white border border-neutral-200/80 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-neutral-800 shadow-xs ml-2">
+          <span className="hidden sm:inline-flex items-center gap-1.5 bg-white border border-neutral-200/80 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-neutral-800 shadow-xs ml-1">
             <span className="text-amber-500">★ 4.8</span>
           </span>
         </div>
@@ -105,7 +105,7 @@ export const StoreReviews: React.FC<{ reviews?: ReviewData[] }> = ({ reviews: pr
           href="https://www.google.com/maps/search/?api=1&query=Store4Riders" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="text-[10px] sm:text-xs font-bold text-brand hover:text-orange-700 hover:underline uppercase tracking-wider flex items-center gap-1 transition-colors"
+          className="shrink-0 text-[10px] sm:text-xs font-bold text-brand hover:text-orange-700 hover:underline uppercase tracking-wider flex items-center gap-1 transition-colors bg-orange-50/50 px-2 py-1 rounded-md"
         >
           SEE ALL
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -116,10 +116,10 @@ export const StoreReviews: React.FC<{ reviews?: ReviewData[] }> = ({ reviews: pr
 
       {/* Slider Area */}
       <div className="relative group/reviews">
-        {/* Navigation Arrows */}
+        {/* Navigation Arrows (Desktop Only) */}
         <button 
           onClick={() => scroll('left')}
-          className="absolute -left-2 top-1/2 -translate-y-1/2 z-10 bg-white border border-neutral-200 shadow-md rounded-full text-neutral-700 hover:text-brand transition-all p-1.5 opacity-0 group-hover/reviews:opacity-100"
+          className="hidden md:block absolute -left-2 top-1/2 -translate-y-1/2 z-10 bg-white border border-neutral-200 shadow-md rounded-full text-neutral-700 hover:text-brand transition-all p-1.5 opacity-0 group-hover/reviews:opacity-100"
           aria-label="Previous review"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
@@ -129,7 +129,7 @@ export const StoreReviews: React.FC<{ reviews?: ReviewData[] }> = ({ reviews: pr
         
         <button 
           onClick={() => scroll('right')}
-          className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 bg-white border border-neutral-200 shadow-md rounded-full text-neutral-700 hover:text-brand transition-all p-1.5 opacity-0 group-hover/reviews:opacity-100"
+          className="hidden md:block absolute -right-2 top-1/2 -translate-y-1/2 z-10 bg-white border border-neutral-200 shadow-md rounded-full text-neutral-700 hover:text-brand transition-all p-1.5 opacity-0 group-hover/reviews:opacity-100"
           aria-label="Next review"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
@@ -140,7 +140,7 @@ export const StoreReviews: React.FC<{ reviews?: ReviewData[] }> = ({ reviews: pr
         {/* Scroll Container */}
         <div 
           ref={sliderRef}
-          className="flex gap-3 overflow-x-auto scrollbar-none py-1 items-start"
+          className="flex flex-col md:flex-row gap-3 md:overflow-x-auto scrollbar-none py-1 md:items-start"
         >
           {reviews.map((review, index) => (
             <ReviewCard key={review._id || review.id || `review-${index}`} review={review} />

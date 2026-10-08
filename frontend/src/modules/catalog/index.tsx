@@ -142,7 +142,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
               {
                 id: 'google-reviews',
                 title: 'Google Reviews',
-                content: <div className="-mx-4 sm:mx-0"><StoreReviews /></div>
+                content: <StoreReviews />
               }
             ]}
           />
@@ -157,7 +157,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
           </aside>
 
           {/* Right Product Grid (2 columns on mobile with dark gradient name & price overlay) */}
-          <section className="flex-1 w-full min-w-0 min-h-[80vh]">
+          <section className="flex-1 w-full min-w-0">
             {/* Sort & Count Header on Desktop */}
             <div className="hidden sm:flex items-center justify-between pb-4 border-b border-neutral-100 mb-6">
               <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
@@ -225,7 +225,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
  */
 export const CatalogModule: React.FC<CatalogProps> = ({ products, totalCount, isLoading, isFetching, categoryNode }) => {
   return (
-    <div className="w-full min-h-screen flex flex-col font-sans bg-white relative pb-36 lg:pb-0">
+    <div className="w-full flex flex-col font-sans bg-white relative">
       
       {/* 1. Header Global Area */}
       <TopBanner
@@ -240,7 +240,7 @@ export const CatalogModule: React.FC<CatalogProps> = ({ products, totalCount, is
         />
       </div>
 
-      <div className="flex-1 flex flex-col w-full">
+      <div className="w-full">
         <CatalogContent 
           products={products} 
           totalCount={totalCount} 
@@ -251,7 +251,7 @@ export const CatalogModule: React.FC<CatalogProps> = ({ products, totalCount, is
       </div>
 
       {/* 4. Global Footer */}
-      <Footer />
+      <div className="bg-banner pb-32 lg:pb-0 w-full"><Footer /></div>
     </div>
   );
 };

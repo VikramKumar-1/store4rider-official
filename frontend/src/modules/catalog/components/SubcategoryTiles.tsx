@@ -36,7 +36,7 @@ export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
   return (
     <section className="w-full my-4">
       {/* 3 Tiles in a row on mobile, matching wireframe exact layout */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+      <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
         {subcategories.slice(0, 3).map((item: any, index: number) => {
           const basePath = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
           const href = `${basePath}/${item.slug}`;
@@ -44,7 +44,7 @@ export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
             <Link
               key={item.id || item._id || item.slug || index}
               href={href}
-              className="group flex flex-col items-center select-none"
+              className="group flex flex-col items-center select-none w-[calc(33.333%-0.35rem)] sm:w-[calc(33.333%-0.7rem)]"
             >
               {/* Tile Image Card */}
               <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200/80 shadow-xs transition-transform duration-300 group-hover:scale-105 will-change-transform">

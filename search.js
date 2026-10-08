@@ -1,21 +1,15 @@
 const fs = require('fs');
-const path = require('path');
+const glob = require('glob'); // Not available? I'll use simple fs.
+const files = fs.readdirSync('c:/Users/vikur/Downloads/store4riders/frontend/src/modules/catalog', { recursive: true });
 
-function searchFiles(dir, keyword) {
-  const files = fs.readdirSync(dir);
-  for (const file of files) {
-    const filePath = path.join(dir, file);
-    if (fs.statSync(filePath).isDirectory()) {
-      searchFiles(filePath, keyword);
-    } else if (file.endsWith('.ts') || file.endsWith('.tsx')) {
-      const content = fs.readFileSync(filePath, 'utf-8');
-      if (content.toLowerCase().includes(keyword.toLowerCase())) {
-        console.log(`Found in: ${filePath}`);
+files.forEach(f => {
+  if (f.endsWith('.tsx')) {
+    const content = fs.readFileSync(`c:/Users/vikur/Downloads/store4riders/frontend/src/modules/catalog/${f}`, 'utf8');
+    const lines = content.split('\n');
+    lines.forEach((line, i) => {
+      if (line.includes('min-h')) {
+        console.log(`${f}:${i+1}: ${line.trim()}`);
       }
-    }
+    });
   }
-}
-
-searchFiles(__dirname + '/backend/src', 'serpapi');
-searchFiles(__dirname + '/frontend/src', 'serpapi');
-searchFiles(__dirname + '/frontend/app', 'serpapi');
+});

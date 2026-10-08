@@ -2,10 +2,23 @@
 
 import React, { useState, useRef, useMemo } from "react";
 import { PlusSquare, MinusSquare } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export function CategoryDescriptionBlock({ description, pageTitle, disableToggle = false }: { description?: string, pageTitle: string, disableToggle?: boolean }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  const handleHTMLClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const link = target.closest('a');
+    if (link && link.href) {
+      if (link.hostname === window.location.hostname) {
+        e.preventDefault();
+        router.push(link.pathname + link.search + link.hash);
+      }
+    }
+  };
 
   const cleanedDescription = useMemo(() => {
     if (!description) return "";
@@ -58,6 +71,7 @@ export function CategoryDescriptionBlock({ description, pageTitle, disableToggle
     <article ref={containerRef} className={`w-full relative ${disableToggle ? '' : 'mb-6'}`}>
       <div className="relative w-full">
         <div 
+          onClick={handleHTMLClick}
           className={`prose prose-sm max-w-none prose-neutral text-[12px] sm:text-[13px] leading-relaxed prose-headings:text-[14px] sm:prose-headings:text-[15px] prose-headings:font-bold prose-headings:text-neutral-900 prose-p:text-neutral-700 prose-p:mt-0 prose-p:mb-2 prose-ul:mt-0 prose-ul:mb-2 prose-li:my-0 prose-strong:text-neutral-900 prose-a:text-brand prose-a:no-underline hover:prose-a:underline prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-neutral-200 prose-th:bg-neutral-50 prose-th:p-2 prose-td:border prose-td:border-neutral-200 prose-td:p-2 prose-img:rounded-md prose-img:shadow-sm transition-all duration-500 font-sans overflow-hidden ${disableToggle ? 'h-auto' : isExpanded ? 'max-h-[3000px]' : 'max-h-[110px]'}`}
           dangerouslySetInnerHTML={{ __html: cleanedDescription }} 
         />
