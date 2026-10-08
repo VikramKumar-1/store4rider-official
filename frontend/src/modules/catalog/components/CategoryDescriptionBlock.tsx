@@ -3,7 +3,7 @@
 import React, { useState, useRef, useMemo } from "react";
 import { PlusSquare, MinusSquare } from "lucide-react";
 
-export function CategoryDescriptionBlock({ description, pageTitle }: { description?: string, pageTitle: string }) {
+export function CategoryDescriptionBlock({ description, pageTitle, disableToggle = false }: { description?: string, pageTitle: string, disableToggle?: boolean }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -33,6 +33,11 @@ export function CategoryDescriptionBlock({ description, pageTitle }: { descripti
     });
     clean = clean.replace(/href="\/([^"]+)\.html(\?.*)?"/gi, 'href="/$1$2"');
 
+    // 4. Force tables to shrink on mobile instead of scrolling
+    clean = clean.replace(/<table/gi, '<table class="w-full max-w-full table-fixed text-[10px] sm:text-[12px] break-words"');
+    clean = clean.replace(/<th/gi, '<th class="break-words px-1 py-1 sm:px-2 sm:py-2"');
+    clean = clean.replace(/<td/gi, '<td class="break-words px-1 py-1 sm:px-2 sm:py-2"');
+
     return clean;
   }, [description]);
 
@@ -50,37 +55,38 @@ export function CategoryDescriptionBlock({ description, pageTitle }: { descripti
   };
 
   return (
-    <article ref={containerRef} className="w-full relative mb-6">
-      
+    <article ref={containerRef} className={`w-full relative ${disableToggle ? '' : 'mb-6'}`}>
       <div className="relative w-full">
         <div 
-          className={`prose prose-sm max-w-none prose-neutral text-[12px] sm:text-[13px] leading-relaxed prose-headings:text-[14px] sm:prose-headings:text-[15px] prose-headings:font-bold prose-headings:text-neutral-900 prose-p:text-neutral-700 prose-p:mt-0 prose-p:mb-2 prose-ul:mt-0 prose-ul:mb-2 prose-li:my-0 prose-strong:text-neutral-900 prose-a:text-brand prose-a:no-underline hover:prose-a:underline prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-neutral-200 prose-th:bg-neutral-50 prose-th:p-2 prose-td:border prose-td:border-neutral-200 prose-td:p-2 prose-img:rounded-md prose-img:shadow-sm transition-all duration-500 font-sans overflow-hidden ${isExpanded ? 'max-h-[3000px]' : 'max-h-[110px]'}`}
+          className={`prose prose-sm max-w-none prose-neutral text-[12px] sm:text-[13px] leading-relaxed prose-headings:text-[14px] sm:prose-headings:text-[15px] prose-headings:font-bold prose-headings:text-neutral-900 prose-p:text-neutral-700 prose-p:mt-0 prose-p:mb-2 prose-ul:mt-0 prose-ul:mb-2 prose-li:my-0 prose-strong:text-neutral-900 prose-a:text-brand prose-a:no-underline hover:prose-a:underline prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-neutral-200 prose-th:bg-neutral-50 prose-th:p-2 prose-td:border prose-td:border-neutral-200 prose-td:p-2 prose-img:rounded-md prose-img:shadow-sm transition-all duration-500 font-sans overflow-hidden ${disableToggle ? 'h-auto' : isExpanded ? 'max-h-[3000px]' : 'max-h-[110px]'}`}
           dangerouslySetInnerHTML={{ __html: cleanedDescription }} 
         />
         
-        {!isExpanded && (
+        {(!disableToggle && !isExpanded) && (
           <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white via-white/95 to-transparent pointer-events-none" />
         )}
       </div>
 
-      <div className="w-full flex justify-center mt-4">
-        <button 
-          onClick={toggleExpand}
-          className="flex items-center gap-1.5 sm:gap-2 bg-[#FF5429] hover:bg-[#E04018] text-white font-semibold text-xs sm:text-sm px-4 py-1.5 sm:px-6 sm:py-2 rounded-md uppercase tracking-wider transition-colors shadow-sm"
-        >
-          {isExpanded ? (
-            <>
-              <MinusSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              LESS VIEW
-            </>
-          ) : (
-            <>
-              <PlusSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              MORE VIEW
-            </>
-          )}
-        </button>
-      </div>
+      {!disableToggle && (
+        <div className="w-full flex justify-center mt-4">
+          <button 
+            onClick={toggleExpand}
+            className="flex items-center gap-1.5 sm:gap-2 bg-[#FF5429] hover:bg-[#E04018] text-white font-semibold text-xs sm:text-sm px-4 py-1.5 sm:px-6 sm:py-2 rounded-md uppercase tracking-wider transition-colors shadow-sm"
+          >
+            {isExpanded ? (
+              <>
+                <MinusSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                LESS VIEW
+              </>
+            ) : (
+              <>
+                <PlusSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                MORE VIEW
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </article>
   );
 }

@@ -114,8 +114,8 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
                   isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                 }`}
               >
-                <div className="overflow-hidden">
-                  <div className="text-sm text-neutral-600 leading-relaxed font-sans border-t border-neutral-200 p-4 sm:p-5">
+                <div className="overflow-hidden w-full max-w-full">
+                  <div className="text-sm text-neutral-600 leading-relaxed font-sans border-t border-neutral-200 p-3 sm:p-5 break-words overflow-x-hidden w-full">
                     {item.content}
                   </div>
                 </div>

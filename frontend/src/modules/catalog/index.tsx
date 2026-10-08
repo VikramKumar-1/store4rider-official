@@ -12,6 +12,7 @@ import { FloatingCatalogBar } from "./components/FloatingCatalogBar";
 import { CatalogProps } from "./types/catalog.types";
 import { SidebarFilters } from "./components/SidebarFilters";
 import { CatalogGrid } from "./components/CatalogGrid";
+import { StoreReviews } from "@/modules/product-detail/components/StoreReviews";
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter, useParams, usePathname } from "next/navigation";
 
@@ -128,7 +129,24 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
           </div>
         )}
 
-        <CategoryDescriptionBlock description={categoryNode?.description} pageTitle={pageTitle} />
+        {/* Category Description & Google Reviews Accordions */}
+        <div className="w-full flex flex-col gap-2 mb-6 mt-4">
+          <CategorySEOAccordion 
+            categoryName="Category Info & Reviews" 
+            items={[
+              ...(categoryNode?.description ? [{
+                id: 'cat-desc',
+                title: 'Category Description',
+                content: <CategoryDescriptionBlock description={categoryNode.description} pageTitle={pageTitle} disableToggle={true} />
+              }] : []),
+              {
+                id: 'google-reviews',
+                title: 'Google Reviews',
+                content: <div className="-mx-4 sm:mx-0"><StoreReviews /></div>
+              }
+            ]}
+          />
+        </div>
 
         {/* 6. Product Grid + Desktop Sidebar Section */}
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start mt-4">
