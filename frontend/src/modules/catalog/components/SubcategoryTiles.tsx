@@ -49,7 +49,7 @@ export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
               {/* Tile Image Card */}
               <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200/80 shadow-xs transition-transform duration-300 group-hover:scale-105 will-change-transform">
                 <Image
-                  src={item.imageUrl || "/no-image.svg"}
+                  src={item.image || item.imageUrl || item.thumbnailUrl || item.bannerImage || "/no-image.svg"}
                   alt={item.name}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-110"
