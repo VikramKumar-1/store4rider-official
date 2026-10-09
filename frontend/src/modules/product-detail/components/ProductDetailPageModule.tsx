@@ -338,7 +338,7 @@ export const inferRichColorFromUrl = (url: string, fallback: string): string => 
   return fallback;
 };
 
-const parseVariationsToRawVariants = (variationsStr?: string) => {
+const parseVariationsToRawVariants = (variationsStr?: string, parentStockStatus: number = 1) => {
   if (!variationsStr) return [];
   const result: any[] = [];
   const variants = variationsStr.split("|");
@@ -347,7 +347,7 @@ const parseVariationsToRawVariants = (variationsStr?: string) => {
     let sku = "";
     let price = 0;
     let specialPrice = undefined;
-    let stock = 1;
+    let stock = parentStockStatus === 0 ? 0 : 1;
     const attributes: Record<string, string> = {};
     
     for (const attr of attrs) {
@@ -414,7 +414,7 @@ const mapProductToPDP = (
   }));
 
   if ((!rawVariants || rawVariants.length === 0) && product.configurableVariations) {
-    rawVariants = parseVariationsToRawVariants(product.configurableVariations);
+    rawVariants = parseVariationsToRawVariants(product.configurableVariations, product.stockStatus ?? 1);
   }
 
   // Pre-process variants to enhance simple color names if image URL has rich color names

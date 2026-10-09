@@ -11,10 +11,25 @@ export class SearchService {
     let productHits: any[] = [];
     try {
       const productSearch = await meiliClient.index("products").search(query, {
-        limit: 5,
+        limit: 15,
         attributesToRetrieve: ["id", "name", "slug", "brand", "thumbnail", "basePrice", "specialPrice"],
       });
       productHits = productSearch.hits;
+
+      if (productHits.length > 0) {
+        const ids = productHits.map((p) => p.id);
+        const { ProductModel } = await import("../product/product.model");
+        const inStockProducts = await ProductModel.find({
+          _id: { $in: ids },
+          $or: [
+            { stockStatus: { $ne: 0 } },
+            { allowBackorders: true }
+          ]
+        }).select("_id").lean().exec();
+        
+        const inStockSet = new Set(inStockProducts.map((p: any) => p._id.toString()));
+        productHits = productHits.filter((p) => inStockSet.has(p.id)).slice(0, 5);
+      }
     } catch (error) {
       console.error("Meilisearch search error:", error);
     }

@@ -126,7 +126,7 @@ export const DetailAndReviews: React.FC<{ fullDescription: string; reviews: Revi
         <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-12 items-start">
 
           {/* ─── LEFT: Product Details Card ─── */}
-          <div className="bg-white border border-neutral-200/90 rounded-2xl p-3.5 sm:p-7 shadow-xs">
+          <div id="product-description-card" className="bg-white border border-neutral-200/90 rounded-2xl p-3.5 sm:p-7 shadow-xs">
             {/* Inner Header - Hidden on mobile to prevent duplicate heading */}
             <div className="hidden md:flex items-center gap-3 pb-4 mb-6 border-b border-neutral-100">
               <span className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-100/80 flex items-center justify-center text-[#ab1509]">
@@ -173,7 +173,15 @@ export const DetailAndReviews: React.FC<{ fullDescription: string; reviews: Revi
                   <div className="flex justify-center mt-6 pt-4 border-t border-neutral-100">
                     <button
                       type="button"
-                      onClick={() => setIsMobileDescExpanded(false)}
+                      onClick={() => {
+                        setIsMobileDescExpanded(false);
+                        setTimeout(() => {
+                          document.getElementById("product-description-card")?.scrollIntoView({ 
+                            behavior: "smooth", 
+                            block: "center" 
+                          });
+                        }, 100);
+                      }}
                       className="flex items-center gap-2 text-[13px] font-bold text-white uppercase tracking-wider py-2 px-5 bg-[#FF5429] hover:bg-[#E0441D] rounded-sm transition-colors shadow-sm"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/></svg>

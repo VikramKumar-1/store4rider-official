@@ -73,7 +73,10 @@ export class ProductRepository {
     if (!skus || skus.length === 0) return [];
     return ProductModel.find({ 
       sku: { $in: skus },
-      stockStatus: { $ne: 0 } // Hide Out of Stock products
+      $or: [
+        { stockStatus: { $ne: 0 } },
+        { allowBackorders: true }
+      ]
     }).lean().exec() as unknown as IProduct[];
   }
 

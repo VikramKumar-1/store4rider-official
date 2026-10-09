@@ -28,7 +28,7 @@ export class ProductController {
       search: searchParams.get('search') || searchParams.get('q') || '',
       brand: searchParams.get('brand') ? searchParams.get('brand')!.split(',').map(b => b.trim()) : [],
       size: searchParams.get('size') ? searchParams.get('size')!.split(',').map(s => s.trim()) : [],
-      colour: searchParams.get('colour') ? searchParams.get('colour')!.split(',').map(c => c.trim()) : []
+      colour: (searchParams.get('colour') || searchParams.get('color')) ? (searchParams.get('colour') || searchParams.get('color'))!.split(',').map(c => c.trim()) : []
     };
     
     const data = await ProductService.getAggregations(filters, category || undefined, rawActiveFilters);

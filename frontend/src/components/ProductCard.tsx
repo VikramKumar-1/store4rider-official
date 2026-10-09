@@ -102,12 +102,23 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
 
   // Extract unique colors for swatches
   const colorNames = new Set<string>();
+  
+  const normalizeColor = (c: string) => {
+    if (!c) return "";
+    return c.trim()
+            .replace(/\s*\/\s*/g, "/") // Normalize "Yellow / Black" to "Yellow/Black"
+            .replace(/\s+/g, " ");     // Normalize extra spaces
+  };
+
   if (product.variants && Array.isArray(product.variants)) {
     product.variants.forEach((v: any) => {
       if (v.attributes) {
         const attrs = v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes;
         const colorKey = Object.keys(attrs).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
-        if (colorKey && attrs[colorKey]) colorNames.add(attrs[colorKey]);
+        if (colorKey && attrs[colorKey]) {
+           const cleaned = normalizeColor(attrs[colorKey]);
+           if (cleaned) colorNames.add(cleaned);
+        }
       }
     });
   }
@@ -118,18 +129,25 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
       attrs.forEach((attr: string) => {
         const [key, value] = attr.split("=");
         if (key && value && (key.trim().toLowerCase().includes('color') || key.trim().toLowerCase().includes('colour'))) {
-          colorNames.add(value.trim());
+          const cleaned = normalizeColor(value);
+          if (cleaned) colorNames.add(cleaned);
         }
       });
     });
   }
   if (colorNames.size === 0 && product.colorImages) {
-    Object.keys(product.colorImages).forEach(color => colorNames.add(color));
+    Object.keys(product.colorImages).forEach(color => {
+      const cleaned = normalizeColor(color);
+      if (cleaned) colorNames.add(cleaned);
+    });
   }
   if (colorNames.size === 0 && product.attributes) {
      const attrs = product.attributes instanceof Map ? Object.fromEntries(product.attributes) : product.attributes;
      const colorKey = Object.keys(attrs).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
-     if (colorKey && attrs[colorKey]) colorNames.add(attrs[colorKey]);
+     if (colorKey && attrs[colorKey]) {
+        const cleaned = normalizeColor(attrs[colorKey]);
+        if (cleaned) colorNames.add(cleaned);
+     }
   }
   const uniqueColors = Array.from(colorNames);
 

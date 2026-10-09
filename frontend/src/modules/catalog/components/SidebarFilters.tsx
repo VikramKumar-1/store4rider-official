@@ -307,8 +307,9 @@ export function SidebarFilters() {
             { code: "color", label: "Color" }
           ];
           
-          const fullConfig = [...baseConfig];
+          const fullConfig = [...baseConfig].filter(c => c.code !== 'category'); // Hide category entirely
           DYNAMIC_FILTERS.forEach((df: any) => {
+            if (df.code === 'certification' || df.code === 'material') return; // Hide these filters
             if (!fullConfig.find(c => c.code === df.code)) {
               fullConfig.push({ code: df.code, label: df.label });
             }
@@ -317,7 +318,7 @@ export function SidebarFilters() {
           return fullConfig.map((config: any) => {
           
           // 1. Categories
-          if (config.code === "category" && !currentCategory && CATEGORIES.length > 0) {
+          if (config.code === "category" && CATEGORIES.length > 0) {
             return (
               <AccordionSection key="category" title={config.label} defaultOpen={false}>
                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
@@ -390,8 +391,14 @@ export function SidebarFilters() {
 
           // 3. Size
           if (config.code === "size" && SIZES.length > 0) {
+            let sizeLabel = config.label;
+            if (currentCategory?.toLowerCase().includes('boot') || currentCategory?.toLowerCase().includes('shoe')) {
+              sizeLabel = "EU SIZE FOR BOOTS";
+            } else if (currentCategory?.toLowerCase().includes('pant') || currentCategory?.toLowerCase().includes('jean')) {
+              sizeLabel = "SIZE FOR PANTS";
+            }
             return (
-              <AccordionSection key="size" title={config.label} defaultOpen={false}>
+              <AccordionSection key="size" title={sizeLabel} defaultOpen={false}>
                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
                   {SIZES.map((sz: any) => {
                     const active = activeSizes.includes(sz.name);

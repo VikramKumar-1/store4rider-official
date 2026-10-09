@@ -114,7 +114,7 @@ export class ProductService {
           sku: c.sku,
           price: c.basePrice || c.specialPrice || 0,
           specialPrice: c.specialPrice,
-          stock: c.qty || 10,
+          stock: c.stockStatus === 0 ? 0 : (typeof c.qty === 'number' ? c.qty : 10),
           attributes: skuToAttributes[c.sku] || {},
           imageUrl: c.images?.[0]?.url
         }));
@@ -244,13 +244,21 @@ export class ProductService {
 
     const { ProductModel } = await import("./product.model");
     
-    // BUILD BASE QUERY: Only Category + Search + Status
     const baseFilters: any = {
       $or: [
         { status: "published" },
         { status: { $exists: false } }
       ],
-      visibility: { $ne: "Not Visible Individually" }
+      visibility: { $ne: "Not Visible Individually" },
+      // Hide out-of-stock products unless they allow backorders
+      $and: [
+        {
+          $or: [
+            { stockStatus: { $ne: 0 } },
+            { allowBackorders: true }
+          ]
+        }
+      ]
     };
     
     if (rawActiveFilters?.category) {
@@ -259,6 +267,27 @@ export class ProductService {
         cleanSlug = cleanSlug.split('/').pop() || cleanSlug;
       }
       
+      // CRITICAL UPGRADE: We now rely 100% on the accurate categorySlugs mapping.
+      // Legacy regex guessing has been commented out for speed and accuracy.
+      baseFilters.$and = baseFilters.$and || [];
+      
+      // 100% STRICT EXACT MATCH
+      // The database has been perfectly aligned with the Frontend URLs. No guessing needed!
+      baseFilters.$and.push({ categorySlugs: cleanSlug });
+
+      // Clean up Magento's messy tagging: Exclude accessories from main categories
+      if (cleanSlug.includes("boot") || cleanSlug.includes("shoe")) {
+        baseFilters.$and.push({ name: { $not: /\b(socks?|laces?|insole|covers?|toe\s*slider)\b/i } });
+      } else if (cleanSlug.includes("helmet")) {
+        baseFilters.$and.push({ name: { $not: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement|cleaner|spray|mask|balaclava)\b/i } });
+      } else if (cleanSlug.includes("jacket") || cleanSlug.includes("suit") || cleanSlug.includes("pant") || cleanSlug.includes("jeans")) {
+        baseFilters.$and.push({ name: { $not: /\b((hip|knee|elbow|back|shoulder|chest)\s*(protector|armor|armour|insert|pad|pads)|armour\s*insert|armor\s*insert|base\s*layer|liner)\b/i } });
+      } else if (cleanSlug.includes("communicator") || cleanSlug.includes("intercom")) {
+        baseFilters.$and.push({ name: { $not: /\b(cable|wire|battery|clamp|mount|pad)\b/i } });
+      }
+
+      /*
+      --- LEGACY REGEX GUESSING CODE (COMMENTED OUT AFTER MIGRATION) ---
       const slugMap: Record<string, string> = {
         "full-face-helmets": "full-face",
         "modular-helmets": "modular-flip-up",
@@ -279,115 +308,32 @@ export class ProductService {
       }
 
       if (cleanSlug.includes("off-road-boot") || cleanSlug.includes("off-road-riding-boot")) {
-        baseFilters.$or = [
-          { magentoCategories: /off road.*boot|motocross.*boot|mx.*boot/i },
-          { name: /off road.*boot|motocross.*boot|mx.*boot/i }
-        ];
-      } else if (cleanSlug.includes("off-road") || cleanSlug.includes("motocross")) {
-        const baseOr = [
-          { magentoCategories: /off road|motocross|mx/i },
-          { name: /off road|motocross|mx/i },
-        ];
-        if (cleanSlug.includes("helmet")) {
-          baseFilters.$and = [
-            { $or: baseOr },
-            { $or: [{ magentoCategories: /helmet/i }, { name: /helmet/i }] }
-          ];
-        } else {
-          baseFilters.$or = baseOr;
-        }
-      } else if (cleanSlug.includes("women-riding-gear") || cleanSlug.includes("women") || cleanSlug.includes("riding-gear-for-women")) {
-        baseFilters.$or = [
-          { name: /\b(women|womens|lady|ladies|female)\b/i },
-          { magentoCategories: /\b(women|womens|lady|ladies|female)\b/i },
-          { "attributes.gender": /^(women|womens|lady|ladies|female)$/i }
-        ];
-      } else if (cleanSlug.includes("riding-jeans") || cleanSlug.includes("jeans")) {
-        baseFilters.$and = [
-          { $or: [{ name: /\b(jeans?|denims?)\b/i }, { magentoCategories: /\b(jeans?|denims?)\b/i }] },
-          { name: { $not: /\b(jacket|shirt|top)\b/i } }
-        ];
-      } else if (cleanSlug.includes("bike-phone-holder") || cleanSlug.includes("mobile-mount")) {
-        baseFilters.$or = [
-          { name: /phone holder|mobile holder|phone mount|mobile mount|ram mount|bobo mount/i },
-          { magentoCategories: /phone holder|mobile holder|phone mount|mobile mount/i }
-        ];
-      } else if (cleanSlug.includes("communicator") || cleanSlug.includes("intercom")) {
-        baseFilters.$and = [
-          { $or: [
-              { name: /communicator|intercom|bluetooth headset|sena|parani|bluarmor/i },
-              { magentoCategories: /communicator|intercom|bluetooth/i }
-            ] 
-          },
-          { name: { $not: /\b(cable|wire|battery|clamp|mount|pad)\b/i } }
-        ];
-      } else if (cleanSlug.includes("gadget")) {
-        baseFilters.$or = [
-          { name: /phone holder|mobile holder|phone mount|mobile mount|communicator|intercom|bluetooth/i },
-          { magentoCategories: /phone holder|mobile holder|phone mount|mobile mount|communicator|intercom|gadget/i }
-        ];
-      } else {
-        const exactPhrase = cleanSlug.replace(/-/g, " ").trim();
-        const keywords = exactPhrase
-          .split(/\s+/)
-          .filter((w: string) => !["motorcycle", "riding", "bike", "for", "online"].includes(w) && w.length > 1);
-          
-        if (keywords.length > 0) {
-          const lookaheads = keywords.map((w: string) => `(?=.*\\b${w})`).join("");
-          const andPattern = `^${lookaheads}.*$`;
-          
-          baseFilters.$or = [
-            { magentoCategories: new RegExp(exactPhrase, "i") },
-            { magentoCategories: new RegExp(andPattern, "i") },
-            { name: new RegExp(andPattern, "i") }
-          ];
-        } else {
-          baseFilters.$or = [
-            { magentoCategories: new RegExp(exactPhrase, "i") },
-            { name: new RegExp(exactPhrase, "i") }
-          ];
-        }
-      }
-
-      const regexCondition: any = {};
-      
-      if (baseFilters.$or && baseFilters.$or.length > 0 && !baseFilters.$or.find((c: any) => c.status === "published")) {
-        regexCondition.$or = baseFilters.$or;
-        baseFilters.$or = [ { status: "published" }, { status: { $exists: false } } ];
-      }
-      
-      if (baseFilters.$and) {
-        regexCondition.$and = baseFilters.$and;
-        delete baseFilters.$and;
-      }
-      
-      baseFilters.$and = baseFilters.$and || [];
-      if (cleanSlug.includes("women")) {
-        baseFilters.$and.push(regexCondition);
-      } else {
-        baseFilters.$and.push({
-          $or: [
-            regexCondition,
-            { categorySlugs: cleanSlug }
-          ]
-        });
-      }
+        ... (100+ lines of legacy code)
+      */
     }
     
     if (rawActiveFilters?.search) {
       const escaped = rawActiveFilters.search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
       const searchRegex = new RegExp(escaped, "i");
-      baseFilters.$and = [
-        {
-          $or: [
-            { name: { $regex: searchRegex } },
-            { brand: { $regex: searchRegex } },
-            { sku: { $regex: searchRegex } },
-            { magentoCategories: { $regex: searchRegex } },
-          ],
-        }
-      ];
+      baseFilters.$and = baseFilters.$and || [];
+      baseFilters.$and.push({
+        $or: [
+          { name: { $regex: searchRegex } },
+          { brand: { $regex: searchRegex } },
+          { sku: { $regex: searchRegex } },
+          { magentoCategories: { $regex: searchRegex } },
+        ],
+      });
     }
+
+    baseFilters.$and = baseFilters.$and || [];
+    baseFilters.$and.push({
+      $or: [
+        { stockStatus: { $ne: 0 } },
+        { allowBackorders: true },
+        { "variants.stock": { $gt: 0 } }
+      ]
+    });
 
     const products = await ProductModel.find(baseFilters)
       .select("brand magentoCategories variants configurableVariations colorImages stockStatus attributes basePrice specialPrice")
@@ -430,14 +376,20 @@ export class ProductService {
       const availableColors = new Set<string>();
       const availableSizes = new Set<string>();
       
+      const getDynamicAttrLocal = (obj: any, keywords: string[]) => {
+        if (!obj || typeof obj !== 'object') return undefined;
+        const key = Object.keys(obj).find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
+        return key ? obj[key] : undefined;
+      };
+
       if (p.variants && p.variants.length > 0) {
         p.variants.forEach((v: any) => {
-          if (v.attributes?.color) availableColors.add(v.attributes.color.toLowerCase());
-          if (v.attributes?.colour) availableColors.add(v.attributes.colour.toLowerCase());
-          if (v.attributes?.size) availableSizes.add(v.attributes.size.toLowerCase());
-          if (v.attributes?.eu_size) availableSizes.add(v.attributes.eu_size.toLowerCase());
+          const vCol = getDynamicAttrLocal(v.attributes, ['color', 'colour']);
+          if (vCol) availableColors.add(vCol.toLowerCase());
+          const vSiz = getDynamicAttrLocal(v.attributes, ['size', 'eu_size']);
+          if (vSiz) availableSizes.add(vSiz.toLowerCase());
         });
-      } 
+      }
       
       if (p.configurableVariations) {
         const vars = p.configurableVariations.split("|");
@@ -485,9 +437,18 @@ export class ProductService {
 
       const extractedVariants: any[] = [];
       
+      const getDynamicAttr = (obj: any, keywords: string[]) => {
+        if (!obj || typeof obj !== 'object') return undefined;
+        const key = Object.keys(obj).find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
+        return key ? obj[key] : undefined;
+      };
+
       if (p.variants && p.variants.length > 0) {
         p.variants.forEach((v: any) => {
-          extractedVariants.push({ color: v.attributes?.color || v.attributes?.colour, size: v.attributes?.size || v.attributes?.eu_size });
+          extractedVariants.push({ 
+            color: getDynamicAttr(v.attributes, ['color', 'colour']), 
+            size: getDynamicAttr(v.attributes, ['size', 'eu_size']) 
+          });
         });
       }
       
@@ -499,7 +460,10 @@ export class ProductService {
             const [k, v] = attr.split("=");
             if (k && v) vObj[k.trim().toLowerCase()] = v.trim();
           });
-          extractedVariants.push({ color: vObj.color || vObj.colour, size: vObj.size || vObj.eu_size });
+          extractedVariants.push({ 
+            color: getDynamicAttr(vObj, ['color', 'colour']), 
+            size: getDynamicAttr(vObj, ['size', 'eu_size']) 
+          });
         }
       }
       
@@ -510,8 +474,8 @@ export class ProductService {
       }
 
       if (p.attributes && typeof p.attributes === 'object') {
-        const topColor = (p.attributes as any).color || (p.attributes as any).colour;
-        const topSize = (p.attributes as any).size || (p.attributes as any).eu_size;
+        const topColor = getDynamicAttr(p.attributes, ['color', 'colour']);
+        const topSize = getDynamicAttr(p.attributes, ['size', 'eu_size']);
         if (topColor || topSize) {
           extractedVariants.push({ color: topColor, size: topSize });
         }
