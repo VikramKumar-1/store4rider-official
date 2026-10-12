@@ -19,6 +19,7 @@ export interface ShipmentItem {
 }
 
 export interface CreateShipmentInput {
+  warehouseId?: string; // Optional: specific warehouse ID, falls back to default if omitted
   orderId: string;
   orderNumber: string;
   paymentMethod: "cod" | "prepaid";
@@ -82,6 +83,7 @@ export interface PickupResult {
 }
 
 export interface GetRatesInput {
+  warehouseId?: string;
   deliveryPincode: string;
   weightKg: number;
   isCod: boolean;
@@ -138,5 +140,5 @@ export interface ShippingProvider {
   /**
    * Parse provider webhook payload into normalized event format
    */
-  parseWebhookPayload?(payload: any): import("../../modules/shipping/services/tracking.service").NormalizedTrackingEvent;
+  parseWebhookPayload?(payload: any): TrackingEvent;
 }

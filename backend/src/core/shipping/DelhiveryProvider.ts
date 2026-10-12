@@ -30,9 +30,11 @@ export class DelhiveryProvider implements ShippingProvider {
 
   async createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult> {
     const headers = this.getHeaders();
-    const warehouse = await WarehouseRepository.findDefault();
+    const warehouse = input.warehouseId
+      ? await WarehouseRepository.findById(input.warehouseId)
+      : await WarehouseRepository.findDefault();
     if (!warehouse || !warehouse.pincode || !warehouse.city || !warehouse.state || !warehouse.addressLine1) {
-      throw new AppError("Default warehouse missing pincode, city, state, or address", 500);
+      throw new AppError("Warehouse missing required address fields (pincode, city, state, or addressLine1)", 400);
     }
     const originPincode = warehouse.pincode;
     const originCity = warehouse.city;
@@ -166,9 +168,11 @@ export class DelhiveryProvider implements ShippingProvider {
       if (!pinData) return [];
 
       // Step 2: Fetch actual rate
-      const warehouse = await WarehouseRepository.findDefault();
+      const warehouse = input.warehouseId
+        ? await WarehouseRepository.findById(input.warehouseId)
+        : await WarehouseRepository.findDefault();
       if (!warehouse || !warehouse.pincode) {
-        throw new AppError("Default warehouse pincode not configured", 500);
+        throw new AppError("Warehouse origin pincode not configured", 500);
       }
       const originPincode = warehouse.pincode;
       

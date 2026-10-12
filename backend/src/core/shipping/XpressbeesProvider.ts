@@ -30,9 +30,11 @@ export class XpressbeesProvider implements ShippingProvider {
 
   async createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult> {
     const headers = this.getHeaders();
-    const warehouse = await WarehouseRepository.findDefault();
+    const warehouse = input.warehouseId
+      ? await WarehouseRepository.findById(input.warehouseId)
+      : await WarehouseRepository.findDefault();
     if (!warehouse || !warehouse.pincode) {
-      throw new AppError("Default warehouse pincode not configured", 500);
+      throw new AppError("Warehouse origin pincode not configured", 400);
     }
     const originPincode = warehouse.pincode;
     
@@ -144,9 +146,11 @@ export class XpressbeesProvider implements ShippingProvider {
   async getRates(input: GetRatesInput): Promise<ShippingRate[]> {
     const headers = this.getHeaders();
     try {
-      const warehouse = await WarehouseRepository.findDefault();
+      const warehouse = input.warehouseId
+        ? await WarehouseRepository.findById(input.warehouseId)
+        : await WarehouseRepository.findDefault();
       if (!warehouse || !warehouse.pincode) {
-        throw new AppError("Default warehouse pincode not configured", 500);
+        throw new AppError("Warehouse origin pincode not configured", 500);
       }
       const originPincode = warehouse.pincode;
       

@@ -100,12 +100,16 @@ export const ProductGallery: React.FC<{
   selectedColor?: string;
   selectedSize?: string;
   activeVariantImageUrl?: string;
-}> = ({ images, selectedColor, selectedSize, activeVariantImageUrl }) => {
+  colorImages?: Record<string, string>;
+}> = ({ images, selectedColor, selectedSize, activeVariantImageUrl, colorImages }) => {
   // Always default to the very first image (base image) which matches Catalog
   const [activeIndex, setActiveIndex] = useState(0);
   const [mainSrc, setMainSrc] = useState(images?.[0]?.url || FALLBACK_IMAGE);
   const [userHasClickedColor, setUserHasClickedColor] = useState(false);
   const prevColorRef = React.useRef(selectedColor);
+
+  const normalizeUrl = (url?: string) =>
+    url ? url.split("?")[0].replace("http://", "https://").trim().toLowerCase() : "";
 
   // Sync main image whenever images list changes (e.g. navigation)
   useEffect(() => {
@@ -122,29 +126,50 @@ export const ProductGallery: React.FC<{
       prevColorRef.current = selectedColor;
       setUserHasClickedColor(true); // Flag that color changed
 
+      // 1. If active variant has an explicit image URL
       if (activeVariantImageUrl) {
-        // Find if this image exists in the gallery array
-        const matchIdx = images.findIndex(img => img.url === activeVariantImageUrl);
+        const normTarget = normalizeUrl(activeVariantImageUrl);
+        const matchIdx = images.findIndex(img => normalizeUrl(img.url) === normTarget);
         if (matchIdx !== -1) {
           setActiveIndex(matchIdx);
-          setMainSrc(activeVariantImageUrl);
+          setMainSrc(images[matchIdx].url);
+          return;
         } else {
-          // Variant image is not in parent gallery. Often means it's broken in DB.
-          // Fallback to searching the main gallery by color name!
-          const colorMatchIdx = findMatchingImageIndex(selectedColor, images);
-          const newIdx = colorMatchIdx !== -1 ? colorMatchIdx : 0;
-          setActiveIndex(newIdx);
-          setMainSrc(images[newIdx]?.url || FALLBACK_IMAGE);
+          setMainSrc(activeVariantImageUrl);
+          return;
         }
-      } else if (selectedColor) {
-        // Fallback to guessing by search term if specific variant image isn't available
+      }
+
+      // 2. If colorImages has a mapped image URL for this color
+      if (selectedColor && colorImages) {
+        const cMap = colorImages instanceof Map ? Object.fromEntries(colorImages) : colorImages;
+        const matchedKey = Object.keys(cMap).find(k => k.trim().toLowerCase() === selectedColor.trim().toLowerCase());
+        if (matchedKey && cMap[matchedKey]) {
+          const colorUrl = cMap[matchedKey];
+          const normTarget = normalizeUrl(colorUrl);
+          const matchIdx = images.findIndex(img => normalizeUrl(img.url) === normTarget);
+          if (matchIdx !== -1) {
+            setActiveIndex(matchIdx);
+            setMainSrc(images[matchIdx].url);
+            return;
+          } else {
+            setMainSrc(colorUrl);
+            return;
+          }
+        }
+      }
+
+      // 3. Fallback: match by color name in altText or URL
+      if (selectedColor) {
         const matchIdx = findMatchingImageIndex(selectedColor, images);
-        const newIdx = matchIdx !== -1 ? matchIdx : 0;
-        setActiveIndex(newIdx);
-        setMainSrc(images[newIdx]?.url || FALLBACK_IMAGE);
+        if (matchIdx !== -1) {
+          setActiveIndex(matchIdx);
+          setMainSrc(images[matchIdx]?.url || FALLBACK_IMAGE);
+          return;
+        }
       }
     }
-  }, [selectedColor, images, activeVariantImageUrl]);
+  }, [selectedColor, images, activeVariantImageUrl, colorImages]);
 
   const handleSelect = useCallback(
     (idx: number) => {

@@ -1,105 +1,205 @@
 import { NextRequest } from "next/server";
 import { ApiResponse } from "../../core/response/ApiResponse";
-import { RateService } from "./services/rate.service";
-import { ShipmentService } from "./services/shipment.service";
-import { CancellationService } from "./services/cancellation.service";
-import { ReturnShippingService } from "./services/return-shipping.service";
-import { WebhookService } from "./services/webhook.service";
+import { ShipmentService } from "./shipment.service";
 import { ShippingSettingsModel } from "./models/shipping-settings.model";
+import { ShippingProviderFactory } from "../../core/shipping/ShippingProviderFactory";
+import { AppError } from "../../core/errors/AppError";
 
 export class ShippingController {
-  
   // -------------------------------------------------------------------------
-  // RATE QUOTES
+  // 1. ADMIN DISPATCH ACTIONS
   // -------------------------------------------------------------------------
+
+  /**
+   * Action 1: Push Order to Shiprocket (Option B)
+   * Admin fulfills and selects warehouse inside Shiprocket Dashboard.
+   */
+  static async pushOrderToShiprocket(req: NextRequest) {
+    const body = await req.json();
+    if (!body.orderId) {
+      throw new AppError("orderId is required", 400);
+    }
+    const result = await ShipmentService.pushOrderToShiprocket(body.orderId);
+    return ApiResponse.success(result.shipment, result.message, 200);
+  }
+
+  /**
+   * Action 2: Direct Carrier Shipment (Failover / Alternative)
+   * Dispatches directly via Delhivery or Xpressbees with chosen warehouse.
+   */
+  static async createDirectShipment(req: NextRequest) {
+    const body = await req.json();
+    if (!body.orderId || !body.provider || !body.warehouseId) {
+      throw new AppError("orderId, provider, and warehouseId are required", 400);
+    }
+    const result = await ShipmentService.createDirectShipment({
+      orderId: body.orderId,
+      provider: body.provider,
+      warehouseId: body.warehouseId,
+      weightKg: Number(body.weightKg || body.weight || 1),
+      length: body.length ? Number(body.length) : 15,
+      breadth: body.breadth ? Number(body.breadth) : 15,
+      height: body.height ? Number(body.height) : 10,
+    });
+    return ApiResponse.success(result.shipment, result.message, 201);
+  }
+
+  /**
+   * Action 3: Manual AWB Entry (Emergency / Offline Franchise)
+   */
+  static async createManualShipment(req: NextRequest) {
+    const body = await req.json();
+    if (!body.orderId || !body.courierName || !body.awb) {
+      throw new AppError("orderId, courierName, and awb are required", 400);
+    }
+    const result = await ShipmentService.createManualShipment({
+      orderId: body.orderId,
+      courierName: body.courierName,
+      awb: body.awb,
+      trackingUrl: body.trackingUrl,
+    });
+    return ApiResponse.success(result.shipment, result.message, 201);
+  }
+
+  // -------------------------------------------------------------------------
+  // 2. QUERY SHIPMENTS
+  // -------------------------------------------------------------------------
+
+  /**
+   * Customer / Order tracking view
+   */
+  static async getShipmentsByOrderId(req: NextRequest, orderId: string) {
+    const shipments = await ShipmentService.getShipmentsByOrderId(orderId);
+    return ApiResponse.success(shipments, "Shipments retrieved");
+  }
+
+  /**
+   * Paginated shipments table for Admin Dashboard
+   */
+  static async getAdminShipments(req: NextRequest) {
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "10", 10);
+    const provider = searchParams.get("provider");
+    const status = searchParams.get("status");
+    const search = searchParams.get("search");
+
+    const query: any = {};
+    if (provider) query.provider = provider;
+    if (status) query.status = status.toUpperCase();
+    if (search) {
+      query.$or = [
+        { awb: { $regex: search, $options: "i" } },
+        { providerOrderId: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const { items, total } = await ShipmentService.getPaginatedShipments(query, page, limit);
+    return ApiResponse.paginated(items, total, page, limit);
+  }
+
+  /**
+   * Single shipment view
+   */
+  static async getShipmentById(req: NextRequest, id: string) {
+    const shipment = await ShipmentService.getShipmentById(id);
+    return ApiResponse.success(shipment, "Shipment retrieved");
+  }
+
+  /**
+   * Sync tracking with courier partner
+   */
+  static async syncTracking(req: NextRequest, id: string) {
+    const shipment = await ShipmentService.syncTracking(id);
+    return ApiResponse.success(shipment, "Tracking synchronized");
+  }
+
+  /**
+   * Request pickup
+   */
+  static async requestPickup(req: NextRequest, id: string) {
+    const result = await ShipmentService.requestPickup(id);
+    return ApiResponse.success(result, "Pickup requested");
+  }
+
+  // -------------------------------------------------------------------------
+  // 3. RATES & SERVICEABILITY
+  // -------------------------------------------------------------------------
+
   static async calculateRates(req: NextRequest) {
     const body = await req.json();
-    const rates = await RateService.calculateRates(body, false, body.forcedProvider);
+    const provider = body.provider || "shiprocket";
+    const providerInstance = ShippingProviderFactory.create(provider);
+
+    const rates = await providerInstance.getRates({
+      warehouseId: body.warehouseId,
+      deliveryPincode: body.deliveryPincode || body.pincode,
+      weightKg: Number(body.weightKg || 0.5),
+      isCod: Boolean(body.isCod),
+      length: body.length ? Number(body.length) : undefined,
+      breadth: body.breadth ? Number(body.breadth) : undefined,
+      height: body.height ? Number(body.height) : undefined,
+    });
+
     return ApiResponse.success(rates, "Rates fetched successfully");
   }
 
   static async checkServiceability(req: NextRequest) {
     const body = await req.json();
     const result = await ShipmentService.checkServiceability(
-      body.deliveryPincode,
+      body.deliveryPincode || body.pincode,
       body.weightKg || 0.5,
-      body.isCod || false
+      Boolean(body.isCod)
     );
     return ApiResponse.success(result, "Serviceability fetched successfully");
   }
 
   // -------------------------------------------------------------------------
-  // SHIPMENT CREATION & OVERRIDE
+  // 4. ADMIN SETTINGS
   // -------------------------------------------------------------------------
-  static async createShipment(req: NextRequest) {
-    const body = await req.json();
-    // Assuming body contains full order data or we fetch order internally.
-    // For manual override, frontend passes `forcedProvider: "xpressbees"`
-    const shipment = await ShipmentService.createPendingShipment(body.order, body.forcedProvider);
-    return ApiResponse.success(shipment, "Shipment creation queued successfully", 201);
+
+  static async getSettings(req: NextRequest) {
+    let settings = await ShippingSettingsModel.findOne();
+    if (!settings) {
+      settings = await ShippingSettingsModel.create({
+        providers: [
+          { providerName: "shiprocket", isActive: true, priority: 1 },
+          { providerName: "delhivery", isActive: true, priority: 2 },
+          { providerName: "xpressbees", isActive: true, priority: 3 },
+        ],
+        globalShippingPause: false,
+      });
+    }
+    return ApiResponse.success(settings, "Shipping settings fetched");
   }
 
-  // -------------------------------------------------------------------------
-  // CANCELLATION
-  // -------------------------------------------------------------------------
-  static async cancelShipment(req: NextRequest, id: string) {
-    const body = await req.json();
-    const result = await CancellationService.cancelShipment(id, body.reason || "Cancelled by Admin");
-    return ApiResponse.success(result, "Cancellation processed");
-  }
-
-  // -------------------------------------------------------------------------
-  // RETURNS / RTO
-  // -------------------------------------------------------------------------
-  static async createReturnShipment(req: NextRequest) {
-    const body = await req.json();
-    const result = await ReturnShippingService.createReverseShipment(
-      body.orderId, body.pickupPincode, body.warehousePincode, body.weightKg, body.dimensions
-    );
-    return ApiResponse.success(result, "Return shipment created");
-  }
-
-  static async markRtoDelivered(req: NextRequest) {
-    const body = await req.json();
-    await ReturnShippingService.markRtoDeliveredAtWarehouse(body.awb);
-    return ApiResponse.success({}, "RTO marked as delivered at warehouse");
-  }
-
-  // -------------------------------------------------------------------------
-  // ADMIN SETTINGS (TOGGLES)
-  // -------------------------------------------------------------------------
   static async updateSettings(req: NextRequest) {
     const body = await req.json();
     let settings = await ShippingSettingsModel.findOne();
     if (!settings) {
       settings = new ShippingSettingsModel(body);
     } else {
-      settings.providers = body.providers || settings.providers;
-      settings.defaultStrategy = body.defaultStrategy || settings.defaultStrategy;
-      settings.globalShippingPause = body.globalShippingPause !== undefined ? body.globalShippingPause : settings.globalShippingPause;
+      if (body.providers) settings.providers = body.providers;
+      if (body.defaultStrategy) settings.defaultStrategy = body.defaultStrategy;
+      if (body.globalShippingPause !== undefined) settings.globalShippingPause = body.globalShippingPause;
     }
-    
-    // Audit who changed it
-    settings.updatedBy = req.headers.get("x-user-id") || "admin";
     await settings.save();
-    
     return ApiResponse.success(settings, "Shipping settings updated successfully");
   }
 
-  static async getSettings(req: NextRequest) {
-    const settings = await ShippingSettingsModel.findOne();
-    return ApiResponse.success(settings, "Shipping settings fetched");
-  }
+  // -------------------------------------------------------------------------
+  // 5. WEBHOOK ENTRY POINT
+  // -------------------------------------------------------------------------
 
-  // -------------------------------------------------------------------------
-  // WEBHOOK ENTRY
-  // -------------------------------------------------------------------------
   static async handleWebhook(req: NextRequest, provider: string) {
-    const payload = await req.json();
+    let payload;
+    try {
+      payload = await req.json();
+    } catch {
+      payload = {};
+    }
     const headers = Object.fromEntries(req.headers);
-    
-    await WebhookService.processWebhook(provider, payload, headers);
-    
-    return ApiResponse.success({}, "Webhook processed successfully"); // 200 OK
+    await ShipmentService.handleWebhook(provider, payload, headers);
+    return ApiResponse.success({}, "Webhook processed successfully");
   }
 }

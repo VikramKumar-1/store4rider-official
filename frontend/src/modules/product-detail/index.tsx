@@ -267,6 +267,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
               selectedColor={selectedColor}
               selectedSize={selectedSize}
               activeVariantImageUrl={activeVariant?.imageUrl}
+              colorImages={product.colorImages}
             />
           </div>
 

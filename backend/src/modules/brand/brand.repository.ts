@@ -3,7 +3,11 @@ import { IBrand } from "@store4riders/shared-types";
 
 export class BrandRepository {
   static async findAll(): Promise<IBrand[]> {
-    return BrandModel.find().lean().exec() as unknown as IBrand[];
+    return BrandModel.find({ isActive: { $ne: false } })
+      .collation({ locale: "en", strength: 2 })
+      .sort({ name: 1 })
+      .lean()
+      .exec() as unknown as IBrand[];
   }
 
   static async findById(id: string): Promise<IBrand | null> {

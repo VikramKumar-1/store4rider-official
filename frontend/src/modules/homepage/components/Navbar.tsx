@@ -13,9 +13,6 @@ import { DEFAULT_NAV_ITEMS } from "./navbar/nav.constants";
 import { NavDesktopLinks } from "./navbar/NavDesktopLinks";
 import { NavUserMenu } from "./navbar/NavUserMenu";
 import { NavMobileDrawer } from "./navbar/NavMobileDrawer";
-import { useCategoryTree } from "@/core/hooks/useCategories";
-import { useBrands } from "@/core/hooks/useBrands";
-import { generateNavItems } from "../utils/navigation.utils";
 
 /**
  * Navbar — thin orchestration shell.
@@ -34,8 +31,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const items = useCartStore((state) => state.items);
   const { user, isAuthenticated, logout } = useAuthStore();
-  const { data: brands } = useBrands();
-  const { data: categoryTreeData } = useCategoryTree();
 
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -86,33 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const isLight = theme === "light" || isScrolled;
   
   // ⚠️ CRITICAL: DO NOT MAKE NAVBAR DYNAMIC. The storefront navigation MUST strictly use DEFAULT_NAV_ITEMS.
-  // NEVER wire categoryTreeData or generateNavItems to this navbar.
-  const activeNavItems = React.useMemo(() => {
-    if (navItems) return navItems;
-    
-    // Deep clone to avoid mutating the constant
-    const cloned = JSON.parse(JSON.stringify(DEFAULT_NAV_ITEMS));
-    
-    // Inject database brands into the "Shop By Brand" dropdown if available
-    const brandItem = cloned.find((item: any) => item.id === "shop-by-brand");
-    if (brandItem && brands && brands.length > 0) {
-      const brandGroups = [];
-      for (let i = 0; i < brands.length; i += 9) {
-        brandGroups.push(brands.slice(i, i + 9));
-      }
-      
-      brandItem.megaMenuItems = brandGroups.map((group: any[], index: number) => ({
-        group: `Brands Part ${index + 1}`,
-        items: group.map((b: any) => ({
-          label: b.name,
-          href: `/brands/${b.slug}`,
-          logoUrl: b.logoUrl || undefined,
-        })),
-      }));
-    }
-    
-    return cloned;
-  }, [navItems, brands]);
+  const activeNavItems = navItems || DEFAULT_NAV_ITEMS;
 
   return (
     <>

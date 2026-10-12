@@ -25,6 +25,7 @@ export interface ReviewData {
 export interface ColorOption {
   name: string;
   background: string;
+  imageUrl?: string;
 }
 
 export interface PDPData {
@@ -41,6 +42,7 @@ export interface PDPData {
   fullDescription: string;
   sizeChart?: string;
   images: ProductImage[];
+  colorImages?: Record<string, string>;
   colors: ColorOption[];
   sizes: string[];
   sizeLabel?: string;

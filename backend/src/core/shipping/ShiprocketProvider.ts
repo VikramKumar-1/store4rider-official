@@ -49,11 +49,15 @@ export class ShiprocketProvider implements ShippingProvider {
 
   async createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult> {
     const token = await this.getAuthToken();
-    const warehouse = await WarehouseRepository.findDefault();
-    if (!warehouse || !warehouse.shiprocketLocationId) {
-      throw new AppError("Default warehouse with Shiprocket Location ID not configured", 500);
+    const warehouse = input.warehouseId 
+      ? await WarehouseRepository.findById(input.warehouseId)
+      : await WarehouseRepository.findDefault();
+
+    const fallbackWarehouse = (!warehouse?.shiprocketLocationId) ? await WarehouseRepository.findDefault() : warehouse;
+    if (!fallbackWarehouse?.shiprocketLocationId) {
+      throw new AppError("No warehouse configured with a valid Shiprocket Location Nickname. Please configure in Settings -> Warehouses.", 400);
     }
-    const pickupLocation = warehouse.shiprocketLocationId;
+    const pickupLocation = fallbackWarehouse.shiprocketLocationId;
     
     try {
       const payload = {
@@ -173,9 +177,11 @@ export class ShiprocketProvider implements ShippingProvider {
   async getRates(input: GetRatesInput): Promise<ShippingRate[]> {
     const token = await this.getAuthToken();
     try {
-      const warehouse = await WarehouseRepository.findDefault();
+      const warehouse = input.warehouseId 
+        ? await WarehouseRepository.findById(input.warehouseId) 
+        : await WarehouseRepository.findDefault();
       if (!warehouse || !warehouse.pincode) {
-        throw new AppError("Default warehouse pincode not configured", 500);
+        throw new AppError("Warehouse origin pincode not configured", 500);
       }
       const originPincode = warehouse.pincode;
       

@@ -420,6 +420,18 @@ const mapProductToPDP = (
   // Pre-process variants to enhance simple color names if image URL has rich color names
   if (rawVariants && rawVariants.length > 0) {
     rawVariants.forEach((v: any) => {
+      const colorKey = Object.keys(v.attributes).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
+      const vColor = colorKey ? String(v.attributes[colorKey]).trim() : "";
+
+      // 1. Resolve image from product.colorImages if available
+      if (!v.imageUrl && vColor && product.colorImages) {
+        const cMap = product.colorImages instanceof Map ? Object.fromEntries(product.colorImages) : product.colorImages;
+        const matchedKey = Object.keys(cMap).find(k => k.trim().toLowerCase() === vColor.toLowerCase());
+        if (matchedKey && cMap[matchedKey]) {
+          v.imageUrl = cMap[matchedKey];
+        }
+      }
+
       // SMART MATCHING: If variant is missing an image, guess it from product.images using SKU tokens!
       if (!v.imageUrl && v.sku && product.images && product.images.length > 0) {
         const skuTokens = v.sku.toLowerCase().split(/[-_/\s+]/).filter((t: string) => t.length > 2);
@@ -445,7 +457,6 @@ const mapProductToPDP = (
         }
       }
 
-      const colorKey = Object.keys(v.attributes).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
       if (colorKey && v.imageUrl) {
         const originalColor = String(v.attributes[colorKey]).trim();
         const richColor = inferRichColorFromUrl(v.imageUrl, originalColor);
@@ -536,6 +547,22 @@ const mapProductToPDP = (
     });
   }
 
+  // 3. Add ColorImages directly into galleryMap so every color has an explicit image in the gallery
+  if (product.colorImages) {
+    const cMap = product.colorImages instanceof Map ? Object.fromEntries(product.colorImages) : product.colorImages;
+    Object.entries(cMap).forEach(([color, url]) => {
+      if (typeof url === "string" && url && url !== "/no-image.svg") {
+        const norm = normalizeUrlForMap(url);
+        if (!galleryMap.has(norm)) {
+          galleryMap.set(norm, {
+            url: url,
+            altText: `${product.name} - ${color}`,
+          });
+        }
+      }
+    });
+  }
+
   const gallery = galleryMap.size > 0 
     ? Array.from(galleryMap.values())
     : [{ url: "/no-image.svg", altText: "Placeholder" }];
@@ -613,10 +640,26 @@ const mapProductToPDP = (
   sizes = Array.from(sizeSet);
 
   const mappedColors = colorNames.length > 0
-    ? colorNames.map(name => ({
-        name,
-        background: parseColorToBackground(name),
-      }))
+    ? colorNames.map(name => {
+        let imgUrl: string | undefined = undefined;
+        if (product.colorImages) {
+          const cMap = product.colorImages instanceof Map ? Object.fromEntries(product.colorImages) : product.colorImages;
+          const matchKey = Object.keys(cMap).find(k => k.trim().toLowerCase() === name.trim().toLowerCase());
+          if (matchKey && cMap[matchKey]) imgUrl = cMap[matchKey];
+        }
+        if (!imgUrl && rawVariants) {
+          const v = rawVariants.find((rv: any) => {
+            const vc = rv.attributes?.color || rv.attributes?.colour;
+            return vc && String(vc).trim().toLowerCase() === name.trim().toLowerCase() && rv.imageUrl;
+          });
+          if (v) imgUrl = v.imageUrl;
+        }
+        return {
+          name,
+          background: parseColorToBackground(name),
+          imageUrl: imgUrl,
+        };
+      })
     : []; // Hide color selector entirely if no colors are found instead of guessing 'Standard'
 
   const avgRating = reviews && reviews.length > 0 
@@ -645,6 +688,7 @@ const mapProductToPDP = (
     fullDescription: product.description || "",
     sizeChart: product.sizeChart || product.size_chart,
     images: gallery,
+    colorImages: product.colorImages instanceof Map ? Object.fromEntries(product.colorImages) : (product.colorImages || {}),
     colors: mappedColors,
     sizes: sizes.length > 0 ? sizes : (sizeLabel !== "SIZE" ? [] : ["One Size"]),
     sizeLabel,

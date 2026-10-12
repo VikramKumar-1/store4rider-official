@@ -99,5 +99,18 @@ export async function adminRouter(req: NextRequest, routePath: string[]): Promis
     return await AdminCtrl.getPaymentLogs(req);
   }
 
+  if (routePath[0] === "shipments") {
+    const userId = extractUserFromAuth(req);
+    await checkPermission(userId, PermissionAction.MANAGE_ORDERS, UserService.getRole);
+    const { ShippingController } = await import("../shipping/shipping.controller");
+
+    if (method === "GET" && pathLen === 1) {
+      return await ShippingController.getAdminShipments(req);
+    }
+    if (method === "GET" && pathLen === 2) {
+      return await ShippingController.getShipmentById(req, routePath[1]);
+    }
+  }
+
   return null;
 }

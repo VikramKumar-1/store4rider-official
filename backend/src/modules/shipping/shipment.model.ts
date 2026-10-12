@@ -138,7 +138,7 @@ const shipmentSchema = new Schema<ShipmentDocument>(
     providerShippingCharge: { type: Number },
     codFee: { type: Number },
     
-    idempotencyKey: { type: String, sparse: true },
+    idempotencyKey: { type: String },
   },
   { timestamps: true }
 );

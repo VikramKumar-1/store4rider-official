@@ -70,11 +70,24 @@ export const migrationWorker = new Worker("migrationQueue", async (job: Job) => 
   // PHASE 15.3 & 15.4: AUTO-GENERATE CATEGORIES AND BRANDS
   logger.info(`Extracting Brands & Categories... Found ${brandsToCreate.size} raw brands and ${categoriesToCreate.size} raw category strings.`);
   
-  // Create Brands
-  for (const b of brandsToCreate) {
+  // Create Brands (with normalization & filter for non-brands)
+  const INVALID_BRAND_SLUGS = new Set(["honda", "dominar", "radiator", "yamaha", "suzuki", "ktm", "bajaj"]);
+  const BRAND_MAP: Record<string, string> = {
+    "honda": "Moto Fusion",
+    "dominar": "Motospunk",
+    "radiator": "Moto Fusion"
+  };
+
+  for (let b of brandsToCreate) {
       if (!b) continue;
+      const lower = b.trim().toLowerCase();
+      if (BRAND_MAP[lower]) {
+        b = BRAND_MAP[lower];
+      } else if (INVALID_BRAND_SLUGS.has(lower)) {
+        continue;
+      }
       const slug = slugify(b);
-      await BrandModel.updateOne({ slug }, { $set: { name: b, slug } }, { upsert: true });
+      await BrandModel.updateOne({ slug }, { $set: { name: b, slug, isActive: true } }, { upsert: true });
   }
 
   // Create Categories (Hierarchical)

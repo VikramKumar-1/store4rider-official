@@ -160,6 +160,16 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
                                   ))}
                                 </div>
                               ))}
+                              {item.id === "shop-by-brand" && (
+                                <Link
+                                  href="/brands"
+                                  onClick={onClose}
+                                  className="mt-3 flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-brand bg-red-50 hover:bg-red-100 border border-red-100 transition-colors"
+                                >
+                                  <span>View All Brands (A–Z Directory)</span>
+                                  <ChevronRightIcon className="w-4 h-4 text-brand shrink-0" />
+                                </Link>
+                              )}
                             </div>
                           </motion.div>
                         )}

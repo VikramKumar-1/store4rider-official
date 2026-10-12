@@ -15,6 +15,7 @@ export async function GET() {
 
     const response = await fetch(fetchUrl, {
       cache: "no-store",
+      signal: AbortSignal.timeout(3000),
     });
 
     if (response.ok) {

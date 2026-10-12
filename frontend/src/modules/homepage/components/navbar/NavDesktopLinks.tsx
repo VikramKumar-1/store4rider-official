@@ -246,6 +246,20 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
                       </div>
                     )}
                   </div>
+                  {item.id === "shop-by-brand" && (
+                    <div className="w-full bg-neutral-50/90 border-t border-neutral-200/70 px-8 py-3 flex items-center justify-between">
+                      <span className="text-xs text-neutral-500 font-medium">
+                        Looking for all riding gear & accessory brands?
+                      </span>
+                      <Link 
+                        href="/brands" 
+                        className="text-xs font-bold text-brand hover:text-red-700 flex items-center gap-1.5 transition-colors group"
+                      >
+                        <span>Explore All Brands (A–Z Directory)</span>
+                        <span className="group-hover:translate-x-1 transition-transform">→</span>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

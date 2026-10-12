@@ -19,7 +19,7 @@ async function seedTestProduct() {
       await ProductModel.updateOne(
         { _id: testProductId },
         { 
-          $set: { stockStatus: 1 },
+          $set: { stockStatus: 1, weight: 1.5 },
           $inc: { "variants.$[].stock": 100 }
         }
       );
@@ -37,6 +37,7 @@ async function seedTestProduct() {
         description: "A test product for checkout flow so real stock is not affected.",
         shortDescription: "Test product",
         categoryId: new mongoose.Types.ObjectId(),
+        weight: 1.5,
         stockStatus: 1,
         productType: "simple",
         isActive: true,

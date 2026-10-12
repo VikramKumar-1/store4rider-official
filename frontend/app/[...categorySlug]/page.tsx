@@ -15,6 +15,7 @@ async function getProduct(slug: string) {
   try {
     const res = await fetch(`${API_BASE}/products/${slug}`, {
       next: { revalidate: 60 },
+      signal: AbortSignal.timeout(2500),
     });
     if (!res.ok) return null;
     const json = await res.json();
@@ -34,10 +35,11 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
   const resolvedSearchParams = await searchParams;
   
   const slugArray = resolvedParams.categorySlug;
+  const isSingleSegment = slugArray.length === 1;
   const candidateSlug = slugArray[slugArray.length - 1]; // Use deepest segment
 
-  // 1. Check if this slug resolves to a Product (Root-level Product URL)
-  if (candidateSlug) {
+  // 1. Check if this slug resolves to a Product (ONLY for single-segment root-level URLs)
+  if (isSingleSegment && candidateSlug) {
     const product = await getProduct(candidateSlug);
     if (product) {
       const title = product.metaTitle?.trim() || `${product.name} | Store4Riders`;
@@ -97,7 +99,7 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
       const fetchUrl = baseUrl.includes('/v1') ? `${baseUrl}/categories/tree` : `${baseUrl}/v1/categories/tree`;
-      const res = await fetch(fetchUrl, { next: { revalidate: 60 } });
+      const res = await fetch(fetchUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(2500) });
       if (res.ok) {
         const data = await res.json();
         const findCategory = (nodes: any[]): any => {
@@ -113,7 +115,7 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
         let catNode = findCategory(data?.data || []);
         if (!catNode) {
           const singleUrl = baseUrl.includes('/v1') ? `${baseUrl}/categories/${category}` : `${baseUrl}/v1/categories/${category}`;
-          const singleRes = await fetch(singleUrl, { next: { revalidate: 60 } });
+          const singleRes = await fetch(singleUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(2500) });
           if (singleRes.ok) {
             const singleData = await singleRes.json();
             catNode = singleData?.data || null;
@@ -199,10 +201,11 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const resolvedParams = await params;
   const slugArray = resolvedParams.categorySlug;
+  const isSingleSegment = slugArray.length === 1;
   const candidateSlug = slugArray[slugArray.length - 1];
 
-  // 1. If candidateSlug resolves to a Product, render the Product Detail Page directly!
-  if (candidateSlug) {
+  // 1. If single segment resolves to a Product, render the Product Detail Page directly!
+  if (isSingleSegment && candidateSlug) {
     const product = await getProduct(candidateSlug);
     if (product) {
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
@@ -249,7 +252,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
       const fetchUrl = baseUrl.includes('/v1') ? `${baseUrl}/categories/tree` : `${baseUrl}/v1/categories/tree`;
-      const res = await fetch(fetchUrl, { next: { revalidate: 60 } });
+      const res = await fetch(fetchUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(2500) });
       if (res.ok) {
         const data = await res.json();
         const findCategory = (nodes: any[]): any => {
@@ -266,7 +269,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
       }
       if (!initialCategoryNode) {
         const singleUrl = baseUrl.includes('/v1') ? `${baseUrl}/categories/${category}` : `${baseUrl}/v1/categories/${category}`;
-        const singleRes = await fetch(singleUrl, { next: { revalidate: 60 } });
+        const singleRes = await fetch(singleUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(2500) });
         if (singleRes.ok) {
           const singleData = await singleRes.json();
           initialCategoryNode = singleData?.data || undefined;

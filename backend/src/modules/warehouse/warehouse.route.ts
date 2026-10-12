@@ -4,6 +4,7 @@ import { extractUserFromAuth } from "../../core/middlewares/auth";
 import { checkAdmin } from "../../core/middlewares/admin";
 import { UserService } from "../user/user.service";
 import { AppError } from "../../core/errors/AppError";
+import { ApiResponse } from "../../core/response/ApiResponse";
 
 /**
  * @swagger
@@ -15,40 +16,47 @@ export async function warehouseRouter(req: NextRequest, routePath: string[]): Pr
   const method = req.method;
 
   const userId = extractUserFromAuth(req);
+  await checkAdmin(userId, UserService.getRole);
 
-  // Admin Routes
-  if (routePath[0] === "admin") {
-    await checkAdmin(userId, UserService.getRole);
-    
-    // GET /api/v1/warehouses/admin
-    if (method === "GET" && routePath.length === 1) {
-      return await WarehouseController.getAll(req);
-    }
-    
-    // POST /api/v1/warehouses/admin
-    if (method === "POST" && routePath.length === 1) {
-      return await WarehouseController.create(req);
-    }
-    
-    // GET /api/v1/warehouses/admin/default
-    if (method === "GET" && routePath.length === 2 && routePath[1] === "default") {
-      return await WarehouseController.getDefault(req);
-    }
-    
-    // GET /api/v1/warehouses/admin/:id
-    if (method === "GET" && routePath.length === 2 && routePath[1] !== "default") {
-      return await WarehouseController.getById(req, routePath[1]);
-    }
-    
-    // PUT /api/v1/warehouses/admin/:id
-    if (method === "PUT" && routePath.length === 2) {
-      return await WarehouseController.update(req, routePath[1]);
-    }
-    
-    // DELETE /api/v1/warehouses/admin/:id
-    if (method === "DELETE" && routePath.length === 2) {
-      return await WarehouseController.delete(req, routePath[1]);
-    }
+  // Normalize path by stripping optional leading "admin"
+  const normalizedPath = routePath[0] === "admin" ? routePath.slice(1) : routePath;
+
+  // GET /api/v1/warehouses
+  if (method === "GET" && normalizedPath.length === 0) {
+    return await WarehouseController.getAll(req);
+  }
+
+  // POST /api/v1/warehouses
+  if (method === "POST" && normalizedPath.length === 0) {
+    return await WarehouseController.create(req);
+  }
+
+  // GET /api/v1/warehouses/default
+  if (method === "GET" && normalizedPath.length === 1 && normalizedPath[0] === "default") {
+    return await WarehouseController.getDefault(req);
+  }
+
+  // PUT /api/v1/warehouses/:id/default
+  if (method === "PUT" && normalizedPath.length === 2 && normalizedPath[1] === "default") {
+    const warehouseId = normalizedPath[0];
+    const { WarehouseService } = await import("./warehouse.service");
+    const updated = await WarehouseService.updateWarehouse(warehouseId, { isDefault: true });
+    return ApiResponse.success(updated, "Default warehouse set successfully");
+  }
+
+  // GET /api/v1/warehouses/:id
+  if (method === "GET" && normalizedPath.length === 1) {
+    return await WarehouseController.getById(req, normalizedPath[0]);
+  }
+
+  // PUT /api/v1/warehouses/:id
+  if (method === "PUT" && normalizedPath.length === 1) {
+    return await WarehouseController.update(req, normalizedPath[0]);
+  }
+
+  // DELETE /api/v1/warehouses/:id
+  if (method === "DELETE" && normalizedPath.length === 1) {
+    return await WarehouseController.delete(req, normalizedPath[0]);
   }
 
   throw new AppError("Route not found in warehouses module", 404);

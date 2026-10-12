@@ -215,9 +215,14 @@ export function SidebarFilters() {
     toggleArrayParam(paramName, value);
   };
 
+  const isDedicatedBrandView = isBrandPage || (!currentCategory && !!currentBrandParam);
+
   const clearAllFilters = () => {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
     const keepKeys = ['search', 'q', 'category']; // Keep search query and category
+    if (isDedicatedBrandView) {
+      keepKeys.push('brand');
+    }
     const allKeys = Array.from(params.keys());
     allKeys.forEach(key => {
       if (!keepKeys.includes(key)) {
@@ -237,7 +242,11 @@ export function SidebarFilters() {
     activePills.push({ label: "Price", param: "price", value: activePriceId, displayValue: display });
   }
   
-  activeBrands.forEach(b => activePills.push({ label: "Brand", param: "brand", value: b, displayValue: b }));
+  // Only show Brand in "Now Shopping By" if it's an applied secondary filter on a category or search page,
+  // NEVER when the user is already on a dedicated Brand page or browsing by Brand.
+  if (!isDedicatedBrandView) {
+    activeBrands.forEach(b => activePills.push({ label: "Brand", param: "brand", value: b, displayValue: b }));
+  }
   activeSizes.forEach(s => activePills.push({ label: "Size", param: "size", value: s, displayValue: s }));
   activeColours.forEach(c => activePills.push({ label: "Color", param: "colour", value: c, displayValue: c }));
   
@@ -427,7 +436,7 @@ export function SidebarFilters() {
           }
 
           // 4. Brand
-          if (config.code === "brand" && BRANDS.length > 0 && !isBrandPage) {
+          if (config.code === "brand" && BRANDS.length > 0 && !isDedicatedBrandView) {
             return (
               <AccordionSection key="brand" title={config.label} defaultOpen={false}>
                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">

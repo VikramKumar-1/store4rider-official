@@ -33,7 +33,8 @@ export default async function Home() {
     console.log("Building homepage, fetching products from:", fetchUrl);
     
     const res = await fetch(`${fetchUrl}?limit=50`, { 
-      next: { revalidate: 60 } // Use ISR (revalidate every 60s) instead of no-store to fix build error
+      next: { revalidate: 60 }, // Use ISR (revalidate every 60s) instead of no-store to fix build error
+      signal: AbortSignal.timeout(3500),
     });
     
     if (res.ok) {

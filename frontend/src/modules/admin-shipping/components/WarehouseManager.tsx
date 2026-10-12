@@ -147,19 +147,29 @@ const WarehouseEditorModal = ({ warehouse, onClose }: { warehouse: Partial<IWare
         
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <label className="text-[10px] font-bold text-neutral-500 uppercase">Warehouse Name</label>
-              <input required name="name" value={formData.name || ""} onChange={handleChange} className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none" />
-            </div>
-            
             <div>
-              <label className="text-[10px] font-bold text-neutral-500 uppercase">Email</label>
-              <input required type="email" name="email" value={formData.email || ""} onChange={handleChange} className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none" />
+              <label className="text-[10px] font-bold text-neutral-500 uppercase">Warehouse Name</label>
+              <input required name="name" placeholder="e.g. Kolkata Hub" value={formData.name || ""} onChange={handleChange} className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none" />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-neutral-500 uppercase">Warehouse Code (Unique)</label>
+              <input required name="warehouseCode" placeholder="e.g. WH-KOL-01" value={formData.warehouseCode || ""} onChange={handleChange} className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none" />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-neutral-500 uppercase">Contact Person</label>
+              <input required name="contactPerson" placeholder="e.g. Warehouse Manager" value={formData.contactPerson || ""} onChange={handleChange} className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none" />
             </div>
             
             <div>
               <label className="text-[10px] font-bold text-neutral-500 uppercase">Phone</label>
-              <input required name="phone" value={formData.phone || ""} onChange={handleChange} className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none" />
+              <input required name="phone" placeholder="e.g. 9876543210" value={formData.phone || ""} onChange={handleChange} className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none" />
+            </div>
+
+            <div className="col-span-2">
+              <label className="text-[10px] font-bold text-neutral-500 uppercase">Email</label>
+              <input required type="email" name="email" placeholder="e.g. kolkata@store4riders.com" value={formData.email || ""} onChange={handleChange} className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none" />
             </div>
             
             <div className="col-span-2">
@@ -184,12 +194,54 @@ const WarehouseEditorModal = ({ warehouse, onClose }: { warehouse: Partial<IWare
             
             <div>
               <label className="text-[10px] font-bold text-neutral-500 uppercase">Pincode</label>
-              <input required name="pincode" value={formData.pincode || ""} onChange={handleChange} className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none" />
+              <input required name="pincode" placeholder="6 digits" value={formData.pincode || ""} onChange={handleChange} className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none" />
             </div>
             
             <div>
               <label className="text-[10px] font-bold text-neutral-500 uppercase">Country</label>
-              <input required name="country" value={formData.country || ""} onChange={handleChange} className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none" />
+              <input required name="country" value={formData.country || "India"} onChange={handleChange} className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none" />
+            </div>
+
+            {/* Courier Integrations Section */}
+            <div className="col-span-2 pt-3 border-t border-neutral-100">
+              <h4 className="text-xs font-black uppercase text-neutral-800 tracking-wider mb-2">Courier Gateway Mappings</h4>
+              <p className="text-[11px] text-neutral-500 mb-3">Map this warehouse to the exact pickup location names configured in your courier accounts.</p>
+            </div>
+
+            <div className="col-span-2">
+              <label className="text-[10px] font-bold text-neutral-600 uppercase flex items-center justify-between">
+                <span>Shiprocket Pickup Location Nickname</span>
+                <span className="text-[9px] text-neutral-400 font-normal">Matches Shiprocket Dashboard Name</span>
+              </label>
+              <input 
+                name="shiprocketLocationId" 
+                placeholder="e.g. Kolkata_Hub or Primary" 
+                value={formData.shiprocketLocationId || ""} 
+                onChange={handleChange} 
+                className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none bg-orange-50/20" 
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-neutral-600 uppercase">Delhivery Facility Name</label>
+              <input 
+                name="delhiveryWarehouseName" 
+                placeholder="e.g. Kolkata_Facility" 
+                value={formData.delhiveryWarehouseName || ""} 
+                onChange={handleChange} 
+                className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none" 
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-neutral-600 uppercase">Xpressbees Warehouse ID</label>
+              <input 
+                name="xpressbeesWarehouseId" 
+                placeholder="e.g. XB_KOL_01" 
+                value={formData.xpressbeesWarehouseId || ""} 
+                onChange={handleChange} 
+                className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none" 
+              />
             </div>
           </div>
           

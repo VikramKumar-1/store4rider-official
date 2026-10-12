@@ -173,6 +173,53 @@ export class ProductService {
       });
     }
 
+    // LINK VARIANT IMAGES FROM colorImages & SYNC COLOR IMAGES TO PRODUCT GALLERY
+    if (product.colorImages) {
+      const cMap: Record<string, string> = product.colorImages instanceof Map
+        ? Object.fromEntries(product.colorImages)
+        : (product.colorImages as Record<string, string>);
+      (product as any).colorImages = cMap;
+
+      // 1. Assign imageUrl to variants lacking one if their color matches colorImages
+      if (product.variants && product.variants.length > 0) {
+        (product as any).variants.forEach((variant: any) => {
+          if (variant.imageUrl) return;
+          const vColor = variant.attributes instanceof Map
+            ? (variant.attributes.get('color') || variant.attributes.get('colour'))
+            : (variant.attributes?.color || variant.attributes?.colour);
+          if (vColor) {
+            const vColorStr = String(vColor).trim().toLowerCase();
+            const matchedKey = Object.keys(cMap).find(k => k.trim().toLowerCase() === vColorStr);
+            if (matchedKey && cMap[matchedKey]) {
+              variant.imageUrl = cMap[matchedKey];
+            }
+          }
+        });
+      }
+
+      // 2. Ensure each colorImage exists in product.images with descriptive altText
+      if (product.images && Array.isArray(product.images)) {
+        const existingUrls = new Set(
+          (product.images as any[])
+            .map((img: any) => (img.url ? img.url.split('?')[0].replace('http://', 'https://').trim().toLowerCase() : ''))
+        );
+
+        Object.entries(cMap).forEach(([colorName, colorUrl]) => {
+          if (typeof colorUrl === 'string' && colorUrl) {
+            const cleanUrl = colorUrl.split('?')[0].replace('http://', 'https://').trim().toLowerCase();
+            if (!existingUrls.has(cleanUrl)) {
+              (product.images as any[]).push({
+                id: `color-${colorName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+                url: colorUrl,
+                altText: `${product.name} - ${colorName}`,
+              });
+              existingUrls.add(cleanUrl);
+            }
+          }
+        });
+      }
+    }
+
     await setCache(cacheKey, product, PRODUCT_DETAIL_TTL);
     return product;
   }
@@ -250,12 +297,19 @@ export class ProductService {
         { status: { $exists: false } }
       ],
       visibility: { $ne: "Not Visible Individually" },
-      // Hide out-of-stock products unless they allow backorders
+      // Hide out-of-stock products unless they allow backorders or have variant stock
       $and: [
         {
           $or: [
-            { stockStatus: { $ne: 0 } },
-            { allowBackorders: true }
+            { allowBackorders: true },
+            { "variants.stock": { $gt: 0 } },
+            {
+              $and: [
+                { "variants.0": { $exists: false } },
+                { stockStatus: { $ne: 0 } },
+                { qty: { $gt: 0 } }
+              ]
+            }
           ]
         }
       ]
@@ -286,7 +340,7 @@ export class ProductService {
       if ((cleanSlug.includes("boot") || cleanSlug.includes("shoe")) && !cleanSlug.includes("sock") && !cleanSlug.includes("lace") && !cleanSlug.includes("insole") && !cleanSlug.includes("cover") && !cleanSlug.includes("slider")) {
         excludeConditions.push({ name: { $not: /\b(socks?|laces?|insole|covers?|toe\s*slider)\b/i } });
       } else if (cleanSlug.includes("helmet") && !cleanSlug.includes("visor") && !cleanSlug.includes("cleaner") && !cleanSlug.includes("balaclava") && !cleanSlug.includes("intercom") && !cleanSlug.includes("communicator") && !cleanSlug.includes("spoiler") && !cleanSlug.includes("pinlock") && !cleanSlug.includes("lens") && !cleanSlug.includes("shield")) {
-        excludeConditions.push({ name: { $not: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement|cleaner|spray|mask|balaclava|lens|shield)\b/i } });
+        excludeConditions.push({ name: { $not: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement|cleaner|spray|mask|balaclava|lens|shield|glove|gloves|jacket|jackets|boots?|shoes?|pants?)\b/i } });
       } else if ((cleanSlug.includes("jacket") || cleanSlug.includes("suit") || cleanSlug.includes("pant") || cleanSlug.includes("jeans")) && !cleanSlug.includes("armor") && !cleanSlug.includes("armour") && !cleanSlug.includes("protector") && !cleanSlug.includes("guard") && !cleanSlug.includes("pad") && !cleanSlug.includes("insert") && !cleanSlug.includes("layer") && !cleanSlug.includes("liner")) {
         excludeConditions.push({ name: { $not: /\b((hip|knee|elbow|back|shoulder|chest)\s*(protector|armor|armour|insert|pad|pads)|armour\s*insert|armor\s*insert|base\s*layer|liner)\b/i } });
       } else if ((cleanSlug.includes("communicator") || cleanSlug.includes("intercom")) && !cleanSlug.includes("mount") && !cleanSlug.includes("cable") && !cleanSlug.includes("wire") && !cleanSlug.includes("battery") && !cleanSlug.includes("clamp") && !cleanSlug.includes("pad")) {
@@ -299,7 +353,7 @@ export class ProductService {
       if (c.includes("modular") || c.includes("flip-up")) regexConditions.push({ name: /\b(modular|flip\s*up)\b/i });
       else if (c.includes("off-road") || c.includes("motocross")) regexConditions.push({ name: /\b(off\s*road|motocross|mx|dirt|x-cross)\b/i });
       else if (c.includes("full-face")) regexConditions.push({ name: /\b(full\s*face)\b/i });
-      else if (c.includes("open-face") || c.includes("half-face")) regexConditions.push({ name: /\b(open\s*face|half\s*face|jet)\b/i });
+      else if (c.includes("open-face") || c.includes("half-face")) regexConditions.push({ name: /\b(open\s*face|half\s*face|jet\s*helmet|retro\s*jet)\b/i });
       else if (c.includes("dual-sport") || c.includes("adv")) regexConditions.push({ name: /\b(dual\s*sport|adv|adventure\s*helmet)\b/i });
       
       else if (c.includes("visor")) regexConditions.push({ name: /\b(visor|pinlock|shield|lens)\b/i });
@@ -345,7 +399,7 @@ export class ProductService {
       else if (c.includes("mount") && c.includes("light")) regexConditions.push({ name: /\b(mount|clamp|bracket)\b.*\b(light|fog)\b/i });
       else if (c.includes("harness") || c.includes("switch")) regexConditions.push({ name: /\b(harness|switch|relay|wire)\b/i });
       else if (c.includes("performance") || c.includes("filter")) regexConditions.push({ name: /\b(performance|filter|air.*filter|exhaust)\b/i });
-      else if (c.includes("cover")) regexConditions.push({ name: /\b(cover|bike.*cover)\b/i });
+      else if (c.includes("cover")) regexConditions.push({ name: /\b(bike\s*cover|motorcycle\s*cover)\b/i });
       else if (c.includes("camera") || c.includes("gopro")) regexConditions.push({ name: /\b(camera|gopro|insta360|action\s*cam)\b/i });
       else if (c.includes("mount") && c.includes("mobile")) regexConditions.push({ name: /\b(mobile.*mount|phone.*mount|ram.*mount)\b/i });
 
@@ -404,9 +458,15 @@ export class ProductService {
     baseFilters.$and = baseFilters.$and || [];
     baseFilters.$and.push({
       $or: [
-        { stockStatus: { $ne: 0 } },
         { allowBackorders: true },
-        { "variants.stock": { $gt: 0 } }
+        { "variants.stock": { $gt: 0 } },
+        {
+          $and: [
+            { "variants.0": { $exists: false } },
+            { stockStatus: { $ne: 0 } },
+            { qty: { $gt: 0 } }
+          ]
+        }
       ]
     });
 

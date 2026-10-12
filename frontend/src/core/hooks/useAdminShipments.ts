@@ -59,8 +59,63 @@ export function useShipmentRates() {
 export function useCreateShipment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { orderId: string, provider: string, length?: number, breadth?: number, height?: number, weight?: number }) => {
+    mutationFn: async (data: { orderId: string, provider: string, warehouseId?: string, length?: number, breadth?: number, height?: number, weight?: number }) => {
       const response = await apiClient.post(`/shipments/admin`, data);
+      return response.data.data as IShipment;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "shipments"] });
+      queryClient.invalidateQueries({ queryKey: ["shipments", "order", data.orderId] });
+    },
+  });
+}
+
+export function usePushToShiprocket() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const response = await apiClient.post(`/shipments/admin/push-shiprocket`, { orderId });
+      return response.data.data as IShipment;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "shipments"] });
+      queryClient.invalidateQueries({ queryKey: ["shipments", "order", data.orderId] });
+    },
+  });
+}
+
+export function useCreateDirectShipment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      orderId: string;
+      provider: "delhivery" | "xpressbees";
+      warehouseId: string;
+      weightKg: number;
+      length?: number;
+      breadth?: number;
+      height?: number;
+    }) => {
+      const response = await apiClient.post(`/shipments/admin/direct`, data);
+      return response.data.data as IShipment;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "shipments"] });
+      queryClient.invalidateQueries({ queryKey: ["shipments", "order", data.orderId] });
+    },
+  });
+}
+
+export function useCreateManualShipment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      orderId: string;
+      courierName: string;
+      awb: string;
+      trackingUrl?: string;
+    }) => {
+      const response = await apiClient.post(`/shipments/admin/manual`, data);
       return response.data.data as IShipment;
     },
     onSuccess: (data) => {
