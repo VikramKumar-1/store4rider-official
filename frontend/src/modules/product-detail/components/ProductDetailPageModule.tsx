@@ -30,30 +30,49 @@ const formatINR = (amount: number): string => {
 };
 
 /**
- * Helper: Extract the last meaningful category name from magentoCategories string.
- * e.g. "Root Test 01/Riding Gear/Motorcycle Riding Boots" → "MOTORCYCLE RIDING BOOTS"
+ * Helper: Extract the last meaningful category name and slug from magentoCategories or categorySlugs.
+ * Handles escaped forward slashes in Magento category names (e.g. "Chain\/Sprocket kits").
  */
-const extractCategoryName = (product: IBackendProduct): string => {
+const extractCategoryInfo = (product: IBackendProduct): { categoryName: string; categorySlug: string } => {
+  let categoryName = "GEAR";
+  let categorySlug = "";
+
   if (product.magentoCategories) {
-    const parts = product.magentoCategories.split(",")[0].split("/");
-    const lastPart = parts[parts.length - 1]?.trim();
-    if (lastPart && !lastPart.toLowerCase().includes("root")) {
-      return lastPart.toUpperCase();
-    }
-    // Try second-to-last
-    if (parts.length >= 2) {
-      const secondLast = parts[parts.length - 2]?.trim();
-      if (secondLast && !secondLast.toLowerCase().includes("root")) {
-        return secondLast.toUpperCase();
+    const firstCat = product.magentoCategories.split(",")[0];
+    const token = "__ESC_SLASH__";
+    const parts = firstCat
+      .replace(/\\\/|\\\//g, token)
+      .split("/")
+      .map(p => p.replace(new RegExp(token, "g"), "/").trim())
+      .filter(p => p && !p.toLowerCase().includes("root"));
+
+    if (parts.length > 0) {
+      const lastPart = parts[parts.length - 1]?.trim();
+      if (lastPart) {
+        categoryName = lastPart.toUpperCase();
       }
     }
   }
+
   const categorySlugs = (product as any).categorySlugs;
-  if (categorySlugs && categorySlugs.length > 0) {
-    const slug = categorySlugs[categorySlugs.length - 1];
-    return slug.replace(/-/g, " ").toUpperCase();
+  if (categorySlugs && Array.isArray(categorySlugs) && categorySlugs.length > 0) {
+    const norm = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    const matched = categorySlugs.find((s: string) => s === norm || s.includes(norm) || norm.includes(s));
+    categorySlug = matched || categorySlugs[categorySlugs.length - 1];
+    if (categoryName === "GEAR") {
+      categoryName = categorySlug.replace(/-/g, " ").toUpperCase();
+    }
   }
-  return "GEAR";
+
+  if (!categorySlug && categoryName) {
+    categorySlug = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  }
+
+  return { categoryName, categorySlug };
+};
+
+const extractCategoryName = (product: IBackendProduct): string => {
+  return extractCategoryInfo(product).categoryName;
 };
 
 /**
@@ -567,7 +586,7 @@ const mapProductToPDP = (
     ? Array.from(galleryMap.values())
     : [{ url: "/no-image.svg", altText: "Placeholder" }];
 
-  const category = extractCategoryName(product);
+  const { categoryName: category, categorySlug } = extractCategoryInfo(product);
 
   const plainTextDesc = product.shortDescription
     ? stripHtml(product.shortDescription)
@@ -678,6 +697,7 @@ const mapProductToPDP = (
     id: product._id,
     slug: product.slug,
     category,
+    categorySlug,
     name: product.name,
     rating: avgRating,
     reviewCount: reviews ? reviews.length : 0,
@@ -690,7 +710,7 @@ const mapProductToPDP = (
     images: gallery,
     colorImages: product.colorImages instanceof Map ? Object.fromEntries(product.colorImages) : (product.colorImages || {}),
     colors: mappedColors,
-    sizes: sizes.length > 0 ? sizes : (sizeLabel !== "SIZE" ? [] : ["One Size"]),
+    sizes: sizes.length > 0 ? sizes : [],
     sizeLabel,
     kitProducts: finalKitProducts,
     storeReviews: storeReviews || [],

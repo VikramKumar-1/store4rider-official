@@ -24,6 +24,8 @@ interface StickyFooterBarProps {
   reviewCount?: number;
   sizeChart?: string;
   onAddToCart: (color: string, size: string) => void;
+  stockStatus?: number;
+  allowBackorders?: boolean;
 }
 
 export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
@@ -41,7 +43,9 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
   rating = 4.8,
   reviewCount = 0,
   sizeChart,
-  onAddToCart
+  onAddToCart,
+  stockStatus = 1,
+  allowBackorders = false,
 }) => {
   const router = useRouter();
   const [hasAdded, setHasAdded] = useState(false);
@@ -59,6 +63,9 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
     // Cleanup on unmount just in case
     return () => setIsBottomModalOpen(false);
   }, [openDropdown, showSizeChart, setIsBottomModalOpen]);
+
+  const hasColors = Boolean(colors && colors.length > 0);
+  const hasSizes = Boolean(sizes && sizes.length > 0);
 
   const activeColor = selectedColor || colors[0]?.name || "";
   const activeSize = selectedSize || sizes[0] || "";
@@ -80,7 +87,13 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
     setHasAdded(true);
   }, [onAddToCart, activeColor, activeSize]);
 
-  const isOutOfStock = disabledColors.includes(activeColor) || disabledSizes.includes(activeSize);
+  const isOutOfStock = React.useMemo(() => {
+    if (allowBackorders) return false;
+    if (hasColors && activeColor && disabledColors.includes(activeColor)) return true;
+    if (hasSizes && activeSize && disabledSizes.includes(activeSize)) return true;
+    if (!hasColors && !hasSizes) return stockStatus === 0;
+    return false;
+  }, [allowBackorders, hasColors, hasSizes, activeColor, activeSize, disabledColors, disabledSizes, stockStatus]);
 
   return (
     <div className={`fixed bottom-0 left-0 w-full z-40 bg-white/95 supports-[backdrop-filter]:bg-white/90 backdrop-blur-2xl border-t border-neutral-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transform-gpu will-change-transform transition-all duration-300 pb-safe ${
@@ -88,27 +101,27 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
     }`}>
       
       {/* Top Floating Mini-Bar (Rating and Mobile Size Guide) */}
-      <div className="w-full bg-white/50 backdrop-blur-md border-b border-neutral-200/50 py-1.5 border-t border-neutral-100">
-        <div className="max-w-[1400px] mx-auto px-4 md:px-6 flex justify-between items-center text-[11px]">
+      <div className="w-full bg-neutral-50/95 backdrop-blur-md border-b border-neutral-200/80 py-2 border-t border-neutral-100">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6 flex justify-between items-center text-xs">
           {/* LEFT: Rating (Google Reviews) */}
-          <a href="https://www.google.com/maps/search/?api=1&query=Store4Riders" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-neutral-700 font-bold hover:opacity-80 transition-opacity">
+          <a href="https://www.google.com/maps/search/?api=1&query=Store4Riders" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-neutral-800 font-bold hover:opacity-85 transition-opacity">
             {/* Google "G" Logo SVG */}
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
-            <span className="leading-none text-[12px]">{rating > 0 ? rating : "4.8"}</span>
-            <div className="flex gap-[1px] text-orange-400 -mt-0.5">
+            <span className="leading-none text-xs sm:text-[13px] font-black text-neutral-900">{rating > 0 ? rating : "4.8"}</span>
+            <div className="flex gap-0.5 text-amber-500">
                {/* 4.5 stars */}
-               <svg className="w-[11px] h-[11px]" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-               <svg className="w-[11px] h-[11px]" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-               <svg className="w-[11px] h-[11px]" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-               <svg className="w-[11px] h-[11px]" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-               <svg className="w-[11px] h-[11px]" viewBox="0 0 20 20" fill="url(#halfStar)"><defs><linearGradient id="halfStar"><stop offset="50%" stopColor="currentColor"/><stop offset="50%" stopColor="#e5e7eb"/></linearGradient></defs><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+               <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="url(#halfStar)"><defs><linearGradient id="halfStar"><stop offset="50%" stopColor="currentColor"/><stop offset="50%" stopColor="#e5e7eb"/></linearGradient></defs><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             </div>
-            <span className="text-neutral-500 font-medium leading-none text-[10px]">({reviewCount > 0 ? reviewCount : 800}+ Google Reviews)</span>
+            <span className="text-neutral-600 font-semibold leading-none text-xs">({reviewCount > 0 ? reviewCount : 800}+ Google Reviews)</span>
           </a>
 
         {/* RIGHT: Size Chart (Mobile Only) */}
@@ -116,9 +129,9 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
           {sizeChart && (
             <span 
               onClick={() => setShowSizeChart(true)}
-              className="text-brand font-bold uppercase tracking-wider cursor-pointer hover:underline flex items-center gap-1"
+              className="text-brand font-bold text-xs uppercase tracking-wider cursor-pointer hover:underline flex items-center gap-1"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand">
                 <rect x="2" y="8" width="20" height="8" rx="1" />
                 <line x1="6" y1="16" x2="6" y2="12" />
                 <line x1="10" y1="16" x2="10" y2="12" />
@@ -275,68 +288,69 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
             )}
 
             {/* Triggers in bottom bar */}
-            <div className="flex flex-1 items-center gap-2 h-[40px] sm:h-[44px]">
-              {/* SIZE BUTTON */}
-              {sizes && sizes.length > 0 && (
-                <button 
-                  onClick={() => setOpenDropdown(openDropdown === "size" ? null : "size")}
-                  className={`border rounded-md px-2 flex flex-col flex-1 items-start justify-center shadow-2xs transition-all h-full ${
-                    openDropdown === "size" ? "border-brand bg-orange-50/50 ring-1 ring-brand" : "border-neutral-300 bg-white active:bg-neutral-50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between w-full text-[8.5px] sm:text-[9px] font-bold text-neutral-500 uppercase leading-none mb-1">
-                    <span className="truncate max-w-[85%]">{sizeLabel}</span>
-                    <ChevronDownIcon className="w-2.5 h-2.5 text-neutral-400 shrink-0" />
-                  </div>
-                  <div className="w-full flex justify-center items-center leading-none">
-                    <span className="text-[12px] sm:text-[13px] font-black text-neutral-900 leading-none">{activeSize || "--"}</span>
-                  </div>
-                </button>
-              )}
+            {(hasSizes || hasColors) && (
+              <div className="flex flex-1 items-center gap-2 h-[40px] sm:h-[44px]">
+                {/* SIZE BUTTON */}
+                {hasSizes && (
+                  <button 
+                    onClick={() => setOpenDropdown(openDropdown === "size" ? null : "size")}
+                    className={`border rounded-md px-2 flex flex-col flex-1 items-start justify-center shadow-2xs transition-all h-full ${
+                      openDropdown === "size" ? "border-brand bg-orange-50/50 ring-1 ring-brand" : "border-neutral-300 bg-white active:bg-neutral-50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full text-[8.5px] sm:text-[9px] font-bold text-neutral-500 uppercase leading-none mb-1">
+                      <span className="truncate max-w-[85%]">{sizeLabel}</span>
+                      <ChevronDownIcon className="w-2.5 h-2.5 text-neutral-400 shrink-0" />
+                    </div>
+                    <div className="w-full flex justify-center items-center leading-none">
+                      <span className="text-[12px] sm:text-[13px] font-black text-neutral-900 leading-none">{activeSize || "--"}</span>
+                    </div>
+                  </button>
+                )}
 
-              {/* COLOR BUTTON */}
-              {colors && colors.length > 0 && (
-                <button 
-                  onClick={() => setOpenDropdown(openDropdown === "color" ? null : "color")}
-                  className={`border rounded-md px-2 flex flex-col flex-1 items-start justify-center shadow-2xs transition-all h-full ${
-                    openDropdown === "color" ? "border-brand bg-orange-50/50 ring-1 ring-brand" : "border-neutral-300 bg-white active:bg-neutral-50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between w-full text-[8.5px] sm:text-[9px] font-bold text-neutral-500 uppercase leading-none mb-1">
-                    <span>COLOR</span>
-                    <ChevronDownIcon className="w-2.5 h-2.5 text-neutral-400 shrink-0" />
-                  </div>
-                  <div className="flex items-center justify-center gap-1.5 leading-none w-full">
-                    <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-neutral-300 shrink-0" style={{ background: colors.find(c => c.name === activeColor)?.background || '#111' }} />
-                    <span className="text-[12px] sm:text-[13px] font-black text-neutral-900 truncate leading-tight mt-px pb-px">{activeColor || "--"}</span>
-                  </div>
-                </button>
-              )}
-            </div>
+                {/* COLOR BUTTON */}
+                {hasColors && (
+                  <button 
+                    onClick={() => setOpenDropdown(openDropdown === "color" ? null : "color")}
+                    className={`border rounded-md px-2 flex flex-col flex-1 items-start justify-center shadow-2xs transition-all h-full ${
+                      openDropdown === "color" ? "border-brand bg-orange-50/50 ring-1 ring-brand" : "border-neutral-300 bg-white active:bg-neutral-50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full text-[8.5px] sm:text-[9px] font-bold text-neutral-500 uppercase leading-none mb-1">
+                      <span>COLOR</span>
+                      <ChevronDownIcon className="w-2.5 h-2.5 text-neutral-400 shrink-0" />
+                    </div>
+                    <div className="flex items-center justify-center gap-1.5 leading-none w-full">
+                      <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-neutral-300 shrink-0" style={{ background: colors.find(c => c.name === activeColor)?.background || '#111' }} />
+                      <span className="text-[12px] sm:text-[13px] font-black text-neutral-900 truncate leading-tight mt-px pb-px">{activeColor || "--"}</span>
+                    </div>
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* ACTION BUTTON */}
-            <div className="w-[38%] shrink-0 h-[40px] sm:h-[44px]">
+            <div className={`${(hasSizes || hasColors) ? "w-[38%] shrink-0" : "w-full flex-1"} h-[40px] sm:h-[44px]`}>
               {hasAdded ? (
-                <div className="flex items-center gap-1.5 animate-in zoom-in duration-200 w-full h-full">
-                  <button onClick={handleAddToCartClick} className="bg-white text-brand px-3 rounded-md font-black text-[13px] border-2 border-brand/20 shadow-sm active:scale-95 transition-all h-full">
-                    +1
-                  </button>
-                  <button onClick={() => router.push("/cart")} className="flex-1 bg-emerald-600 text-white px-2 rounded-md font-black tracking-wider text-[11px] flex justify-center items-center gap-1.5 shadow-md transition-all active:scale-95 h-full">
-                    <ShoppingBagIcon className="w-4 h-4 shrink-0" />
-                    <span className="leading-none mt-0.5">{cartCount} ITEM{cartCount !== 1 ? 'S' : ''}</span>
-                  </button>
-                </div>
+                <button 
+                  onClick={() => router.push("/cart")} 
+                  className="w-full h-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-2 rounded-md font-black tracking-wider text-[11px] sm:text-xs flex justify-center items-center gap-1.5 shadow-md transition-all active:scale-95 animate-in zoom-in duration-200"
+                >
+                  <CheckIcon className="w-4 h-4 stroke-[3]" />
+                  <span className="leading-none mt-0.5">VIEW CART</span>
+                  <ArrowRightIcon className="w-3.5 h-3.5" />
+                </button>
               ) : (
                 <button 
                   onClick={handleAddToCartClick}
-                  disabled={isOutOfStock}
+                  disabled={isOutOfStock || priceFormatted === "Contact for Price"}
                   className={`w-full h-full flex items-center justify-center gap-1 rounded-md font-black uppercase tracking-tighter sm:tracking-wider text-[11px] sm:text-xs shadow-sm active:scale-95 transition-all ${
-                    isOutOfStock 
-                      ? 'bg-[#c5e84f] text-neutral-900 cursor-not-allowed' 
+                    (isOutOfStock || priceFormatted === "Contact for Price")
+                      ? 'bg-neutral-200 text-neutral-500 cursor-not-allowed border border-neutral-300' 
                       : 'bg-gradient-to-r from-banner to-orange-600 text-white hover:from-orange-600 hover:to-orange-700'
                   }`}
                 >
-                  {isOutOfStock ? "SOLD OUT" : "ADD TO CART"}
+                  {priceFormatted === "Contact for Price" ? "PRICE UNAVAILABLE" : isOutOfStock ? "RESTOCKING SOON" : "ADD TO CART"}
                 </button>
               )}
             </div>
@@ -359,96 +373,98 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
           {/* Right: Selectors & CTA */}
           <div className="flex items-center gap-4 justify-end">
             {/* Desktop: Full Color Selector */}
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-1.5 text-[9px] uppercase font-bold tracking-wider text-neutral-500">
-                <span>COLOR:</span>
-                <span className="text-neutral-900 font-extrabold">{activeColor || "Select"}</span>
+            {hasColors && (
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-1.5 text-[9px] uppercase font-bold tracking-wider text-neutral-500">
+                  <span>COLOR:</span>
+                  <span className="text-neutral-900 font-extrabold">{activeColor || "Select"}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {colors.map((colorObj, idx) => {
+                    const isSelected = activeColor === colorObj.name;
+                    const isDisabled = disabledColors.includes(colorObj.name);
+                    return (
+                      <button
+                        key={`sticky-color-${idx}-${colorObj.name}`}
+                        onClick={() => handleColorClick(colorObj.name)}
+                        disabled={isDisabled}
+                        className={`w-7 h-7 rounded-full border-2 transition-all duration-150 relative ${
+                          isSelected
+                            ? "border-brand scale-110 ring-2 ring-brand/30 ring-offset-1 z-10"
+                            : "border-neutral-300/90 hover:border-neutral-500 opacity-85 hover:opacity-100"
+                        } ${isDisabled ? "opacity-30 cursor-not-allowed hover:border-neutral-300" : ""}`}
+                        style={{ background: colorObj.background }}
+                        title={isDisabled ? `${colorObj.name} - Out of Stock` : colorObj.name}
+                      >
+                        {isDisabled && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-full h-0.5 bg-neutral-400 rotate-45 transform origin-center" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                {colors.map((colorObj, idx) => {
-                  const isSelected = activeColor === colorObj.name;
-                  const isDisabled = disabledColors.includes(colorObj.name);
-                  return (
-                    <button
-                      key={`sticky-color-${idx}-${colorObj.name}`}
-                      onClick={() => handleColorClick(colorObj.name)}
-                      disabled={isDisabled}
-                      className={`w-7 h-7 rounded-full border-2 transition-all duration-150 relative ${
-                        isSelected
-                          ? "border-brand scale-110 ring-2 ring-brand/30 ring-offset-1 z-10"
-                          : "border-neutral-300/90 hover:border-neutral-500 opacity-85 hover:opacity-100"
-                      } ${isDisabled ? "opacity-30 cursor-not-allowed hover:border-neutral-300" : ""}`}
-                      style={{ background: colorObj.background }}
-                      title={isDisabled ? `${colorObj.name} - Out of Stock` : colorObj.name}
-                    >
-                      {isDisabled && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-full h-0.5 bg-neutral-400 rotate-45 transform origin-center" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            )}
 
             {/* Desktop: Full Size Selector */}
-            <div className="flex flex-col gap-1 border-l border-neutral-200/80 pl-4 min-w-[150px]">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] uppercase font-bold tracking-wider text-neutral-500">{sizeLabel}</span>
-                {sizeChart && (
-                  <button 
-                    onClick={() => setShowSizeChart(true)}
-                    className="flex items-center gap-1 hover:opacity-80 transition-opacity"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-500">
-                      <rect x="2" y="8" width="20" height="8" rx="1" />
-                      <line x1="6" y1="16" x2="6" y2="12" />
-                      <line x1="10" y1="16" x2="10" y2="12" />
-                      <line x1="14" y1="16" x2="14" y2="12" />
-                      <line x1="18" y1="16" x2="18" y2="12" />
-                    </svg>
-                    <span className="text-[9px] font-black uppercase text-neutral-900 underline underline-offset-2 tracking-wider">SIZE CHART</span>
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-1">
-                {sizes.map(size => {
-                  const isSelected = activeSize === size;
-                  const isDisabled = disabledSizes.includes(size);
-                  return (
-                    <button
-                      key={`sticky-size-${size}`}
-                      onClick={() => handleSizeClick(size)}
-                      disabled={isDisabled}
-                      className={`min-w-[32px] h-8 px-2 text-xs font-bold rounded-lg border transition-all duration-150 ${
-                        isDisabled 
-                          ? "border-neutral-200 text-neutral-400 bg-neutral-100/50 cursor-not-allowed line-through" 
-                          : isSelected 
-                          ? "border-neutral-900 bg-neutral-900 text-white shadow-xs" 
-                          : "border-neutral-200/90 text-neutral-700 bg-white/70 hover:bg-white hover:border-neutral-400"
-                      }`}
+            {hasSizes && (
+              <div className={`flex flex-col gap-1 ${hasColors ? "border-l border-neutral-200/80 pl-4" : ""} min-w-[150px]`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-neutral-500">{sizeLabel}</span>
+                  {sizeChart && (
+                    <button 
+                      onClick={() => setShowSizeChart(true)}
+                      className="flex items-center gap-1 hover:opacity-80 transition-opacity"
                     >
-                      {size}
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-500">
+                        <rect x="2" y="8" width="20" height="8" rx="1" />
+                        <line x1="6" y1="16" x2="6" y2="12" />
+                        <line x1="10" y1="16" x2="10" y2="12" />
+                        <line x1="14" y1="16" x2="14" y2="12" />
+                        <line x1="18" y1="16" x2="18" y2="12" />
+                      </svg>
+                      <span className="text-[9px] font-black uppercase text-neutral-900 underline underline-offset-2 tracking-wider">SIZE CHART</span>
                     </button>
-                  );
-                })}
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  {sizes.map(size => {
+                    const isSelected = activeSize === size;
+                    const isDisabled = disabledSizes.includes(size);
+                    return (
+                      <button
+                        key={`sticky-size-${size}`}
+                        onClick={() => handleSizeClick(size)}
+                        disabled={isDisabled}
+                        className={`min-w-[32px] h-8 px-2 text-xs font-bold rounded-lg border transition-all duration-150 ${
+                          isDisabled 
+                            ? "border-neutral-200 text-neutral-400 bg-neutral-100/50 cursor-not-allowed line-through" 
+                            : isSelected 
+                            ? "border-neutral-900 bg-neutral-900 text-white shadow-xs" 
+                            : "border-neutral-200/90 text-neutral-700 bg-white/70 hover:bg-white hover:border-neutral-400"
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Desktop CTA */}
             <div className="flex items-center gap-2 ml-4 shrink-0">
               {hasAdded ? (
-                <div className="flex items-center gap-2 animate-in zoom-in-95 duration-200">
-                  <button onClick={handleAddToCartClick} className="bg-white/80 hover:bg-white text-neutral-800 px-3 py-3 rounded-xl font-bold text-xs uppercase tracking-wider border border-neutral-300 shadow-xs active:scale-95 transition-all">
-                    +1
-                  </button>
-                  <button onClick={() => router.push("/cart")} className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-7 py-3 rounded-xl font-black tracking-wider text-sm flex items-center gap-2 shadow-md transition-all whitespace-nowrap active:scale-95">
-                    <CheckIcon className="w-4 h-4 stroke-[3]" />
-                    <span>VIEW CART</span>
-                    <ArrowRightIcon className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <button 
+                  onClick={() => router.push("/cart")} 
+                  className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-8 py-3 rounded-xl font-black tracking-wider text-sm flex items-center gap-2 shadow-md transition-all whitespace-nowrap active:scale-95 animate-in zoom-in-95 duration-200"
+                >
+                  <CheckIcon className="w-4 h-4 stroke-[3]" />
+                  <span>VIEW CART</span>
+                  <ArrowRightIcon className="w-3.5 h-3.5" />
+                </button>
               ) : (
                 <button 
                   onClick={handleAddToCartClick}

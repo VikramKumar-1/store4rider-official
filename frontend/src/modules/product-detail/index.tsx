@@ -107,7 +107,8 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
 
   // Calculate disabled colors based on variant stock
   const disabledColors = React.useMemo(() => {
-    if (!product.rawVariants) return [];
+    if (!product.rawVariants || product.rawVariants.length === 0) return [];
+    if (product.allowBackorders) return [];
     const validColors = new Set<string>();
     
     product.rawVariants.forEach(v => {
@@ -124,11 +125,12 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
     if (validColors.size === 0) return [];
     
     return (product.colors || []).map(c => c.name).filter(c => !validColors.has(c.toLowerCase()));
-  }, [product.colors, product.rawVariants]);
+  }, [product.colors, product.rawVariants, product.allowBackorders]);
 
   // Calculate disabled sizes for the CURRENTLY selected color based on variant existence AND stock
   const disabledSizes = React.useMemo(() => {
-    if (!product.rawVariants) return [];
+    if (!product.rawVariants || product.rawVariants.length === 0) return [];
+    if (product.allowBackorders) return [];
     const validSizesForColor = new Set<string>();
     
     product.rawVariants.forEach(v => {
@@ -152,11 +154,11 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
     });
 
     // If no size restrictions found for this color (e.g. all out of stock), disable all sizes
-    if (validSizesForColor.size === 0) return product.sizes;
+    if (validSizesForColor.size === 0) return product.sizes || [];
 
     // Disable sizes that are not in validSizesForColor
-    return product.sizes.filter(s => !validSizesForColor.has(s));
-  }, [selectedColor, product.sizes, product.rawVariants]);
+    return (product.sizes || []).filter(s => !validSizesForColor.has(s));
+  }, [selectedColor, product.sizes, product.rawVariants, product.allowBackorders]);
 
   // Auto-select the first valid size if the current one becomes disabled
   useEffect(() => {
@@ -213,11 +215,14 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
     : product.priceFormatted;
 
   const handleAddToCart = (color: string, size: string) => {
+    const hasColor = Boolean(product.colors && product.colors.length > 0 && color);
+    const hasSize = Boolean(product.sizes && product.sizes.length > 0 && size);
+
     addItem({
       id: crypto.randomUUID(),
       productId: product.id,
       quantity: 1,
-      variantId: activeVariant?.sku || `${color}-${size}`,
+      variantId: activeVariant?.sku || (hasColor || hasSize ? `${color}-${size}` : product.id),
       product: {
         _id: product.id,
         id: product.id,
@@ -226,8 +231,8 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         price: activePrice,
         images: product.images,
         slug: product.slug,
-        selectedColor: color,
-        selectedSize: size,
+        selectedColor: hasColor ? color : undefined,
+        selectedSize: hasSize ? size : undefined,
       } as any,
     });
   };
@@ -252,7 +257,10 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
       <Breadcrumb items={[
         { label: "HOME", href: "/" },
         { label: "PRODUCTS", href: "/products" },
-        ...(product.category ? [{ label: product.category, href: `/${product.category.toLowerCase().replace(/\s+/g, '-')}` }] : []),
+        ...(product.category ? [{ 
+          label: product.category, 
+          href: product.categorySlug ? `/${product.categorySlug}` : `/${product.category.toLowerCase().replace(/\s+/g, '-')}` 
+        }] : []),
         { label: product.name }
       ]} />
 
@@ -370,6 +378,8 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         rating={product.rating}
         reviewCount={product.reviewCount}
         onAddToCart={handleAddToCart}
+        stockStatus={product.stockStatus}
+        allowBackorders={product.allowBackorders}
       />
 
     </div>

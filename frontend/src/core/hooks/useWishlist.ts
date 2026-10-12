@@ -1,13 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/core/api/client";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 export function useWishlist() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
   return useQuery({
     queryKey: ["wishlist_ids"],
     queryFn: async () => {
       const res = await apiClient.get("/wishlist/me");
       return (res.data.data?.productIds || []) as string[];
     },
+    enabled: isAuthenticated,
     // Don't retry if the user is not logged in (401)
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes

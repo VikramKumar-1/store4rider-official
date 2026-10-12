@@ -37,7 +37,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         group: "Riding Jackets",
         groupHref: "/riding-gear/riding-jacket",
         items: [
-          { label: "All Riding Jackets", href: "/riding-gear/riding-jacket" },
+          { label: "Riding Jackets", href: "/riding-gear/riding-jacket" },
           { label: "Protectors / Armour", href: "/riding-gear/protectors-armour" },
         ],
       },
@@ -45,7 +45,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         group: "Riding Pants",
         groupHref: "/riding-gear/riding-pants",
         items: [
-          { label: "All Riding Pants", href: "/riding-gear/riding-pants" },
+          { label: "Riding Pants", href: "/riding-gear/riding-pants" },
           { label: "Riding Jeans", href: "/riding-gear/riding-jeans" },
           { label: "Touring Pants", href: "/riding-gear/touring-pants" },
           { label: "Knee Guards for bikers", href: "/riding-gear/knee-guards" },
@@ -55,7 +55,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         group: "Riding Gloves",
         groupHref: "/riding-gear/motorcycle-riding-gloves",
         items: [
-          { label: "All Riding Gloves", href: "/riding-gear/motorcycle-riding-gloves" },
+          { label: "Riding Gloves", href: "/riding-gear/motorcycle-riding-gloves" },
           { label: "Full Gauntlet Gloves", href: "/riding-gear/full-gauntlet-gloves" },
           { label: "Semi Gauntlet Gloves", href: "/riding-gear/semi-gauntlet-gloves" },
           { label: "Short Motorbike Gloves", href: "/riding-gear/short-motorbike-gloves" },
@@ -65,7 +65,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         group: "Riding Boots",
         groupHref: "/riding-gear/motorcycle-riding-boots",
         items: [
-          { label: "All Riding Boots", href: "/riding-gear/motorcycle-riding-boots" },
+          { label: "Riding Boots", href: "/riding-gear/motorcycle-riding-boots" },
           { label: "Short biking boots", href: "/riding-gear/short-biking-boots" },
           { label: "Sports riding shoes", href: "/riding-gear/sports-riding-shoes" },
           { label: "Off-road boots", href: "/riding-gear/motorcycle-riding-boots/off-road-riding-boots" },
@@ -113,7 +113,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
       {
         group: "Auxiliary Lights / Filters / Accessories",
         items: [
-          { label: "View All Auxiliary Lights", href: "/motorcycle-accessories-online/bike-auxiliary-lights-filters-flashers" },
+          { label: "Auxiliary Lights & Flashers", href: "/motorcycle-accessories-online/bike-auxiliary-lights-filters-flashers" },
           { label: "Auxiliary lights", href: "/motorcycle-accessories-online/auxiliary-lights" },
           { label: "Auxiliary light filter", href: "/motorcycle-accessories-online/auxiliary-light-filter" },
           { label: "Clamps and Mounts for lights", href: "/motorcycle-accessories-online/clamps-and-mounts-for-lights" },
@@ -201,7 +201,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         group: "Spares & Parts",
         groupHref: "/spares",
         items: [
-          { label: "All", href: "/spares" },
           { label: "Chain Sprocket Kits", href: "/spares/chain-sprocket-kits" },
           { label: "Iridium Spark Plugs", href: "/spares/iridium-spark-plugs" },
           { label: "Performance Air Filters", href: "/spares/performance-air-filters" },

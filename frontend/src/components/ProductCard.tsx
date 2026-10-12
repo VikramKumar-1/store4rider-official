@@ -7,6 +7,7 @@ import Link from "next/link";
 import { formatPrice } from "@store4riders/shared-utils";
 import { ShoppingCart, Check, Star, ShieldCheck } from "lucide-react";
 import { useCartStore } from "@/stores/useCartStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 import { toast } from "sonner";
 import { apiClient } from "@/core/api/client";
@@ -22,6 +23,7 @@ interface ProductCardProps {
 
 const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
   const router = useRouter();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const addItem = useCartStore((state) => state.addItem);
   const [isAdded, setIsAdded] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -189,6 +191,13 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              if (!isAuthenticated) {
+                toast.error("Please login to save to wishlist");
+                const currentPath = typeof window !== "undefined" ? window.location.pathname : "/";
+                router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
+                return;
+              }
+
               const prev = isWishlisted;
               setIsWishlisted(!prev);
 
@@ -206,6 +215,8 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
                   setIsWishlisted(prev); // revert on error
                   if (err.response?.status === 401) {
                     toast.error("Please login to save to wishlist");
+                    const currentPath = typeof window !== "undefined" ? window.location.pathname : "/";
+                    router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
                   } else {
                     toast.error("Failed to update wishlist");
                   }

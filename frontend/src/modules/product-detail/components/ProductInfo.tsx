@@ -27,9 +27,11 @@ interface ProductInfoProps {
 }
 
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { apiClient } from "@/core/api/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWishlist } from "@/core/hooks/useWishlist";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 export const ProductInfo: React.FC<ProductInfoProps> = ({
   id,
@@ -51,6 +53,8 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
   onColorChange,
   onSizeChange,
 }) => {
+  const router = useRouter();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [isDescExpanded, setIsDescExpanded] = useState(false);
   const [showReadMore, setShowReadMore] = useState(false);
   const [showSizeChart, setShowSizeChart] = useState(false);
@@ -118,6 +122,13 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
           <button
             onClick={(e) => {
               e.preventDefault();
+              if (!isAuthenticated) {
+                toast.error("Please login to save to wishlist");
+                const currentPath = typeof window !== "undefined" ? window.location.pathname : `/products/${id}`;
+                router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
+                return;
+              }
+
               const prev = isWishlisted;
               setIsWishlisted(!prev);
 
@@ -135,6 +146,8 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
                   setIsWishlisted(prev); // revert on error
                   if (err.response?.status === 401) {
                     toast.error("Please login to save to wishlist");
+                    const currentPath = typeof window !== "undefined" ? window.location.pathname : `/products/${id}`;
+                    router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
                   } else {
                     toast.error("Failed to update wishlist");
                   }

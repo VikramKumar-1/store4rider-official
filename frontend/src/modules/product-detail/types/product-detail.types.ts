@@ -32,6 +32,7 @@ export interface PDPData {
   id: string;
   slug: string;
   category: string;
+  categorySlug?: string;
   name: string;
   rating: number;
   reviewCount: number;
