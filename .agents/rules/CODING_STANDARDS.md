@@ -61,6 +61,8 @@ trigger: always_on
 14. **Pagination = ALWAYS from Backend.** Pagination is handled by the backend via `ApiResponse.paginated()`. Frontend passes `page` and `limit` query params. Frontend NEVER does client-side pagination on full datasets.
 15. **NEVER store JWTs in localStorage or sessionStorage.** Tokens are stored ONLY in HttpOnly cookies. The Zustand `useAuthStore` stores the token for Axios interceptor only — it comes FROM the cookie-based auth flow.
 16. **NEVER add heavy animation libraries.** Use CSS transitions (`transition-*` Tailwind classes) for simple effects. Framer Motion only when absolutely required (modals, complex page transitions). This is an e-commerce site — speed > animation.
+17. **NEVER touch or make the Storefront Navbar dynamic.** The storefront navigation MUST strictly use `DEFAULT_NAV_ITEMS` from `nav.constants.ts`. Do NOT connect `generateNavItems` or `categoryTree` to dynamically build or overwrite the main navbar menu.
+18. **Subcategory Tiles are MOBILE-ONLY (`lg:hidden`).** The `SubcategoryTiles` component on category pages is designed exclusively for mobile browsing. It MUST remain hidden on desktop/laptop screens (`block lg:hidden`). Never display it on desktop.
 
 ---
 

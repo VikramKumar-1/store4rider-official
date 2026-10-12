@@ -13,9 +13,52 @@ const inter = Inter({
   variable: "--font-inter" 
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
+
 export const metadata: Metadata = {
-  title: "Store4Riders | Premium Motorcycle Riding Gear",
-  description: "Riding gear that keeps you safe. Explore jackets, suits, helmets & accessories.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Store4Riders | Premium Motorcycle Riding Gear",
+    template: "%s | Store4Riders",
+  },
+  description: "India's leading destination for certified motorcycle riding helmets, jackets, boots, gloves, and riding accessories. Top brands, 100% authentic gear with fast shipping.",
+  keywords: [
+    "Store4Riders",
+    "motorcycle riding gear",
+    "motorcycle helmets",
+    "full face helmets",
+    "riding jackets",
+    "riding boots",
+    "riding gloves",
+    "biker gear india",
+  ],
+  authors: [{ name: "Store4Riders" }],
+  creator: "Store4Riders",
+  publisher: "Store4Riders",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    url: siteUrl,
+    siteName: "Store4Riders",
+    title: "Store4Riders | Premium Motorcycle Riding Gear",
+    description: "Certified motorcycle riding helmets, jackets, boots, gloves & accessories. Free shipping on select orders.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Store4Riders | Premium Motorcycle Riding Gear",
+    description: "Certified motorcycle riding helmets, jackets, boots, gloves & accessories.",
+  },
 };
 
 export default function RootLayout({
@@ -23,8 +66,49 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const websiteSchema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${siteUrl}/#website`,
+        url: siteUrl,
+        name: "Store4Riders",
+        description: "Premium Motorcycle Riding Gear Store",
+        potentialAction: {
+          "@type": "SearchAction",
+          target: {
+            "@type": "EntryPoint",
+            urlTemplate: `${siteUrl}/search?q={search_term_string}`,
+          },
+          "query-input": "required name=search_term_string",
+        },
+      },
+      {
+        "@type": "Organization",
+        "@id": `${siteUrl}/#organization`,
+        name: "Store4Riders",
+        url: siteUrl,
+        logo: `${siteUrl}/images/logo.png`,
+        contactPoint: {
+          "@type": "ContactPoint",
+          telephone: "+91-9876543210",
+          contactType: "customer service",
+          areaServed: "IN",
+          availableLanguage: ["English", "Hindi"],
+        },
+      },
+    ],
+  };
+
   return (
     <html lang="en" className={`${inter.variable} font-sans`}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        />
+      </head>
       <body className="antialiased bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans">
         <Providers>
           <NavigationProgress />

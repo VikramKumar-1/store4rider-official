@@ -141,8 +141,10 @@ export class OrderService {
         }
       }
       if (item.variantId) {
-        const variant = product.variants?.find((v: any) => v.id === item.variantId);
-        if (variant) unitPrice = variant.price;
+        const variant = product.variants?.find((v: any) => v.id === item.variantId || v.sku === item.variantId);
+        if (variant) {
+          unitPrice = (variant.specialPrice && variant.specialPrice > 0) ? variant.specialPrice : variant.price;
+        }
       }
 
       const itemTotal = unitPrice * item.quantity;
@@ -155,7 +157,7 @@ export class OrderService {
         productId: String(product._id),
         variantId: item.variantId,
         name: product.name,
-        sku: item.variantId ? (product.variants?.find((v: any) => v.id === item.variantId)?.sku || product.sku) : product.sku,
+        sku: item.variantId ? (product.variants?.find((v: any) => v.id === item.variantId || v.sku === item.variantId)?.sku || product.sku) : product.sku,
         quantity: item.quantity,
         unitPrice,
         taxRate: itemTaxRate,

@@ -92,7 +92,7 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
           priceFormatted: `₹ ${displayPrice?.toLocaleString('en-IN') || '0'}`,
           imageUrl: (p.images && p.images.length > 0) ? p.images[0].url : "/no-image.svg",
           rating: 4.8,
-          productUrl: `/products/${p.slug || p._id}`
+          productUrl: `/${p.slug || p._id}`
         };
       })
     : [
@@ -103,7 +103,7 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
       priceFormatted: "₹ 8,999",
       imageUrl: "/no-image.svg",
       rating: 4.95,
-      productUrl: "/products/1"
+      productUrl: "/1"
     },
     {
       id: "grid-2",
@@ -212,7 +212,7 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
             ? p.images[0].url 
             : "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
           rating: 4.85,
-          productUrl: `/products/${p.slug || p._id}`
+          productUrl: `/${p.slug || p._id}`
         };
       })
     : [
@@ -223,7 +223,7 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
           priceFormatted: "₹ 4,500",
           imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
           rating: 4.90,
-          productUrl: "/products/t1"
+          productUrl: "/t1"
         },
         {
           id: "tour-2",

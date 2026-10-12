@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { ChevronDownIcon } from "@heroicons/react/24/solid";
+import { useRouter } from "next/navigation";
+import { cleanRichContent, stripHtml, handleRichTextClick } from "@/core/utils/cleanRichContent";
 
 export interface AccordionItem {
   id: string;
@@ -18,6 +20,7 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
   categoryName = "Riding Gloves",
   items,
 }) => {
+  const router = useRouter();
   // Store open state per panel; default first panel closed
   const [openIds, setOpenIds] = useState<Record<string, boolean>>({});
 
@@ -58,7 +61,7 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
       name: item.title,
       acceptedAnswer: {
         "@type": "Answer",
-        text: typeof item.content === "string" ? item.content : item.title,
+        text: typeof item.content === "string" ? stripHtml(item.content) : item.title,
       },
     })),
   };
@@ -75,6 +78,9 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
       <div className="flex flex-col gap-2">
         {items.map((item) => {
           const isOpen = !!openIds[item.id];
+          const isStringContent = typeof item.content === "string";
+          const cleanedHtml = isStringContent ? cleanRichContent(item.content as string) : null;
+
           return (
             <div
               key={item.id}
@@ -115,8 +121,15 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
                 }`}
               >
                 <div className="overflow-hidden w-full max-w-full">
-                  <div className="text-sm text-neutral-600 leading-relaxed font-sans border-t border-neutral-200 p-3 sm:p-5 break-words overflow-x-hidden w-full">
-                    {item.content}
+                  <div
+                    onClick={(e) => handleRichTextClick(e, router)}
+                    className="text-sm text-neutral-700 leading-relaxed font-sans border-t border-neutral-200 p-3 sm:p-5 break-words overflow-x-hidden w-full max-w-full prose prose-sm prose-neutral prose-a:text-brand prose-a:no-underline hover:prose-a:underline prose-table:w-full prose-table:table-fixed prose-table:border-collapse"
+                  >
+                    {isStringContent ? (
+                      <div dangerouslySetInnerHTML={{ __html: cleanedHtml || "" }} />
+                    ) : (
+                      item.content
+                    )}
                   </div>
                 </div>
               </div>

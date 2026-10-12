@@ -5,7 +5,7 @@ import { ForbiddenError } from "../errors/AppError";
 
 export const checkAdmin = async (userId: string, getUserRole: (id: string) => Promise<string>) => {
   const role = await getUserRole(userId);
-  if (role !== "admin") {
+  if (role !== "admin" && role !== "super_admin") {
     throw new ForbiddenError("Admin access required");
   }
 };

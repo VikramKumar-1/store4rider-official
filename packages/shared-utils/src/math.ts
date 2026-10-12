@@ -16,9 +16,10 @@ export const calculateTax = (amount: number, rate: number): number => {
  */
 export const getTaxRateFromClass = (taxClassName?: string, defaultRate: number = 18): number => {
   if (!taxClassName) return defaultRate;
-  const match = taxClassName.match(/(\d+)/);
+  const match = taxClassName.match(/(\d+(?:\.\d+)?)/);
   if (match) {
-    return parseInt(match[1], 10);
+    const parsed = parseFloat(match[1]);
+    return isNaN(parsed) ? defaultRate : parsed;
   }
   return defaultRate;
 };

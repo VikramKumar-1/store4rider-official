@@ -16,6 +16,8 @@ export interface IBackendProduct {
   categoryId?: string;
   basePrice: number;
   specialPrice?: number;       // NOT "salePrice"
+  specialPriceFromDate?: Date | string;
+  specialPriceToDate?: Date | string;
   weight?: number;
   stockStatus?: number;        // 0 or 1, NOT "stockQuantity"
   productType?: string;        // "simple" | "configurable"
@@ -24,6 +26,26 @@ export interface IBackendProduct {
   brand?: string;
   sizeChart?: string;
   size_chart?: string;
+  attributeSetCode?: string;
+  categorySlugs?: string[];
+  mapPrice?: number;
+  msrpPrice?: number;
+  qty?: number;
+  outOfStockQty?: number;
+  minCartQty?: number;
+  maxCartQty?: number;
+  notifyOnStockBelow?: number;
+  countryOfManufacture?: string;
+  taxClassName?: string;
+  visibility?: string;
+  status?: "draft" | "published" | "archived";
+  isFeatured?: boolean;
+  isFreeShipping?: boolean;
+  gender?: string;
+  brandId?: string;
+  tags?: string[];
+  crosssellSkus?: string[];
+  faqs?: Array<{ question: string; answer: string }>;
   images: Array<{
     id?: string;
     url: string;
@@ -34,6 +56,7 @@ export interface IBackendProduct {
     id?: string;
     sku: string;
     price: number;
+    specialPrice?: number;
     stock: number;
     attributes?: Record<string, string>;
     imageUrl?: string;
@@ -192,5 +215,45 @@ export function useProductAggregations(params?: any) {
     },
     staleTime: 1000 * 60 * 5, // 5 minutes cache since it depends on params now
     placeholderData: keepPreviousData, // PREVENTS SIDEBAR FLICKERING/RELOADING
+  });
+}
+
+export function useCreateProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiClient.post("/products", data);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+}
+
+export function useUpdateProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await apiClient.put(`/products/${id}`, data);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product"] });
+    },
+  });
+}
+
+export function useDeleteProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.delete(`/products/${id}`);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
   });
 }

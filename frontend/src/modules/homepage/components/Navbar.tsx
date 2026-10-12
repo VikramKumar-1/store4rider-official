@@ -85,19 +85,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   const totalItemCount = mounted ? items.reduce((sum, i) => sum + (i.quantity || 1), 0) : 0;
   const isLight = theme === "light" || isScrolled;
   
-  // The client explicitly requested the hardcoded navbar only, but we will filter out empty brands later
-  // We will clone DEFAULT_NAV_ITEMS and inject the real database brands into the "Shop By Brand" dropdown
+  // ⚠️ CRITICAL: DO NOT MAKE NAVBAR DYNAMIC. The storefront navigation MUST strictly use DEFAULT_NAV_ITEMS.
+  // NEVER wire categoryTreeData or generateNavItems to this navbar.
   const activeNavItems = React.useMemo(() => {
     if (navItems) return navItems;
     
     // Deep clone to avoid mutating the constant
     const cloned = JSON.parse(JSON.stringify(DEFAULT_NAV_ITEMS));
     
-    // Find the Shop By Brand item
+    // Inject database brands into the "Shop By Brand" dropdown if available
     const brandItem = cloned.find((item: any) => item.id === "shop-by-brand");
-    
     if (brandItem && brands && brands.length > 0) {
-      // Chunk brands into groups of 9 for the mega menu columns
       const brandGroups = [];
       for (let i = 0; i < brands.length; i += 9) {
         brandGroups.push(brands.slice(i, i + 9));
@@ -114,7 +112,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
     
     return cloned;
-  }, [navItems, categoryTreeData, brands]);
+  }, [navItems, brands]);
 
   return (
     <>

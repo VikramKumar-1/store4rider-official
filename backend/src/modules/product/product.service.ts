@@ -238,7 +238,7 @@ export class ProductService {
       return Object.entries(obj).map(([k, v]) => `${k}:${serializeFilter(v)}`).sort().join(";");
     };
 
-    const cacheKey = `product_aggregations_v19_${categorySlug || 'all'}_${serializeFilter(rawActiveFilters || {})}`;
+    const cacheKey = `aggs_v26_${categorySlug || 'all'}_${serializeFilter(rawActiveFilters || {})}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -267,23 +267,98 @@ export class ProductService {
         cleanSlug = cleanSlug.split('/').pop() || cleanSlug;
       }
       
-      // CRITICAL UPGRADE: We now rely 100% on the accurate categorySlugs mapping.
-      // Legacy regex guessing has been commented out for speed and accuracy.
-      baseFilters.$and = baseFilters.$and || [];
-      
-      // 100% STRICT EXACT MATCH
-      // The database has been perfectly aligned with the Frontend URLs. No guessing needed!
-      baseFilters.$and.push({ categorySlugs: cleanSlug });
+      const isPlural = cleanSlug.endsWith('s');
+      const singularSlug = isPlural ? cleanSlug.slice(0, -1) : cleanSlug;
+      const pluralSlug = isPlural ? cleanSlug : cleanSlug + 's';
 
-      // Clean up Magento's messy tagging: Exclude accessories from main categories
-      if (cleanSlug.includes("boot") || cleanSlug.includes("shoe")) {
-        baseFilters.$and.push({ name: { $not: /\b(socks?|laces?|insole|covers?|toe\s*slider)\b/i } });
-      } else if (cleanSlug.includes("helmet")) {
-        baseFilters.$and.push({ name: { $not: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement|cleaner|spray|mask|balaclava)\b/i } });
-      } else if (cleanSlug.includes("jacket") || cleanSlug.includes("suit") || cleanSlug.includes("pant") || cleanSlug.includes("jeans")) {
-        baseFilters.$and.push({ name: { $not: /\b((hip|knee|elbow|back|shoulder|chest)\s*(protector|armor|armour|insert|pad|pads)|armour\s*insert|armor\s*insert|base\s*layer|liner)\b/i } });
-      } else if (cleanSlug.includes("communicator") || cleanSlug.includes("intercom")) {
-        baseFilters.$and.push({ name: { $not: /\b(cable|wire|battery|clamp|mount|pad)\b/i } });
+      const searchSlugs = [
+        cleanSlug,
+        singularSlug,
+        pluralSlug,
+        cleanSlug.replace(/-/g, ''),
+        singularSlug.replace(/-/g, ''),
+        pluralSlug.replace(/-/g, '')
+      ];
+
+      const categoryMatchCondition = { categorySlugs: { $in: searchSlugs } };
+
+      const excludeConditions: any[] = [];
+      if ((cleanSlug.includes("boot") || cleanSlug.includes("shoe")) && !cleanSlug.includes("sock") && !cleanSlug.includes("lace") && !cleanSlug.includes("insole") && !cleanSlug.includes("cover") && !cleanSlug.includes("slider")) {
+        excludeConditions.push({ name: { $not: /\b(socks?|laces?|insole|covers?|toe\s*slider)\b/i } });
+      } else if (cleanSlug.includes("helmet") && !cleanSlug.includes("visor") && !cleanSlug.includes("cleaner") && !cleanSlug.includes("balaclava") && !cleanSlug.includes("intercom") && !cleanSlug.includes("communicator") && !cleanSlug.includes("spoiler") && !cleanSlug.includes("pinlock") && !cleanSlug.includes("lens") && !cleanSlug.includes("shield")) {
+        excludeConditions.push({ name: { $not: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement|cleaner|spray|mask|balaclava|lens|shield)\b/i } });
+      } else if ((cleanSlug.includes("jacket") || cleanSlug.includes("suit") || cleanSlug.includes("pant") || cleanSlug.includes("jeans")) && !cleanSlug.includes("armor") && !cleanSlug.includes("armour") && !cleanSlug.includes("protector") && !cleanSlug.includes("guard") && !cleanSlug.includes("pad") && !cleanSlug.includes("insert") && !cleanSlug.includes("layer") && !cleanSlug.includes("liner")) {
+        excludeConditions.push({ name: { $not: /\b((hip|knee|elbow|back|shoulder|chest)\s*(protector|armor|armour|insert|pad|pads)|armour\s*insert|armor\s*insert|base\s*layer|liner)\b/i } });
+      } else if ((cleanSlug.includes("communicator") || cleanSlug.includes("intercom")) && !cleanSlug.includes("mount") && !cleanSlug.includes("cable") && !cleanSlug.includes("wire") && !cleanSlug.includes("battery") && !cleanSlug.includes("clamp") && !cleanSlug.includes("pad")) {
+        excludeConditions.push({ name: { $not: /\b(cable|wire|battery|clamp|mount|pad)\b/i } });
+      }
+
+      const regexConditions: any[] = [];
+      const c = cleanSlug;
+      
+      if (c.includes("modular") || c.includes("flip-up")) regexConditions.push({ name: /\b(modular|flip\s*up)\b/i });
+      else if (c.includes("off-road") || c.includes("motocross")) regexConditions.push({ name: /\b(off\s*road|motocross|mx|dirt|x-cross)\b/i });
+      else if (c.includes("full-face")) regexConditions.push({ name: /\b(full\s*face)\b/i });
+      else if (c.includes("open-face") || c.includes("half-face")) regexConditions.push({ name: /\b(open\s*face|half\s*face|jet)\b/i });
+      else if (c.includes("dual-sport") || c.includes("adv")) regexConditions.push({ name: /\b(dual\s*sport|adv|adventure\s*helmet)\b/i });
+      
+      else if (c.includes("visor")) regexConditions.push({ name: /\b(visor|pinlock|shield|lens)\b/i });
+      else if (c.includes("spoiler")) regexConditions.push({ name: /\b(spoiler)\b/i });
+      else if (c.includes("communicator") || c.includes("intercom")) regexConditions.push({ name: /\b(intercom|bluetooth|communicator|sena|cardo|parani|bluarmor)\b/i });
+      
+      else if (c.includes("tail-bag")) regexConditions.push({ name: /\b(tail\s*bag|tailbag|rear\s*bag)\b/i });
+      else if (c.includes("saddle-bag") || c.includes("pannier")) regexConditions.push({ name: /\b(saddle\s*bag|saddlebag|pannier|side\s*box)\b/i });
+      else if (c.includes("tank-bag")) regexConditions.push({ name: /\b(tank\s*bag|tankbag)\b/i });
+      else if (c.includes("backpack")) regexConditions.push({ name: /\b(backpack|rucksack)\b/i });
+      
+      else if (c.includes("riding-shirt")) regexConditions.push({ name: /\b(riding\s*shirt)\b/i });
+      else if (c.includes("mesh-jacket")) regexConditions.push({ name: /\b(mesh.*jacket|jacket.*mesh)\b/i });
+      else if (c.includes("textile-jacket")) regexConditions.push({ name: /\b(textile.*jacket|jacket.*textile)\b/i });
+      else if (c.includes("leather-jacket")) regexConditions.push({ name: /\b(leather.*jacket|jacket.*leather)\b/i });
+      else if (c.includes("jacket")) regexConditions.push({ name: /\b(jacket|jackets)\b/i });
+      
+      else if (c.includes("riding-jean") || c.includes("kevlar")) regexConditions.push({ name: /\b(jeans|denim|kevlar)\b/i });
+      else if (c.includes("textile-pant")) regexConditions.push({ name: /\b(textile.*pant|pant.*textile)\b/i });
+      else if (c.includes("leather-pant")) regexConditions.push({ name: /\b(leather.*pant|pant.*leather)\b/i });
+      else if (c.includes("pant") || c.includes("trouser")) regexConditions.push({ name: /\b(pant|pants|trousers|jeans)\b/i });
+      
+      else if (c.includes("short-glove")) regexConditions.push({ name: /\b(short.*glove|glove.*short)\b/i });
+      else if (c.includes("gauntlet") || c.includes("full-glove")) regexConditions.push({ name: /\b(gauntlet|full.*glove|glove.*full)\b/i });
+      else if (c.includes("glove")) regexConditions.push({ name: /\b(glove|gloves)\b/i });
+      
+      else if (c.includes("racing") || c.includes("sport")) regexConditions.push({ name: /\b(racing|sport|track)\b.*\b(boot|shoe|boots|shoes)\b/i });
+      else if (c.includes("off-road") || c.includes("adventure") || c.includes("adv")) regexConditions.push({ name: /\b(adv.*boot|adventure.*boot|off.*road.*boot|motocross.*boot)\b/i });
+      else if (c.includes("short-biking") || c.includes("short-boot")) regexConditions.push({ name: /\b(short.*boot|boot.*short|sneaker|riding\s*shoe)\b/i });
+      else if (c.includes("riding-sneaker")) regexConditions.push({ name: /\b(sneaker|riding\s*shoe)\b/i });
+      else if (c.includes("shoe") || c.includes("boot")) regexConditions.push({ name: /\b(shoe|shoes|boot|boots)\b/i });
+      
+      else if (c.includes("knee-guard")) regexConditions.push({ name: /\b(knee.*guard|bionic.*knee)\b/i });
+      else if (c.includes("back-protector")) regexConditions.push({ name: /\b(back.*protector|back.*insert)\b/i });
+      else if (c.includes("protector") || c.includes("guard")) regexConditions.push({ name: /\b(protector|guard|bionic|armor)\b/i });
+      else if (c.includes("balaclava")) regexConditions.push({ name: /\b(balaclava|mask)\b/i });
+      else if (c.includes("cleaner") || c.includes("chain-care")) regexConditions.push({ name: /\b(cleaner|spray|lube|brush|wash)\b/i });
+      else if (c.includes("touring-pant")) regexConditions.push({ name: /\b(touring.*pant|pant.*touring)\b/i });
+      else if (c.includes("women")) regexConditions.push({ name: /\b(women|lady|ladies|stella)\b/i });
+      else if (c.includes("top-box")) regexConditions.push({ name: /\b(top.*box|topcase|top.*case)\b/i });
+      else if (c.includes("hydration")) regexConditions.push({ name: /\b(hydration|camelbak|water.*bladder)\b/i });
+      else if (c.includes("auxiliary") || c.includes("light")) regexConditions.push({ name: /\b(auxiliary|light|fog|led|bulb|flasher|maddog)\b/i });
+      else if (c.includes("mount") && c.includes("light")) regexConditions.push({ name: /\b(mount|clamp|bracket)\b.*\b(light|fog)\b/i });
+      else if (c.includes("harness") || c.includes("switch")) regexConditions.push({ name: /\b(harness|switch|relay|wire)\b/i });
+      else if (c.includes("performance") || c.includes("filter")) regexConditions.push({ name: /\b(performance|filter|air.*filter|exhaust)\b/i });
+      else if (c.includes("cover")) regexConditions.push({ name: /\b(cover|bike.*cover)\b/i });
+      else if (c.includes("camera") || c.includes("gopro")) regexConditions.push({ name: /\b(camera|gopro|insta360|action\s*cam)\b/i });
+      else if (c.includes("mount") && c.includes("mobile")) regexConditions.push({ name: /\b(mobile.*mount|phone.*mount|ram.*mount)\b/i });
+
+      baseFilters.$and = baseFilters.$and || [];
+
+      if (regexConditions.length > 0) {
+        baseFilters.$and.push({ $or: [ categoryMatchCondition, ...regexConditions ] });
+      } else {
+        baseFilters.$and.push(categoryMatchCondition);
+      }
+      
+      if (excludeConditions.length > 0) {
+        baseFilters.$and.push(...excludeConditions);
       }
 
       /*
@@ -378,7 +453,11 @@ export class ProductService {
       
       const getDynamicAttrLocal = (obj: any, keywords: string[]) => {
         if (!obj || typeof obj !== 'object') return undefined;
-        const key = Object.keys(obj).find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
+        const key = Object.keys(obj).find(k => {
+          const lowerK = k.toLowerCase();
+          if (lowerK.includes('size_chart') || lowerK.includes('sizechart')) return false;
+          return keywords.some(kw => lowerK.includes(kw));
+        });
         return key ? obj[key] : undefined;
       };
 
@@ -439,7 +518,11 @@ export class ProductService {
       
       const getDynamicAttr = (obj: any, keywords: string[]) => {
         if (!obj || typeof obj !== 'object') return undefined;
-        const key = Object.keys(obj).find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
+        const key = Object.keys(obj).find(k => {
+          const lowerK = k.toLowerCase();
+          if (lowerK.includes('size_chart') || lowerK.includes('sizechart')) return false;
+          return keywords.some(kw => lowerK.includes(kw));
+        });
         return key ? obj[key] : undefined;
       };
 
@@ -604,7 +687,7 @@ export class ProductService {
   }
 
   static async createProduct(data: Partial<IProduct>): Promise<IProduct> {
-    const slug = slugify(data.name || "");
+    const slug = data.slug ? slugify(data.slug) : slugify(data.name || "");
     const productData = { ...data, slug };
     const product = await ProductRepository.create(productData);
     
@@ -616,7 +699,9 @@ export class ProductService {
   }
 
   static async updateProduct(id: string, data: Partial<IProduct>): Promise<IProduct> {
-    if (data.name) {
+    if (data.slug) {
+      data.slug = slugify(data.slug);
+    } else if (data.name) {
       data.slug = slugify(data.name);
     }
     const product = await ProductRepository.update(id, data);
@@ -700,5 +785,98 @@ export class ProductService {
         }
       });
     });
+  }
+
+  static async exportCsv(): Promise<string> {
+    const { ProductModel } = await import("./product.model");
+    // Fetch all products
+    const products = await ProductModel.find({}).lean().exec();
+
+    // Map to Magento CSV Headers
+    const baseHeaders = [
+      "sku", "name", "description", "short_description", "url_key", "price", "special_price",
+      "special_from_date", "special_to_date", "weight", "is_in_stock", "qty", "product_type",
+      "categories", "brand", "tax_class_name", "status", "visibility", "base_image", "additional_images",
+      "configurable_variations", "related_skus", "upsell_skus", "crosssell_skus", "size_chart", "gender",
+      "country_of_manufacture", "attribute_set_code", "configurable_variation_labels", "free_shipping",
+      "backorders", "meta_title", "meta_keyword", "meta_description"
+    ];
+
+    // Collect all unique dynamic attribute keys across all products
+    const dynamicAttrKeys = new Set<string>();
+    products.forEach((p: any) => {
+      if (p.attributes && typeof p.attributes === 'object') {
+        Object.keys(p.attributes).forEach(k => {
+          if (!baseHeaders.includes(k) && k !== 'size_chart') {
+            dynamicAttrKeys.add(k);
+          }
+        });
+      }
+    });
+
+    const dynamicHeaders = Array.from(dynamicAttrKeys);
+    const allHeaders = [...baseHeaders, ...dynamicHeaders];
+
+    const escapeCsv = (str: any) => {
+      if (str === null || str === undefined) return "";
+      const s = String(str);
+      if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    };
+
+    const rows = products.map((p: any) => {
+      // De-format image URL back to Magento short form or keep full URL
+      const baseImg = p.images?.[0]?.url || "";
+      const additionalImgs = p.images?.slice(1).map((i: any) => i.url).join(",") || "";
+      const configurableVars = p.variants?.map((v: any) => {
+        const attrs = Object.entries(v.attributes || {}).map(([k, val]) => `${k}=${val}`).join(",");
+        return `sku=${v.sku},price=${v.price},qty=${v.stock}${attrs ? ',' + attrs : ''}`;
+      }).join("|") || p.configurableVariations || "";
+
+      const baseRow = [
+        p.sku,
+        p.name,
+        p.description,
+        p.shortDescription,
+        p.slug,
+        p.basePrice,
+        p.specialPrice || "",
+        p.specialPriceFromDate ? new Date(p.specialPriceFromDate).toISOString().split('T')[0] : "",
+        p.specialPriceToDate ? new Date(p.specialPriceToDate).toISOString().split('T')[0] : "",
+        p.weight || "",
+        p.stockStatus,
+        p.qty,
+        p.productType,
+        p.magentoCategories || p.categorySlugs?.join(","),
+        p.brand || "",
+        p.taxClassName || "",
+        p.status === "published" ? "1" : "0",
+        p.visibility || "",
+        baseImg,
+        additionalImgs,
+        configurableVars,
+        p.relatedSkus?.join(",") || "",
+        p.upsellSkus?.join(",") || "",
+        p.crosssellSkus?.join(",") || "",
+        p.sizeChart || (p.attributes && p.attributes.size_chart) || "",
+        p.gender || "",
+        p.countryOfManufacture || "",
+        p.attributeSetCode || "",
+        p.configurableVariationLabels || "",
+        p.isFreeShipping ? "1" : "0",
+        p.allowBackorders ? "1" : "0",
+        p.metaTitle || "",
+        p.metaKeywords || "",
+        p.metaDescription || ""
+      ];
+
+      const dynamicRow = dynamicHeaders.map(k => (p.attributes && p.attributes[k]) || "");
+
+      return [...baseRow, ...dynamicRow].map(escapeCsv).join(",");
+    });
+
+    return [allHeaders.join(","), ...rows].join("\n");
   }
 }

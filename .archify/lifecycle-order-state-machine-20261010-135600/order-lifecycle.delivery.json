@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "3fb76d5d-89bb-4c44-ab52-536d051d7292",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\lifecycle-order-state-machine-20261010-135600\\candidate.json",
+  "output": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\lifecycle-order-state-machine-20261010-135600\\order-lifecycle.html",
+  "specification": {
+    "sha256": "55c25b0df0f5e71ada8aad0927d8a63f325d508a553001d452cabd445176a710",
+    "bytes": 4124
+  },
+  "artifact": {
+    "sha256": "e1b4276ca83c4e2a976123f89e1a271bda2de2e2408cc8e1bea638ff5ed57797",
+    "bytes": 762334
+  }
+}

@@ -8,6 +8,8 @@ const brandSchema = new Schema<IBrand>(
     logo: { type: String },
     description: { type: String },
     isActive: { type: Boolean, default: true },
+    showInMenu: { type: Boolean, default: true },
+    menuGroup: { type: String, default: "Featured Brands" },
   },
   { timestamps: true }
 );

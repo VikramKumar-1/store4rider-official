@@ -229,5 +229,23 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
       }
     ]
   },
-  { id: "guides", label: "Guides", href: "/guides", hasDropdown: false },
+  {
+    id: "guides",
+    label: "Guides",
+    href: "/guides",
+    hasDropdown: true,
+    megaMenuItems: [
+      {
+        group: "",
+        items: [
+          { label: "Choosing correct Riding Gear", href: "/guides/category/choosing-correct-riding-gear" },
+          { label: "Riding Gear care", href: "/guides/category/riding-gear-care" },
+          { label: "Expert Tips", href: "/guides/category/expert-tips" },
+          { label: "Bike Maintenance & Technical Resources", href: "/guides/category/bike-maintenance-technical-resources" },
+          { label: "Touring & Trip Prep", href: "/guides/category/motorcycle-touring-trip-prep" },
+          { label: "Motorcycle Buying & Ownership Advice", href: "/guides/category/motorcycle-buying-ownership-advice" },
+        ],
+      },
+    ],
+  },
 ];

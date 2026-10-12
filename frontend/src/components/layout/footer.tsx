@@ -66,6 +66,7 @@ const Footer = () => {
               SUPPORT
             </h4>
             <ul className="space-y-2.5 text-xs font-medium text-slate-400">
+              <li><Link href="/guides" className="hover:text-white transition-colors">Motorcycle Guides & Advice</Link></li>
               <li><Link href="/shipping" className="hover:text-white transition-colors">Shipping Policy</Link></li>
               <li><Link href="/warranty" className="hover:text-white transition-colors">Warranty</Link></li>
               <li><Link href="/returns" className="hover:text-white transition-colors">Refund / Exchange Policy</Link></li>
@@ -132,16 +133,16 @@ const Footer = () => {
 
               {/* Social Media Icons */}
               <div className="pt-2 flex items-center gap-3">
-                <a href="https://twitter.com" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 hover:bg-brand hover:border-brand text-slate-300 hover:text-white flex items-center justify-center transition-colors">
+                <a href="https://twitter.com/store4riders" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 hover:bg-brand hover:border-brand text-slate-300 hover:text-white flex items-center justify-center transition-colors">
                   <Twitter size={14} />
                 </a>
-                <a href="https://facebook.com" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 hover:bg-brand hover:border-brand text-slate-300 hover:text-white flex items-center justify-center transition-colors">
+                <a href="https://www.facebook.com/store4riders/" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 hover:bg-brand hover:border-brand text-slate-300 hover:text-white flex items-center justify-center transition-colors">
                   <Facebook size={14} />
                 </a>
-                <a href="https://instagram.com" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 hover:bg-brand hover:border-brand text-slate-300 hover:text-white flex items-center justify-center transition-colors">
+                <a href="https://www.instagram.com/store4riders/" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 hover:bg-brand hover:border-brand text-slate-300 hover:text-white flex items-center justify-center transition-colors">
                   <Instagram size={14} />
                 </a>
-                <a href="https://youtube.com" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 hover:bg-brand hover:border-brand text-slate-300 hover:text-white flex items-center justify-center transition-colors">
+                <a href="https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 hover:bg-brand hover:border-brand text-slate-300 hover:text-white flex items-center justify-center transition-colors">
                   <Youtube size={14} />
                 </a>
               </div>

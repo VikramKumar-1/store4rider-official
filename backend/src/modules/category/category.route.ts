@@ -16,6 +16,17 @@ export async function categoryRouter(req: NextRequest, routePath: string[]): Pro
     return await CategoryController.getTree(req);
   }
 
+  if ((method === "POST" || method === "GET") && pathLen === 1 && routePath[0] === "revalidate") {
+    const { CategoryService } = await import("./category.service");
+    await CategoryService.invalidateCache();
+    const { ApiResponse } = await import("../../core/response/ApiResponse");
+    return ApiResponse.success(null, "Category cache invalidated successfully");
+  }
+
+  if (method === "GET" && pathLen === 1) {
+    return await CategoryController.getBySlug(req, routePath[0]);
+  }
+
   if (method === "POST" && pathLen === 0) {
     const userId = extractUserFromAuth(req);
     await checkAdmin(userId, UserService.getRole);

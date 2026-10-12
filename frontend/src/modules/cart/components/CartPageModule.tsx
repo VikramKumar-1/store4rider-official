@@ -212,7 +212,7 @@ export const CartPageModule = () => {
                       <div className="flex items-center gap-4 md:gap-6 flex-1">
                         {/* Product Thumbnail */}
                         <Link
-                          href={product.slug ? `/products/${product.slug}` : "/products"}
+                          href={product.slug ? `/${product.slug}` : "/products"}
                           className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-neutral-100 rounded-sm overflow-hidden shrink-0 border border-neutral-200"
                         >
                           <Image
@@ -227,7 +227,7 @@ export const CartPageModule = () => {
                         {/* Product Details */}
                         <div className="flex flex-col gap-1.5 flex-1 min-w-0">
                           <Link
-                            href={product.slug ? `/products/${product.slug}` : "/products"}
+                            href={product.slug ? `/${product.slug}` : "/products"}
                             className="font-sans font-bold text-sm sm:text-base text-neutral-900 uppercase hover:text-banner transition-colors line-clamp-2"
                           >
                             {name}

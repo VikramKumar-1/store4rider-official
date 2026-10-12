@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Store4Riders Enterprise System Architecture",
+    "subtitle": "Next.js 16 Frontend, DDD API Server, Redis Cache, MongoDB Atlas, Meilisearch & AWS Infrastructure",
+    "output": ".archify/architecture-store4riders-20261010-135600/store4riders-architecture.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "users",
+      "type": "external",
+      "label": "Shoppers",
+      "sublabel": "Browser & Mobile",
+      "pos": [40, 260],
+      "size": [120, 60]
+    },
+    {
+      "id": "frontend",
+      "type": "frontend",
+      "label": "Next.js 16 UI",
+      "sublabel": "App Router (16.3) :3000",
+      "tag": "SSR / SSG",
+      "pos": [240, 260],
+      "size": [140, 60]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "REST API Server",
+      "sublabel": "DDD Layered :4000",
+      "tag": "Business Logic",
+      "pos": [480, 260],
+      "size": [150, 60]
+    },
+    {
+      "id": "mongodb",
+      "type": "database",
+      "label": "MongoDB Atlas",
+      "sublabel": "Mongoose Models",
+      "tag": "Source of Truth",
+      "pos": [730, 260],
+      "size": [140, 60]
+    },
+    {
+      "id": "s3",
+      "type": "cloud",
+      "label": "AWS S3",
+      "sublabel": "Product Media",
+      "tag": "ap-south-2",
+      "pos": [240, 100],
+      "size": [140, 60]
+    },
+    {
+      "id": "redis",
+      "type": "database",
+      "label": "Redis Cache",
+      "sublabel": "ioredis Token/Data",
+      "tag": ":6379",
+      "pos": [485, 100],
+      "size": [140, 60]
+    },
+    {
+      "id": "meili",
+      "type": "database",
+      "label": "Meilisearch",
+      "sublabel": "Instant Search",
+      "tag": "Catalog Index",
+      "pos": [730, 100],
+      "size": [140, 60]
+    },
+    {
+      "id": "payment",
+      "type": "security",
+      "label": "Payment Gateways",
+      "sublabel": "PayU / CCavenue",
+      "tag": "Signatures",
+      "pos": [240, 420],
+      "size": [140, 60]
+    },
+    {
+      "id": "bullmq",
+      "type": "messagebus",
+      "label": "BullMQ Queue",
+      "sublabel": "Redis Async Jobs",
+      "tag": "Queue Engine",
+      "pos": [490, 420],
+      "size": [130, 60]
+    },
+    {
+      "id": "ses",
+      "type": "cloud",
+      "label": "AWS SES",
+      "sublabel": "Email Dispatcher",
+      "tag": "Transactional",
+      "pos": [730, 420],
+      "size": [140, 60]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "AWS Region: ap-south-2 (Hyderabad)",
+      "wraps": ["s3", "ses"]
+    },
+    {
+      "kind": "security-group",
+      "label": "Backend Core Cluster",
+      "wraps": ["api", "redis", "bullmq"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-users-ui",
+      "from": "users",
+      "to": "frontend",
+      "label": "HTTPS :3000",
+      "variant": "emphasis"
+    },
+    {
+      "id": "conn-ui-s3",
+      "from": "frontend",
+      "to": "s3",
+      "label": "Next/Image WebP",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "conn-ui-api",
+      "from": "frontend",
+      "to": "api",
+      "label": "Axios REST",
+      "variant": "emphasis"
+    },
+    {
+      "id": "conn-api-redis",
+      "from": "api",
+      "to": "redis",
+      "label": "Read/Write Cache",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "conn-api-meili",
+      "from": "api",
+      "to": "meili",
+      "label": "Sync & Search",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "conn-api-mongo",
+      "from": "api",
+      "to": "mongodb",
+      "label": ".lean() Query",
+      "variant": "emphasis"
+    },
+    {
+      "id": "conn-api-payment",
+      "from": "api",
+      "to": "payment",
+      "label": "Verify Webhook",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "conn-api-bullmq",
+      "from": "api",
+      "to": "bullmq",
+      "label": "Enqueue Job",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "conn-bullmq-ses",
+      "from": "bullmq",
+      "to": "ses",
+      "label": "Deliver Mail",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Frontend & Media Layer",
+      "items": [
+        "Next.js 16 (v16.3.5) App Router on Port 3000 handles SSR, React 19 features, and Client state",
+        "AWS S3 in ap-south-2 hosts high-res riding gear product images optimized via Next/Image"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Backend Architecture (DDD)",
+      "items": [
+        "Dedicated REST API server on Port 4000 strictly following Domain-Driven Design",
+        "Layered hierarchy: Route ➔ Controller ➔ Zod Validator ➔ Service ➔ Repository ➔ Model",
+        "Frontend never performs business logic; all price calculations live in the Service layer"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Caching, Data & Async Work",
+      "items": [
+        "Redis provides sub-2ms cache for hot products and immediate JWT token blacklisting",
+        "MongoDB Atlas serves as authoritative source of truth with lean read queries",
+        "BullMQ and AWS SES manage background order confirmations and notifications"
+      ]
+    }
+  ]
+}

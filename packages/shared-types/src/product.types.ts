@@ -1,6 +1,6 @@
 export interface IFaq { question: string; answer: string; }
 export interface IProductImage { id: string; url: string; altText?: string; }
-export interface IProductVariant { id: string; sku: string; price: number; stock: number; attributes: Record<string, string>; imageUrl?: string; }
+export interface IProductVariant { id: string; sku: string; price: number; specialPrice?: number; stock: number; attributes: Record<string, string>; imageUrl?: string; weight?: number; status?: "enabled" | "disabled"; visibility?: string; images?: IProductImage[]; }
 export interface IProduct {
   _id: string;
   name: string;
@@ -40,6 +40,12 @@ export interface IProduct {
   qty?: number;
   sizeChart?: string;
   size_chart?: string;
+  mapPrice?: number;
+  msrpPrice?: number;
+  outOfStockQty?: number;
+  minCartQty?: number;
+  maxCartQty?: number;
+  notifyOnStockBelow?: number;
   isFreeShipping?: boolean;
   configurableVariations?: string;
   status?: "draft" | "published" | "archived";

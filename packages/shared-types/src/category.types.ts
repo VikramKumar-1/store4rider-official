@@ -7,12 +7,19 @@ export interface ICategory {
   faqs?: IFaq[];
   parentId?: string;
   description?: string;
+  image?: string;
   bannerImage?: string;
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;
   videoUrl?: string;
   filterConfig?: ICategoryFilterConfig[];
+  includeInMenu?: boolean;
+  menuGroup?: string;
+  heroCategoryIds?: string[];
+  heroCategories?: any[];
+  badge?: string;
+  badgeColor?: string;
 }
 
 export interface ICategoryFilterConfig {

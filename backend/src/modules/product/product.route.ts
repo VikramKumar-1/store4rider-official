@@ -21,6 +21,12 @@ export async function productRouter(req: NextRequest, routePath: string[]): Prom
     return await ProductController.getAggregations(req);
   }
 
+  if (method === "GET" && pathLen === 1 && routePath[0] === "export") {
+    const userId = extractUserFromAuth(req);
+    await checkAdmin(userId, UserService.getRole);
+    return await ProductController.export(req);
+  }
+
   if (method === "POST" && pathLen === 0) {
     const userId = extractUserFromAuth(req);
     // Mock role fetch for now

@@ -230,7 +230,7 @@ const mapToKitProduct = (p: IBackendProduct): KitProduct => {
     category: catName.toUpperCase(),
     priceFormatted: price > 0 ? formatINR(price) : "Contact for Price",
     imageUrl: p.images?.[0]?.url || "/no-image.svg",
-    productUrl: `/products/${p.slug}`,
+    productUrl: `/${p.slug}`,
   };
 };
 
@@ -662,9 +662,19 @@ const mapProductToPDP = (
   };
 };
 
-export const ProductDetailPageModule = () => {
+interface ProductDetailPageModuleProps {
+  slug?: string;
+}
+
+export const ProductDetailPageModule = ({ slug: propSlug }: ProductDetailPageModuleProps = {}) => {
   const params = useParams();
-  const slug = (params?.slug as string) || "";
+  const rawCatSlug = params?.categorySlug;
+  const lastCatSlug = Array.isArray(rawCatSlug)
+    ? rawCatSlug[rawCatSlug.length - 1]
+    : typeof rawCatSlug === "string"
+    ? rawCatSlug
+    : "";
+  const slug = propSlug || (params?.slug as string) || lastCatSlug || "";
 
   const { data: product, isLoading, error } = useProductBySlug(slug);
 
@@ -716,7 +726,7 @@ export const ProductDetailPageModule = () => {
         priceFormatted: finalPrice > 0 ? formatINR(finalPrice) : "Contact for Price",
         imageUrl: product.images?.[0]?.url || "/no-image.svg",
         rating: 4.95,
-        productUrl: `/products/${product.slug}`,
+        productUrl: `/${product.slug}`,
       });
     }
   }, [product, addRecentView]);

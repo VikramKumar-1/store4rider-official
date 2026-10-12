@@ -1,7 +1,28 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ProductsPageModule } from "@/modules/catalog/components/ProductsPageModule";
+import { ProductDetailPageModule } from "@/modules/product-detail/components/ProductDetailPageModule";
 import ProductsLoading from "../products/loading";
+
+const rawApiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+const API_BASE = rawApiBase.includes("/v1")
+  ? rawApiBase
+  : rawApiBase.endsWith("/api")
+  ? `${rawApiBase}/v1`
+  : `${rawApiBase}/api/v1`;
+
+async function getProduct(slug: string) {
+  try {
+    const res = await fetch(`${API_BASE}/products/${slug}`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.data || null;
+  } catch {
+    return null;
+  }
+}
 
 interface CategoryPageProps {
   params: Promise<{ categorySlug: string[] }>;
@@ -13,7 +34,63 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
   const resolvedSearchParams = await searchParams;
   
   const slugArray = resolvedParams.categorySlug;
-  const category = slugArray[slugArray.length - 1]; // Use the deepest slug
+  const candidateSlug = slugArray[slugArray.length - 1]; // Use deepest segment
+
+  // 1. Check if this slug resolves to a Product (Root-level Product URL)
+  if (candidateSlug) {
+    const product = await getProduct(candidateSlug);
+    if (product) {
+      const title = product.metaTitle?.trim() || `${product.name} | Store4Riders`;
+      const cleanDescription =
+        product.metaDescription?.trim() ||
+        product.shortDescription?.trim() ||
+        `Buy ${product.name} at Store4Riders. Certified motorcycle riding gear with best prices & express delivery.`;
+      const keywords = product.metaKeywords
+        ? product.metaKeywords
+            .split(",")
+            .map((k: string) => k.trim())
+            .filter(Boolean)
+        : ["riding gear", "motorcycle", "store4riders", product.name];
+      const imageUrl = product.images?.[0]?.url;
+      const canonicalPath = `/${candidateSlug}`;
+
+      return {
+        title,
+        description: cleanDescription,
+        keywords,
+        alternates: {
+          canonical: canonicalPath,
+        },
+        robots: {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-video-preview": -1,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+          },
+        },
+        openGraph: {
+          title,
+          description: cleanDescription,
+          url: canonicalPath,
+          type: "website",
+          siteName: "Store4Riders",
+          images: imageUrl ? [{ url: imageUrl, alt: product.name }] : [],
+        },
+        twitter: {
+          card: "summary_large_image",
+          title,
+          description: cleanDescription,
+          images: imageUrl ? [imageUrl] : [],
+        },
+      };
+    }
+  }
+
+  const category = candidateSlug;
   const { brand, search } = resolvedSearchParams;
 
   if (category) {
@@ -25,7 +102,7 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
         const data = await res.json();
         const findCategory = (nodes: any[]): any => {
           for (const n of nodes) {
-            if (n.slug === category) return n;
+            if (n.slug === category || n.slug.replace(/s$/, '') === category.replace(/s$/, '')) return n;
             if (n.children) {
               const found = findCategory(n.children);
               if (found) return found;
@@ -33,12 +110,43 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
           }
           return null;
         };
-        const catNode = findCategory(data?.data || []);
+        let catNode = findCategory(data?.data || []);
+        if (!catNode) {
+          const singleUrl = baseUrl.includes('/v1') ? `${baseUrl}/categories/${category}` : `${baseUrl}/v1/categories/${category}`;
+          const singleRes = await fetch(singleUrl, { next: { revalidate: 60 } });
+          if (singleRes.ok) {
+            const singleData = await singleRes.json();
+            catNode = singleData?.data || null;
+          }
+        }
         if (catNode) {
+          const title = catNode.metaTitle || `${catNode.name} - Motorcycle Gear | Store4Riders`;
+          const description = catNode.metaDescription || `Explore the best collection of ${catNode.name} at Store4Riders. Certified gear, best prices & express delivery across India.`;
+          const canonicalPath = `/${slugArray.join('/')}`;
+
           return {
-            title: catNode.metaTitle || `${catNode.name} - Motorcycle Gear | Store4Riders`,
-            description: catNode.metaDescription || `Explore the best collection of ${catNode.name} at Store4Riders.`,
-            keywords: catNode.metaKeywords ? catNode.metaKeywords.split(',') : [],
+            title,
+            description,
+            keywords: catNode.metaKeywords ? catNode.metaKeywords.split(',').map((k: string) => k.trim()) : [],
+            alternates: {
+              canonical: canonicalPath,
+            },
+            openGraph: {
+              title,
+              description,
+              url: canonicalPath,
+              type: "website",
+              siteName: "Store4Riders",
+            },
+            twitter: {
+              card: "summary_large_image",
+              title,
+              description,
+            },
+            robots: {
+              index: true,
+              follow: true,
+            },
           };
         }
       }
@@ -46,23 +154,95 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
       // Fallback
     }
     const formatted = category.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    const fallbackTitle = `${formatted} - Motorcycle Gear | Store4Riders`;
+    const fallbackDesc = `Explore the best collection of ${formatted} at Store4Riders. High quality, certified motorcycle safety gear with fast shipping across India.`;
+    const canonicalPath = `/${slugArray.join('/')}`;
+
     return {
-      title: `${formatted} - Motorcycle Gear | Store4Riders`,
-      description: `Explore the best collection of ${formatted} at Store4Riders. High quality, certified motorcycle safety gear with fast shipping across India.`,
+      title: fallbackTitle,
+      description: fallbackDesc,
+      alternates: {
+        canonical: canonicalPath,
+      },
+      openGraph: {
+        title: fallbackTitle,
+        description: fallbackDesc,
+        url: canonicalPath,
+        type: "website",
+        siteName: "Store4Riders",
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: fallbackTitle,
+        description: fallbackDesc,
+      },
+      robots: {
+        index: true,
+        follow: true,
+      },
     };
   }
 
   return {
     title: "All Products - Motorcycle Riding Gear | Store4Riders",
     description: "Browse our extensive catalog of certified motorcycle riding helmets, jackets, boots, gloves and luggage.",
+    alternates: {
+      canonical: "/products",
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
   };
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const resolvedParams = await params;
   const slugArray = resolvedParams.categorySlug;
-  const category = slugArray[slugArray.length - 1];
-  
+  const candidateSlug = slugArray[slugArray.length - 1];
+
+  // 1. If candidateSlug resolves to a Product, render the Product Detail Page directly!
+  if (candidateSlug) {
+    const product = await getProduct(candidateSlug);
+    if (product) {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
+      const productSchema = {
+        "@context": "https://schema.org/",
+        "@type": "Product",
+        name: product.name,
+        image: product.images?.map((img: any) => img.url) || [],
+        description: product.metaDescription || product.shortDescription || product.name,
+        sku: product.sku || product._id,
+        brand: {
+          "@type": "Brand",
+          name: product.brand || "Store4Riders",
+        },
+        offers: {
+          "@type": "Offer",
+          url: `${siteUrl}/${candidateSlug}`,
+          priceCurrency: "INR",
+          price: product.specialPrice || product.basePrice || 0,
+          availability:
+            product.stockStatus === 1 || product.stockStatus === true || (product.stockQuantity && product.stockQuantity > 0)
+              ? "https://schema.org/InStock"
+              : "https://schema.org/OutOfStock",
+          itemCondition: "https://schema.org/NewCondition",
+        },
+      };
+
+      return (
+        <>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+          />
+          <ProductDetailPageModule slug={candidateSlug} />
+        </>
+      );
+    }
+  }
+
+  const category = candidateSlug;
   let initialCategoryNode = undefined;
   
   if (category) {
@@ -74,7 +254,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         const data = await res.json();
         const findCategory = (nodes: any[]): any => {
           for (const n of nodes) {
-            if (n.slug === category) return n;
+            if (n.slug === category || n.slug.replace(/s$/, '') === category.replace(/s$/, '')) return n;
             if (n.children) {
               const found = findCategory(n.children);
               if (found) return found;
@@ -83,6 +263,14 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           return null;
         };
         initialCategoryNode = findCategory(data?.data || []);
+      }
+      if (!initialCategoryNode) {
+        const singleUrl = baseUrl.includes('/v1') ? `${baseUrl}/categories/${category}` : `${baseUrl}/v1/categories/${category}`;
+        const singleRes = await fetch(singleUrl, { next: { revalidate: 60 } });
+        if (singleRes.ok) {
+          const singleData = await singleRes.json();
+          initialCategoryNode = singleData?.data || undefined;
+        }
       }
     } catch (e) {
       // Ignore

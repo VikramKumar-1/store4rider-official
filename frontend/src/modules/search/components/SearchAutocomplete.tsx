@@ -209,7 +209,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                     {products.slice(0, 5).map((product: any) => (
                       <Link
                         key={product.id}
-                        href={`/products/${product.slug}`}
+                        href={`/${product.slug}`}
                         onClick={handleProductClick}
                         className={`flex items-center gap-3 p-2 rounded-lg border transition-all group ${
                           isLight 

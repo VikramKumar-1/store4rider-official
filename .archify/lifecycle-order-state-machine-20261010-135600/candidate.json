@@ -1,0 +1,142 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Store4Riders - E-Commerce Order Lifecycle",
+    "subtitle": "Order State Machine: Payment Escrow, Inventory Lock, Fulfillment, Delivery, Returns & Refunds",
+    "output": ".archify/lifecycle-order-state-machine-20261010-135600/order-lifecycle.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "main", "label": "Fulfillment Rail" },
+    { "id": "recovery", "label": "Payment Exception" },
+    { "id": "returns", "label": "Return Evaluation" },
+    { "id": "terminal", "label": "Terminal Exits" }
+  ],
+  "states": [
+    {
+      "id": "pending",
+      "type": "start",
+      "label": "Order Pending",
+      "sublabel": "Cart checked out",
+      "lane": "main",
+      "col": 0,
+      "step": "01",
+      "tag": "initial"
+    },
+    {
+      "id": "payment_processing",
+      "type": "active",
+      "label": "Payment Processing",
+      "sublabel": "PayU / CCavenue",
+      "lane": "main",
+      "col": 1,
+      "step": "02",
+      "tag": "escrow"
+    },
+    {
+      "id": "confirmed",
+      "type": "active",
+      "label": "Order Confirmed",
+      "sublabel": "Stock locked in DB",
+      "lane": "main",
+      "col": 2,
+      "step": "03",
+      "tag": "paid"
+    },
+    {
+      "id": "shipped",
+      "type": "active",
+      "label": "Dispatched",
+      "sublabel": "Tracking assigned",
+      "lane": "main",
+      "col": 3,
+      "step": "04",
+      "tag": "transit"
+    },
+    {
+      "id": "delivered",
+      "type": "success",
+      "label": "Delivered",
+      "sublabel": "Customer received",
+      "lane": "main",
+      "col": 4,
+      "step": "05",
+      "tag": "success"
+    },
+    {
+      "id": "payment_failed",
+      "type": "decision",
+      "label": "Payment Failed",
+      "sublabel": "UPI / Bank Decline",
+      "lane": "recovery",
+      "col": 1,
+      "tag": "retryable"
+    },
+    {
+      "id": "return_requested",
+      "type": "waiting",
+      "label": "Return Requested",
+      "sublabel": "Within 7-day window",
+      "lane": "returns",
+      "col": 4,
+      "tag": "inspection"
+    },
+    {
+      "id": "cancelled",
+      "type": "failure",
+      "label": "Cancelled",
+      "sublabel": "Inventory restored",
+      "lane": "terminal",
+      "col": 1,
+      "tag": "terminal"
+    },
+    {
+      "id": "refunded",
+      "type": "neutral",
+      "label": "Refunded",
+      "sublabel": "Credited to source",
+      "lane": "terminal",
+      "col": 4,
+      "tag": "terminal"
+    }
+  ],
+  "transitions": [
+    { "from": "pending", "to": "payment_processing" },
+    { "from": "payment_processing", "to": "confirmed", "label": "webhook 200" },
+    { "from": "confirmed", "to": "shipped" },
+    { "from": "shipped", "to": "delivered" },
+    { "from": "payment_processing", "to": "payment_failed", "variant": "security" },
+    { "from": "payment_failed", "to": "payment_processing", "variant": "dashed", "label": "retry" },
+    { "from": "payment_failed", "to": "cancelled", "variant": "security" },
+    { "from": "delivered", "to": "return_requested", "variant": "dashed" },
+    { "from": "return_requested", "to": "refunded", "variant": "emphasis" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Happy Fulfillment Rail",
+      "items": [
+        "Orders transition through 5 strictly enforced linear phases",
+        "Stock status is only deducted upon successful payment webhook signature verification",
+        "Final delivery event is locked and cannot be retroactively cancelled"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Payment Resilience & Retries",
+      "items": [
+        "A declined payment does not instantly kill the order; users can retry within a TTL window",
+        "Expired retries move cleanly to terminal Cancelled state and release inventory locks"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Terminal States & Reverse Logistics",
+      "items": [
+        "Returns undergo warehouse QC inspection before triggering the payment refund API",
+        "All refund events are idempotent and journaled in MongoDB audit logs"
+      ]
+    }
+  ]
+}

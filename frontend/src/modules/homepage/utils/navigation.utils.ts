@@ -5,54 +5,55 @@ import { NavItem } from "../types/homepage.types";
 export const generateNavItems = (categories: ICategoryTree[], brands: IBrand[]): NavItem[] => {
   const navItems: NavItem[] = [];
 
-  // Map all root categories from the database directly
-  const sortedCategories = [...(categories || [])];
+  // Map all root categories from the database directly (respecting includeInMenu)
+  const sortedCategories = (categories || []).filter((c: any) => c.includeInMenu !== false);
 
   sortedCategories.forEach((category) => {
-    // Only top level categories
+    // Only visible child categories
+    const visibleChildren = (category.children || []).filter((c: any) => c.includeInMenu !== false);
+
     const navItem: NavItem = {
       id: category.slug,
       label: category.name,
       href: `/${category.slug}`,
-      hasDropdown: category.children && category.children.length > 0,
+      hasDropdown: visibleChildren.length > 0,
     };
 
-    if (category.children && category.children.length > 0) {
+    if (visibleChildren.length > 0) {
       // Check if any child has grandchildren (3-level hierarchy)
-      const hasGrandchildren = category.children.some(c => c.children && c.children.length > 0);
+      const hasGrandchildren = visibleChildren.some((c: any) => c.children && c.children.some((gc: any) => gc.includeInMenu !== false));
 
       if (hasGrandchildren) {
         // 3-level hierarchy: map children to groups, grandchildren to items
-        navItem.megaMenuItems = category.children.map((child) => ({
-          group: child.name,
-          groupHref: `/${category.slug}/${child.slug}`,
-          items: [
-            { label: `All`, href: `/${category.slug}/${child.slug}` },
-            ...(child.children 
-              ? child.children.map((grandchild) => ({
-                  label: grandchild.name,
-                  href: `/${category.slug}/${child.slug}/${grandchild.slug}`,
-                }))
-              : [])
-          ],
-        }));
+        navItem.megaMenuItems = visibleChildren.map((child: any) => {
+          const visibleGrandchildren = (child.children || []).filter((gc: any) => gc.includeInMenu !== false);
+          return {
+            group: child.name,
+            groupHref: `/${category.slug}/${child.slug}`,
+            items: [
+              { label: `All ${child.name}`, href: `/${category.slug}/${child.slug}` },
+              ...visibleGrandchildren.map((grandchild: any) => ({
+                label: grandchild.name,
+                href: `/${category.slug}/${child.slug}/${grandchild.slug}`,
+              })),
+            ],
+          };
+        });
       } else {
-        // 2-level hierarchy: chunk children into columns (e.g., 6 per column)
-        const CHUNK_SIZE = 6;
-        const columns = [];
-        for (let i = 0; i < category.children.length; i += CHUNK_SIZE) {
-          columns.push(category.children.slice(i, i + CHUNK_SIZE));
-        }
+        // Group by menuGroup if configured by admin, otherwise by columns
+        const groupedMap: Record<string, any[]> = {};
+        visibleChildren.forEach((child: any) => {
+          const grp = child.menuGroup?.trim() || "Categories";
+          if (!groupedMap[grp]) groupedMap[grp] = [];
+          groupedMap[grp].push(child);
+        });
 
-        navItem.megaMenuItems = columns.map((col, idx) => ({
-          group: idx === 0 ? "Categories" : "More Categories",
-          items: [
-            ...(idx === 0 ? [{ label: `All`, href: `/${category.slug}` }] : []),
-            ...col.map((child) => ({
-              label: child.name,
-              href: `/${category.slug}/${child.slug}`,
-            }))
-          ],
+        navItem.megaMenuItems = Object.entries(groupedMap).map(([groupName, items]) => ({
+          group: groupName,
+          items: items.map((child: any) => ({
+            label: child.name,
+            href: `/${category.slug}/${child.slug}`,
+          })),
         }));
       }
     }
@@ -60,48 +61,33 @@ export const generateNavItems = (categories: ICategoryTree[], brands: IBrand[]):
     navItems.push(navItem);
   });
 
-  // Inject Custom Hardcoded Categories like "Spares"
-  navItems.push({
-    id: "spares",
-    label: "Spares",
-    href: "/spares",
-    hasDropdown: true,
-    megaMenuItems: [
-      {
-        group: "Spares & Parts",
-        groupHref: "/spares",
-        items: [
-          { label: "All", href: "/spares" },
-          { label: "Chain Sprocket Kits", href: "/spares/chain-sprocket-kits" },
-          { label: "Iridium Spark Plugs", href: "/spares/iridium-spark-plugs" },
-          { label: "Performance Air Filters", href: "/spares/performance-air-filters" },
-          { label: "Brake Pads", href: "/spares/brake-pads" },
-        ],
-      },
-    ],
-  });
-
   // Shop By Brand
-  if (brands && brands.length > 0) {
-    // Basic chunking logic for brands (e.g. 9 per group)
-    const brandGroups = [];
-    for (let i = 0; i < brands.length; i += 9) {
-      brandGroups.push(brands.slice(i, i + 9));
-    }
-    
+  const menuBrands = (brands || []).filter((b) => b.isActive !== false && b.showInMenu !== false);
+  if (menuBrands.length > 0) {
+    const groupedBrands: Record<string, IBrand[]> = {};
+    menuBrands.forEach((b) => {
+      const groupName = b.menuGroup?.trim() || "Featured Brands";
+      if (!groupedBrands[groupName]) {
+        groupedBrands[groupName] = [];
+      }
+      groupedBrands[groupName].push(b);
+    });
+
+    const megaMenuItems = Object.entries(groupedBrands).map(([group, items]) => ({
+      group,
+      items: items.map((b) => ({
+        label: b.name,
+        href: `/products?brand=${b.slug}`,
+        logoUrl: b.logo || (b as any).logoUrl || undefined,
+      })),
+    }));
+
     navItems.push({
       id: "shop-by-brand",
       label: "Shop By Brand",
       href: "/products",
       hasDropdown: true,
-      megaMenuItems: brandGroups.map((group, index) => ({
-        group: `Brands Part ${index + 1}`,
-        items: group.map((b) => ({
-          label: b.name,
-          href: `/products?brand=${b.slug}`,
-          logoUrl: (b as any).logoUrl || undefined,
-        })),
-      })),
+      megaMenuItems,
     });
   }
 

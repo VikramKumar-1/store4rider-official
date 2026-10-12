@@ -14,8 +14,20 @@ import { ApiResponse } from "../../core/response/ApiResponse";
 export class CategoryController {
   
   static async getTree(req: NextRequest) {
+    const refresh = req.nextUrl.searchParams.get("refresh") === "true";
+    if (refresh) {
+      await CategoryService.invalidateCache();
+    }
     const tree = await CategoryService.getCategoryTree();
     return ApiResponse.success(tree, "Category tree fetched successfully");
+  }
+
+  static async getBySlug(req: NextRequest, slug: string) {
+    const category = await CategoryService.getCategoryBySlug(slug);
+    if (!category) {
+      return ApiResponse.error("Category not found", 404);
+    }
+    return ApiResponse.success(category, "Category fetched successfully");
   }
 
   static async create(req: NextRequest) {

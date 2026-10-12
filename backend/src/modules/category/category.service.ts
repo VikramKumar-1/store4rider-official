@@ -2,7 +2,7 @@ import { CategoryRepository } from "./category.repository";
 import { ICategory } from "@store4riders/shared-types";
 import { getCache, setCache, deleteCache } from "../../core/cache/redis";
 
-const CACHE_KEY = "category_tree";
+const CACHE_KEY = "category_tree_v2";
 
 /**
  * @class CategoryService
@@ -49,24 +49,65 @@ export class CategoryService {
     await this.invalidateCache();
   }
 
+  static async getCategoryBySlug(slug: string): Promise<ICategory | null> {
+    let cat = await CategoryRepository.findBySlug(slug);
+    if (!cat && slug.endsWith("s")) {
+      cat = await CategoryRepository.findBySlug(slug.slice(0, -1));
+    } else if (!cat && !slug.endsWith("s")) {
+      cat = await CategoryRepository.findBySlug(`${slug}s`);
+    }
+    return cat;
+  }
+
   static async invalidateCache() {
     await deleteCache(CACHE_KEY);
   }
 
   private static buildTree(categories: any[], parentId?: string, visited = new Set<string>()): any[] {
-    return categories
-      .filter(c => {
-        const pId = c.parentId ? String(c.parentId) : undefined;
-        return pId === parentId;
-      })
-      .map(c => {
-        const id = String(c._id || c.id);
-        if (visited.has(id)) return { ...c, children: [] }; // Prevent circular reference
-        visited.add(id);
-        return {
-          ...c,
-          children: this.buildTree(categories, id, new Set(visited)),
-        };
-      });
+    const idMap = new Map<string, any>();
+    categories.forEach(c => {
+      const id = String(c._id || c.id);
+      idMap.set(id, c);
+      if (c.slug) idMap.set(c.slug, c);
+    });
+
+    const buildChildren = (pId?: string, curVisited = new Set<string>()): any[] => {
+      return categories
+        .filter(c => {
+          const itemPid = c.parentId ? String(c.parentId) : undefined;
+          return itemPid === pId;
+        })
+        .map(c => {
+          const id = String(c._id || c.id);
+          if (curVisited.has(id)) return { ...c, children: [] };
+          curVisited.add(id);
+
+          const children = buildChildren(id, new Set(curVisited));
+
+          // Resolve hero section category cards
+          let heroCategories: any[] = [];
+          if (Array.isArray(c.heroCategoryIds) && c.heroCategoryIds.length > 0) {
+            heroCategories = c.heroCategoryIds
+              .map((targetId: string) => idMap.get(targetId))
+              .filter(Boolean);
+          } else if (children.length > 0) {
+            heroCategories = children;
+          } else if (c.parentId) {
+            // Sibling categories sharing the same parent (e.g. Modular -> Full Face, Open Face)
+            heroCategories = categories.filter(other => 
+              String(other.parentId) === String(c.parentId) && 
+              String(other._id || other.id) !== id
+            );
+          }
+
+          return {
+            ...c,
+            children,
+            heroCategories,
+          };
+        });
+    };
+
+    return buildChildren(parentId, visited);
   }
 }

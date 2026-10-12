@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Store4Riders Multi-Carrier Shipping Engine",
+    "subtitle": "Serviceability Check, Dynamic Rate Engine, BullMQ Async AWB Dispatch, Multi-Provider Factory & Webhook Ingestion",
+    "output": ".archify/architecture-shipping-engine-20261010-141600/shipping-architecture.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "admin_ui",
+      "type": "frontend",
+      "label": "Admin Shipping Portal",
+      "sublabel": "Courier Control Panel",
+      "tag": "Provider Toggles",
+      "pos": [40, 100],
+      "size": [140, 60]
+    },
+    {
+      "id": "checkout_ui",
+      "type": "frontend",
+      "label": "Checkout Experience",
+      "sublabel": "Next.js 16 Client",
+      "tag": "Pincode & COD",
+      "pos": [40, 260],
+      "size": [140, 60]
+    },
+    {
+      "id": "shipping_api",
+      "type": "backend",
+      "label": "Shipping Orchestrator",
+      "sublabel": "shipping.route.ts :4000",
+      "tag": "REST Controller",
+      "pos": [250, 180],
+      "size": [150, 60]
+    },
+    {
+      "id": "mongo_shipping",
+      "type": "database",
+      "label": "MongoDB Shipping Data",
+      "sublabel": "Shipments & Quotes",
+      "tag": "Mongoose Models",
+      "pos": [200, 420],
+      "size": [140, 60]
+    },
+    {
+      "id": "rate_engine",
+      "type": "backend",
+      "label": "Rate & Strategy Engine",
+      "sublabel": "rate.service.ts",
+      "tag": "MD5 Quote Cache",
+      "pos": [490, 100],
+      "size": [150, 60]
+    },
+    {
+      "id": "shipment_queue",
+      "type": "messagebus",
+      "label": "BullMQ Shipping Queue",
+      "sublabel": "queue.service.ts",
+      "tag": "Async AWB Worker",
+      "pos": [490, 260],
+      "size": [150, 60]
+    },
+    {
+      "id": "webhook_parser",
+      "type": "security",
+      "label": "Webhook Normalizer",
+      "sublabel": "WebhookParser.ts",
+      "tag": "Status Ingestion",
+      "pos": [510, 420],
+      "size": [150, 60]
+    },
+    {
+      "id": "provider_factory",
+      "type": "backend",
+      "label": "Provider Factory",
+      "sublabel": "ShippingProviderFactory",
+      "tag": "Carrier Abstraction",
+      "pos": [780, 260],
+      "size": [160, 60]
+    },
+    {
+      "id": "shiprocket",
+      "type": "cloud",
+      "label": "Shiprocket",
+      "sublabel": "Aggregator Network",
+      "tag": "Courier Partner",
+      "pos": [1050, 100],
+      "size": [140, 60]
+    },
+    {
+      "id": "delhivery",
+      "type": "cloud",
+      "label": "Delhivery Express",
+      "sublabel": "Direct Surface API",
+      "tag": "Primary Carrier",
+      "pos": [1050, 260],
+      "size": [140, 60]
+    },
+    {
+      "id": "xpressbees",
+      "type": "cloud",
+      "label": "Xpressbees",
+      "sublabel": "Regional B2C Express",
+      "tag": "Backup Carrier",
+      "pos": [1050, 420],
+      "size": [140, 60]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "Store4Riders Shipping Core",
+      "wraps": ["shipping_api", "rate_engine", "shipment_queue", "webhook_parser", "provider_factory"]
+    },
+    {
+      "kind": "region",
+      "label": "Third-Party Logistics Network",
+      "wraps": ["shiprocket", "delhivery", "xpressbees"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-admin-api",
+      "from": "admin_ui",
+      "to": "shipping_api",
+      "label": "PUT /settings",
+      "variant": "security"
+    },
+    {
+      "id": "conn-checkout-api",
+      "from": "checkout_ui",
+      "to": "shipping_api",
+      "label": "POST /serviceability",
+      "variant": "emphasis"
+    },
+    {
+      "id": "conn-api-rate",
+      "from": "shipping_api",
+      "to": "rate_engine",
+      "label": "calculateRates()"
+    },
+    {
+      "id": "conn-api-queue",
+      "from": "shipping_api",
+      "to": "shipment_queue",
+      "label": "enqueueJob()",
+      "variant": "dashed"
+    },
+    {
+      "id": "conn-api-mongo",
+      "from": "shipping_api",
+      "to": "mongo_shipping",
+      "label": "Save PENDING",
+      "variant": "emphasis"
+    },
+    {
+      "id": "conn-rate-factory",
+      "from": "rate_engine",
+      "to": "provider_factory",
+      "label": "getRates()",
+      "fromSide": "right",
+      "toSide": "top"
+    },
+    {
+      "id": "conn-queue-factory",
+      "from": "shipment_queue",
+      "to": "provider_factory",
+      "label": "createShipment()",
+      "variant": "emphasis"
+    },
+    {
+      "id": "conn-factory-shiprocket",
+      "from": "provider_factory",
+      "to": "shiprocket",
+      "label": "AWB & Manifest",
+      "fromSide": "top",
+      "toSide": "left"
+    },
+    {
+      "id": "conn-factory-delhivery",
+      "from": "provider_factory",
+      "to": "delhivery",
+      "label": "Direct AWB",
+      "variant": "emphasis"
+    },
+    {
+      "id": "conn-factory-xpressbees",
+      "from": "provider_factory",
+      "to": "xpressbees",
+      "label": "AWB & Pickup",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "conn-delhivery-webhook",
+      "from": "delhivery",
+      "to": "webhook_parser",
+      "label": "Carrier Push",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "right"
+    },
+    {
+      "id": "conn-webhook-mongo",
+      "from": "webhook_parser",
+      "to": "mongo_shipping",
+      "label": "Sync Tracking Event",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Rate Calculation & Caching",
+      "items": [
+        "Pincode serviceability & rates cached via MD5 fingerprint (pickup + delivery + weight + COD)",
+        "RateService optimizes courier selection using LOWEST_COST or FASTEST_DELIVERY strategies",
+        "Admin kill-switch allows immediate global shipping pause or individual courier disabling"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Non-Blocking Async Dispatch",
+      "items": [
+        "Order checkout creates a PENDING shipment instantly in MongoDB without calling external courier APIs",
+        "BullMQ background queue worker asynchronously generates AWBs, labels, and schedules pickups",
+        "Customer checkout never freezes or times out due to slow external courier servers"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Normalized Multi-Carrier Factory",
+      "items": [
+        "ShiprocketProvider, DelhiveryProvider, and XpressbeesProvider adhere to strict ShippingProvider interface",
+        "WebhookParser standardizes inconsistent tracking webhooks into unified Order Tracking timeline",
+        "Built-in support for Return Pickups (RTO) and reverse logistics back to origin warehouse"
+      ]
+    }
+  ]
+}

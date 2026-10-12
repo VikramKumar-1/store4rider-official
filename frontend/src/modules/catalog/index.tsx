@@ -114,9 +114,13 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
         </div>
 
         
-        {/* 3. Subcategory Tiles (Hidden on Desktop as per client request) */}
+        {/* 3. Subcategory Tiles / Hero Showcase Cards (Mobile Only as per design) */}
         <div className="block lg:hidden">
-          <SubcategoryTiles categoryName={pageTitle} categorySlug={categoryParam || ""} subcategories={categoryNode?.children || []} />
+          <SubcategoryTiles 
+            categoryName={pageTitle} 
+            categorySlug={categoryParam || ""} 
+            subcategories={categoryNode?.heroCategories || categoryNode?.children || []} 
+          />
         </div>
 
         {/* --- CLIENT LAYOUT REQUIREMENT: TWO ACCORDIONS AT TOP --- */}
@@ -225,7 +229,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
  */
 export const CatalogModule: React.FC<CatalogProps> = ({ products, totalCount, isLoading, isFetching, categoryNode }) => {
   return (
-    <div className="w-full flex flex-col font-sans bg-white relative">
+    <div className="w-full flex flex-col font-sans bg-white relative min-h-screen">
       
       {/* 1. Header Global Area */}
       <TopBanner
@@ -240,7 +244,7 @@ export const CatalogModule: React.FC<CatalogProps> = ({ products, totalCount, is
         />
       </div>
 
-      <div className="w-full">
+      <div className="w-full flex-1 flex flex-col">
         <CatalogContent 
           products={products} 
           totalCount={totalCount} 
@@ -251,7 +255,7 @@ export const CatalogModule: React.FC<CatalogProps> = ({ products, totalCount, is
       </div>
 
       {/* 4. Global Footer */}
-      <div className="bg-banner pb-32 lg:pb-0 w-full"><Footer /></div>
+      <div className="bg-banner pb-32 lg:pb-0 w-full mt-auto"><Footer /></div>
     </div>
   );
 };

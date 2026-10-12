@@ -8,6 +8,8 @@ export interface CatalogProduct {
   productUrl: string;
   colors?: { name: string; imageUrl?: string }[];
   rawSlug?: string;
+  isFeatured?: boolean;
+  showFeaturedBadge?: boolean;
 }
 
 export interface CatalogProps {

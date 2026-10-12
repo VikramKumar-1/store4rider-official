@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+echo "Running typechecks & linting..."
+pnpm run lint
+
+echo "Running tests..."
+pnpm test

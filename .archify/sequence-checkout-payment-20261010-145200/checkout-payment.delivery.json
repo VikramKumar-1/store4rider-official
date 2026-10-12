@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "ee3a73a5-00a0-47b5-a208-6e5b042a8b81",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\sequence-checkout-payment-20261010-145200\\candidate.json",
+  "output": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\sequence-checkout-payment-20261010-145200\\checkout-payment.html",
+  "specification": {
+    "sha256": "c9db087cdeb2e906557faca69aef7682363e870b5e3c12679e738bb021ce235a",
+    "bytes": 5959
+  },
+  "artifact": {
+    "sha256": "32fc70c803bc48cf0482d3c10e19bf7e40cde87ef694c2991e84fd092b389580",
+    "bytes": 762642
+  }
+}

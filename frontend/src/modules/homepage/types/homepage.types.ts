@@ -12,7 +12,7 @@ export interface NavLinkItem {
   label: string;
   href: string;
   hasDropdown?: boolean;
-  megaMenuItems?: { group: string; groupHref?: string; items: { label: string; href: string; logoUrl?: string }[] }[];
+  megaMenuItems?: { group: string; groupHref?: string; items: { label: string; href: string; logoUrl?: string; imageUrl?: string; badge?: string; badgeColor?: string }[] }[];
   megaMenuFeatured?: {
     title?: string;
     items?: {

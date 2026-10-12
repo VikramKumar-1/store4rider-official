@@ -142,6 +142,8 @@ interface ChildSkuInfo {
   name: string;
   weight: number;
   countryOfManufacture: string;
+  status: string;
+  visibility: string;
 }
 
 /** Parsed additional_attributes key-value pairs */
@@ -489,6 +491,8 @@ async function buildSkuIndex(): Promise<void> {
           name: row.name || '',
           weight: safeParseFloat(row.weight),
           countryOfManufacture: row.country_of_manufacture || '',
+          status: row.status || '',
+          visibility: row.visibility || '',
         });
         count++;
       },
@@ -637,6 +641,29 @@ async function processProducts(): Promise<void> {
               totalChildQty += childStock;
               if (childInStock) anyChildInStock = true;
 
+                            // Process Child Images
+              const childImages: any[] = [];
+              if (childInfo?.baseImage) {
+                childImages.push({
+                  id: new mongoose.Types.ObjectId().toString(),
+                  url: `https://store4riders.com/media/catalog/product${childInfo.baseImage}`,
+                  altText: childInfo.baseImageLabel || ''
+                });
+              }
+              if (childInfo?.additionalImages) {
+                const addImgs = childInfo.additionalImages.split(',');
+                const addLbls = childInfo.additionalImageLabels ? childInfo.additionalImageLabels.split(',') : [];
+                addImgs.forEach((img, i) => {
+                  if (img.trim()) {
+                    childImages.push({
+                      id: new mongoose.Types.ObjectId().toString(),
+                      url: `https://store4riders.com/media/catalog/product${img.trim()}`,
+                      altText: addLbls[i]?.trim() || ''
+                    });
+                  }
+                });
+              }
+
               variants.push({
                 id: new mongoose.Types.ObjectId().toString(),
                 sku: childSku,
@@ -645,6 +672,10 @@ async function processProducts(): Promise<void> {
                 stock: childStock,
                 attributes,
                 imageUrl: childInfo?.baseImage ? `https://store4riders.com/media/catalog/product${childInfo.baseImage}` : undefined,
+                weight: childInfo?.weight,
+                status: (childInfo?.status === "1" || childInfo?.status?.toLowerCase() === "enabled") ? "enabled" : "disabled",
+                visibility: childInfo?.visibility || "Not Visible Individually",
+                images: childImages
               });
             }
 

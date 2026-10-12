@@ -101,7 +101,7 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
   const originalPrice = specialPrice > 0 && specialPrice < basePrice ? basePrice : Math.round(price * 1.25);
 
   // Extract unique colors for swatches
-  const colorNames = new Set<string>();
+  const colorNamesMap = new Map<string, string>();
   
   const normalizeColor = (c: string) => {
     if (!c) return "";
@@ -110,49 +110,56 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
             .replace(/\s+/g, " ");     // Normalize extra spaces
   };
 
+  const addColor = (c: string) => {
+    if (!c) return;
+    const cleaned = normalizeColor(c);
+    if (!cleaned) return;
+    const key = cleaned.toLowerCase();
+    if (!colorNamesMap.has(key)) {
+      colorNamesMap.set(key, cleaned);
+    }
+  };
+
   if (product.variants && Array.isArray(product.variants)) {
     product.variants.forEach((v: any) => {
       if (v.attributes) {
         const attrs = v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes;
         const colorKey = Object.keys(attrs).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
         if (colorKey && attrs[colorKey]) {
-           const cleaned = normalizeColor(attrs[colorKey]);
-           if (cleaned) colorNames.add(cleaned);
+           addColor(attrs[colorKey]);
         }
       }
     });
   }
-  if (colorNames.size === 0 && product.configurableVariations) {
+  if (colorNamesMap.size === 0 && product.configurableVariations) {
     const variants = product.configurableVariations.split("|");
     variants.forEach((variant: string) => {
       const attrs = variant.split(",");
       attrs.forEach((attr: string) => {
         const [key, value] = attr.split("=");
         if (key && value && (key.trim().toLowerCase().includes('color') || key.trim().toLowerCase().includes('colour'))) {
-          const cleaned = normalizeColor(value);
-          if (cleaned) colorNames.add(cleaned);
+          addColor(value);
         }
       });
     });
   }
-  if (colorNames.size === 0 && product.colorImages) {
+  if (colorNamesMap.size === 0 && product.colorImages) {
     Object.keys(product.colorImages).forEach(color => {
-      const cleaned = normalizeColor(color);
-      if (cleaned) colorNames.add(cleaned);
+      addColor(color);
     });
   }
-  if (colorNames.size === 0 && product.attributes) {
+  if (colorNamesMap.size === 0 && product.attributes) {
      const attrs = product.attributes instanceof Map ? Object.fromEntries(product.attributes) : product.attributes;
      const colorKey = Object.keys(attrs).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
      if (colorKey && attrs[colorKey]) {
-        const cleaned = normalizeColor(attrs[colorKey]);
-        if (cleaned) colorNames.add(cleaned);
+        addColor(attrs[colorKey]);
      }
   }
-  const uniqueColors = Array.from(colorNames);
+
+  const uniqueColors = Array.from(colorNamesMap.values()).slice(0, 4);
 
   return (
-    <Link href={`/products/${product.slug || product.id}`}>
+    <Link href={`/${product.slug || product.id}`}>
       <div
         className="group relative flex flex-col rounded-2xl bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-slate-200 overflow-hidden h-full"
       >
@@ -226,7 +233,7 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      router.push(`/products/${product.slug || product.id}?color=${encodeURIComponent(color)}`);
+                      router.push(`/${product.slug || product.id}?color=${encodeURIComponent(color)}`);
                     }}
                     className="w-4 h-4 sm:w-4 sm:h-4 border border-black/80 shadow-sm transition-transform hover:scale-110"
                     style={{ background: parseColorToBackground(color) }}

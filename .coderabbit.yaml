@@ -1,0 +1,72 @@
+# CodeRabbit Configuration for Store4Riders Monorepo
+# Enterprise AI Code Review & Quality Guard
+version: "2"
+
+language: "en-US"
+
+early_access: false
+
+reviews:
+  # Review profile: "chill" or "assertive" avoids nitpicking formatting/grammar and focuses 100% on bugs & architecture
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+
+  # PATH FILTERS: Crucial to SAVE TOKENS. Ignores lockfiles, build artifacts, images, and backups.
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/.next/**"
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!pnpm-lock.yaml"
+    - "!package-lock.json"
+    - "!yarn.lock"
+    - "!backup-data/**"
+    - "!**/*.svg"
+    - "!**/*.png"
+    - "!**/*.jpg"
+    - "!**/*.jpeg"
+    - "!**/*.ico"
+    - "!**/*.csv"
+
+  # STRICT ENTERPRISE GUIDELINES (Connected to CODING_STANDARDS.md)
+  instructions: |
+    You are a Senior Staff Engineer with 15+ years of experience reviewing the Store4Riders enterprise e-commerce platform.
+    Strictly enforce the following rules defined in CODING_STANDARDS.md:
+
+    1. ZERO MOCK TOLERANCE (CRITICAL):
+       - NEVER allow mock data, hardcoded fallback strings, dummy tokens, or fallback prices (e.g., rate: 60.0 or || 55.0).
+       - If an integration lacks data or fails, it must throw an AppError or return empty states.
+       - Flag any mock strings like "mock_token", "999999", or "Primary Warehouse".
+
+    2. ARCHITECTURE LAYERS (DDD Pattern):
+       - Backend MUST follow: Route -> Controller -> Validator -> Service -> Repository -> Model.
+       - Controllers MUST be thin.
+       - Repositories are DB-only and must use .lean().exec().
+       - Business logic (price calculation, discount, tax, totals) MUST live strictly in the Service layer.
+       - Flag any database/Mongoose query made inside a Controller or Service directly without Repository.
+
+    3. FRONTEND = UI ONLY:
+       - Frontend Next.js components solely render the UI.
+       - Frontend MUST NEVER calculate prices, discounts, tax, or order totals.
+       - Frontend MUST NEVER do client-side pagination on full datasets.
+       - Flag any Math.random() usage in SSR/RSC components.
+       - Flag any internal navigation using raw <a> tags instead of Next.js <Link>.
+
+    4. SECURITY & VALIDATION:
+       - Every API endpoint must have strict Zod validation.
+       - Never store JWTs in localStorage or sessionStorage. Tokens are HttpOnly cookies only.
+       - Check for NoSQL injection risks in MongoDB queries.
+
+    5. NAVBAR & CATALOG INTEGRITY:
+       - The Storefront Navbar MUST strictly use DEFAULT_NAV_ITEMS from nav.constants.ts. Never make it dynamic.
+       - SubcategoryTiles on category pages MUST remain mobile-only (block lg:hidden). Never show on desktop.
+
+chat:
+  auto_reply: true

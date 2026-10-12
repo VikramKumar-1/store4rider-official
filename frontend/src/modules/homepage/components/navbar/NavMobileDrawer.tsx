@@ -125,24 +125,37 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
                             <div className="pl-3 pb-2">
                               {item.megaMenuItems.map((group, gIdx) => (
                                 <div key={gIdx} className="mb-3">
-                                  {group.groupHref ? (
-                                    <Link href={group.groupHref} onClick={onClose} className="block text-[10px] font-bold uppercase tracking-widest text-neutral-400 hover:text-brand px-3 mb-1">
-                                      {group.group}
-                                    </Link>
-                                  ) : (
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 px-3 mb-1">
-                                      {group.group}
-                                    </p>
-                                  )}
+                                  {group.group ? (
+                                    group.groupHref ? (
+                                      <Link href={group.groupHref} onClick={onClose} className="block text-[10px] font-bold uppercase tracking-widest text-neutral-400 hover:text-brand px-3 mb-1">
+                                        {group.group}
+                                      </Link>
+                                    ) : (
+                                      <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 px-3 mb-1">
+                                        {group.group}
+                                      </p>
+                                    )
+                                  ) : null}
                                   {group.items.map((link, lIdx) => (
                                     <Link
                                       key={lIdx}
                                       href={link.href}
                                       onClick={onClose}
-                                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neutral-600 hover:text-banner hover:bg-orange-50 transition-colors"
+                                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-neutral-600 hover:text-banner hover:bg-orange-50 transition-colors"
                                     >
-                                      <ChevronRightIcon className="w-3 h-3 text-neutral-300" />
-                                      {link.label}
+                                      {link.imageUrl ? (
+                                        <div className="relative w-5 h-5 rounded overflow-hidden shrink-0 border border-neutral-200 bg-neutral-100">
+                                          <Image src={link.imageUrl} alt={link.label} fill sizes="20px" className="object-cover" />
+                                        </div>
+                                      ) : (
+                                        <ChevronRightIcon className="w-3 h-3 text-neutral-300 shrink-0" />
+                                      )}
+                                      <span className="flex-1">{link.label}</span>
+                                      {link.badge && (
+                                        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider text-white ${link.badgeColor || "bg-brand"}`}>
+                                          {link.badge}
+                                        </span>
+                                      )}
                                     </Link>
                                   ))}
                                 </div>

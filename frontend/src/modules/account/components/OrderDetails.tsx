@@ -159,7 +159,7 @@ export function OrderDetails({ orderId }: { orderId: string }) {
               {order.items?.map((item: any) => (
                 <div key={item._id || item.productId} className="flex flex-col sm:flex-row gap-4 p-5 border-b border-neutral-100 last:border-0 group">
                   {item.product?.slug ? (
-                    <Link href={`/products/${item.product.slug}`} className="shrink-0">
+                    <Link href={`/${item.product.slug}`} className="shrink-0">
                       <div className="relative w-24 h-24 bg-neutral-50 border border-neutral-100 flex items-center justify-center p-2 hover:border-brand transition-colors">
                         <Image 
                           src={item.product?.images?.[0]?.url || item.product?.image || "/no-image.svg"} 
@@ -184,7 +184,7 @@ export function OrderDetails({ orderId }: { orderId: string }) {
                   
                   <div className="flex flex-col flex-1 min-w-0">
                     {item.product?.slug ? (
-                      <Link href={`/products/${item.product.slug}`}>
+                      <Link href={`/${item.product.slug}`}>
                         <p className="text-sm font-bold text-neutral-900 uppercase leading-snug mb-1 hover:text-brand transition-colors">
                           {item.name || item.product?.name || "Riding Gear"}
                         </p>

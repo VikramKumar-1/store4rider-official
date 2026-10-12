@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "2d1e24a4-dae5-4ab6-a1bd-73233fedfc0d",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\sequence-cache-miss-request-20261010-132541\\candidate.json",
+  "output": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\sequence-cache-miss-request-20261010-132541\\cache-miss-request.html",
+  "specification": {
+    "sha256": "91258c4b5384f5d3e97615bf209959a4804ba760755e463d6de5fc01addc3678",
+    "bytes": 4208
+  },
+  "artifact": {
+    "sha256": "bd7ee2c342b70c7d897f03cbf30513bcbec0599f2095cc664c6366da3387df23",
+    "bytes": 755435
+  }
+}

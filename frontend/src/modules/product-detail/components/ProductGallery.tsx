@@ -29,7 +29,7 @@ const Thumbnail: React.FC<{
     >
       <img
         src={src}
-        alt={`Thumbnail ${idx}`}
+        alt={img.altText || `Product thumbnail ${idx + 1}`}
         className="w-full h-full object-contain mix-blend-multiply absolute inset-0"
         onError={() => setSrc(FALLBACK_IMAGE)}
       />

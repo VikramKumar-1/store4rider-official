@@ -69,4 +69,19 @@ export class ProductController {
     await ProductService.deleteProduct(id);
     return ApiResponse.success(null, "Product deleted successfully");
   }
+
+  static async export(req: NextRequest) {
+    try {
+      const csvData = await ProductService.exportCsv();
+      return new NextResponse(csvData, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/csv',
+          'Content-Disposition': 'attachment; filename="store4riders_products.csv"',
+        },
+      });
+    } catch (error: any) {
+      return ApiResponse.error(error.message, 500);
+    }
+  }
 }

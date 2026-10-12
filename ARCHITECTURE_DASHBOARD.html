@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Store4Riders — Architecture &amp; System Diagrams</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0B0F17;
+      --card-bg: #111827;
+      --border: #1F2937;
+      --text: #F9FAFB;
+      --muted: #9CA3AF;
+      --brand: #AB1509;
+      --brand-hover: #C91D0E;
+      --accent: #3B82F6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* TOP NAVIGATION HEADER */
+    header {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      z-index: 50;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--brand), #FF5429);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(171, 21, 9, 0.4);
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stack-tag {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 2px 8px;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #60A5FA;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    /* DIAGRAM SWITCHER TABS */
+    .tab-bar {
+      display: flex;
+      align-items: center;
+      background: #0D131F;
+      border: 1px solid var(--border);
+      padding: 4px;
+      border-radius: 12px;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      background: var(--brand);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(171, 21, 9, 0.5);
+    }
+
+    .tab-icon {
+      font-size: 15px;
+    }
+
+    /* HEADER ACTIONS */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .action-btn {
+      background: #1F2937;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+
+    .action-btn:hover {
+      background: #374151;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* MAIN VIEWPORT IFRAME */
+    main {
+      flex: 1;
+      position: relative;
+      background: #0B0F17;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+      background: #0B0F17;
+    }
+
+    /* FOOTER STATUS BAR */
+    footer {
+      background: #0D131F;
+      border-top: 1px solid var(--border);
+      padding: 8px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #10B981;
+      font-weight: 500;
+      font-size: 12px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 8px #10B981;
+    }
+
+    .meta-tag {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .footer-right a {
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-right a:hover {
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <header>
+    <div class="brand-section">
+      <div class="logo-badge">S4R</div>
+      <div>
+        <div class="brand-title">
+          Store4Riders
+          <span class="stack-tag">Next.js 16.3.5</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tab-bar">
+      <button id="tab-0" class="tab-btn active" onclick="loadDiagram(0)">
+        <span class="tab-icon">🏛️</span>
+        <span>System Topology</span>
+      </button>
+
+      <button id="tab-1" class="tab-btn" onclick="loadDiagram(1)">
+        <span class="tab-icon">⚡</span>
+        <span>Request Caching &amp; DB</span>
+      </button>
+
+      <button id="tab-2" class="tab-btn" onclick="loadDiagram(2)">
+        <span class="tab-icon">🔄</span>
+        <span>Order State Machine</span>
+      </button>
+
+      <button id="tab-3" class="tab-btn" onclick="loadDiagram(3)">
+        <span class="tab-icon">🚚</span>
+        <span>Shipping Engine</span>
+      </button>
+
+      <button id="tab-4" class="tab-btn" onclick="loadDiagram(4)">
+        <span class="tab-icon">💳</span>
+        <span>Checkout &amp; Payments</span>
+      </button>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="header-actions">
+      <a id="open-fullscreen" href="#" target="_blank" class="action-btn" title="Open this diagram in a new browser tab">
+        <span>↗</span> Fullscreen Tab
+      </a>
+    </div>
+  </header>
+
+  <!-- MAIN CANVAS -->
+  <main>
+    <iframe id="diagram-frame" src=".archify/architecture-store4riders-20261010-135600/store4riders-architecture.html"></iframe>
+  </main>
+
+  <!-- FOOTER STATUS -->
+  <footer>
+    <div class="footer-left">
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <span>All Diagrams Validated &bull; Zero Collisions</span>
+      </div>
+      <span class="meta-tag">Backend: Port 4000 (DDD) &bull; Frontend: Port 3000 &bull; Redis &bull; MongoDB Atlas</span>
+    </div>
+    <div class="footer-right">
+      <span class="meta-tag">Archify 3.0 Showcase Profile</span>
+    </div>
+  </footer>
+
+  <script>
+    const diagrams = [
+      {
+        id: 0,
+        title: "Store4Riders — Master System Architecture",
+        path: ".archify/architecture-store4riders-20261010-135600/store4riders-architecture.html"
+      },
+      {
+        id: 1,
+        title: "Store4Riders — Web Request & Cache Fallback",
+        path: ".archify/sequence-cache-miss-request-20261010-132541/cache-miss-request.html"
+      },
+      {
+        id: 2,
+        title: "Store4Riders — E-Commerce Order Lifecycle",
+        path: ".archify/lifecycle-order-state-machine-20261010-135600/order-lifecycle.html"
+      },
+      {
+        id: 3,
+        title: "Store4Riders — Multi-Carrier Shipping Engine",
+        path: ".archify/architecture-shipping-engine-20261010-141600/shipping-architecture.html"
+      },
+      {
+        id: 4,
+        title: "Store4Riders — Checkout & Payment Orchestration",
+        path: ".archify/sequence-checkout-payment-20261010-145200/checkout-payment.html"
+      }
+    ];
+
+    let currentDiagramIndex = 0;
+
+    function loadDiagram(index) {
+      currentDiagramIndex = index;
+      const d = diagrams[index];
+
+      // Update Tab Styles
+      for (let i = 0; i < 5; i++) {
+        const btn = document.getElementById(`tab-${i}`);
+        if (i === index) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      }
+
+      // Update IFrame & Fullscreen Button
+      const frame = document.getElementById('diagram-frame');
+      frame.src = d.path;
+
+      const fsBtn = document.getElementById('open-fullscreen');
+      fsBtn.href = d.path;
+
+      document.title = d.title;
+    }
+
+    // Initialize initial state
+    loadDiagram(0);
+  </script>
+</body>
+</html>

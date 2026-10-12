@@ -67,3 +67,4 @@ backend/scratch/
 backend/*.cjs
 backend/clear.ts
 backend/temp-*.cjs
+powershell.exe

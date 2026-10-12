@@ -62,33 +62,116 @@ export class ProductValidator {
         cleanSlug = cleanSlug.split('/').pop() || cleanSlug;
       }
       
-      // STRICT DICTIONARY MAPPING (Frontend URL -> Exact Magento CSV Slug)
-      // This ensures 100% accuracy without regex guessing or stripping 's'.
-      // 100% STRICT EXACT MATCH
-      // The database has been perfectly aligned with the Frontend URLs. No guessing needed!
-      andConditions.push({ categorySlugs: cleanSlug });
+      // SUPER SMART CATEGORY MATCHER
+      // Kal ko koi bhi naya category upload karega (e.g. "Racing Suit" ya "Racing Suits"),
+      // Ye logic automatically dono (singular aur plural) database me check kar lega!
+      // Isse aapko kabhi manual mapping nahi karni padegi.
+      const isPlural = cleanSlug.endsWith('s');
+      const singularSlug = isPlural ? cleanSlug.slice(0, -1) : cleanSlug;
+      const pluralSlug = isPlural ? cleanSlug : cleanSlug + 's';
+
+      const searchSlugs = [
+        cleanSlug,
+        singularSlug,
+        pluralSlug,
+        cleanSlug.replace(/-/g, ''),
+        singularSlug.replace(/-/g, ''),
+        pluralSlug.replace(/-/g, '')
+      ];
+
+      // Match ANY of the possible variations in the DB (Category Match)
+      const categoryMatchCondition = { categorySlugs: { $in: searchSlugs } };
 
       // Clean up Magento's messy tagging: Exclude accessories from main categories
-      if (cleanSlug.includes("boot") || cleanSlug.includes("shoe")) {
-        andConditions.push({ name: { $not: /\b(socks?|laces?|insole|covers?|toe\s*slider)\b/i } });
-      } else if (cleanSlug.includes("helmet")) {
-        andConditions.push({ name: { $not: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement|cleaner|spray|mask|balaclava)\b/i } });
-      } else if (cleanSlug.includes("jacket") || cleanSlug.includes("suit") || cleanSlug.includes("pant") || cleanSlug.includes("jeans")) {
-        andConditions.push({ name: { $not: /\b((hip|knee|elbow|back|shoulder|chest)\s*(protector|armor|armour|insert|pad|pads)|armour\s*insert|armor\s*insert|base\s*layer|liner)\b/i } });
-      } else if (cleanSlug.includes("communicator") || cleanSlug.includes("intercom")) {
-        andConditions.push({ name: { $not: /\b(cable|wire|battery|clamp|mount|pad)\b/i } });
+      const excludeConditions: any[] = [];
+      if ((cleanSlug.includes("boot") || cleanSlug.includes("shoe")) && !cleanSlug.includes("sock") && !cleanSlug.includes("lace") && !cleanSlug.includes("insole") && !cleanSlug.includes("cover") && !cleanSlug.includes("slider")) {
+        excludeConditions.push({ name: { $not: /\b(socks?|laces?|insole|covers?|toe\s*slider)\b/i } });
+      } else if (cleanSlug.includes("helmet") && !cleanSlug.includes("visor") && !cleanSlug.includes("cleaner") && !cleanSlug.includes("balaclava") && !cleanSlug.includes("intercom") && !cleanSlug.includes("communicator") && !cleanSlug.includes("spoiler") && !cleanSlug.includes("pinlock") && !cleanSlug.includes("lens") && !cleanSlug.includes("shield")) {
+        excludeConditions.push({ name: { $not: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement|cleaner|spray|mask|balaclava|lens|shield)\b/i } });
+      } else if ((cleanSlug.includes("jacket") || cleanSlug.includes("suit") || cleanSlug.includes("pant") || cleanSlug.includes("jeans")) && !cleanSlug.includes("armor") && !cleanSlug.includes("armour") && !cleanSlug.includes("protector") && !cleanSlug.includes("guard") && !cleanSlug.includes("pad") && !cleanSlug.includes("insert") && !cleanSlug.includes("layer") && !cleanSlug.includes("liner")) {
+        excludeConditions.push({ name: { $not: /\b((hip|knee|elbow|back|shoulder|chest)\s*(protector|armor|armour|insert|pad|pads)|armour\s*insert|armor\s*insert|base\s*layer|liner)\b/i } });
+      } else if ((cleanSlug.includes("communicator") || cleanSlug.includes("intercom")) && !cleanSlug.includes("mount") && !cleanSlug.includes("cable") && !cleanSlug.includes("wire") && !cleanSlug.includes("battery") && !cleanSlug.includes("clamp") && !cleanSlug.includes("pad")) {
+        excludeConditions.push({ name: { $not: /\b(cable|wire|battery|clamp|mount|pad)\b/i } });
       }
 
       /* 
-      --- LEGACY REGEX GUESSING CODE (COMMENTED OUT AFTER MIGRATION) ---
-      const preEngineLength = andConditions.length;
-      
-      // We must re-enable the regex engine because Magento data is missing category tags,
-      // and we MUST search the product names to find all products!
-      if (cleanSlug.includes("modular") || cleanSlug.includes("flip-up")) {
-      ...
-      (400 lines of legacy code)
+      --- POWERFUL REGEX ENGINE FALLBACK ---
+      If Magento data is missing category tags (which happens often!),
+      we search the product names directly to make sure we don't miss ANY products.
       */
+      
+      const regexConditions: any[] = [];
+      const c = cleanSlug;
+      
+      // HELMETS
+      if (c.includes("modular") || c.includes("flip-up")) regexConditions.push({ name: /\b(modular|flip\s*up)\b/i });
+      else if (c.includes("off-road") || c.includes("motocross")) regexConditions.push({ name: /\b(off\s*road|motocross|mx|dirt|x-cross)\b/i });
+      else if (c.includes("full-face")) regexConditions.push({ name: /\b(full\s*face)\b/i });
+      else if (c.includes("open-face") || c.includes("half-face")) regexConditions.push({ name: /\b(open\s*face|half\s*face|jet)\b/i });
+      else if (c.includes("dual-sport") || c.includes("adv")) regexConditions.push({ name: /\b(dual\s*sport|adv|adventure\s*helmet)\b/i });
+      
+      // HELMET ACCESSORIES
+      else if (c.includes("visor")) regexConditions.push({ name: /\b(visor|pinlock|shield|lens)\b/i });
+      else if (c.includes("spoiler")) regexConditions.push({ name: /\b(spoiler)\b/i });
+      else if (c.includes("communicator") || c.includes("intercom")) regexConditions.push({ name: /\b(intercom|bluetooth|communicator|sena|cardo|parani|bluarmor)\b/i });
+      
+      // LUGGAGE
+      else if (c.includes("tail-bag")) regexConditions.push({ name: /\b(tail\s*bag|tailbag|rear\s*bag)\b/i });
+      else if (c.includes("saddle-bag") || c.includes("pannier")) regexConditions.push({ name: /\b(saddle\s*bag|saddlebag|pannier|side\s*box)\b/i });
+      else if (c.includes("tank-bag")) regexConditions.push({ name: /\b(tank\s*bag|tankbag)\b/i });
+      else if (c.includes("backpack")) regexConditions.push({ name: /\b(backpack|rucksack)\b/i });
+      
+      // RIDING GEAR
+      else if (c.includes("riding-shirt")) regexConditions.push({ name: /\b(riding\s*shirt)\b/i });
+      else if (c.includes("mesh-jacket")) regexConditions.push({ name: /\b(mesh.*jacket|jacket.*mesh)\b/i });
+      else if (c.includes("textile-jacket")) regexConditions.push({ name: /\b(textile.*jacket|jacket.*textile)\b/i });
+      else if (c.includes("leather-jacket")) regexConditions.push({ name: /\b(leather.*jacket|jacket.*leather)\b/i });
+      else if (c.includes("jacket")) regexConditions.push({ name: /\b(jacket|jackets)\b/i });
+      
+      else if (c.includes("riding-jean") || c.includes("kevlar")) regexConditions.push({ name: /\b(jeans|denim|kevlar)\b/i });
+      else if (c.includes("textile-pant")) regexConditions.push({ name: /\b(textile.*pant|pant.*textile)\b/i });
+      else if (c.includes("leather-pant")) regexConditions.push({ name: /\b(leather.*pant|pant.*leather)\b/i });
+      else if (c.includes("pant") || c.includes("trouser")) regexConditions.push({ name: /\b(pant|pants|trousers|jeans)\b/i });
+      
+      else if (c.includes("short-glove")) regexConditions.push({ name: /\b(short.*glove|glove.*short)\b/i });
+      else if (c.includes("gauntlet") || c.includes("full-glove")) regexConditions.push({ name: /\b(gauntlet|full.*glove|glove.*full)\b/i });
+      else if (c.includes("glove")) regexConditions.push({ name: /\b(glove|gloves)\b/i });
+      
+      else if (c.includes("racing") || c.includes("sport")) regexConditions.push({ name: /\b(racing|sport|track)\b.*\b(boot|shoe|boots|shoes)\b/i });
+      else if (c.includes("off-road") || c.includes("adventure") || c.includes("adv")) regexConditions.push({ name: /\b(adv.*boot|adventure.*boot|off.*road.*boot|motocross.*boot)\b/i });
+      else if (c.includes("short-biking") || c.includes("short-boot")) regexConditions.push({ name: /\b(short.*boot|boot.*short|sneaker|riding\s*shoe)\b/i });
+      else if (c.includes("riding-sneaker")) regexConditions.push({ name: /\b(sneaker|riding\s*shoe)\b/i });
+      else if (c.includes("shoe") || c.includes("boot")) regexConditions.push({ name: /\b(shoe|shoes|boot|boots)\b/i });
+      
+      // PROTECTION & OTHERS
+      else if (c.includes("knee-guard")) regexConditions.push({ name: /\b(knee.*guard|bionic.*knee)\b/i });
+      else if (c.includes("back-protector")) regexConditions.push({ name: /\b(back.*protector|back.*insert)\b/i });
+      else if (c.includes("protector") || c.includes("guard")) regexConditions.push({ name: /\b(protector|guard|bionic|armor)\b/i });
+      else if (c.includes("balaclava")) regexConditions.push({ name: /\b(balaclava|mask)\b/i });
+      else if (c.includes("cleaner") || c.includes("chain-care")) regexConditions.push({ name: /\b(cleaner|spray|lube|brush|wash)\b/i });
+      else if (c.includes("touring-pant")) regexConditions.push({ name: /\b(touring.*pant|pant.*touring)\b/i });
+      else if (c.includes("women")) regexConditions.push({ name: /\b(women|lady|ladies|stella)\b/i });
+      else if (c.includes("top-box")) regexConditions.push({ name: /\b(top.*box|topcase|top.*case)\b/i });
+      else if (c.includes("hydration")) regexConditions.push({ name: /\b(hydration|camelbak|water.*bladder)\b/i });
+      else if (c.includes("auxiliary") || c.includes("light")) regexConditions.push({ name: /\b(auxiliary|light|fog|led|bulb|flasher|maddog)\b/i });
+      else if (c.includes("mount") && c.includes("light")) regexConditions.push({ name: /\b(mount|clamp|bracket)\b.*\b(light|fog)\b/i });
+      else if (c.includes("harness") || c.includes("switch")) regexConditions.push({ name: /\b(harness|switch|relay|wire)\b/i });
+      else if (c.includes("performance") || c.includes("filter")) regexConditions.push({ name: /\b(performance|filter|air.*filter|exhaust)\b/i });
+      else if (c.includes("cover")) regexConditions.push({ name: /\b(cover|bike.*cover)\b/i });
+      else if (c.includes("camera") || c.includes("gopro")) regexConditions.push({ name: /\b(camera|gopro|insta360|action\s*cam)\b/i });
+      else if (c.includes("mount") && c.includes("mobile")) regexConditions.push({ name: /\b(mobile.*mount|phone.*mount|ram.*mount)\b/i });
+
+      if (regexConditions.length > 0) {
+        // Product MUST match EITHER the Regex OR the Category Tag
+        andConditions.push({ $or: [ categoryMatchCondition, ...regexConditions ] });
+      } else {
+        andConditions.push(categoryMatchCondition);
+      }
+      
+      // Push exclude conditions if any
+      if (excludeConditions.length > 0) {
+        andConditions.push(...excludeConditions);
+      }
     }
 
     if (brand) {
@@ -170,6 +253,11 @@ export class ProductValidator {
     const onSale = searchParams.get("onSale");
     if (onSale === "true" || onSale === "1") {
       andConditions.push({ specialPrice: { $gt: 0 } });
+    }
+
+    const featured = searchParams.get("featured") || searchParams.get("isFeatured");
+    if (featured === "true" || featured === "1") {
+      andConditions.push({ isFeatured: true });
     }
 
     const size = searchParams.get("size");
@@ -283,7 +371,7 @@ export class ProductValidator {
     }
 
     const sortParam = searchParams.get("sort");
-    let sort: Record<string, 1 | -1> = { createdAt: -1, _id: -1 };
+    let sort: Record<string, 1 | -1> = { isFeatured: -1, createdAt: -1, _id: -1 };
     if (sortParam === "price-asc" || sortParam === "price_asc") {
       sort = { basePrice: 1, _id: -1 };
     } else if (sortParam === "price-desc" || sortParam === "price_desc") {
@@ -294,6 +382,8 @@ export class ProductValidator {
       sort = { salesCount: -1, _id: -1 };
     } else if (sortParam === "rating") {
       sort = { avgRating: -1, _id: -1 };
+    } else if (sortParam === "featured" || !sortParam) {
+      sort = { isFeatured: -1, createdAt: -1, _id: -1 };
     }
 
     return { filters, page, limit, sort, category };

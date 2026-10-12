@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "597c35a5-9adf-4205-9d95-59b6bf3c2416",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\architecture-shipping-engine-20261010-141600\\candidate.json",
+  "output": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\architecture-shipping-engine-20261010-141600\\shipping-architecture.html",
+  "specification": {
+    "sha256": "d5fba98269982a832a9132270e8d0ba1a747ff479e2e8bec1e071925c0b06cd6",
+    "bytes": 6631
+  },
+  "artifact": {
+    "sha256": "79992b23d8aaac27a113e381590932e20f980118b2d16e9ad0f71d9a7092d057",
+    "bytes": 773831
+  }
+}

@@ -100,7 +100,7 @@ export function OrderHistory() {
 
                 <div className="flex gap-4">
                   {/* Item Image */}
-                  <Link href={`/products/${firstItem?.product?.slug}`} className="shrink-0">
+                  <Link href={`/${firstItem?.product?.slug}`} className="shrink-0">
                     <div className="relative w-20 h-20 bg-neutral-50 border border-neutral-100 flex items-center justify-center p-1 hover:border-brand transition-colors">
                       <Image 
                         src={productImg} 
@@ -114,7 +114,7 @@ export function OrderHistory() {
                   
                   {/* Item Details */}
                   <div className="flex flex-col justify-center min-w-0">
-                    <Link href={`/products/${firstItem?.product?.slug}`}>
+                    <Link href={`/${firstItem?.product?.slug}`}>
                       <p className="text-xs font-bold text-neutral-900 uppercase line-clamp-2 mb-1 hover:text-brand transition-colors">
                         {firstItem?.product?.name || "Riding Gear"}
                       </p>

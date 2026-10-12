@@ -6,7 +6,7 @@ import { Plus, Upload, Download, Search, Edit2, Trash2, Box, FlaskConical } from
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
-import { useProducts, useBulkUpdateProducts } from "@/core/hooks/useProducts";
+import { useProducts, useBulkUpdateProducts, useDeleteProduct } from "@/core/hooks/useProducts";
 import { apiClient } from "@/core/api/client";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -15,6 +15,7 @@ export function AdminProducts() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const { data, isLoading } = useProducts({ page, limit: 10, search });
+  const deleteProduct = useDeleteProduct();
   
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -114,14 +115,37 @@ export function AdminProducts() {
             </Button>
           )}
 
-          <Button variant="outline" onClick={() => { setIsCsvModalOpen(true); setUploadReport(null); }} className="flex items-center space-x-2">
-            <Upload size={18} />
-            <span>Bulk Update (CSV)</span>
+
+          <Button
+            variant="outline"
+            className="flex items-center space-x-2 text-slate-700 bg-white hover:bg-slate-50 border-slate-200"
+            onClick={async () => {
+              try {
+                const res = await apiClient.get('/products/export', { responseType: 'blob' });
+                const url = window.URL.createObjectURL(new Blob([res.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'store4riders_products.csv');
+                document.body.appendChild(link);
+                link.click();
+                link.parentNode?.removeChild(link);
+                toast.success('Export downloaded successfully!');
+              } catch (e: any) {
+                toast.error('Failed to export CSV');
+              }
+            }}
+          >
+            <Download size={18} />
+            <span>Export CSV</span>
           </Button>
-          <Button className="flex items-center space-x-2">
-            <Plus size={18} />
-            <span>Add Product</span>
-          </Button>
+          
+
+          <Link href="/admin/products/new">
+            <Button className="flex items-center space-x-2 shadow-sm bg-brand hover:bg-brand/90 text-white cursor-pointer">
+              <Plus size={18} />
+              <span>Add Product</span>
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -176,7 +200,7 @@ export function AdminProducts() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{product.sku}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600 font-mono">{product.sku}</td>
                     <td className="px-6 py-4 text-sm font-medium">₹{product.specialPrice || product.basePrice}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -187,8 +211,27 @@ export function AdminProducts() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end space-x-2">
-                        <button className="p-2 text-slate-400 hover:text-brand transition-colors rounded-lg hover:bg-slate-100">
+                        <Link
+                          href={`/admin/products/${product.slug || product._id}/edit`}
+                          className="p-2 text-slate-400 hover:text-brand transition-colors rounded-lg hover:bg-slate-100"
+                          title="Edit Product"
+                        >
                           <Edit2 size={16} />
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to delete "${product.name}"?`)) {
+                              deleteProduct.mutate(product._id, {
+                                onSuccess: () => toast.success("Product deleted successfully"),
+                                onError: (err: any) => toast.error(err.response?.data?.error || "Failed to delete product")
+                              });
+                            }
+                          }}
+                          className="p-2 text-slate-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 cursor-pointer"
+                          title="Delete Product"
+                        >
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>

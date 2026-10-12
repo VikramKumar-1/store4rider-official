@@ -64,7 +64,7 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
   const activeColor = selectedColorName || (defaultColorMatch ? defaultColorMatch.name : null);
 
   const dynamicHref = activeColor 
-    ? `/products/${product.rawSlug || product.productUrl.split("?")[0].split("/").pop()}?color=${encodeURIComponent(activeColor)}`
+    ? `/${product.rawSlug || product.productUrl.split("?")[0].split("/").pop()}?color=${encodeURIComponent(activeColor)}`
     : product.productUrl;
 
   return (
@@ -86,6 +86,13 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
           className="w-full h-full absolute inset-0 object-contain pb-8 group-active:scale-95 transition-transform duration-300 mix-blend-multiply animate-in fade-in slide-in-from-right-8 duration-500 ease-out"
           onError={() => setImgSrc(FALLBACK_IMAGE)}
         />
+
+        {/* Optional Featured Badge (Top Left - only if explicitly enabled) */}
+        {product.showFeaturedBadge && (
+          <div className="absolute top-2 left-2 bg-neutral-900/90 backdrop-blur-xs text-amber-400 text-[8px] font-black px-1.5 py-0.5 rounded-sm flex items-center gap-0.5 shadow-xs z-10 tracking-wider uppercase">
+            <span>★ FEATURED</span>
+          </div>
+        )}
 
         {/* Orange Rating Badge (Top Right as in Wireframe) */}
         <div className="absolute top-2 right-2 bg-[#FF5429] text-white text-[9px] font-black px-1.5 py-0.5 rounded-sm flex items-center gap-0.5 shadow-xs z-10">
@@ -141,6 +148,13 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
             onError={() => setImgSrc(FALLBACK_IMAGE)}
           />
           
+          {/* Optional Featured Badge (Top Left - only if explicitly enabled) */}
+          {product.showFeaturedBadge && (
+            <div className="absolute top-2.5 left-2.5 bg-neutral-900/90 backdrop-blur-md text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 z-10 shadow-xs tracking-wider uppercase">
+              <span>★ FEATURED</span>
+            </div>
+          )}
+
           {/* Liquid Glassmorphism Rating Badge */}
           <div className="absolute top-2.5 right-2.5 bg-white/70 backdrop-blur-md border border-white/50 shadow-xs text-neutral-900 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 z-10">
             <StarIcon className="w-2.5 h-2.5 text-amber-500" />
@@ -211,12 +225,14 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
         
         {/* Text Content */}
         <div className="flex flex-col space-y-0.5 px-0.5">
-          <span className="text-[9px] text-neutral-400 uppercase tracking-[0.15em] font-bold">
-            {product.category}
-          </span>
-          <span className="text-[13px] md:text-[14px] font-sans font-semibold text-neutral-900 line-clamp-1 leading-tight group-hover:text-banner transition-colors pointer-events-auto">
+          {product.category && !product.category.toLowerCase().includes('root test') && (
+            <span className="text-[9px] text-neutral-400 uppercase tracking-[0.15em] font-bold">
+              {product.category}
+            </span>
+          )}
+          <h3 className="text-[13px] md:text-[14px] font-sans font-semibold text-neutral-900 line-clamp-1 leading-tight group-hover:text-banner transition-colors pointer-events-auto m-0 font-normal">
             {product.name}
-          </span>
+          </h3>
           <span className="text-xs md:text-[13px] font-extrabold text-brand mt-0.5">
             {product.priceFormatted}
           </span>

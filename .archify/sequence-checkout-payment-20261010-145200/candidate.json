@@ -1,0 +1,264 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Store4Riders Checkout & Payment Orchestration",
+    "subtitle": "Order Placement, Pincode Serviceability Guard, PayU / CCavenue Gateway, Webhook Verification & Background Dispatch",
+    "output": ".archify/sequence-checkout-payment-20261010-145200/checkout-payment.html",
+    "viewBox": [1050, 648],
+    "column_fit": "spread",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    {
+      "id": "buyer",
+      "type": "external",
+      "label": "Shopper",
+      "sublabel": "Next.js 16 UI"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "Order Service",
+      "sublabel": "OrderService :4000"
+    },
+    {
+      "id": "shipping",
+      "type": "backend",
+      "label": "Shipping Guard",
+      "sublabel": "RateService Check"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "MongoDB Atlas",
+      "sublabel": "Orders & Products"
+    },
+    {
+      "id": "gateway",
+      "type": "security",
+      "label": "Payment Gateway",
+      "sublabel": "PayU / CCavenue"
+    },
+    {
+      "id": "queue",
+      "type": "messagebus",
+      "label": "BullMQ Worker",
+      "sublabel": "Shipping & Email"
+    }
+  ],
+  "segments": [
+    {
+      "from": 155,
+      "to": 290,
+      "label": "1. Checkout & Pincode Guard"
+    },
+    {
+      "from": 295,
+      "to": 405,
+      "label": "2. Gateway Handshake & Payment"
+    },
+    {
+      "from": 410,
+      "to": 545,
+      "label": "3. Webhook Verification & Fulfillment"
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg-checkout",
+      "from": "buyer",
+      "to": "api",
+      "y": 170,
+      "label": "POST /api/v1/orders/checkout",
+      "variant": "emphasis"
+    },
+    {
+      "id": "msg-check-pincode",
+      "from": "api",
+      "to": "shipping",
+      "y": 198,
+      "label": "checkServiceability(pincode)",
+      "variant": "default"
+    },
+    {
+      "id": "msg-pincode-ok",
+      "from": "shipping",
+      "to": "api",
+      "y": 226,
+      "label": "serviceable: true",
+      "variant": "return"
+    },
+    {
+      "id": "msg-lock-stock",
+      "from": "api",
+      "to": "db",
+      "y": 254,
+      "label": "Verify Stock & Save (PENDING)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "msg-stock-ok",
+      "from": "db",
+      "to": "api",
+      "y": 282,
+      "label": "Order Saved with Idempotency Key",
+      "variant": "return"
+    },
+    {
+      "id": "msg-hash-gen",
+      "from": "api",
+      "to": "gateway",
+      "y": 310,
+      "label": "Generate HMAC SHA-512 Hash",
+      "variant": "security"
+    },
+    {
+      "id": "msg-hash-return",
+      "from": "gateway",
+      "to": "api",
+      "y": 338,
+      "label": "Hash & Redirect Payload",
+      "variant": "return"
+    },
+    {
+      "id": "msg-redirect-buyer",
+      "from": "api",
+      "to": "buyer",
+      "y": 366,
+      "label": "Redirect to Gateway Checkout",
+      "variant": "emphasis"
+    },
+    {
+      "id": "msg-pay-auth",
+      "from": "buyer",
+      "to": "gateway",
+      "y": 394,
+      "label": "Authorize Payment (UPI / Card)",
+      "variant": "security"
+    },
+    {
+      "id": "msg-webhook",
+      "from": "gateway",
+      "to": "api",
+      "y": 422,
+      "label": "POST /api/v1/payments/webhook",
+      "variant": "security",
+      "note": "HMAC signature verified server-to-server"
+    },
+    {
+      "id": "msg-confirm-order",
+      "from": "api",
+      "to": "db",
+      "y": 450,
+      "label": "Set CONFIRMED & Deduct Stock",
+      "variant": "emphasis"
+    },
+    {
+      "id": "msg-enqueue",
+      "from": "api",
+      "to": "queue",
+      "y": 478,
+      "label": "Enqueue Shipment & Email Jobs",
+      "variant": "dashed"
+    },
+    {
+      "id": "msg-webhook-ack",
+      "from": "api",
+      "to": "gateway",
+      "y": 506,
+      "label": "200 OK (Acknowledged)",
+      "variant": "return"
+    },
+    {
+      "id": "msg-redirect-success",
+      "from": "gateway",
+      "to": "buyer",
+      "y": 534,
+      "label": "Redirect /checkout/success",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "buyer",
+      "from": 165,
+      "to": 370,
+      "type": "external"
+    },
+    {
+      "participant": "api",
+      "from": 170,
+      "to": 370,
+      "type": "backend"
+    },
+    {
+      "participant": "shipping",
+      "from": 195,
+      "to": 230,
+      "type": "backend"
+    },
+    {
+      "participant": "db",
+      "from": 250,
+      "to": 286,
+      "type": "database"
+    },
+    {
+      "participant": "gateway",
+      "from": 305,
+      "to": 342,
+      "type": "security"
+    },
+    {
+      "participant": "gateway",
+      "from": 390,
+      "to": 538,
+      "type": "security"
+    },
+    {
+      "participant": "api",
+      "from": 418,
+      "to": 510,
+      "type": "backend"
+    },
+    {
+      "participant": "db",
+      "from": 446,
+      "to": 482,
+      "type": "database"
+    },
+    {
+      "participant": "queue",
+      "from": 474,
+      "to": 510,
+      "type": "messagebus"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Strict Backend Security Gate",
+      "items": [
+        "OrderService validates destination pincode against courier coverage before creating any order",
+        "Idempotency keys prevent double-charge or duplicate orders on accidental double-clicks"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Cryptographic Hash & Webhook",
+      "items": [
+        "PayU/CCavenue transaction payload hashed with SHA-512 using merchant secret key",
+        "Server-to-server webhook verifies HMAC signature to prevent tampered success redirects"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Atomic State & Async Fulfillment",
+      "items": [
+        "Order transitions to CONFIRMED and inventory is deducted atomically in MongoDB",
+        "Shipment creation and customer invoice email are enqueued asynchronously via BullMQ"
+      ]
+    }
+  ]
+}

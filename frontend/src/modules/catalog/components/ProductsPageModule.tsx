@@ -46,7 +46,7 @@ export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNod
   if (!categoryNode && category && catTreeData) {
     const findNode = (nodes: any[]): any => {
       for (const n of nodes) {
-        if (n.slug === category) return n;
+        if (n.slug === category || n.slug.replace(/s$/, '') === category.replace(/s$/, '')) return n;
         if (n.children) {
           const f = findNode(n.children);
           if (f) return f;
@@ -199,7 +199,9 @@ export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNod
         return defaultUrl;
       })(),
       rating: 4.9,
-      productUrl: `/products/${p.slug}${activeColorParam ? `?color=${encodeURIComponent(activeColorParam.split(',')[0].trim())}` : ''}`,
+      isFeatured: Boolean(p.isFeatured),
+      showFeaturedBadge: Boolean(p.isFeatured && ((p as any).showFeaturedBadge || p.attributes?.show_featured_badge === "true" || p.attributes?.showFeaturedBadge === "true")),
+      productUrl: `/${p.slug}${activeColorParam ? `?color=${encodeURIComponent(activeColorParam.split(',')[0].trim())}` : ''}`,
       rawSlug: p.slug,
       colors: (() => {
         const colorNames = new Set<string>();

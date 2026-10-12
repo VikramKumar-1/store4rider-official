@@ -41,6 +41,7 @@ export async function connectToDatabase() {
         try {
           const { initCronJobs } = await import("../cron/order.cron");
           await import("../queue/email.worker");
+          await import("../queue/migration.worker");
           initCronJobs();
           logger.info("Enterprise Background Workers and Cron Jobs successfully initialized!");
         } catch (workerErr) {

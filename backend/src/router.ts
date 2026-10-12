@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { productRouter } from "./modules/product/product.route";
 import { userRouter } from "./modules/user/user.route";
 import { authRouter } from "./modules/auth/auth.route";
@@ -21,8 +21,28 @@ import { warehouseRouter } from "./modules/warehouse/warehouse.route";
 import { returnRouter } from "./modules/return/return.route";
 import { pincodeRouter } from "./modules/pincode/pincode.route";
 import { cronRouter } from "./modules/cron/cron.route";
+import { migrationRouter } from "./modules/migration/migration.route";
 
 export async function centralRouter(req: NextRequest, routePath: string[]) {
+  if (routePath.join("/") === "debug-images") {
+    const { ProductModel } = await import("./modules/product/product.model");
+    
+    // Check how many products have 'full-face-helmets' in categorySlugs
+    const fullFaceProducts = await ProductModel.find({ categorySlugs: "full-face-helmets" }).select("sku name categorySlugs").lean().exec();
+    const otherProducts = await ProductModel.find({ categorySlugs: "full-face-helmet" }).select("sku name categorySlugs").lean().exec();
+    
+    // Look for Axor helmet to see its exact categorySlugs
+    const axorProduct = await ProductModel.findOne({ name: /axor.*hunter/i }).select("sku name magentoCategories categorySlugs").lean().exec();
+
+    return NextResponse.json({
+      success: true,
+      fullFaceHelmetsPluralCount: fullFaceProducts.length,
+      fullFaceHelmetSingularCount: otherProducts.length,
+      axorProduct: axorProduct,
+      first5: fullFaceProducts.slice(0, 5)
+    });
+  }
+
   const [module, ...rest] = routePath;
   
   switch (module) {
@@ -49,6 +69,7 @@ export async function centralRouter(req: NextRequest, routePath: string[]) {
     case "returns": return returnRouter(req, rest);
     case "pincodes": return pincodeRouter(req, rest);
     case "cron": return cronRouter(req, rest);
+    case "migration": return migrationRouter(req, rest);
     default: return null;
   }
 }

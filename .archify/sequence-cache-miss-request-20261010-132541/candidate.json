@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Store4Riders - Web Request & Cache Miss Sequence",
+    "subtitle": "Next.js 16 Browser ➔ Backend API ➔ Redis Cache Check ➔ MongoDB Atlas Fallback & Cache Fill",
+    "output": ".archify/sequence-cache-miss-request-20261010-132541/cache-miss-request.html",
+    "viewBox": [980, 580],
+    "column_fit": "spread",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    {
+      "id": "browser",
+      "type": "frontend",
+      "label": "Browser",
+      "sublabel": "Next.js 16 Client"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "Backend API",
+      "sublabel": "Express / Next.js Server"
+    },
+    {
+      "id": "redis",
+      "type": "database",
+      "label": "Redis",
+      "sublabel": "ioredis Cache"
+    },
+    {
+      "id": "mongodb",
+      "type": "database",
+      "label": "MongoDB Atlas",
+      "sublabel": "Mongoose Source of Truth"
+    }
+  ],
+  "segments": [
+    {
+      "from": 155,
+      "to": 250,
+      "label": "1. Request & Redis Cache Check"
+    },
+    {
+      "from": 255,
+      "to": 330,
+      "label": "2. Cache Miss & MongoDB Query"
+    },
+    {
+      "from": 335,
+      "to": 435,
+      "label": "3. Redis Cache Populate & Response"
+    }
+  ],
+  "messages": [
+    {
+      "id": "req-browser-api",
+      "from": "browser",
+      "to": "api",
+      "y": 170,
+      "label": "GET /api/v1/products/riding-jacket",
+      "variant": "emphasis"
+    },
+    {
+      "id": "check-redis",
+      "from": "api",
+      "to": "redis",
+      "y": 205,
+      "label": "GET cache:product:riding-jacket",
+      "variant": "default"
+    },
+    {
+      "id": "redis-miss",
+      "from": "redis",
+      "to": "api",
+      "y": 240,
+      "label": "(nil) Cache Miss",
+      "variant": "return",
+      "note": "Key missing or expired in Redis"
+    },
+    {
+      "id": "query-mongodb",
+      "from": "api",
+      "to": "mongodb",
+      "y": 275,
+      "label": "Product.findOne({ slug }).lean()",
+      "variant": "emphasis"
+    },
+    {
+      "id": "mongodb-data",
+      "from": "mongodb",
+      "to": "api",
+      "y": 310,
+      "label": "BSON Product Document",
+      "variant": "return"
+    },
+    {
+      "id": "set-redis",
+      "from": "api",
+      "to": "redis",
+      "y": 350,
+      "label": "SETEX cache:product:... 3600 <json>",
+      "variant": "dashed",
+      "note": "Populate Redis cache with 1h TTL"
+    },
+    {
+      "id": "redis-ack",
+      "from": "redis",
+      "to": "api",
+      "y": 380,
+      "label": "OK",
+      "variant": "return"
+    },
+    {
+      "id": "resp-api-browser",
+      "from": "api",
+      "to": "browser",
+      "y": 415,
+      "label": "200 OK (ApiResponse.success(product))",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "browser",
+      "from": 165,
+      "to": 420,
+      "type": "frontend"
+    },
+    {
+      "participant": "api",
+      "from": 170,
+      "to": 415,
+      "type": "backend"
+    },
+    {
+      "participant": "redis",
+      "from": 200,
+      "to": 245,
+      "type": "database"
+    },
+    {
+      "participant": "mongodb",
+      "from": 270,
+      "to": 315,
+      "type": "database"
+    },
+    {
+      "participant": "redis",
+      "from": 345,
+      "to": 385,
+      "type": "database"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Client Request & Cache Check",
+      "items": [
+        "Store4Riders Next.js 16 frontend issues product query by slug",
+        "API attempts fast read from in-memory Redis cache using ioredis"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Cache Miss & MongoDB Fallback",
+      "items": [
+        "Redis returns nil (cache miss)",
+        "API queries MongoDB Atlas via Mongoose with .lean() for high throughput",
+        "Atlas returns the authoritative product document"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Cache Fill & Client Response",
+      "items": [
+        "API caches the serialized payload in Redis with TTL (SETEX)",
+        "Subsequent requests hit Redis in <2ms without touching MongoDB",
+        "API returns ApiResponse.success() to Next.js 16 frontend"
+      ]
+    }
+  ]
+}

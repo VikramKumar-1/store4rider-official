@@ -49,6 +49,6 @@ describe('CategoryService', () => {
     await CategoryService.createCategory({ name: 'New' });
     
     expect(CategoryRepository.create).toHaveBeenCalledWith(expect.objectContaining({ name: 'New', slug: 'new' }));
-    expect(redis.deleteCache).toHaveBeenCalledWith('category_tree');
+    expect(redis.deleteCache).toHaveBeenCalledWith('category_tree_v2');
   });
 });

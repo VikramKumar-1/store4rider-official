@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "fail",
+  "type": "sequence",
+  "quality": "showcase",
+  "specification": {
+    "path": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\sequence-cache-miss-request-20261010-132541\\candidate.json",
+    "sha256": "8b4ce56f885a62fc2b900b3cc74de97d0175978e92ff75c3c91940f603ea0067",
+    "bytes": 4191
+  },
+  "artifact": {
+    "path": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\sequence-cache-miss-request-20261010-132541\\cache-miss-request.html",
+    "sha256": "17f55b9e9699e9ba067dce3356ae378761e3b415f3588dd2fbd176cfddf190ef",
+    "bytes": 755415
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "fail"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/evidence-path-conflict",
+      "severity": "error",
+      "message": "browser-check will not replace the existing unowned evidence path \"C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\sequence-cache-miss-request-20261010-132541\\cache-miss-request.browser-check.json\".",
+      "subject": {
+        "artifact": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\sequence-cache-miss-request-20261010-132541\\cache-miss-request.html",
+        "evidencePath": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\sequence-cache-miss-request-20261010-132541\\cache-miss-request.browser-check.json"
+      },
+      "evidence": {
+        "reason": {
+          "code": "ownership-artifact-mismatch"
+        }
+      },
+      "supportedFixes": [
+        "move the conflicting file aside, or choose a separate --out-dir, then rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\sequence-cache-miss-request-20261010-132541\\cache-miss-request.finalize.json",
+    "summaryReceipt": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\sequence-cache-miss-request-20261010-132541\\cache-miss-request.finalize-summary.json",
+    "browserCheckReceipt": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\sequence-cache-miss-request-20261010-132541\\cache-miss-request.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.0.1",
+    "availableVersion": "3.0.1",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-10T08:04:19.025Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3274
+}

@@ -299,7 +299,8 @@ These rules apply to **every query, component, and API call** you write:
   - Returns validation report: success count, error rows with reasons
   - Wrap in MongoDB transaction for atomicity
 - [x] **2.4** Enhance Category model
-  - Add fields: `bannerImage`, `metaTitle`, `metaDescription`, `metaKeywords`, `videoUrl`, `slug`
+  - Add fields: `bannerImage`, `metaTitle`, `metaDescription`, `metaKeywords`, `videoUrl`, `slug`, `includeInMenu`, `menuGroup`, `heroCategoryIds`, `badge`, `badgeColor`
+  - Dynamic hero category card resolution in `CategoryService.buildTree()` (explicit selection -> child categories -> sibling categories)
   - Update shared types and validation
 - [x] **2.5** Build bestseller tracking
   - Increment `salesCount` on product when order is delivered
@@ -310,10 +311,15 @@ These rules apply to **every query, component, and API call** you write:
 - [x] **2.6** Build admin product management UI
   - Product list page with search, filters (status, category, brand), bulk actions
   - Product create/edit form (all fields including new ones)
+  - Contextual Storefront Card preview placed in Media & Images tab (where cover thumbnail is managed) and in Final Submit Review & Publish modal (preventing tab clutter)
   - CSV upload page for bulk stock/pricing update with preview & error report
 - [x] **2.7** Build admin category management UI
-  - Category tree view with drag-to-reorder
-  - Category create/edit form with banner upload, SEO fields
+  - Category tree view with drag-to-reorder & status badges (`In Menu` / `Hidden from Menu`, `Thumbnail`, `Hero Cards`)
+  - Submenu visibility toggle (`includeInMenu`), submenu group, and badge tags
+  - Category thumbnail image upload with WebP compression
+  - Hero section showcase card picker (3-card layout as per storefront design)
+  - Subcategory tiles component matching 3-column mobile & desktop hero cards with safe route resolution
+  - Dynamic navbar megamenu integration honoring submenu visibility and newly created subcategories
 - [x] **2.8** Build admin brand management UI
   - Brand list, create/edit form with logo upload
 - [x] **2.9** Build frontend category landing pages
@@ -1409,7 +1415,7 @@ Once PayU + COD are production-solid:
   - `Organization` schema on homepage
   - `Product` schema on PDP (name, price, availability, reviews, images)
   - `BreadcrumbList` on all pages with breadcrumbs
-  - `BlogPosting` on blog detail pages
+  - [x] `BlogPosting` on blog detail pages (`https://schema.org/BlogPosting` with verified author, social handles, speakable, and article metadata)
   - `FAQPage` on FAQ/support page
 - [ ] **11.5** Add Open Graph + Twitter Card meta tags
   - All pages: title, description, image, url, type
@@ -1826,7 +1832,7 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
 
 ## Phase 15 — Data Migration
 
-**Status:** ⬜ NOT STARTED
+**Status:** 🔄 IN PROGRESS
 **Modules:** Website Migration (23)
 **Depends on:** Phase 2 (brand model, enhanced product model)
 
@@ -1834,20 +1840,20 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
 
 ### Tasks
 
-- [ ] **15.1** Build comprehensive migration script
+- [x] **15.1** Build comprehensive migration script
   - Read all Magento CSV data
   - Map every field to new schema (including new fields from Phase 2)
   - Generate detailed report: total records, successful, failed, warnings
   - Failed records saved to `migration-errors.csv` with row number and error reason
-- [ ] **15.2** Migrate product data
+- [x] **15.2** Migrate product data
   - All products from Magento CSVs → MongoDB
   - Map prices, images, variants, related SKUs, upsell SKUs
   - Verify image URLs resolve to S3
-- [ ] **15.3** Auto-generate category tree
+- [x] **15.3** Auto-generate category tree
   - Parse `magentoCategories` strings (e.g., "Riding Gear/Helmets/Full Face")
   - Build hierarchical category tree with `parentId` references
   - Assign `categoryId` on each product
-- [ ] **15.4** Populate brand data
+- [x] **15.4** Populate brand data
   - Extract unique brands from products
   - Create Brand records
   - Link products to Brand IDs

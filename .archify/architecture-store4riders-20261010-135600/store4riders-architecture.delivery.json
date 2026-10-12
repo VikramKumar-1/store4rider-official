@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "aa1735b8-5167-43a0-862e-e11bed856c7c",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\architecture-store4riders-20261010-135600\\candidate.json",
+  "output": "C:\\Users\\vikur\\Downloads\\store4riders\\.archify\\architecture-store4riders-20261010-135600\\store4riders-architecture.html",
+  "specification": {
+    "sha256": "a204e1e3f453262e0dfa349376e5e8f5b0f26e3a663bc4333f055fa0bbebf4eb",
+    "bytes": 5322
+  },
+  "artifact": {
+    "sha256": "26479625ff798431e91d13ccdd19ea41f630d37cf80fad11a8b8781fd8ffccb3",
+    "bytes": 767204
+  }
+}
