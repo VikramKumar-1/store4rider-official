@@ -37,6 +37,7 @@ export interface IBackendProduct {
   notifyOnStockBelow?: number;
   countryOfManufacture?: string;
   taxClassName?: string;
+  hsnCode?: string;
   visibility?: string;
   status?: "draft" | "published" | "archived";
   isFeatured?: boolean;
@@ -184,6 +185,35 @@ export function useProductReviews(productId: string) {
       return response.data.data;
     },
     enabled: !!productId,
+  });
+}
+
+/**
+ * Submit a new review for a product.
+ */
+export function useAddReview(productId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (reviewData: {
+      productId: string;
+      rating: number;
+      comment: string;
+      userName?: string;
+      userEmail?: string;
+      city?: string;
+      title?: string;
+      website?: string;
+    }) => {
+      const response = await apiClient.post<{ data: any }>("/reviews", reviewData);
+      return response.data.data;
+    },
+    onSuccess: (_data, variables) => {
+      const targetId = variables.productId || productId;
+      if (targetId) {
+        queryClient.invalidateQueries({ queryKey: ["product-reviews", targetId] });
+      }
+      queryClient.invalidateQueries({ queryKey: ["product"] });
+    },
   });
 }
 

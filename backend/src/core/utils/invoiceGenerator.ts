@@ -25,6 +25,18 @@ function numberToWords(num: number): string {
 
 export class InvoiceGenerator {
   static async generateInvoiceBuffer(order: IOrder): Promise<Buffer> {
+    const { SettingRepository } = await import("../../modules/settings/setting.repository");
+    const settings = await SettingRepository.getSettings();
+    const storeName = settings.legalBusinessName || "Store4Riders";
+    const storeAddress = settings.storeOriginAddress || "Warehouse";
+    const storeCity = settings.storeOriginCity || "Pune";
+    const storeState = settings.storeOriginState || "Maharashtra";
+    const storePin = settings.storeOriginPincode || "411001";
+    const storeGstin = settings.gstin || "Unregistered / In Progress";
+
+    const buyerState = (order.shippingAddress.state || "").trim().toLowerCase();
+    const isInterState = buyerState !== "" && storeState !== "" && buyerState !== storeState.toLowerCase();
+
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 40, size: "A4" });
@@ -49,16 +61,15 @@ export class InvoiceGenerator {
         
         doc.fontSize(26).font("Helvetica-Bold").fillColor(textColor).text("TAX INVOICE", { align: "right" });
         
-        // Shifted Sold By down to avoid logo overlap
+        // Sold By / Origin from Settings
         doc.fontSize(9).font("Helvetica-Bold").text("SOLD BY / DISPATCHED FROM:", 40, 85);
-        doc.font("Helvetica").text("Store4Riders, 123 Rider Street", 40, 97);
-        doc.text("Moto City, Maharashtra - 411001", 40, 109);
-        doc.text("GSTIN: 27AAAAA0000A1Z5", 40, 121);
+        doc.font("Helvetica").text(`${storeName}, ${storeAddress}`, 40, 97);
+        doc.text(`${storeCity}, ${storeState} - ${storePin}`, 40, 109);
+        doc.text(`GSTIN: ${storeGstin}`, 40, 121);
         
         doc.moveDown(2);
 
         // --- TOP INFO BOXES ---
-        // Shifted top boxes down to accommodate the header
         let currentY = 150;
         const startX = 40;
         const fullWidth = 515;
@@ -72,15 +83,26 @@ export class InvoiceGenerator {
         doc.moveTo(startX + col1Width + col2Width, currentY).lineTo(startX + col1Width + col2Width, currentY + 80).stroke();
 
         // Box 1: BILL TO
-        doc.fontSize(9).font("Helvetica-Bold").text("BILL TO:", startX + 10, currentY + 10);
-        doc.font("Helvetica").text(order.shippingAddress.fullName, startX + 10, currentY + 25);
-        doc.text(order.shippingAddress.addressLine1, startX + 10, currentY + 38);
+        doc.fontSize(9).font("Helvetica-Bold").text("BILL TO:", startX + 10, currentY + 8);
+        doc.font("Helvetica").fontSize(8.5).text(order.shippingAddress.fullName, startX + 10, currentY + 21);
+        
+        let billToY = currentY + 33;
+        if (order.businessName) {
+          doc.font("Helvetica-Bold").fontSize(7.5).text(`Company: ${order.businessName}`, startX + 10, billToY);
+          billToY += 10;
+        }
+        if (order.customerGstin) {
+          doc.font("Helvetica-Bold").fontSize(7.5).text(`Buyer GSTIN: ${order.customerGstin}`, startX + 10, billToY);
+          billToY += 10;
+        }
+        doc.font("Helvetica").fontSize(8).text(order.shippingAddress.addressLine1, startX + 10, billToY, { width: 200, height: 10, ellipsis: true });
+        billToY += 10;
         const cityState = `${order.shippingAddress.city}, ${order.shippingAddress.state} - ${order.shippingAddress.pincode}`;
-        doc.text(cityState, startX + 10, currentY + 51);
-        doc.text(`Phone: ${order.shippingAddress.phone}`, startX + 10, currentY + 64);
+        doc.text(cityState, startX + 10, billToY);
+        doc.text(`Phone: ${order.shippingAddress.phone}`, startX + 10, billToY + 10);
 
         // Box 2: INVOICE / ORDER ID
-        doc.font("Helvetica-Bold").text("INVOICE NO:", startX + col1Width + 10, currentY + 10);
+        doc.font("Helvetica-Bold").fontSize(9).text("INVOICE NO:", startX + col1Width + 10, currentY + 10);
         const invoiceNo = `INV-${new Date().getFullYear()}-${order.orderNumber?.slice(-5) || "000"}`;
         doc.font("Helvetica").text(invoiceNo, startX + col1Width + 10, currentY + 25);
         
@@ -102,23 +124,39 @@ export class InvoiceGenerator {
         // --- TABLE HEADER ---
         doc.rect(startX, currentY, fullWidth, 25).fillAndStroke(headerBgColor, borderColor);
         
-        // Exact Column X Coordinates to perfectly fit 515 width
-        const cols = {
+        // Exact Column X Coordinates
+        const cols = isInterState ? {
           sr: 40,
-          desc: 70,    // +30 width
-          qty: 235,    // +165 width
-          rate: 265,   // +30 width
-          disc: 315,   // +50 width
-          taxVal: 360, // +45 width
-          cgst: 415,   // +55 width
-          sgst: 460,   // +45 width
-          total: 505   // +45 width, total width 50
+          desc: 70,
+          qty: 235,
+          rate: 265,
+          disc: 315,
+          taxVal: 360,
+          cgst: 415, // Used as IGST column
+          sgst: 460, // Unused spacer
+          total: 480
+        } : {
+          sr: 40,
+          desc: 70,
+          qty: 235,
+          rate: 265,
+          disc: 315,
+          taxVal: 360,
+          cgst: 415,
+          sgst: 460,
+          total: 505
         };
 
         const drawVerticalLines = (yStart: number, yEnd: number) => {
-          [cols.desc, cols.qty, cols.rate, cols.disc, cols.taxVal, cols.cgst, cols.sgst, cols.total].forEach(x => {
-            doc.moveTo(x, yStart).lineTo(x, yEnd).strokeColor(borderColor).stroke();
-          });
+          if (isInterState) {
+            [cols.desc, cols.qty, cols.rate, cols.disc, cols.taxVal, cols.cgst, cols.total].forEach(x => {
+              doc.moveTo(x, yStart).lineTo(x, yEnd).strokeColor(borderColor).stroke();
+            });
+          } else {
+            [cols.desc, cols.qty, cols.rate, cols.disc, cols.taxVal, cols.cgst, cols.sgst, cols.total].forEach(x => {
+              doc.moveTo(x, yStart).lineTo(x, yEnd).strokeColor(borderColor).stroke();
+            });
+          }
           doc.moveTo(startX, yStart).lineTo(startX, yEnd).stroke();
           doc.moveTo(startX + fullWidth, yStart).lineTo(startX + fullWidth, yEnd).stroke();
         };
@@ -132,9 +170,14 @@ export class InvoiceGenerator {
         doc.text("RATE (Rs)", cols.rate, currentY + 8, { width: 50, align: "center" });
         doc.text("DISC", cols.disc, currentY + 8, { width: 45, align: "center" });
         doc.text("TAX VAL", cols.taxVal, currentY + 8, { width: 55, align: "center" });
-        doc.text("CGST", cols.cgst, currentY + 8, { width: 45, align: "center" });
-        doc.text("SGST", cols.sgst, currentY + 8, { width: 45, align: "center" });
-        doc.text("TOTAL", cols.total, currentY + 8, { width: 50, align: "center" });
+        if (isInterState) {
+          doc.text("IGST", cols.cgst, currentY + 8, { width: 65, align: "center" });
+          doc.text("TOTAL", cols.total, currentY + 8, { width: 75, align: "center" });
+        } else {
+          doc.text("CGST", cols.cgst, currentY + 8, { width: 45, align: "center" });
+          doc.text("SGST", cols.sgst, currentY + 8, { width: 45, align: "center" });
+          doc.text("TOTAL", cols.total, currentY + 8, { width: 50, align: "center" });
+        }
 
         currentY += 25;
         doc.moveTo(startX, currentY).lineTo(startX + fullWidth, currentY).stroke();
@@ -143,6 +186,7 @@ export class InvoiceGenerator {
         let totalTaxable = 0;
         let totalCgst = 0;
         let totalSgst = 0;
+        let totalIgst = 0;
         
         doc.font("Helvetica").fontSize(8);
         
@@ -152,27 +196,47 @@ export class InvoiceGenerator {
           const rate = item.unitPrice;
           const qty = item.quantity;
           const discount = 0; 
-          const taxVal = (rate - discount) * qty;
+          const gstPercent = item.taxRate || order.pricing.taxRate || 18;
           
-          const gstPercent = (item as any).taxRate || order.pricing.taxRate || 18;
-          const taxAmt = (item as any).taxAmount || (taxVal * (gstPercent / 100));
-          const cgst = taxAmt / 2;
-          const sgst = taxAmt / 2;
-          const totalAmt = taxVal + taxAmt;
+          // If pricing is inclusive:
+          const isInclusive = settings.gstPricingMode !== "exclusive";
+          let taxVal = (rate - discount) * qty;
+          let taxAmt = item.taxAmount || (taxVal * (gstPercent / 100));
+          let totalAmt = taxVal + (isInclusive ? 0 : taxAmt);
+
+          if (isInclusive) {
+            taxVal = totalAmt - taxAmt;
+          }
+
+          const hsnCode = item.hsnCode || "6506";
 
           totalTaxable += taxVal;
-          totalCgst += cgst;
-          totalSgst += sgst;
+          if (isInterState) {
+            totalIgst += taxAmt;
+          } else {
+            const cgst = taxAmt / 2;
+            const sgst = taxAmt / 2;
+            totalCgst += cgst;
+            totalSgst += sgst;
+          }
 
           doc.text(`${i + 1}`, cols.sr, currentY + 8, { width: 30, align: "center" });
-          doc.text(`${item.name} (HSN: 8708)`, cols.desc + 5, currentY + 8, { width: 160, height: 12, ellipsis: true });
+          doc.text(`${item.name} (HSN: ${hsnCode})`, cols.desc + 5, currentY + 8, { width: 160, height: 12, ellipsis: true });
           doc.text(`${qty} NOS`, cols.qty, currentY + 8, { width: 30, align: "center" });
           doc.text(pdfPrice(rate), cols.rate, currentY + 8, { width: 45, align: "right" });
           doc.text(pdfPrice(discount), cols.disc, currentY + 8, { width: 40, align: "right" });
           doc.text(pdfPrice(taxVal), cols.taxVal, currentY + 8, { width: 50, align: "right" });
-          doc.text(pdfPrice(cgst) + ` (${gstPercent/2}%)`, cols.cgst, currentY + 8, { width: 40, align: "right" });
-          doc.text(pdfPrice(sgst) + ` (${gstPercent/2}%)`, cols.sgst, currentY + 8, { width: 40, align: "right" });
-          doc.text(pdfPrice(totalAmt), cols.total, currentY + 8, { width: 45, align: "right" });
+
+          if (isInterState) {
+            doc.text(pdfPrice(taxAmt) + ` (${gstPercent}%)`, cols.cgst, currentY + 8, { width: 60, align: "right" });
+            doc.text(pdfPrice(totalAmt), cols.total, currentY + 8, { width: 70, align: "right" });
+          } else {
+            const cgst = taxAmt / 2;
+            const sgst = taxAmt / 2;
+            doc.text(pdfPrice(cgst) + ` (${gstPercent/2}%)`, cols.cgst, currentY + 8, { width: 40, align: "right" });
+            doc.text(pdfPrice(sgst) + ` (${gstPercent/2}%)`, cols.sgst, currentY + 8, { width: 40, align: "right" });
+            doc.text(pdfPrice(totalAmt), cols.total, currentY + 8, { width: 45, align: "right" });
+          }
 
           drawVerticalLines(currentY, currentY + rowHeight);
           currentY += rowHeight;
@@ -184,8 +248,6 @@ export class InvoiceGenerator {
           const rowHeight = 25;
           const rate = order.pricing.shipping;
           const taxVal = rate;
-          const cgst = 0; 
-          const sgst = 0;
           const totalAmt = taxVal;
           
           totalTaxable += taxVal;
@@ -196,9 +258,15 @@ export class InvoiceGenerator {
           doc.text(pdfPrice(rate), cols.rate, currentY + 8, { width: 45, align: "right" });
           doc.text(pdfPrice(0), cols.disc, currentY + 8, { width: 40, align: "right" });
           doc.text(pdfPrice(taxVal), cols.taxVal, currentY + 8, { width: 50, align: "right" });
-          doc.text(pdfPrice(cgst), cols.cgst, currentY + 8, { width: 40, align: "right" });
-          doc.text(pdfPrice(sgst), cols.sgst, currentY + 8, { width: 40, align: "right" });
-          doc.text(pdfPrice(totalAmt), cols.total, currentY + 8, { width: 45, align: "right" });
+
+          if (isInterState) {
+            doc.text(pdfPrice(0), cols.cgst, currentY + 8, { width: 60, align: "right" });
+            doc.text(pdfPrice(totalAmt), cols.total, currentY + 8, { width: 70, align: "right" });
+          } else {
+            doc.text(pdfPrice(0), cols.cgst, currentY + 8, { width: 40, align: "right" });
+            doc.text(pdfPrice(0), cols.sgst, currentY + 8, { width: 40, align: "right" });
+            doc.text(pdfPrice(totalAmt), cols.total, currentY + 8, { width: 45, align: "right" });
+          }
 
           drawVerticalLines(currentY, currentY + rowHeight);
           currentY += rowHeight;
@@ -213,21 +281,27 @@ export class InvoiceGenerator {
 
         doc.fillColor(textColor).fontSize(9).font("Helvetica-Bold");
         
-        // Row 1 (Taxable + SGST)
-        doc.text("TOTAL TAXABLE VALUE:", startX + 10, currentY + 6);
-        doc.text(`Rs. ${pdfPrice(totalTaxable)}`, startX + 140, currentY + 6);
-        
-        doc.text("TOTAL SGST:", startX + 240, currentY + 6);
-        doc.text(`Rs. ${pdfPrice(totalSgst)}`, startX + 320, currentY + 6);
+        if (isInterState) {
+          doc.text("TOTAL TAXABLE VALUE:", startX + 10, currentY + 6);
+          doc.text(`Rs. ${pdfPrice(totalTaxable)}`, startX + 140, currentY + 6);
+          
+          doc.text("TOTAL IGST:", startX + 240, currentY + 6);
+          doc.text(`Rs. ${pdfPrice(totalIgst)}`, startX + 320, currentY + 6);
+        } else {
+          doc.text("TOTAL TAXABLE VALUE:", startX + 10, currentY + 6);
+          doc.text(`Rs. ${pdfPrice(totalTaxable)}`, startX + 140, currentY + 6);
+          
+          doc.text("TOTAL SGST:", startX + 240, currentY + 6);
+          doc.text(`Rs. ${pdfPrice(totalSgst)}`, startX + 320, currentY + 6);
 
-        // Row 2 (CGST + Grand Total)
-        doc.text("TOTAL CGST:", startX + 10, currentY + 26);
-        doc.text(`Rs. ${pdfPrice(totalCgst)}`, startX + 140, currentY + 26);
+          doc.text("TOTAL CGST:", startX + 10, currentY + 26);
+          doc.text(`Rs. ${pdfPrice(totalCgst)}`, startX + 140, currentY + 26);
+        }
         
         doc.fontSize(10).font("Helvetica-Bold");
         doc.text("GRAND TOTAL:", startX + 350, currentY + 26);
         
-        const finalTotal = order.pricing.total || (totalTaxable + totalCgst + totalSgst - order.pricing.discount);
+        const finalTotal = order.pricing.total || (totalTaxable + (isInterState ? totalIgst : (totalCgst + totalSgst)) - order.pricing.discount);
         doc.text(`Rs. ${pdfPrice(finalTotal)}`, startX + 430, currentY + 26, { width: 75, align: "right" });
 
         currentY += 40;
@@ -247,7 +321,7 @@ export class InvoiceGenerator {
         doc.font("Helvetica-Bold").text("TERMS & CONDITIONS: ", startX + 10, currentY + 25, { continued: true });
         doc.font("Helvetica").text(`1. Returns accepted within 7 days of delivery. 2. Warranty claims as per manufacturer policy. 3. E & OE.`);
         
-        doc.text(`Store4Riders | GSTIN: 27AAAAA0000A1Z5`, startX + 10, currentY + 40);
+        doc.text(`${storeName} | GSTIN: ${storeGstin}`, startX + 10, currentY + 40);
 
         doc.end();
       } catch (error) {

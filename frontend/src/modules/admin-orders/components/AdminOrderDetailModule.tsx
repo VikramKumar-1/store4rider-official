@@ -280,6 +280,18 @@ export const AdminOrderDetailModule = ({ orderId }: { orderId: string }) => {
                 <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">Name</span>
                 <span className="font-bold text-neutral-900">{order.shippingAddress?.fullName}</span>
               </div>
+              {(order as any).businessName && (
+                <div>
+                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">Company (B2B)</span>
+                  <span className="font-bold text-neutral-900">{(order as any).businessName}</span>
+                </div>
+              )}
+              {(order as any).customerGstin && (
+                <div>
+                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">Buyer GSTIN</span>
+                  <span className="font-mono text-xs font-bold text-brand bg-brand/5 px-2 py-0.5 rounded border border-brand/20 inline-block">{(order as any).customerGstin}</span>
+                </div>
+              )}
               <div>
                 <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">Phone</span>
                 <span className="text-neutral-800">{order.shippingAddress?.phone}</span>

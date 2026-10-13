@@ -20,37 +20,92 @@ export const metadata: Metadata = {
  */
 export default async function Home() {
   let backendProducts = [];
+  let storeSettings: any = null;
+
   try {
-    // Fetch products from our backend API with sufficient limit for all homepage sections
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
     const fetchUrl = baseUrl.includes('/v1') ? `${baseUrl}/products` : `${baseUrl}/v1/products`;
     
-    // Warn if trying to fetch from localhost during a production build (like on Vercel)
-    if (process.env.NODE_ENV === 'production' && baseUrl.includes('localhost')) {
-      console.warn("⚠️ WARNING: Fetching from localhost during production build. Did you forget to set NEXT_PUBLIC_API_URL in Vercel?");
-    }
-    
-    console.log("Building homepage, fetching products from:", fetchUrl);
-    
     const res = await fetch(`${fetchUrl}?limit=50`, { 
-      next: { revalidate: 60 }, // Use ISR (revalidate every 60s) instead of no-store to fix build error
+      next: { revalidate: 60 },
       signal: AbortSignal.timeout(3500),
     });
     
     if (res.ok) {
       const data = await res.json();
       backendProducts = data?.data?.items || [];
-      console.log(`Successfully fetched ${backendProducts.length} products for homepage.`);
-    } else {
-      let errorBody = "";
-      try {
-        errorBody = await res.text();
-      } catch (e) {}
-      console.error(`Failed to fetch products: ${res.status} ${res.statusText}. URL: ${fetchUrl}. Body: ${errorBody}`);
+    }
+
+    // Fetch public store contact & SEO settings
+    const settingsUrl = baseUrl.includes('/v1') ? `${baseUrl}/settings/public` : `${baseUrl}/v1/settings/public`;
+    const settingsRes = await fetch(settingsUrl, {
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(2500),
+    });
+    if (settingsRes.ok) {
+      const sData = await settingsRes.json();
+      storeSettings = sData?.data || null;
     }
   } catch (error) {
-    console.error(`Network error fetching products from ${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}:`, error);
+    // Fallback gracefully
   }
 
-  return <HomepageModule backendProducts={backendProducts} />;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
+  const activePhone = storeSettings?.supportPhone || storeSettings?.whatsappNumber || storeSettings?.storeOriginPhone || process.env.NEXT_PUBLIC_STORE_PHONE;
+  const activeEmail = storeSettings?.supportEmail || "contact@store4riders.com";
+  const activeReturnDays = storeSettings?.returnWindowDays ?? 7;
+  const activeFb = storeSettings?.facebookUrl || "https://www.facebook.com/store4riders/";
+  const activeInsta = storeSettings?.instagramUrl || "https://www.instagram.com/store4riders/";
+  const activeYt = storeSettings?.youtubeUrl || "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg";
+
+  const onlineStoreSchema = {
+    "@context": "https://schema.org",
+    "@type": "OnlineStore",
+    "@id": `${siteUrl}/#store`,
+    name: storeSettings?.legalBusinessName || "Store4Riders",
+    url: siteUrl,
+    logo: `${siteUrl}/Store4riders-Logo.jpg`,
+    image: `${siteUrl}/Store4riders-Logo.jpg`,
+    description: "India's leading destination for certified motorcycle riding helmets, jackets, boots, gloves, and riding accessories. Top brands, 100% authentic gear with fast shipping.",
+    ...(activePhone ? { telephone: activePhone } : {}),
+    email: activeEmail,
+    currenciesAccepted: "INR",
+    paymentAccepted: "Cash on Delivery, Credit Card, Debit Card, UPI, Net Banking, EMI",
+    priceRange: "₹₹",
+    address: {
+      "@type": "PostalAddress",
+      ...(storeSettings?.storeOriginAddress ? { streetAddress: storeSettings.storeOriginAddress } : {}),
+      addressLocality: storeSettings?.storeOriginCity || "Pune",
+      addressRegion: storeSettings?.storeOriginState || "Maharashtra",
+      postalCode: storeSettings?.storeOriginPincode || "411001",
+      addressCountry: "IN",
+    },
+    contactPoint: {
+      "@type": "ContactPoint",
+      ...(activePhone ? { telephone: activePhone } : {}),
+      email: activeEmail,
+      contactType: "customer service",
+      areaServed: "IN",
+      availableLanguage: ["English", "Hindi"],
+    },
+    hasMerchantReturnPolicy: {
+      "@type": "MerchantReturnPolicy",
+      applicableCountry: "IN",
+      returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+      merchantReturnDays: activeReturnDays,
+      returnMethod: "https://schema.org/ReturnByMail",
+      returnFees: "https://schema.org/FreeReturn",
+    },
+    sameAs: [activeFb, activeInsta, activeYt].filter(Boolean),
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(onlineStoreSchema) }}
+      />
+      <HomepageModule backendProducts={backendProducts} />
+    </>
+  );
 }

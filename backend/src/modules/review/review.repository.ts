@@ -8,11 +8,25 @@ export class ReviewRepository {
   }
 
   static async findByProductId(productId: string): Promise<IReview[]> {
-    return ReviewModel.find({ productId }).sort({ createdAt: -1 }).lean().exec() as unknown as IReview[];
+    return ReviewModel.find({ productId })
+      .sort({ createdAt: -1 })
+      .select("-userEmail")
+      .lean()
+      .exec() as unknown as IReview[];
   }
 
   static async findByUserAndProduct(userId: string, productId: string): Promise<IReview | null> {
     return ReviewModel.findOne({ userId, productId }).lean().exec() as unknown as IReview | null;
+  }
+
+  static async calculateRatingStats(productId: string): Promise<{ avgRating: number; reviewCount: number }> {
+    const reviews = await ReviewModel.find({ productId }).select("rating").lean().exec();
+    if (!reviews || reviews.length === 0) {
+      return { avgRating: 0, reviewCount: 0 };
+    }
+    const total = reviews.reduce((sum, r: any) => sum + (r.rating || 0), 0);
+    const avgRating = Number((total / reviews.length).toFixed(1));
+    return { avgRating, reviewCount: reviews.length };
   }
 
   static async getStoreReviews(): Promise<IStoreReview[]> {

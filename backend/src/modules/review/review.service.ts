@@ -16,6 +16,17 @@ export class ReviewService {
     }
 
     const review = await ReviewRepository.create({ ...data, userId });
+
+    // Recalculate average rating & review count for the product
+    try {
+      const stats = await ReviewRepository.calculateRatingStats(data.productId!);
+      const { ProductRepository } = await import("../product/product.repository");
+      await ProductRepository.updateRatingStats(data.productId!, stats.avgRating, stats.reviewCount);
+      logger.info(`Updated rating stats for product ${data.productId}`, stats);
+    } catch (err: any) {
+      logger.error("Failed to update product rating stats", { error: err.message, productId: data.productId });
+    }
+
     return review;
   }
 

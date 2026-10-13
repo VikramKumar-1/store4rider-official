@@ -4,12 +4,20 @@ import { IReview, IStoreReview } from "@store4riders/shared-types";
 const reviewSchema = new Schema<IReview>(
   {
     userId: { type: String, required: true },
+    userName: { type: String, required: true },
+    userEmail: { type: String },
+    city: { type: String, required: true },
     productId: { type: String, required: true, index: true },
     rating: { type: Number, required: true, min: 1, max: 5 },
+    title: { type: String },
     comment: { type: String, required: true },
+    isVerified: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
+
+reviewSchema.index({ productId: 1, createdAt: -1 });
+reviewSchema.index({ userId: 1, productId: 1 });
 
 export const ReviewModel = mongoose.models.Review || mongoose.model<IReview>("Review", reviewSchema);
 

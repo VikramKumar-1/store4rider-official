@@ -22,6 +22,8 @@ export const createOrderSchema = z.object({
     quantity: z.number().min(1),
   })).optional(),
   idempotencyKey: z.string().nullable().optional(),
+  customerGstin: z.string().nullable().optional(),
+  businessName: z.string().nullable().optional(),
 }).refine(data => data.shippingAddressId || data.shippingAddress, {
   message: "Either shippingAddressId or shippingAddress is required",
   path: ["shippingAddressId"]

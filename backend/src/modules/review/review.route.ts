@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ReviewController } from "./review.controller";
+import { checkReviewRateLimit } from "../../core/middlewares/rateLimiter";
 
 /**
  * @swagger
@@ -34,6 +35,8 @@ export async function reviewRouter(req: NextRequest, routePath: string[]): Promi
   const pathLen = routePath.length;
 
   if (method === "POST" && pathLen === 0) {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "127.0.0.1";
+    await checkReviewRateLimit(ip);
     return await ReviewController.create(req);
   }
 

@@ -119,7 +119,7 @@ export const CheckoutShippingDelivery = ({
                 setEditingAddressId?.(null);
                 onToggleAddressForm(true);
               }}
-              className="border border-brand text-brand hover:bg-brand hover:text-white text-xs font-bold uppercase px-3 py-1.5 transition-colors flex items-center gap-1 shadow-xs"
+              className="border border-banner text-banner hover:bg-banner hover:text-white text-xs font-bold uppercase px-3 py-1.5 transition-colors flex items-center gap-1 shadow-xs"
             >
               <span>+</span> ADD A NEW ADDRESS
             </button>
@@ -240,7 +240,7 @@ export const CheckoutShippingDelivery = ({
                 placeholder="House/Flat No., Building Name, Street"
                 value={formData.address}
                 onChange={handleInputChange}
-                className={`w-full border ${fieldErrors.address ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
+                className={`w-full border ${fieldErrors.address ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-banner'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
               />
               {fieldErrors.address && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.address}</span>}
             </div>
@@ -271,7 +271,7 @@ export const CheckoutShippingDelivery = ({
                       required
                       value={formData.state}
                       onChange={handleInputChange}
-                      className={`appearance-none w-full border ${fieldErrors.state ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-3 py-3 text-base md:text-sm text-neutral-900 bg-white focus:outline-none transition-colors`}
+                      className={`appearance-none w-full border ${fieldErrors.state ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-banner'} rounded-none px-3 py-3 text-base md:text-sm text-neutral-900 bg-white focus:outline-none transition-colors`}
                     >
                       <option value="" disabled>Select State</option>
                       {indianStates.map(s => (
@@ -290,7 +290,7 @@ export const CheckoutShippingDelivery = ({
                     placeholder="Enter your state or province"
                     value={formData.state}
                     onChange={handleInputChange}
-                    className={`w-full border ${fieldErrors.state ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
+                    className={`w-full border ${fieldErrors.state ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-banner'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
                   />
                 )}
                 {fieldErrors.state && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.state}</span>}
@@ -310,7 +310,7 @@ export const CheckoutShippingDelivery = ({
                   placeholder="Enter your city"
                   value={formData.city}
                   onChange={handleInputChange}
-                  className={`w-full border ${fieldErrors.city ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
+                  className={`w-full border ${fieldErrors.city ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-banner'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
                 />
                 {fieldErrors.city && <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.city}</span>}
               </div>
@@ -329,7 +329,7 @@ export const CheckoutShippingDelivery = ({
                   placeholder="Enter postal / zip code"
                   value={formData.pinCode}
                   onChange={handleInputChange}
-                  className={`w-full border ${fieldErrors.pinCode ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-[#78350F]'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
+                  className={`w-full border ${fieldErrors.pinCode ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-banner'} rounded-none px-4 py-3 text-base md:text-sm text-neutral-900 focus:outline-none transition-colors`}
                 />
                 {fieldErrors.pinCode ? (
                   <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.pinCode}</span>
@@ -389,10 +389,10 @@ export const CheckoutShippingDelivery = ({
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="border border-[#78350F] bg-amber-50/20 ring-1 ring-[#78350F] rounded-none p-4 transition-all flex items-center justify-between">
+          <div className="border border-banner bg-orange-50/20 ring-1 ring-banner rounded-none p-4 transition-all flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#78350F]/10 flex items-center justify-center shrink-0">
-                <TruckIcon className="w-4 h-4 text-[#78350F]" />
+              <div className="w-8 h-8 rounded-full bg-banner/10 flex items-center justify-center shrink-0">
+                <TruckIcon className="w-4 h-4 text-banner" />
               </div>
 
               <div className="flex flex-col">
@@ -434,7 +434,7 @@ export const CheckoutShippingDelivery = ({
         {/* Mobile Total Display */}
         <div className="flex flex-col lg:hidden min-w-0">
           <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Total</span>
-          <span className="text-lg font-black text-[#AB1509] leading-none line-clamp-1">
+          <span className="text-lg font-black text-banner leading-none line-clamp-1">
             {total !== undefined ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(total) : "₹0.00"}
           </span>
         </div>
@@ -453,7 +453,7 @@ export const CheckoutShippingDelivery = ({
           type="button"
           onClick={handleContinueToPayment}
           disabled={isAddingAddress || isNotServiceable || isCheckingServiceability}
-          className="flex-1 lg:flex-none lg:w-auto bg-brand hover:bg-red-800 text-white font-bold tracking-wider text-xs uppercase py-3.5 lg:py-4 px-4 md:px-8 rounded-none shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed whitespace-nowrap"
+          className="flex-1 lg:flex-none lg:w-auto bg-banner hover:bg-orange-600 text-white font-bold tracking-wider text-xs uppercase py-3.5 lg:py-4 px-4 md:px-8 rounded-none shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed whitespace-nowrap"
         >
           <span className="sm:hidden">
             {isAddingAddress ? "SAVING..." : (isCheckingServiceability ? "CHECKING..." : (showAddressForm ? (editingAddressId ? "UPDATE & CONTINUE" : "SAVE & CONTINUE") : "CONTINUE"))}

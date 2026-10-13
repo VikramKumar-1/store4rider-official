@@ -59,6 +59,14 @@ export const metadata: Metadata = {
     title: "Store4Riders | Premium Motorcycle Riding Gear",
     description: "Certified motorcycle riding helmets, jackets, boots, gloves & accessories.",
   },
+  icons: {
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
@@ -85,18 +93,43 @@ export default function RootLayout({
         },
       },
       {
-        "@type": "Organization",
+        "@type": ["Organization", "OnlineStore"],
         "@id": `${siteUrl}/#organization`,
         name: "Store4Riders",
         url: siteUrl,
-        logo: `${siteUrl}/images/logo.png`,
+        logo: `${siteUrl}/Store4riders-Logo.jpg`,
+        image: `${siteUrl}/Store4riders-Logo.jpg`,
+        description: "India's leading destination for certified motorcycle riding helmets, jackets, boots, gloves, and riding accessories.",
+        ...(process.env.NEXT_PUBLIC_STORE_PHONE ? { telephone: process.env.NEXT_PUBLIC_STORE_PHONE } : {}),
+        email: "contact@store4riders.com",
+        currenciesAccepted: "INR",
+        paymentAccepted: "Cash on Delivery, Credit Card, Debit Card, UPI, Net Banking, EMI",
+        priceRange: "₹₹",
+        address: {
+          "@type": "PostalAddress",
+          addressCountry: "IN",
+        },
         contactPoint: {
           "@type": "ContactPoint",
-          telephone: "+91-9876543210",
+          ...(process.env.NEXT_PUBLIC_STORE_PHONE ? { telephone: process.env.NEXT_PUBLIC_STORE_PHONE } : {}),
+          email: "contact@store4riders.com",
           contactType: "customer service",
           areaServed: "IN",
           availableLanguage: ["English", "Hindi"],
         },
+        hasMerchantReturnPolicy: {
+          "@type": "MerchantReturnPolicy",
+          applicableCountry: "IN",
+          returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+          merchantReturnDays: 7,
+          returnMethod: "https://schema.org/ReturnByMail",
+          returnFees: "https://schema.org/FreeReturn",
+        },
+        sameAs: [
+          "https://www.facebook.com/store4riders/",
+          "https://www.instagram.com/store4riders/",
+          "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg",
+        ],
       },
     ],
   };
@@ -104,6 +137,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} font-sans`}>
       <head>
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}

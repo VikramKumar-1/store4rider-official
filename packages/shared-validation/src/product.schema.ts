@@ -17,6 +17,7 @@ export const productVariantSchema = z.object({
   status: z.enum(["enabled", "disabled"]).optional().default("enabled"),
   visibility: z.string().optional(),
   images: z.array(productImageSchema).optional().default([]),
+  hsnCode: z.string().optional(),
 });
 
 export const faqSchema = z.object({
@@ -52,6 +53,7 @@ export const createProductSchema = z.object({
   weight: z.number().min(0).optional(),
   countryOfManufacture: z.string().optional(),
   taxClassName: z.string().optional(),
+  hsnCode: z.string().optional(),
   attributeSetCode: z.string().optional(),
   visibility: z.string().optional().default("Catalog, Search"),
   status: z.enum(["draft", "published", "archived"]).default("draft"),

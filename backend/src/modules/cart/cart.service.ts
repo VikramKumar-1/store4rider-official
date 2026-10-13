@@ -2,7 +2,7 @@ import { CartRepository } from "./cart.repository";
 import { ProductRepository } from "../product/product.repository";
 import { SettingRepository } from "../settings/setting.repository";
 import { ICart, ICartItem } from "@store4riders/shared-types";
-import { calculateTax, getTaxRateFromClass } from "@store4riders/shared-utils";
+import { calculateTax, calculateInclusiveTax, getTaxRateFromClass } from "@store4riders/shared-utils";
 
 /**
  * @class CartService
@@ -146,8 +146,12 @@ export class CartService {
         
         // Calculate per-item tax
         const settings = await SettingRepository.getSettings();
+        const isInclusive = settings.gstPricingMode !== "exclusive";
         const itemTaxRate = getTaxRateFromClass(product.taxClassName, settings.taxRate);
-        const itemTax = calculateTax(price * item.quantity, itemTaxRate);
+        const itemTotal = price * item.quantity;
+        const itemTax = isInclusive
+          ? calculateInclusiveTax(itemTotal, itemTaxRate).taxAmount
+          : calculateTax(itemTotal, itemTaxRate);
         
         // Enrich product details so all devices receive full render data
         item.product = {
@@ -170,25 +174,28 @@ export class CartService {
     }
 
     const settings = await SettingRepository.getSettings();
+    const isInclusive = settings.gstPricingMode !== "exclusive";
     const freeShippingThreshold = settings.freeShippingThreshold;
     const shippingCost = settings.shippingCost;
 
     let totalTax = 0;
     for (const item of cart.items) {
-      if ((item as any).calculatedTax) {
+      if ((item as any).calculatedTax !== undefined) {
         totalTax += (item as any).calculatedTax;
         delete (item as any).calculatedTax;
       } else {
         // Fallback for edge cases
-        totalTax += calculateTax(
-          ((item.product as any)?.price || 0) * item.quantity, 
-          settings.taxRate
-        );
+        const itemPrice = ((item.product as any)?.price || 0) * item.quantity;
+        totalTax += isInclusive
+          ? calculateInclusiveTax(itemPrice, settings.taxRate).taxAmount
+          : calculateTax(itemPrice, settings.taxRate);
       }
     }
 
     const shipping = subtotal > 0 && subtotal < freeShippingThreshold ? shippingCost : 0;
-    const total = subtotal + totalTax + shipping;
+    const total = isInclusive
+      ? subtotal + shipping
+      : subtotal + totalTax + shipping;
 
     cart.summary = { subtotal, tax: totalTax, shipping, total };
     return cart;

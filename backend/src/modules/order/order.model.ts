@@ -10,6 +10,7 @@ const orderItemSchema = new Schema<IOrderItem>({
   unitPrice: { type: Number, required: true },
   taxRate: { type: Number, required: true },
   taxAmount: { type: Number, required: true },
+  hsnCode: { type: String },
 });
 
 const pricingSchema = new Schema<IOrderPricing>(
@@ -50,6 +51,8 @@ const orderSchema = new Schema<IOrder>(
     pricing: { type: pricingSchema, required: true },
     shippingAddress: { type: orderAddressSchema, required: true },
     paymentMethod: { type: String, required: true },
+    customerGstin: { type: String },
+    businessName: { type: String },
     gatewayOrderId: { type: String },
     paymentId: { type: String },
     paymentSignature: { type: String },

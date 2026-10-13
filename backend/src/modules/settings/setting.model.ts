@@ -19,6 +19,18 @@ export interface ISetting extends Document {
   storeOriginAddress: string;
   storeOriginPhone: string;
   packagePresets: { name: string; length: number; breadth: number; height: number }[];
+  gstin?: string;
+  legalBusinessName?: string;
+  pan?: string;
+  gstPricingMode?: "inclusive" | "exclusive";
+  allowB2bGstin?: boolean;
+  supportPhone?: string;
+  supportEmail?: string;
+  whatsappNumber?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  youtubeUrl?: string;
+  returnWindowDays?: number;
 }
 
 const settingSchema = new Schema<ISetting>(
@@ -34,7 +46,19 @@ const settingSchema = new Schema<ISetting>(
     storeOriginCity: { type: String, default: "Pune" },
     storeOriginState: { type: String, default: "Maharashtra" },
     storeOriginAddress: { type: String, default: "Store4Riders Warehouse" },
-    storeOriginPhone: { type: String, default: "9876543210" },
+    storeOriginPhone: { type: String, default: "" },
+    gstin: { type: String, default: "" },
+    legalBusinessName: { type: String, default: "Store4Riders" },
+    pan: { type: String, default: "" },
+    gstPricingMode: { type: String, enum: ["inclusive", "exclusive"], default: "inclusive" },
+    allowB2bGstin: { type: Boolean, default: true },
+    supportPhone: { type: String, default: "" },
+    supportEmail: { type: String, default: "contact@store4riders.com" },
+    whatsappNumber: { type: String, default: "" },
+    facebookUrl: { type: String, default: "https://www.facebook.com/store4riders/" },
+    instagramUrl: { type: String, default: "https://www.instagram.com/store4riders/" },
+    youtubeUrl: { type: String, default: "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg" },
+    returnWindowDays: { type: Number, default: 7 },
     packagePresets: { 
       type: [{ name: String, length: Number, breadth: Number, height: Number }], 
       default: [

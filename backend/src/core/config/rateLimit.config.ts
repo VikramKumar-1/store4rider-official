@@ -93,6 +93,19 @@ export const RATE_LIMIT_CONFIG = {
     duration: 60,            // per 1 minute (60 seconds)
     errorMessage: "Too many rate comparison requests. Please wait a moment before trying again.",
   },
+
+  /**
+   * 7. Product Review Limiter
+   * Protects: POST /api/v1/reviews
+   * Purpose: Prevents automated bot spamming, fake review flooding, and Layer-7 DDoS on reviews.
+   */
+  REVIEW: {
+    keyPrefix: "rl_review",
+    points: 5,               // 5 reviews allowed
+    duration: 15 * 60,       // per 15 minutes
+    blockDuration: 30 * 60,  // Cooldown block for 30 minutes if exceeded
+    errorMessage: "Too many review submissions from your IP. Please try again after 15 minutes.",
+  },
 } as const;
 
 export type RateLimitTier = keyof typeof RATE_LIMIT_CONFIG;

@@ -12,6 +12,7 @@ export interface IOrderItem {
   unitPrice: number;
   taxRate: number;
   taxAmount: number;
+  hsnCode?: string;
 }
 
 export interface IOrderPricing {
@@ -55,6 +56,8 @@ export interface IOrder {
   pricing: IOrderPricing;
   shippingAddress: IOrderAddress;
   paymentMethod: PaymentMethodType;
+  customerGstin?: string;
+  businessName?: string;
   gatewayOrderId?: string;
   paymentId?: string;
   paymentSignature?: string;

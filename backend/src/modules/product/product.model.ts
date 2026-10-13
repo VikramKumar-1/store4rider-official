@@ -29,6 +29,7 @@ const productSchema = new Schema<IProduct>(
     allowBackorders: { type: Boolean, default: false },
     productType: { type: String },
     taxClassName: { type: String },
+    hsnCode: { type: String },
     magentoCategories: { type: String },
     categorySlugs: [{ type: String, index: true }],
     configurableVariations: { type: String },
@@ -69,6 +70,7 @@ const productSchema = new Schema<IProduct>(
         attributes: { type: Map, of: String },
         imageUrl: { type: String }, // Legacy compatibility
         weight: { type: Number },
+        hsnCode: { type: String },
         status: { type: String, enum: ["enabled", "disabled"], default: "enabled" },
         visibility: { type: String },
         images: [

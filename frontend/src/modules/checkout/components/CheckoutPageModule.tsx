@@ -114,6 +114,9 @@ export const CheckoutPageModule = () => {
     city: "",
     pinCode: "",
     country: "",
+    isB2b: false,
+    businessName: "",
+    customerGstin: "",
   });
 
   // Sync contact info whenever user profile loads or changes, or from localStorage
@@ -281,7 +284,13 @@ export const CheckoutPageModule = () => {
 
   const shippingCost = settings ? (subtotal >= settings.freeShippingThreshold ? 0 : settings.shippingCost) : 0;
   const voucherDiscount = subtotal >= 3000 ? 500 : 0; // Voucher 50KDISCOUNT
-  const total = Math.max(0, subtotal - voucherDiscount + shippingCost);
+  const isGstExclusive = settings?.gstPricingMode === "exclusive";
+  const defaultTaxRate = settings?.taxRate || 18;
+  const taxableSubtotal = Math.max(0, subtotal - voucherDiscount);
+  const estimatedTax = isGstExclusive
+    ? Math.round((taxableSubtotal * defaultTaxRate) / 100)
+    : Math.round(taxableSubtotal - (taxableSubtotal / (1 + defaultTaxRate / 100)));
+  const total = Math.max(0, taxableSubtotal + shippingCost + (isGstExclusive ? estimatedTax : 0));
 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -521,7 +530,9 @@ export const CheckoutPageModule = () => {
       guestEmail: user ? undefined : formData.email,
       paymentMethod: paymentOption,
       phone: dialCode + formData.phone,
-      fullName: formData.name
+      fullName: formData.name,
+      customerGstin: formData.isB2b && formData.customerGstin ? formData.customerGstin.trim().toUpperCase() : undefined,
+      businessName: formData.isB2b && formData.businessName ? formData.businessName.trim() : undefined,
     }, {
       onError: () => {
         setIsProcessing(false);
@@ -776,12 +787,24 @@ export const CheckoutPageModule = () => {
                         {shippingCost === 0 ? "Free" : formatPrice(shippingCost)}
                       </span>
                     </div>
+
+                    {isGstExclusive ? (
+                      <div className="flex items-center justify-between text-sm font-medium text-neutral-600">
+                        <span>GST ({defaultTaxRate}%)</span>
+                        <span className="text-neutral-900 font-bold">+{formatPrice(estimatedTax)}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between text-xs font-medium text-neutral-400">
+                        <span>GST (Included in price)</span>
+                        <span>{formatPrice(estimatedTax)}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Total */}
                   <div className="flex items-center justify-between pt-4 mt-4 border-t border-neutral-200">
                     <span className="text-base font-bold text-neutral-900">Total</span>
-                    <span className="text-2xl font-black text-[#AB1509] tracking-tight">
+                    <span className="text-2xl font-black text-banner tracking-tight">
                       {formatPrice(total)}
                     </span>
                   </div>

@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
-import { GuidesCategoryModule, getCategoryBySlug, GUIDE_CATEGORIES } from "@/modules/guides";
+import {
+  GuidesCategoryModule,
+  getCategoryBySlug,
+  GUIDE_CATEGORIES,
+  GUIDE_POSTS,
+  buildBlogCollectionSchema,
+  buildBreadcrumbSchema,
+} from "@/modules/guides";
 
 interface Props {
   params: Promise<{ categorySlug: string }>;
@@ -57,6 +64,42 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function GuidesCategoryPage({ params }: Props) {
   const { categorySlug } = await params;
+  const category = getCategoryBySlug(categorySlug);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
+
+  if (category) {
+    const posts = GUIDE_POSTS.filter((p) => p.categorySlug === category.slug);
+    const collectionSchema = buildBlogCollectionSchema(
+      `${category.name} Guides`,
+      category.description || `Expert motorcycle guides and advice for ${category.name}`,
+      posts,
+      `${siteUrl}/guides/category/${category.slug}`,
+      siteUrl
+    );
+    const breadcrumbSchema = buildBreadcrumbSchema(
+      [
+        { name: "Home", url: "/" },
+        { name: "Guides", url: "/guides" },
+        { name: category.name, url: `/guides/category/${category.slug}` },
+      ],
+      siteUrl
+    );
+
+    return (
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
+        <GuidesCategoryModule categorySlug={categorySlug} />
+      </>
+    );
+  }
+
   return <GuidesCategoryModule categorySlug={categorySlug} />;
 }
 

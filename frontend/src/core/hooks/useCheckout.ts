@@ -16,7 +16,27 @@ export function useCheckout() {
   const router = useRouter();
 
   return useMutation({
-    mutationFn: async ({ shippingAddressId, shippingAddress, guestEmail, paymentMethod, couponCode, phone, fullName }: { shippingAddressId?: string; shippingAddress?: any; guestEmail?: string; paymentMethod: PaymentMethodType; couponCode?: string; phone?: string; fullName?: string }) => {
+    mutationFn: async ({ 
+      shippingAddressId, 
+      shippingAddress, 
+      guestEmail, 
+      paymentMethod, 
+      couponCode, 
+      phone, 
+      fullName,
+      customerGstin,
+      businessName
+    }: { 
+      shippingAddressId?: string; 
+      shippingAddress?: any; 
+      guestEmail?: string; 
+      paymentMethod: PaymentMethodType; 
+      couponCode?: string; 
+      phone?: string; 
+      fullName?: string;
+      customerGstin?: string;
+      businessName?: string;
+    }) => {
       
       const payloadItems = cartItems.map(item => ({
         productId: item.productId,
@@ -35,6 +55,8 @@ export function useCheckout() {
         couponCode: couponCode || undefined,
         phone: phone || undefined,
         fullName: fullName || undefined,
+        customerGstin: customerGstin || undefined,
+        businessName: businessName || undefined,
         items: payloadItems,
         idempotencyKey,
       });

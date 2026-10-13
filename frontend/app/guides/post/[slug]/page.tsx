@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
-import { GuideDetailModule, getGuideBySlug, GUIDE_POSTS } from "@/modules/guides";
+import {
+  GuideDetailModule,
+  getGuideBySlug,
+  GUIDE_POSTS,
+  buildBlogPostingSchema,
+  buildBreadcrumbSchema,
+} from "@/modules/guides";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -76,6 +82,36 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function GuidePostPage({ params }: Props) {
   const { slug } = await params;
-  return <GuideDetailModule slug={slug} />;
+  const post = getGuideBySlug(slug);
+
+  if (!post) {
+    return <GuideDetailModule slug={slug} />;
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
+  const blogPostingSchema = buildBlogPostingSchema(post, siteUrl);
+  const breadcrumbSchema = buildBreadcrumbSchema(
+    [
+      { name: "Home", url: "/" },
+      { name: "Guides", url: "/guides" },
+      { name: post.categoryName, url: `/guides/category/${post.categorySlug}` },
+      { name: post.title, url: `/guides/post/${post.slug}` },
+    ],
+    siteUrl
+  );
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <GuideDetailModule slug={slug} />
+    </>
+  );
 }
 

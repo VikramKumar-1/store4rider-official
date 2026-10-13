@@ -830,10 +830,13 @@ export const ProductDetailPageModule = ({ slug: propSlug }: ProductDetailPageMod
 
   const mappedReviews = (reviewsData || []).map((r: any) => ({
     id: r._id,
-    author: r.userId || "Customer",
+    author: r.userName || (r.userId?.startsWith("guest:") ? "Rider" : "Verified Rider"),
+    city: r.city,
     rating: r.rating,
-    date: new Date(r.createdAt).toLocaleDateString(),
+    title: r.title,
+    date: r.createdAt ? new Date(r.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Recently",
     text: r.comment,
+    isVerified: Boolean(r.isVerified === true),
   }));
 
   const mappedProduct = mapProductToPDP(

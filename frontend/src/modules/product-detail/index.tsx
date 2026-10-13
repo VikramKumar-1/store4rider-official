@@ -321,6 +321,8 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
           <DetailAndReviews 
             fullDescription={product.fullDescription} 
             reviews={product.productReviews} 
+            productId={product.id}
+            productName={product.name}
           />
         </div>
         
@@ -351,7 +353,11 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
               <span className="w-4 h-[2px] bg-[#ab1509] shrink-0" />
             </h2>
           </div>
-          <CustomerReviews reviews={product.productReviews} />
+          <CustomerReviews 
+            reviews={product.productReviews} 
+            productId={product.id}
+            productName={product.name}
+          />
         </div>
 
       </main>
@@ -375,8 +381,6 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         sizeChart={product.sizeChart}
         onColorChange={setSelectedColor}
         onSizeChange={setSelectedSize}
-        rating={product.rating}
-        reviewCount={product.reviewCount}
         onAddToCart={handleAddToCart}
         stockStatus={product.stockStatus}
         allowBackorders={product.allowBackorders}

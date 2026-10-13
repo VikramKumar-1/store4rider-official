@@ -173,7 +173,7 @@ export const CartPageModule = () => {
             </p>
             <Link
               href="/products"
-              className="bg-[#78350F] hover:bg-[#5E2B0C] text-white px-8 py-3.5 rounded-sm text-xs font-bold tracking-widest uppercase transition-all shadow-md"
+              className="bg-banner hover:bg-orange-600 text-white px-8 py-3.5 rounded-sm text-xs font-bold tracking-widest uppercase transition-all shadow-md"
             >
               BROWSE CATALOG
             </Link>
@@ -378,7 +378,7 @@ export const CartPageModule = () => {
                         <span className="text-neutral-600">Promo Code</span>
                         <button 
                           onClick={() => setIsPromoModalOpen(true)} 
-                          className="text-[#78350F] font-bold underline cursor-pointer text-xs uppercase tracking-wider"
+                          className="text-banner hover:text-orange-600 font-bold underline cursor-pointer text-xs uppercase tracking-wider"
                         >
                           Apply
                         </button>
@@ -476,7 +476,7 @@ export const CartPageModule = () => {
                     onClick={() => isEligible && handleSelectPromo(promo)}
                     className={`border p-4 rounded-sm transition-all cursor-pointer flex flex-col gap-2 relative ${
                       isSelected
-                        ? "border-[#78350F] bg-amber-50/30 ring-1 ring-[#78350F]"
+                        ? "border-banner bg-orange-50/30 ring-1 ring-banner"
                         : isEligible
                         ? "border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50"
                         : "border-neutral-200 opacity-50 cursor-not-allowed bg-neutral-50"
@@ -489,7 +489,7 @@ export const CartPageModule = () => {
                           {promo.code}
                         </span>
                         {isSelected && (
-                          <span className="bg-[#78350F] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-xs flex items-center gap-0.5">
+                          <span className="bg-banner text-white text-[9px] font-bold px-1.5 py-0.5 rounded-xs flex items-center gap-0.5">
                             <CheckCircleIcon className="w-3 h-3 stroke-[2.5]" />
                             APPLIED
                           </span>

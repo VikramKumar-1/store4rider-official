@@ -7,6 +7,9 @@ import {
   getGuideBySlug,
   GUIDE_CATEGORIES,
   GUIDE_POSTS,
+  buildBlogPostingSchema,
+  buildBlogCollectionSchema,
+  buildBreadcrumbSchema,
 } from "@/modules/guides";
 
 interface Props {
@@ -108,13 +111,68 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function GuidesDynamicSlugPage({ params }: Props) {
   const { slug } = await params;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
 
-  if (getCategoryBySlug(slug)) {
-    return <GuidesCategoryModule categorySlug={slug} />;
+  const category = getCategoryBySlug(slug);
+  if (category) {
+    const posts = GUIDE_POSTS.filter((p) => p.categorySlug === category.slug);
+    const collectionSchema = buildBlogCollectionSchema(
+      `${category.name} Guides`,
+      category.description || `Expert motorcycle guides and advice for ${category.name}`,
+      posts,
+      `${siteUrl}/guides/${category.slug}`,
+      siteUrl
+    );
+    const breadcrumbSchema = buildBreadcrumbSchema(
+      [
+        { name: "Home", url: "/" },
+        { name: "Guides", url: "/guides" },
+        { name: category.name, url: `/guides/${category.slug}` },
+      ],
+      siteUrl
+    );
+
+    return (
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
+        <GuidesCategoryModule categorySlug={slug} />
+      </>
+    );
   }
 
-  if (getGuideBySlug(slug)) {
-    return <GuideDetailModule slug={slug} />;
+  const post = getGuideBySlug(slug);
+  if (post) {
+    const blogPostingSchema = buildBlogPostingSchema(post, siteUrl);
+    const breadcrumbSchema = buildBreadcrumbSchema(
+      [
+        { name: "Home", url: "/" },
+        { name: "Guides", url: "/guides" },
+        { name: post.categoryName, url: `/guides/category/${post.categorySlug}` },
+        { name: post.title, url: `/guides/post/${post.slug}` },
+      ],
+      siteUrl
+    );
+
+    return (
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
+        <GuideDetailModule slug={slug} />
+      </>
+    );
   }
 
   notFound();

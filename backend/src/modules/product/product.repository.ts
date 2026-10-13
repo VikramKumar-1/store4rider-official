@@ -205,6 +205,13 @@ export class ProductRepository {
   }
 
   /**
+   * Updates product average rating and review count.
+   */
+  static async updateRatingStats(productId: string, avgRating: number, reviewCount: number): Promise<void> {
+    await ProductModel.updateOne({ _id: productId }, { avgRating, reviewCount }).exec();
+  }
+
+  /**
    * Deletes a product.
    */
   static async delete(id: string): Promise<void> {

@@ -1,10 +1,17 @@
 export interface IReview {
-  id: string;
+  id?: string;
+  _id?: string;
   userId: string;
+  userName?: string;
+  userEmail?: string;
+  city?: string;
   productId: string;
   rating: number;
+  title?: string;
   comment: string;
-  createdAt: Date;
+  isVerified?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface IStoreReview {

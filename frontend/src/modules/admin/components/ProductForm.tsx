@@ -672,6 +672,7 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
   const [visibility, setVisibility] = useState("Catalog, Search");
   const [countryOfManufacture, setCountryOfManufacture] = useState("");
   const [taxClassName, setTaxClassName] = useState("Taxable Goods (GST 18%)");
+  const [hsnCode, setHsnCode] = useState("6506");
   const [isCustomTaxRate, setIsCustomTaxRate] = useState(false);
   const [customTaxRateInput, setCustomTaxRateInput] = useState<number | "">("");
   const [weight, setWeight] = useState<number | "">("");
@@ -840,6 +841,7 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
           setIsCustomTaxRate(false);
         }
       }
+      setHsnCode(existingProduct.hsnCode || "6506");
       setWeight(existingProduct.weight ?? "");
       setIsFeatured(Boolean(existingProduct.isFeatured));
       setShowFeaturedBadge(
@@ -1137,6 +1139,7 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
       visibility,
       countryOfManufacture: countryOfManufacture.trim() || undefined,
       taxClassName: taxClassName.trim() || undefined,
+      hsnCode: hsnCode.trim() || undefined,
       weight: weight !== "" ? Number(weight) : undefined,
       isFeatured,
       showFeaturedBadge: Boolean(isFeatured && showFeaturedBadge),
@@ -1864,6 +1867,52 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
                   Select a standard GST tier above, or click <strong>+ Custom / Future Tax Slab</strong> to enter any updated government tax rate.
                 </p>
               )}
+
+              {/* HSN Code Configuration */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Harmonized System Nomenclature (HSN Code) *
+                  </label>
+                  <span className="text-[11px] text-slate-500">
+                    Required for official Tax Invoices & GST Returns
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-semibold text-slate-500 mr-1">Riding Presets:</span>
+                  {[
+                    { label: "6506 (Helmets)", code: "6506" },
+                    { label: "6203 (Jackets & Suits)", code: "6203" },
+                    { label: "6116 (Gloves)", code: "6116" },
+                    { label: "6403 (Boots)", code: "6403" },
+                    { label: "8708 (Spares & Parts)", code: "8708" },
+                    { label: "4202 (Bags & Luggage)", code: "4202" },
+                    { label: "2710 (Oils & Lubes)", code: "2710" },
+                  ].map((preset) => (
+                    <button
+                      key={preset.code}
+                      type="button"
+                      onClick={() => setHsnCode(preset.code)}
+                      className={`px-2 py-1 rounded text-[11px] font-medium border transition-colors cursor-pointer ${
+                        hsnCode === preset.code
+                          ? "bg-brand text-white border-brand shadow-xs"
+                          : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="pt-1">
+                  <input
+                    type="text"
+                    value={hsnCode}
+                    onChange={(e) => setHsnCode(e.target.value)}
+                    placeholder="e.g. 6506 or 8708"
+                    className="w-full sm:w-64 px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-brand font-mono font-bold"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="md:col-span-2">

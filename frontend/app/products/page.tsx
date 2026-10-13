@@ -67,10 +67,80 @@ export async function generateMetadata({ searchParams }: ProductsPageProps): Pro
   };
 }
 
-export default function ProductsPage() {
+export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+  const { category, brand, search } = await searchParams;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
+
+  let title = "Motorcycle Riding Gear & Accessories";
+  let description = "Browse our extensive catalog of certified motorcycle riding helmets, jackets, boots, gloves and luggage at Store4Riders.";
+  let pageUrl = `${siteUrl}/products`;
+
+  if (category) {
+    const formatted = category.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    title = `${formatted} Collection`;
+    description = `Explore the best collection of ${formatted} at Store4Riders. High quality, certified motorcycle safety gear with fast shipping across India.`;
+    pageUrl = `${siteUrl}/products?category=${encodeURIComponent(category)}`;
+  } else if (brand) {
+    const formatted = brand.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    title = `${formatted} Riding Gear & Accessories`;
+    description = `Shop authentic ${formatted} helmets, jackets, boots and riding gear at Store4Riders.`;
+    pageUrl = `${siteUrl}/products?brand=${encodeURIComponent(brand)}`;
+  } else if (search) {
+    title = `Search Results for "${search}"`;
+    description = `Explore search results for "${search}" across our motorcycle gear catalog.`;
+    pageUrl = `${siteUrl}/products?search=${encodeURIComponent(search)}`;
+  }
+
+  const collectionSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: title,
+    description: description,
+    url: pageUrl,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Store4Riders",
+      url: siteUrl,
+    },
+    mainEntity: {
+      "@type": "ItemList",
+      name: title,
+      url: pageUrl,
+    },
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: category ? title : "Products",
+        item: pageUrl,
+      },
+    ],
+  };
+
   return (
-    <Suspense fallback={<ProductsLoading />}>
-      <ProductsPageModule />
-    </Suspense>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <Suspense fallback={<ProductsLoading />}>
+        <ProductsPageModule />
+      </Suspense>
+    </>
   );
 }

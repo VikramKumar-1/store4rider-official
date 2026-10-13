@@ -227,7 +227,7 @@ export const CheckoutPaymentStep = ({
         {/* Mobile Total Display */}
         <div className="flex flex-col lg:hidden min-w-0">
           <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Total</span>
-          <span className="text-lg font-black text-[#AB1509] leading-none line-clamp-1">
+          <span className="text-lg font-black text-banner leading-none line-clamp-1">
             {total !== undefined ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(total) : "₹0.00"}
           </span>
         </div>

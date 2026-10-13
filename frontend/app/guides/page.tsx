@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { GuidesHubModule } from "@/modules/guides";
+import {
+  GuidesHubModule,
+  GUIDE_POSTS,
+  buildBlogCollectionSchema,
+  buildBreadcrumbSchema,
+} from "@/modules/guides";
 
 export const metadata: Metadata = {
   title: "Motorcycle Guides & Expert Advice | Store4Riders",
@@ -38,5 +43,33 @@ export const metadata: Metadata = {
 };
 
 export default function GuidesPage() {
-  return <GuidesHubModule />;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
+  const blogSchema = buildBlogCollectionSchema(
+    "Motorcycle Guides & Expert Advice",
+    "Comprehensive buying guides, gear care advice, maintenance checklists, and touring preparation tips by Store4Riders.",
+    GUIDE_POSTS,
+    `${siteUrl}/guides`,
+    siteUrl
+  );
+  const breadcrumbSchema = buildBreadcrumbSchema(
+    [
+      { name: "Home", url: "/" },
+      { name: "Guides", url: "/guides" },
+    ],
+    siteUrl
+  );
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <GuidesHubModule />
+    </>
+  );
 }

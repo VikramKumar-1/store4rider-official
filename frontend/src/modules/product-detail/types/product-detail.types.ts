@@ -16,10 +16,13 @@ export interface ReviewData {
   _id?: string;
   id?: string;
   author: string;
+  city?: string;
   rating: number;
   date: string;
   text: string;
+  title?: string;
   link?: string;
+  isVerified?: boolean;
 }
 
 export interface ColorOption {

@@ -9,6 +9,21 @@ export interface IPublicSettings {
   taxRate: number;
   freeShippingThreshold: number;
   shippingCost: number;
+  gstin?: string;
+  legalBusinessName?: string;
+  gstPricingMode?: "inclusive" | "exclusive";
+  allowB2bGstin?: boolean;
+  storeOriginState?: string;
+  storeOriginCity?: string;
+  storeOriginPincode?: string;
+  storeOriginAddress?: string;
+  supportPhone?: string;
+  supportEmail?: string;
+  whatsappNumber?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  youtubeUrl?: string;
+  returnWindowDays?: number;
 }
 
 export function usePublicSettings() {

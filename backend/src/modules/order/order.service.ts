@@ -13,12 +13,12 @@ import { AppError } from "../../core/errors/AppError";
 import { addEmailJob } from "../../core/queue/email.queue";
 import { logger } from "../../core/utils/logger";
 import { ENV } from "../../core/config/env";
-import { calculateTax, getTaxRateFromClass } from "@store4riders/shared-utils";
+import { calculateTax, calculateInclusiveTax, getTaxRateFromClass } from "@store4riders/shared-utils";
 
 export class OrderService {
   
   static async createOrder(userId: string | undefined, input: any) { 
-    const { shippingAddressId, shippingAddress, guestEmail, paymentMethod, couponCode, idempotencyKey } = input;
+    const { shippingAddressId, shippingAddress, guestEmail, paymentMethod, couponCode, idempotencyKey, customerGstin, businessName } = input;
     
     if (idempotencyKey) {
       const existingOrder = await OrderRepository.findByIdempotencyKey(idempotencyKey);
@@ -150,8 +150,14 @@ export class OrderService {
       const itemTotal = unitPrice * item.quantity;
       subtotal += itemTotal;
       
+      const isInclusive = settings.gstPricingMode !== "exclusive";
       const itemTaxRate = getTaxRateFromClass(product.taxClassName, defaultTaxRate);
-      totalTax += calculateTax(itemTotal, itemTaxRate);
+      const itemTax = isInclusive
+        ? calculateInclusiveTax(itemTotal, itemTaxRate).taxAmount
+        : calculateTax(itemTotal, itemTaxRate);
+      totalTax += itemTax;
+
+      const itemHsnCode = (item.variantId ? product.variants?.find((v: any) => v.id === item.variantId || v.sku === item.variantId)?.hsnCode : undefined) || product.hsnCode || "";
 
       orderItems.push({
         productId: String(product._id),
@@ -161,7 +167,8 @@ export class OrderService {
         quantity: item.quantity,
         unitPrice,
         taxRate: itemTaxRate,
-        taxAmount: calculateTax(itemTotal, itemTaxRate),
+        taxAmount: itemTax,
+        hsnCode: itemHsnCode,
         allowBackorders: product.allowBackorders,
       });
     }
@@ -170,7 +177,7 @@ export class OrderService {
     if (couponCode) {
       const couponResult = await CouponService.validateCoupon(couponCode, subtotal);
       couponDiscount = couponResult.discountAmount;
-      // Pro-rate tax reduction if coupon applies (simplified logic: reduce tax proportionally)
+      // Pro-rate tax reduction if coupon applies
       if (subtotal > 0) {
         totalTax = totalTax * (1 - (couponDiscount / subtotal));
       }
@@ -178,8 +185,11 @@ export class OrderService {
 
     const discountedSubtotal = Math.max(0, subtotal - couponDiscount);
 
+    const isInclusive = settings.gstPricingMode !== "exclusive";
     const shipping = (discountedSubtotal > 0 && discountedSubtotal < freeShippingThreshold) ? shippingCost : 0;
-    const totalAmount = discountedSubtotal + totalTax + shipping;
+    const totalAmount = isInclusive
+      ? discountedSubtotal + shipping
+      : discountedSubtotal + totalTax + shipping;
 
     const pricing: any = {
       subtotal,
@@ -233,6 +243,8 @@ export class OrderService {
           items: orderItems,
           shippingAddress: shippingAddressSnapshot,
           paymentMethod,
+          ...(customerGstin ? { customerGstin } : {}),
+          ...(businessName ? { businessName } : {}),
           idempotencyKey,
         };
 

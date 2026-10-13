@@ -46,7 +46,7 @@ export const DialCodeSelect: React.FC<DialCodeSelectProps> = ({ value, onChange 
   return (
     <div className="relative shrink-0 w-[125px]" ref={dropdownRef}>
       <div
-        className="w-full h-full border border-neutral-300 hover:border-[#78350F] focus-within:border-[#78350F] rounded-none px-3 py-3 text-base md:text-sm text-neutral-900 bg-white cursor-pointer flex items-center justify-between transition-all"
+        className="w-full h-full border border-neutral-300 hover:border-banner focus-within:border-banner rounded-none px-3 py-3 text-base md:text-sm text-neutral-900 bg-white cursor-pointer flex items-center justify-between transition-all"
         onClick={() => setIsOpen(!isOpen)}
       >
         <div className="flex items-center gap-2 overflow-hidden">
@@ -71,7 +71,7 @@ export const DialCodeSelect: React.FC<DialCodeSelectProps> = ({ value, onChange 
                 placeholder="Search code..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/60 border border-neutral-200/80 rounded-xl pl-9 pr-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-[#78350F]/50 focus:ring-2 focus:ring-[#78350F]/20 transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]"
+                className="w-full bg-white/60 border border-neutral-200/80 rounded-xl pl-9 pr-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-banner/50 focus:ring-2 focus:ring-banner/20 transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]"
               />
             </div>
           </div>
@@ -86,7 +86,7 @@ export const DialCodeSelect: React.FC<DialCodeSelectProps> = ({ value, onChange 
                   }}
                   className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-xl mx-0.5 my-0.5 transition-all duration-200 ${
                     value === country.code
-                      ? "bg-amber-500/10 text-[#78350F] shadow-[inset_0_1px_1px_rgba(255,255,255,0.5)]"
+                      ? "bg-orange-500/10 text-banner shadow-[inset_0_1px_1px_rgba(255,255,255,0.5)]"
                       : "hover:bg-neutral-900/[0.04] text-neutral-700 hover:text-neutral-950"
                   }`}
                 >
@@ -96,11 +96,11 @@ export const DialCodeSelect: React.FC<DialCodeSelectProps> = ({ value, onChange 
                     className="w-6 h-auto shadow-[0_0_2px_rgba(0,0,0,0.2)] rounded-[2px]"
                   />
                   <span className={`flex-1 truncate text-xs ${value === country.code ? 'font-bold' : 'font-medium'}`}>{country.name}</span>
-                  <span className={`text-xs font-semibold ${value === country.code ? 'text-[#78350F]' : 'text-neutral-500'}`}>
+                  <span className={`text-xs font-semibold ${value === country.code ? 'text-banner' : 'text-neutral-500'}`}>
                     {country.dialCode}
                   </span>
                   {value === country.code && (
-                    <CheckIcon className="w-4 h-4 text-[#78350F]" />
+                    <CheckIcon className="w-4 h-4 text-banner" />
                   )}
                 </div>
               ))

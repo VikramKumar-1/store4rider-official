@@ -247,6 +247,8 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 
   const category = candidateSlug;
   let initialCategoryNode = undefined;
+  let collectionProducts: any[] = [];
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
   
   if (category) {
     try {
@@ -275,14 +277,113 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           initialCategoryNode = singleData?.data || undefined;
         }
       }
+
+      // Fetch sample products for CollectionPage ItemList schema
+      const prodUrl = baseUrl.includes('/v1')
+        ? `${baseUrl}/products?category=${encodeURIComponent(category)}&limit=12`
+        : `${baseUrl}/v1/products?category=${encodeURIComponent(category)}&limit=12`;
+      const prodRes = await fetch(prodUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(2500) });
+      if (prodRes.ok) {
+        const prodData = await prodRes.json();
+        collectionProducts = prodData?.data?.items || prodData?.data || [];
+      }
     } catch (e) {
       // Ignore
     }
   }
 
+  // Schema: CollectionPage with ItemList
+  const categoryName =
+    initialCategoryNode?.name ||
+    candidateSlug.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const categoryDescription =
+    initialCategoryNode?.metaDescription ||
+    initialCategoryNode?.description ||
+    `Explore our certified range of ${categoryName} at Store4Riders. High quality motorcycle gear with fast delivery across India.`;
+  const currentUrl = `${siteUrl}/${slugArray.join('/')}`;
+
+  const collectionSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: categoryName,
+    description: categoryDescription,
+    url: currentUrl,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Store4Riders",
+      url: siteUrl,
+    },
+    mainEntity: {
+      "@type": "ItemList",
+      name: `${categoryName} Collection`,
+      description: `Shop ${categoryName} online at Store4Riders`,
+      url: currentUrl,
+      numberOfItems: collectionProducts.length,
+      itemListElement: collectionProducts.map((p: any, idx: number) => ({
+        "@type": "ListItem",
+        position: idx + 1,
+        name: p.name,
+        url: `${siteUrl}/${p.slug}`,
+        ...(p.images?.[0]?.url ? { image: p.images[0].url } : {}),
+        offers: {
+          "@type": "Offer",
+          priceCurrency: "INR",
+          price: p.specialPrice || p.basePrice || 0,
+          availability:
+            p.stockStatus === 1 || p.stockStatus === true
+              ? "https://schema.org/InStock"
+              : "https://schema.org/OutOfStock",
+        },
+      })),
+    },
+  };
+
+  // Schema: BreadcrumbList
+  const breadcrumbElements = [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: siteUrl,
+    },
+  ];
+
+  let accumulatedPath = "";
+  slugArray.forEach((seg, idx) => {
+    accumulatedPath += `/${seg}`;
+    const isLast = idx === slugArray.length - 1;
+    const segName =
+      isLast && initialCategoryNode?.name
+        ? initialCategoryNode.name
+        : seg.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+    breadcrumbElements.push({
+      "@type": "ListItem",
+      position: idx + 2,
+      name: segName,
+      item: `${siteUrl}${accumulatedPath}`,
+    });
+  });
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: breadcrumbElements,
+  };
+
   return (
-    <Suspense fallback={<ProductsLoading />}>
-      <ProductsPageModule initialCategoryNode={initialCategoryNode} />
-    </Suspense>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <Suspense fallback={<ProductsLoading />}>
+        <ProductsPageModule initialCategoryNode={initialCategoryNode} />
+      </Suspense>
+    </>
   );
 }

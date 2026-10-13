@@ -81,12 +81,26 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
         {/* Header: Rating Only */}
         <div className="flex items-center justify-end">
           {rating > 0 ? (
-            <div className="flex items-center gap-1 bg-yellow-100/50 px-1.5 py-0.5 rounded-sm">
+            <div 
+              onClick={() => {
+                const el = document.getElementById("customer-reviews") || document.getElementById("customer-reviews-section");
+                el?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }}
+              className="flex items-center gap-1 bg-yellow-100/50 px-1.5 py-0.5 rounded-sm cursor-pointer hover:bg-yellow-200/50 transition-colors"
+              title="Click to view customer reviews"
+            >
               <StarIcon className="w-3.5 h-3.5 text-[#FFD700]" />
               <span className="text-[11px] font-bold text-neutral-700">{rating.toFixed(1)}</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 text-[9px] font-bold text-neutral-400 uppercase tracking-widest cursor-pointer hover:text-brand transition-colors group">
+            <div 
+              onClick={() => {
+                const el = document.getElementById("customer-reviews") || document.getElementById("customer-reviews-section");
+                el?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }}
+              className="flex items-center gap-1.5 text-[9px] font-bold text-neutral-400 uppercase tracking-widest cursor-pointer hover:text-brand transition-colors group"
+              title="Click to write the first review"
+            >
               <StarIcon className="w-3 h-3 text-neutral-300 group-hover:text-amber-400 transition-colors" />
               <span>Be the first to review</span>
             </div>

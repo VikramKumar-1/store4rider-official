@@ -87,6 +87,7 @@ export async function adminRouter(req: NextRequest, routePath: string[]): Promis
     }
     
     if (method === "PUT") {
+      (req as any).body = await req.json();
       SettingValidator.validateUpdateSettings(req);
       return await SettingController.updateSettings(req);
     }

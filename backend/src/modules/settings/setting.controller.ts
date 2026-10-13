@@ -18,7 +18,23 @@ export class SettingController {
       codPartialPaymentEnabled: Boolean(settings.codPartialPaymentEnabled),
       codPartialPaymentType: settings.codPartialPaymentType,
       codPartialPaymentValue: settings.codPartialPaymentValue,
-      packagePresets: settings.packagePresets
+      packagePresets: settings.packagePresets,
+      gstin: settings.gstin,
+      legalBusinessName: settings.legalBusinessName,
+      gstPricingMode: settings.gstPricingMode || "inclusive",
+      allowB2bGstin: settings.allowB2bGstin !== false,
+      storeOriginState: settings.storeOriginState,
+      storeOriginCity: settings.storeOriginCity,
+      storeOriginPincode: settings.storeOriginPincode,
+      storeOriginAddress: settings.storeOriginAddress,
+      storeOriginPhone: settings.storeOriginPhone,
+      supportPhone: settings.supportPhone || settings.storeOriginPhone,
+      supportEmail: settings.supportEmail || "contact@store4riders.com",
+      whatsappNumber: settings.whatsappNumber,
+      facebookUrl: settings.facebookUrl,
+      instagramUrl: settings.instagramUrl,
+      youtubeUrl: settings.youtubeUrl,
+      returnWindowDays: settings.returnWindowDays || 7,
     };
     return ApiResponse.success(publicData, "Public settings retrieved successfully");
   }

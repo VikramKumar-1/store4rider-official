@@ -121,6 +121,14 @@ export const checkGeneralApiRateLimit = async (ip: string) => {
 };
 
 /**
+ * ⭐️ Product Review Limiter
+ * 5 reviews per 15 minutes. Use on /reviews (POST)
+ */
+export const checkReviewRateLimit = async (ip: string) => {
+  await consumeRateLimit(RATE_LIMIT_CONFIG.REVIEW, ip);
+};
+
+/**
  * 🛠️ Dynamic Rate Limit Checker by Tier Name
  * Allows checking any tier dynamically: e.g. checkTierRateLimit("AUTH", ip)
  */
