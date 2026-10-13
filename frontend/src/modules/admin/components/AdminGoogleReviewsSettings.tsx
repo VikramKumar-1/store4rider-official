@@ -107,35 +107,64 @@ export function AdminGoogleReviewsSettings() {
           </div>
         </div>
 
-        {/* 2. Key Input & Fetch Button Toolbar */}
-        <div className="mt-6 pt-6 border-t border-neutral-100 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          <div className="md:col-span-2">
-            <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-2">
-              SerpApi Key (Free API)
-            </label>
-            <input
-              type="password"
-              placeholder="Enter your SerpApi Key (or set SERPAPI_KEY in .env)"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent font-mono"
-            />
-            <p className="text-[11px] text-neutral-400 mt-1.5">
-              Target Place: <strong>Store4Riders Pune</strong> (<code className="text-xs">0x3bc2c00d5a48819f:0xd4b529549919577c</code>)
+        {/* 2. Key Status & Fetch Button Toolbar */}
+        <div className="mt-6 pt-6 border-t border-neutral-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-600" />
+                SERPAPI_KEY Connected (.env)
+              </span>
+              <span className="text-xs text-neutral-500">
+                Location: <strong>Store4Riders Pune</strong>
+              </span>
+            </div>
+            <p className="text-xs text-neutral-500 mt-1.5">
+              The API key is already configured on the server. You can click <strong>Sync Latest 10 Reviews</strong> anytime to pull live Google reviews.
             </p>
           </div>
 
-          <div>
+          <div className="flex items-center gap-3 shrink-0">
             <Button
               type="button"
               onClick={handleFetchAndSave}
               disabled={syncing}
-              className="w-full h-[42px] bg-brand hover:bg-[#8F1207] text-white font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2"
+              className="h-[42px] px-6 bg-brand hover:bg-[#8F1207] text-white font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 rounded-lg shadow-sm cursor-pointer"
             >
               <ArrowPathIcon className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "Fetching Latest 10..." : "Fetch & Save 10 Reviews"}
+              {syncing ? "Syncing Latest 10..." : "Sync Latest 10 Reviews"}
             </Button>
           </div>
+        </div>
+
+        {/* Optional Custom Key Override */}
+        <div className="mt-4 pt-3 border-t border-dashed border-neutral-200">
+          <details className="text-xs group">
+            <summary className="cursor-pointer text-neutral-500 hover:text-neutral-800 font-medium select-none flex items-center gap-1.5">
+              <span>Change or override SerpApi Key (Optional)</span>
+            </summary>
+            <div className="mt-2.5 flex items-center gap-2 max-w-lg">
+              <input
+                type="password"
+                placeholder="Paste custom SerpApi key only if overriding .env"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-brand font-mono"
+              />
+              {apiKey && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setApiKey("");
+                    localStorage.removeItem("SERPAPI_KEY");
+                  }}
+                  className="text-xs text-neutral-400 hover:text-red-500 shrink-0 font-medium px-2 py-1"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </details>
         </div>
       </div>
 

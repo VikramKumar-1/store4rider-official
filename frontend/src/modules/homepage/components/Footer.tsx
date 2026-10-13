@@ -14,11 +14,11 @@ import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 export const Footer: React.FC = () => {
   const { data: settings } = usePublicSettings();
 
-  const phone = settings?.whatsappNumber || settings?.supportPhone || "+91 98765 43210";
+  const phone = settings?.whatsappNumber || settings?.supportPhone || "";
   const email = settings?.supportEmail || "contact@store4riders.com";
   const address = settings?.storeOriginAddress
     ? `${settings.storeOriginAddress}, ${settings.storeOriginCity || "Pune"}, ${settings.storeOriginState || "Maharashtra"} - ${settings.storeOriginPincode || "411001"}`
-    : "Store4Riders Warehouse, Pune, Maharashtra - 411001";
+    : "Store4Riders, Pune, Maharashtra - 411001";
 
   return (
     <footer className="w-full bg-banner text-white py-12 md:py-20">
@@ -35,10 +35,12 @@ export const Footer: React.FC = () => {
             />
           </div>
           <div className="flex flex-col gap-2 sm:gap-3 text-[11px] sm:text-sm md:text-[15px] font-sans text-white/90">
-            <div className="grid grid-cols-[70px_1fr] sm:grid-cols-[80px_1fr] gap-2">
-              <span className="font-medium">Contact</span>
-              <span>: {phone}</span>
-            </div>
+            {phone && (
+              <div className="grid grid-cols-[70px_1fr] sm:grid-cols-[80px_1fr] gap-2">
+                <span className="font-medium">Contact</span>
+                <span>: {phone}</span>
+              </div>
+            )}
             <div className="grid grid-cols-[70px_1fr] sm:grid-cols-[80px_1fr] gap-2">
               <span className="font-medium">Email</span>
               <span className="break-all">: {email}</span>

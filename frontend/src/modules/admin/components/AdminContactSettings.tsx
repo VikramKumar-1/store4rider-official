@@ -104,8 +104,7 @@ export function AdminContactSettings() {
         <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
         <div className="text-xs sm:text-sm text-blue-900 leading-relaxed">
           <strong className="font-semibold text-blue-950">Storefront & Schema.org SEO Control:</strong>{" "}
-          Yahan se update kiya gaya Phone, Email, Address, WhatsApp, aur Social links website ke
-          Schema.org structured data (Google Rich Results), Footer contact card, aur Customer Invoices me automatically update ho jaayega.
+          Phone numbers, email, physical warehouse address, WhatsApp, and social media links configured here will automatically synchronize with Schema.org structured data (Google Rich Results), the website footer contact card, and customer invoices.
         </div>
       </div>
 
@@ -135,7 +134,7 @@ export function AdminContactSettings() {
                 placeholder="+91 98765 43210"
                 className="w-full text-sm border border-neutral-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
-              <p className="text-[11px] text-neutral-400 mt-1">Google OnlineStore schema & footer me call contact dikhega.</p>
+              <p className="text-[11px] text-neutral-400 mt-1">Displayed in website footer and Google OnlineStore schema contact points.</p>
             </div>
 
             <div>
@@ -150,7 +149,7 @@ export function AdminContactSettings() {
                 placeholder="+91 98765 43210"
                 className="w-full text-sm border border-neutral-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
-              <p className="text-[11px] text-neutral-400 mt-1">Website footer WhatsApp contact me use hoga.</p>
+              <p className="text-[11px] text-neutral-400 mt-1">Used for direct WhatsApp chat support across the storefront.</p>
             </div>
 
             <div>
@@ -321,7 +320,7 @@ export function AdminContactSettings() {
                 <span className="text-sm font-medium text-neutral-600">Days from delivery</span>
               </div>
               <p className="text-[11px] text-neutral-400 mt-1.5">
-                Google Schema.org MerchantReturnPolicy me `merchantReturnDays` ke roop me report hoga.
+                Reported to Google Schema.org MerchantReturnPolicy as `merchantReturnDays`.
               </p>
             </div>
           </div>
