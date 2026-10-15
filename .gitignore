@@ -37,7 +37,7 @@ playwright-report/
 blob-report/
 playwright/.cache/
 
-frontend/tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 # Data Files
 *.csv
