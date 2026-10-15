@@ -36,25 +36,25 @@ export const TopBanner: React.FC<TopBannerProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  const content = (
+  return (
     <div className="bg-banner text-banner-text text-[10px] sm:text-xs py-2 px-2 sm:px-4 text-center font-bold tracking-wide shadow-sm flex items-center justify-center min-h-[36px] sm:min-h-[40px] overflow-hidden">
-      <span 
-        className={`transition-opacity duration-300 ease-in-out ${fade ? 'opacity-100' : 'opacity-0'}`}
-      >
-        {CLAIMS[index]}
-      </span>
+      {bannerUrl ? (
+        <Link href={bannerUrl} className="block hover:opacity-95 transition-opacity">
+          <span 
+            className={`transition-opacity duration-300 ease-in-out ${fade ? 'opacity-100' : 'opacity-0'}`}
+          >
+            {CLAIMS[index]}
+          </span>
+        </Link>
+      ) : (
+        <span 
+          className={`transition-opacity duration-300 ease-in-out ${fade ? 'opacity-100' : 'opacity-0'}`}
+        >
+          {CLAIMS[index]}
+        </span>
+      )}
     </div>
   );
-
-  if (bannerUrl) {
-    return (
-      <Link href={bannerUrl} className="block hover:opacity-95 transition-opacity">
-        {content}
-      </Link>
-    );
-  }
-
-  return content;
 };
 
 export default TopBanner;

@@ -308,6 +308,12 @@ export function SidebarFilters() {
       {/* Dynamic Filter Sections powered by Backend filterConfig */}
       <div className="flex flex-col">
         {(() => {
+          const catLower = (currentCategory || '').toLowerCase();
+          const isProtectionCat = ['protector', 'armour', 'armor', 'guard', 'knee'].some(kw => catLower.includes(kw));
+          const isNonApparelCat = ['helmet', 'visor', 'luggage', 'bag', 'spare', 'care', 'gadget', 'accessory', 'accessories', 'cover', 'mount', 'light', 'women'].some(kw => catLower.includes(kw));
+          const isGenderForbidden = isProtectionCat || isNonApparelCat;
+          const isPriceAndBrandOnlyCat = ['chain-care', 'chain-lube', 'oils-lube', 'cleaner', 'spare', 'sprocket', 'brake', 'gadget', 'phone', 'holder', 'cover', 'light', 'filter', 'clamp', 'mount', 'harness', 'flasher'].some(kw => catLower.includes(kw));
+
           const baseConfig = aggregations?.filterConfig || [
             { code: "category", label: "Category" },
             { code: "price", label: "Price" },
@@ -316,9 +322,20 @@ export function SidebarFilters() {
             { code: "color", label: "Color" }
           ];
           
-          const fullConfig = [...baseConfig].filter(c => c.code !== 'category'); // Hide category entirely
+          const fullConfig = [...baseConfig].filter(c => {
+            if (c.code === 'category') return false; // Hide category entirely
+            if (c.code === 'size' && (isProtectionCat || isPriceAndBrandOnlyCat)) return false;
+            if (c.code === 'color' && isPriceAndBrandOnlyCat) return false;
+            if (c.code === 'gender' && isGenderForbidden) return false;
+            return true;
+          });
+
           DYNAMIC_FILTERS.forEach((df: any) => {
-            if (df.code === 'certification' || df.code === 'material') return; // Hide these filters
+            if (df.code === 'certification') return; // Hide certification filter
+            if (df.code === 'gender' && isGenderForbidden) return; // Hide gender if category is not gender-eligible
+            if (df.code === 'helmet_type' && !catLower.includes('helmet')) return; // Hide helmet type if not helmet
+            if (isPriceAndBrandOnlyCat) return; // Hide dynamic attrs for consumables/spares/gadgets
+            if (isProtectionCat && (df.code === 'gender' || df.code === 'size' || df.code === 'material' || df.code === 'riding_style')) return;
             if (!fullConfig.find(c => c.code === df.code)) {
               fullConfig.push({ code: df.code, label: df.label });
             }

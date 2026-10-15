@@ -6,6 +6,8 @@ import {
   buildBreadcrumbSchema,
 } from "@/modules/guides";
 
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "Motorcycle Guides & Expert Advice | Store4Riders",
   description:

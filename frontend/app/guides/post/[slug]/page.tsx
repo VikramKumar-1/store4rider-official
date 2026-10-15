@@ -3,9 +3,12 @@ import {
   GuideDetailModule,
   getGuideBySlug,
   GUIDE_POSTS,
+  buildAuthorSchema,
   buildBlogPostingSchema,
   buildBreadcrumbSchema,
 } from "@/modules/guides";
+
+export const dynamic = "force-static";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -88,7 +91,8 @@ export default async function GuidePostPage({ params }: Props) {
     return <GuideDetailModule slug={slug} />;
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
+  const siteUrl = "https://www.store4riders.com";
+  const authorSchema = buildAuthorSchema(post.author, siteUrl);
   const blogPostingSchema = buildBlogPostingSchema(post, siteUrl);
   const breadcrumbSchema = buildBreadcrumbSchema(
     [
@@ -102,6 +106,10 @@ export default async function GuidePostPage({ params }: Props) {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(authorSchema) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingSchema) }}

@@ -85,6 +85,10 @@ export interface HeroSectionProps {
   bgImageUrls?: string[];
   /** List of products to display as floating cards */
   featuredProducts: HeroProductCardData[];
+  /** Optional CTA text */
+  ctaText?: string;
+  /** Optional CTA link URL */
+  ctaLink?: string;
 }
 
 /**

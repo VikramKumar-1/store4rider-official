@@ -12,17 +12,41 @@ import { RocketLaunchIcon, PlayIcon, Squares2X2Icon, FilmIcon, UserIcon } from "
  * - A 3-column Instagram Reels grid (like a profile view).
  * - Below (or to the right on desktop): Two promo banners, displayed side-by-side on mobile.
  */
-export const SocialMediaSection: React.FC = () => {
-  // 6 Working Images for a 3x2 IG grid (Motorcycle/Riding theme)
-  const reelImages = [
+export interface SocialMediaSectionProps {
+  title?: string;
+  reelImages?: string[];
+  bannerTop?: { imageUrl: string; linkUrl: string };
+  bannerBottom?: {
+    imageUrl: string;
+    linkUrl: string;
+    title?: string;
+    subtitle?: string;
+    description?: string;
+  };
+}
+
+export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
+  title = "INSTA REELS",
+  reelImages = [
     "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=400&h=600&q=80",
     "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=400&h=600&q=80", 
     "https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=400&h=600&q=80", 
     "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=400&h=600&q=80",
     "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=400&h=600&q=80",
     "https://images.unsplash.com/photo-1449426468159-d96dbf08f19f?auto=format&fit=crop&w=400&h=600&q=80",
-  ];
-
+  ],
+  bannerTop = {
+    imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80",
+    linkUrl: "/products",
+  },
+  bannerBottom = {
+    imageUrl: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=800&q=80",
+    linkUrl: "/products",
+    title: "New Arrivals",
+    subtitle: "Explore Now",
+    description: "Check out the latest riding gear and premium accessories designed for your next adventure.",
+  },
+}) => {
   const viewCounts = ["12.9K", "8,181", "45K", "6,480", "4,254", "10.2K"];
 
   return (
@@ -30,10 +54,10 @@ export const SocialMediaSection: React.FC = () => {
       
       {/* Title */}
       <div className="text-center mb-6 md:mb-12 px-4">
-        <h2 className="font-sans text-[16px] min-[375px]:text-[18px] sm:text-2xl md:text-3xl lg:text-[40px] font-extrabold uppercase tracking-wide md:tracking-wider text-neutral-900 leading-tight whitespace-nowrap">
-          INSTA REELS
+        <h2 className="font-sans text-xl min-[375px]:text-2xl sm:text-3xl lg:text-[38px] xl:text-[40px] font-extrabold uppercase tracking-wide md:tracking-wider text-neutral-900 leading-tight">
+          {title}
         </h2>
-        <div className="w-10 md:w-16 h-1 bg-banner mx-auto mt-2 md:mt-3 rounded-full"></div>
+        <div className="w-12 md:w-16 h-1 bg-banner mx-auto mt-2.5 md:mt-4 rounded-full" />
       </div>
 
       {/* 
@@ -89,20 +113,20 @@ export const SocialMediaSection: React.FC = () => {
           <div className="lg:col-span-1 grid grid-cols-2 lg:flex lg:flex-col gap-2 sm:gap-4 px-2 sm:px-0">
             
             {/* Wireframe "Image 1": Top Banner - Stretches on desktop */}
-            <Link href="/products" className="relative w-full aspect-[4/5] lg:aspect-auto lg:flex-1 rounded-lg overflow-hidden group cursor-pointer border border-neutral-200 bg-neutral-800 flex items-center justify-center lg:min-h-[220px]">
+            <Link href={bannerTop.linkUrl || "/products"} className="relative w-full aspect-[4/5] lg:aspect-auto lg:flex-1 rounded-lg overflow-hidden group cursor-pointer border border-neutral-200 bg-neutral-800 flex items-center justify-center lg:min-h-[220px]">
               <Image
-                src="https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80"
-                alt="Category Image 1"
+                src={bannerTop.imageUrl || "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80"}
+                alt="Promo Banner Top"
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
               />
             </Link>
 
             {/* Wireframe "Image 2": Bottom Banner with White Card on Desktop */}
-            <Link href="/products" className="relative w-full aspect-[4/5] lg:aspect-auto lg:h-[260px] xl:h-[280px] lg:shrink-0 rounded-lg overflow-hidden group cursor-pointer border border-neutral-200 bg-neutral-800 flex items-center justify-center">
+            <Link href={bannerBottom.linkUrl || "/products"} className="relative w-full aspect-[4/5] lg:aspect-auto lg:h-[260px] xl:h-[280px] lg:shrink-0 rounded-lg overflow-hidden group cursor-pointer border border-neutral-200 bg-neutral-800 flex items-center justify-center">
               <Image
-                src="https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=800&q=80"
-                alt="Category Image 2"
+                src={bannerBottom.imageUrl || "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=800&q=80"}
+                alt="Promo Banner Bottom"
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
               />
@@ -115,12 +139,16 @@ export const SocialMediaSection: React.FC = () => {
                       <RocketLaunchIcon className="w-6 h-6" />
                     </div>
                     <div>
-                      <span className="font-extrabold text-xl text-neutral-900 block leading-none mb-1">New Arrivals</span>
-                      <span className="text-xs text-brand font-bold uppercase tracking-wider">Explore Now</span>
+                      <span className="font-extrabold text-xl text-neutral-900 block leading-none mb-1">
+                        {bannerBottom.title || "New Arrivals"}
+                      </span>
+                      <span className="text-xs text-brand font-bold uppercase tracking-wider">
+                        {bannerBottom.subtitle || "Explore Now"}
+                      </span>
                     </div>
                   </div>
                   <p className="text-sm text-neutral-600 mt-2 line-clamp-2 pr-2">
-                    Check out the latest riding gear and premium accessories designed for your next adventure.
+                    {bannerBottom.description || "Check out the latest riding gear and premium accessories designed for your next adventure."}
                   </p>
                 </div>
               </div>

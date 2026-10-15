@@ -13,13 +13,13 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
           { label: "Full Face Helmets", href: "/motorcycle-helmets/full-face-helmets" },
           { label: "Modular / Flip Up Helmets", href: "/motorcycle-helmets/modular-helmets" },
           { label: "Off Road Helmets", href: "/motorcycle-helmets/off-road-helmets" },
-          { label: "Open Face Helmets", href: "/motorcycle-helmets/half-face-helmets" },
+          { label: "Open Face Helmets", href: "/motorcycle-helmets/open-face-helmets" },
         ],
       },
       {
         group: "Accessories & Care",
         items: [
-          { label: "Helmet Visors", href: "/motorcycle-helmets/helmet-visors" },
+          { label: "Helmet Visors/Helmet Accessories", href: "/motorcycle-helmets/helmet-accessories" },
           { label: "Balaclava", href: "/motorcycle-helmets/balaclava" },
           { label: "Bluetooth Intercoms", href: "/motorcycle-helmets/bluetooth-intercoms" },
           { label: "Helmet Cleaners", href: "/motorcycle-helmets/helmet-cleaners" },
@@ -35,10 +35,10 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
     megaMenuItems: [
       {
         group: "Riding Jackets",
-        groupHref: "/riding-gear/riding-jacket",
+        groupHref: "/riding-gear/riding-jackets",
         items: [
-          { label: "Riding Jackets", href: "/riding-gear/riding-jacket" },
-          { label: "Protectors / Armour", href: "/riding-gear/protectors-armour" },
+          { label: "Riding Jackets", href: "/riding-gear/riding-jackets" },
+          { label: "Protectors / Armour", href: "/riding-gear/riding-jackets/protectors-armour" },
         ],
       },
       {
@@ -46,19 +46,19 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         groupHref: "/riding-gear/riding-pants",
         items: [
           { label: "Riding Pants", href: "/riding-gear/riding-pants" },
-          { label: "Riding Jeans", href: "/riding-gear/riding-jeans" },
-          { label: "Touring Pants", href: "/riding-gear/touring-pants" },
-          { label: "Knee Guards for bikers", href: "/riding-gear/knee-guards" },
+          { label: "Riding Jeans", href: "/riding-gear/riding-pants/motorcycle-riding-jeans" },
+          { label: "Touring Pants", href: "/riding-gear/riding-pants/touring-pants" },
+          { label: "Knee Guards for bikers", href: "/riding-gear/riding-pants/knee-guards-bikers" },
         ],
       },
       {
         group: "Riding Gloves",
-        groupHref: "/riding-gear/motorcycle-riding-gloves",
+        groupHref: "/riding-gear/riding-gloves",
         items: [
-          { label: "Riding Gloves", href: "/riding-gear/motorcycle-riding-gloves" },
-          { label: "Full Gauntlet Gloves", href: "/riding-gear/full-gauntlet-gloves" },
-          { label: "Semi Gauntlet Gloves", href: "/riding-gear/semi-gauntlet-gloves" },
-          { label: "Short Motorbike Gloves", href: "/riding-gear/short-motorbike-gloves" },
+          { label: "Riding Gloves", href: "/riding-gear/riding-gloves" },
+          { label: "Full Gauntlet Gloves", href: "/riding-gear/riding-gloves/full-gauntlet-gloves" },
+          { label: "Semi Gauntlet Gloves", href: "/riding-gear/riding-gloves/semi-gauntlet-gloves" },
+          { label: "Short Motorbike Gloves", href: "/riding-gear/riding-gloves/short-motorbike-gloves" },
         ],
       },
       {
@@ -66,16 +66,16 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         groupHref: "/riding-gear/motorcycle-riding-boots",
         items: [
           { label: "Riding Boots", href: "/riding-gear/motorcycle-riding-boots" },
-          { label: "Short biking boots", href: "/riding-gear/short-biking-boots" },
-          { label: "Sports riding shoes", href: "/riding-gear/sports-riding-shoes" },
+          { label: "Short biking boots", href: "/riding-gear/motorcycle-riding-boots/short-biking-boots" },
+          { label: "Sports riding shoes", href: "/riding-gear/motorcycle-riding-boots/sports-riding-shoes" },
           { label: "Off-road boots", href: "/riding-gear/motorcycle-riding-boots/off-road-riding-boots" },
         ],
       },
       {
         group: "Specialized Gear",
         items: [
-          { label: "Riding Gear For Women", href: "/riding-gear/women-riding-gear" },
-          { label: "Off-Road / Motocross Gear", href: "/riding-gear/off-road-motocross" },
+          { label: "Riding Gear For Women", href: "/riding-gear-for-women" },
+          { label: "Off-Road / Motocross Gear", href: "/riding-gear/off-road-motocross-riding-gear" },
         ],
       }
     ],
@@ -89,17 +89,17 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
       {
         group: "Mountable Luggage",
         items: [
-          { label: "Tank Bags", href: "/motorcycle-bags-bike-luggage/tank-bags" },
+          { label: "Tank Bags", href: "/motorcycle-bags-bike-luggage/tank-bags-bikes" },
           { label: "Saddle Bags for bikes", href: "/motorcycle-bags-bike-luggage/saddle-bags-bikes" },
           { label: "Motorcycle Tail Bags", href: "/motorcycle-bags-bike-luggage/motorcycle-tail-bags" },
-          { label: "Bike Top Box", href: "/motorcycle-bags-bike-luggage/top-box" },
+          { label: "Bike Top Box", href: "/motorcycle-bags-bike-luggage/bike-top-box" },
         ],
       },
       {
         group: "Other Bags",
         items: [
-          { label: "Hydration Bags", href: "/motorcycle-bags-bike-luggage/hydration-bags" },
-          { label: "Other Luggage", href: "/motorcycle-bags-bike-luggage/other-luggage" },
+          { label: "Hydration Bags", href: "/motorcycle-bags-bike-luggage/hydration-bag" },
+          { label: "Other Luggage", href: "/motorcycle-bags-bike-luggage/motorcycle-other-luggage" },
         ],
       }
     ]
@@ -114,18 +114,18 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         group: "Auxiliary Lights / Filters / Accessories",
         items: [
           { label: "Auxiliary Lights & Flashers", href: "/motorcycle-accessories-online/bike-auxiliary-lights-filters-flashers" },
-          { label: "Auxiliary lights", href: "/motorcycle-accessories-online/auxiliary-lights" },
-          { label: "Auxiliary light filter", href: "/motorcycle-accessories-online/auxiliary-light-filter" },
-          { label: "Clamps and Mounts for lights", href: "/motorcycle-accessories-online/clamps-and-mounts-for-lights" },
-          { label: "Auxiliary light wiring harness and Switch", href: "/motorcycle-accessories-online/auxiliary-light-wiring-harness-and-switch" },
+          { label: "Auxiliary lights", href: "/motorcycle-accessories-online/bike-auxiliary-lights-filters-flashers/bike-auxiliary-lights" },
+          { label: "Auxiliary light filter", href: "/motorcycle-accessories-online/bike-auxiliary-lights-filters-flashers/auxiliary-light-filters" },
+          { label: "Clamps and Mounts for lights", href: "/motorcycle-accessories-online/bike-auxiliary-lights-filters-flashers/bike-auxiliary-light-clamps-mounts" },
+          { label: "Auxiliary light wiring harness and Switch", href: "/motorcycle-accessories-online/bike-auxiliary-lights-filters-flashers/auxiliary-light-wiring-harness-switch" },
         ],
       },
       {
         group: "More Accessories",
         items: [
-          { label: "Off-Beat Accessories", href: "/motorcycle-accessories-online/off-beat-accessories" },
+          { label: "Off-Beat Accessories", href: "/motorcycle-accessories-online/off-beat-motorcycle-accessories" },
           { label: "Performance Parts", href: "/motorcycle-accessories-online/performance-parts" },
-          { label: "Rally Towers / Navigation Tower", href: "/motorcycle-accessories-online/rally-towers-navigation-tower" },
+          { label: "Rally Towers / Navigation Tower", href: "/motorcycle-accessories-online/rally-tower" },
           { label: "Bike Covers", href: "/motorcycle-accessories-online/bike-covers" },
           { label: "Chain Care", href: "/motorcycle-accessories-online/chain-care" },
         ],
@@ -194,17 +194,17 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { 
     id: "spares", 
     label: "Spares", 
-    href: "/spares", 
+    href: "/bike-spares", 
     hasDropdown: true,
     megaMenuItems: [
       {
         group: "Spares & Parts",
-        groupHref: "/spares",
+        groupHref: "/bike-spares",
         items: [
-          { label: "Chain Sprocket Kits", href: "/spares/chain-sprocket-kits" },
-          { label: "Iridium Spark Plugs", href: "/spares/iridium-spark-plugs" },
-          { label: "Performance Air Filters", href: "/spares/performance-air-filters" },
-          { label: "Brake Pads", href: "/spares/brake-pads" },
+          { label: "Chain Sprocket Kits", href: "/bike-spares/chain-sprocket-kits" },
+          { label: "Iridium Spark Plugs", href: "/bike-spares/iridium-spark-plug" },
+          { label: "Performance Air Filters", href: "/bike-spares/performance-air-filter-bike" },
+          { label: "Brake Pads", href: "/bike-spares/brake-pads" },
         ],
       },
     ],

@@ -111,11 +111,17 @@ export async function GET(req: NextRequest) {
         const parts = p.split("/").map(part => part.trim());
         parts.forEach(part => {
           const lower = part.toLowerCase();
-          if (lower.includes("root") || lower.includes("between") || lower.includes("price") || lower.includes("rs.") || lower.includes("₹")) {
+          if (lower.includes("root") || lower.includes("between") || lower.includes("price") || lower.includes("rs.") || lower.includes("₹") || lower.includes("under")) {
              return; // Skip pollution
           }
           if (part) {
-             slugs.add(slugify(part));
+             const baseSlug = slugify(part);
+             slugs.add(baseSlug);
+             if (baseSlug.endsWith('s') && !baseSlug.endsWith('ss')) {
+               slugs.add(baseSlug.slice(0, -1)); // Add singular
+             } else {
+               slugs.add(baseSlug + 's'); // Add plural
+             }
           }
         });
       });
@@ -127,11 +133,15 @@ export async function GET(req: NextRequest) {
       const attrs = parseAttributes(row.additional_attributes);
       const catSlugs = cleanCategorySlugs(row.categories);
       
+      const isWearable = ['jacket', 'pant', 'jean', 'suit', 'riding gear', 'boot', 'shoe', 'glove', 'guard', 'armor', 'armour'].some(kw => 
+        (row.categories || '').toLowerCase().includes(kw) || (row.name || '').toLowerCase().includes(kw)
+      );
+
       const updateDoc: any = {
          categorySlugs: catSlugs,
          attributes: attrs,
          brand: attrs.brand || row.brand || undefined,
-         gender: attrs.gender ? (Array.isArray(attrs.gender) ? attrs.gender[0] : attrs.gender) : undefined
+         gender: isWearable && attrs.gender ? (Array.isArray(attrs.gender) ? attrs.gender[0] : attrs.gender) : undefined
       };
 
       // Map Variant Children precisely!

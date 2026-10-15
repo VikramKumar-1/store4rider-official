@@ -7,10 +7,13 @@ import {
   getGuideBySlug,
   GUIDE_CATEGORIES,
   GUIDE_POSTS,
+  buildAuthorSchema,
   buildBlogPostingSchema,
   buildBlogCollectionSchema,
   buildBreadcrumbSchema,
 } from "@/modules/guides";
+
+export const dynamic = "force-static";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -149,6 +152,7 @@ export default async function GuidesDynamicSlugPage({ params }: Props) {
 
   const post = getGuideBySlug(slug);
   if (post) {
+    const authorSchema = buildAuthorSchema(post.author, siteUrl);
     const blogPostingSchema = buildBlogPostingSchema(post, siteUrl);
     const breadcrumbSchema = buildBreadcrumbSchema(
       [
@@ -162,6 +166,10 @@ export default async function GuidesDynamicSlugPage({ params }: Props) {
 
     return (
       <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(authorSchema) }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingSchema) }}

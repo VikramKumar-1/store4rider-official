@@ -1,5 +1,4 @@
 import { SettingController } from "./setting.controller";
-import { SettingValidator } from "./setting.validator";
 import { checkAdmin } from "../../core/middlewares/admin";
 import { extractUserFromAuth } from "../../core/middlewares/auth";
 import { UserService } from "../user/user.service";
@@ -20,8 +19,6 @@ export async function settingRouter(req: any, routePath: string) {
   if (method === "PUT" && routePath === "") {
     const userId = extractUserFromAuth(req);
     await checkAdmin(userId, UserService.getRole);
-    req.body = await req.json();
-    SettingValidator.validateUpdateSettings(req);
     return SettingController.updateSettings(req);
   }
 

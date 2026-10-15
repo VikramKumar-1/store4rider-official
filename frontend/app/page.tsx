@@ -1,15 +1,53 @@
 import type { Metadata } from "next";
 import HomepageModule from "@/modules/homepage";
 
-export const metadata: Metadata = {
-  title: "Store4Riders | Premium Motorcycle Riding Gear & Accessories",
-  description: "Shop certified motorcycle helmets, riding jackets, pants, boots, and safety gear in India. Genuine products, best prices & express delivery at Store4Riders.",
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+  const homepageUrl = baseUrl.includes('/v1') ? `${baseUrl}/homepage/public` : `${baseUrl}/v1/homepage/public`;
+
+  try {
+    const res = await fetch(homepageUrl, {
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(2500),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const seo = data?.data?.seo;
+      if (seo) {
+        return {
+          title: seo.metaTitle || "Store4Riders | Premium Motorcycle Riding Gear & Accessories",
+          description: seo.metaDescription || "Shop certified motorcycle helmets, riding jackets, pants, boots, and safety gear in India.",
+          keywords: seo.metaKeywords || "motorcycle helmets, riding gear, riding jackets, riding boots, bike accessories",
+          alternates: {
+            canonical: "/",
+          },
+          openGraph: {
+            title: seo.ogTitle || seo.metaTitle || "Store4Riders | Premium Motorcycle Riding Gear & Accessories",
+            description: seo.ogDescription || seo.metaDescription || "Shop certified motorcycle helmets, riding jackets, pants, boots, and safety gear in India.",
+            type: "website",
+            images: seo.ogImage ? [{ url: seo.ogImage }] : undefined,
+          },
+        };
+      }
+    }
+  } catch (e) {
+    // Fallback to defaults
+  }
+
+  return {
     title: "Store4Riders | Premium Motorcycle Riding Gear & Accessories",
-    description: "Shop certified motorcycle helmets, riding jackets, pants, boots, and safety gear in India.",
-    type: "website",
-  },
-};
+    description: "Shop certified motorcycle helmets, riding jackets, pants, boots, and safety gear in India. Genuine products, best prices & express delivery at Store4Riders.",
+    alternates: {
+      canonical: "/",
+    },
+    openGraph: {
+      title: "Store4Riders | Premium Motorcycle Riding Gear & Accessories",
+      description: "Shop certified motorcycle helmets, riding jackets, pants, boots, and safety gear in India.",
+      type: "website",
+    },
+  };
+}
 
 /**
  * Home Page Route
@@ -21,12 +59,13 @@ export const metadata: Metadata = {
 export default async function Home() {
   let backendProducts = [];
   let storeSettings: any = null;
+  let homepageConfig: any = null;
 
   try {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
     const fetchUrl = baseUrl.includes('/v1') ? `${baseUrl}/products` : `${baseUrl}/v1/products`;
     
-    const res = await fetch(`${fetchUrl}?limit=50`, { 
+    const res = await fetch(`${fetchUrl}?limit=200`, { 
       next: { revalidate: 60 },
       signal: AbortSignal.timeout(3500),
     });
@@ -45,6 +84,17 @@ export default async function Home() {
     if (settingsRes.ok) {
       const sData = await settingsRes.json();
       storeSettings = sData?.data || null;
+    }
+
+    // Fetch public homepage configuration (Hero, SEO, Sections)
+    const homepageUrl = baseUrl.includes('/v1') ? `${baseUrl}/homepage/public` : `${baseUrl}/v1/homepage/public`;
+    const homepageRes = await fetch(homepageUrl, {
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(2500),
+    });
+    if (homepageRes.ok) {
+      const hData = await homepageRes.json();
+      homepageConfig = hData?.data || null;
     }
   } catch (error) {
     // Fallback gracefully
@@ -69,9 +119,14 @@ export default async function Home() {
     description: "India's leading destination for certified motorcycle riding helmets, jackets, boots, gloves, and riding accessories. Top brands, 100% authentic gear with fast shipping.",
     ...(activePhone ? { telephone: activePhone } : {}),
     email: activeEmail,
-    currenciesAccepted: "INR",
-    paymentAccepted: "Cash on Delivery, Credit Card, Debit Card, UPI, Net Banking, EMI",
-    priceRange: "₹₹",
+    acceptedPaymentMethod: [
+      "Cash on Delivery",
+      "Credit Card",
+      "Debit Card",
+      "UPI",
+      "Net Banking",
+      "EMI",
+    ],
     address: {
       "@type": "PostalAddress",
       ...(storeSettings?.storeOriginAddress ? { streetAddress: storeSettings.storeOriginAddress } : {}),
@@ -105,7 +160,7 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(onlineStoreSchema) }}
       />
-      <HomepageModule backendProducts={backendProducts} />
+      <HomepageModule backendProducts={backendProducts} homepageConfig={homepageConfig} />
     </>
   );
 }

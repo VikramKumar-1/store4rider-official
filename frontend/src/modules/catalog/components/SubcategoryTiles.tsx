@@ -38,28 +38,89 @@ function resolveCategoryHref(item: SubcategoryItem, currentPathname: string): st
   const slug = item.slug.toLowerCase().trim();
 
   // Helmet subcategories
+  if (slug === "half-face-helmets") return "/motorcycle-helmets/open-face-helmets";
+  if (slug === "helmet-visors") return "/motorcycle-helmets/helmet-accessories";
   const helmetSlugs = [
-    "full-face-helmets", "modular-helmets", "off-road-helmets", "half-face-helmets",
+    "full-face-helmets", "modular-helmets", "off-road-helmets", "open-face-helmets", "half-face-helmets",
     "helmet-visors", "balaclava", "bluetooth-intercoms", "helmet-cleaners", "helmet-accessories"
   ];
   if (helmetSlugs.includes(slug) || slug.includes("helmet")) {
     return `/motorcycle-helmets/${slug}`;
   }
 
+  // Specialized riding gear root URLs
+  if (slug === "women-riding-gear" || slug === "riding-gear-for-women") {
+    return "/riding-gear-for-women";
+  }
+
   // Riding gear subcategories
-  const gearSlugs = [
-    "riding-jacket", "protectors-armour", "riding-pants", "riding-jeans", "touring-pants",
-    "knee-guards", "motorcycle-riding-gloves", "full-gauntlet-gloves", "semi-gauntlet-gloves",
-    "short-motorbike-gloves", "motorcycle-riding-boots", "short-biking-boots", "sports-riding-shoes"
-  ];
-  if (gearSlugs.includes(slug)) {
-    return `/riding-gear/${slug}`;
+  if (slug === "riding-jacket" || slug === "riding-jackets") {
+    return "/riding-gear/riding-jackets";
+  }
+  if (slug === "protectors-armour") {
+    return "/riding-gear/riding-jackets/protectors-armour";
+  }
+  if (slug === "motorcycle-riding-jeans" || slug === "riding-jeans" || slug === "riding-jean") {
+    return "/riding-gear/riding-pants/motorcycle-riding-jeans";
+  }
+  if (slug === "touring-pants" || slug === "touring-pant") {
+    return "/riding-gear/riding-pants/touring-pants";
+  }
+  if (slug === "knee-guards-bikers" || slug === "knee-guards" || slug === "knee-guard") {
+    return "/riding-gear/riding-pants/knee-guards-bikers";
+  }
+  if (slug === "riding-pants") {
+    return "/riding-gear/riding-pants";
+  }
+  if (slug === "full-gauntlet-gloves") {
+    return "/riding-gear/riding-gloves/full-gauntlet-gloves";
+  }
+  if (slug === "semi-gauntlet-gloves") {
+    return "/riding-gear/riding-gloves/semi-gauntlet-gloves";
+  }
+  if (slug === "short-motorbike-gloves" || slug === "short-cuff-biker-gloves") {
+    return "/riding-gear/riding-gloves/short-motorbike-gloves";
+  }
+  if (slug === "riding-gloves" || slug === "motorcycle-riding-gloves") {
+    return "/riding-gear/riding-gloves";
+  }
+  if (slug === "short-biking-boots") {
+    return "/riding-gear/motorcycle-riding-boots/short-biking-boots";
+  }
+  if (slug === "sports-riding-shoes") {
+    return "/riding-gear/motorcycle-riding-boots/sports-riding-shoes";
+  }
+  if (slug === "off-road-riding-boots" || slug === "off-road-boots") {
+    return "/riding-gear/motorcycle-riding-boots/off-road-riding-boots";
+  }
+  if (slug === "motorcycle-riding-boots") {
+    return "/riding-gear/motorcycle-riding-boots";
+  }
+  if (slug === "off-road-motocross" || slug === "off-road-motocross-riding-gear") {
+    return "/riding-gear/off-road-motocross-riding-gear";
   }
 
   // Luggage subcategories
-  const luggageSlugs = ["tank-bags", "saddle-bags", "tail-bags", "backpacks", "top-box"];
-  if (luggageSlugs.includes(slug) || slug.includes("bag") || slug.includes("luggage")) {
-    return `/luggage-touring/${slug}`;
+  if (slug === "tank-bags-bikes" || slug === "tank-bags") {
+    return "/motorcycle-bags-bike-luggage/tank-bags-bikes";
+  }
+  if (slug === "saddle-bags-bikes" || slug === "saddle-bags") {
+    return "/motorcycle-bags-bike-luggage/saddle-bags-bikes";
+  }
+  if (slug === "motorcycle-tail-bags" || slug === "tail-bags") {
+    return "/motorcycle-bags-bike-luggage/motorcycle-tail-bags";
+  }
+  if (slug === "bike-top-box" || slug === "top-box") {
+    return "/motorcycle-bags-bike-luggage/bike-top-box";
+  }
+  if (slug === "hydration-bag" || slug === "hydration-bags") {
+    return "/motorcycle-bags-bike-luggage/hydration-bag";
+  }
+  if (slug === "motorcycle-other-luggage" || slug === "other-luggage") {
+    return "/motorcycle-bags-bike-luggage/motorcycle-other-luggage";
+  }
+  if (slug === "motorcycle-bags-bike-luggage" || slug.includes("bag") || slug.includes("luggage")) {
+    return "/motorcycle-bags-bike-luggage";
   }
 
   if (item.parentSlug) {

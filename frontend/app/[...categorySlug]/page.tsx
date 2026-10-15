@@ -296,9 +296,13 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   const categoryName =
     initialCategoryNode?.name ||
     candidateSlug.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const cleanRawDesc = (initialCategoryNode?.metaDescription || initialCategoryNode?.description || "")
+    .replace(/<[^>]*>?/gm, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   const categoryDescription =
-    initialCategoryNode?.metaDescription ||
-    initialCategoryNode?.description ||
+    cleanRawDesc ||
     `Explore our certified range of ${categoryName} at Store4Riders. High quality motorcycle gear with fast delivery across India.`;
   const currentUrl = `${siteUrl}/${slugArray.join('/')}`;
 
@@ -322,17 +326,22 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
       itemListElement: collectionProducts.map((p: any, idx: number) => ({
         "@type": "ListItem",
         position: idx + 1,
-        name: p.name,
         url: `${siteUrl}/${p.slug}`,
-        ...(p.images?.[0]?.url ? { image: p.images[0].url } : {}),
-        offers: {
-          "@type": "Offer",
-          priceCurrency: "INR",
-          price: p.specialPrice || p.basePrice || 0,
-          availability:
-            p.stockStatus === 1 || p.stockStatus === true
-              ? "https://schema.org/InStock"
-              : "https://schema.org/OutOfStock",
+        item: {
+          "@type": "Product",
+          name: p.name,
+          url: `${siteUrl}/${p.slug}`,
+          ...(p.images?.[0]?.url ? { image: p.images[0].url } : {}),
+          offers: {
+            "@type": "Offer",
+            priceCurrency: "INR",
+            price: p.specialPrice || p.basePrice || 0,
+            availability:
+              p.stockStatus === 1 || p.stockStatus === true
+                ? "https://schema.org/InStock"
+                : "https://schema.org/OutOfStock",
+            itemCondition: "https://schema.org/NewCondition",
+          },
         },
       })),
     },

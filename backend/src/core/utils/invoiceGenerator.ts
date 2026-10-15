@@ -30,11 +30,11 @@ export class InvoiceGenerator {
     const storeName = settings.legalBusinessName || "Store4Riders";
     const storeAddress = settings.storeOriginAddress || "Warehouse";
     const storeCity = settings.storeOriginCity || "Pune";
-    const storeState = settings.storeOriginState || "Maharashtra";
+    const storeState = (settings.storeOriginState || "Maharashtra").trim();
     const storePin = settings.storeOriginPincode || "411001";
     const storeGstin = settings.gstin || "Unregistered / In Progress";
 
-    const buyerState = (order.shippingAddress.state || "").trim().toLowerCase();
+    const buyerState = (order.shippingAddress?.state || "").trim().toLowerCase();
     const isInterState = buyerState !== "" && storeState !== "" && buyerState !== storeState.toLowerCase();
 
     return new Promise((resolve, reject) => {
@@ -195,13 +195,19 @@ export class InvoiceGenerator {
           const rowHeight = 25;
           const rate = item.unitPrice;
           const qty = item.quantity;
-          const discount = 0; 
-          const gstPercent = item.taxRate || order.pricing.taxRate || 18;
+          const totalOrderDiscount = (order.pricing.couponDiscount || 0) + (order.pricing.discount || 0);
+          const itemSubtotal = rate * qty;
+          const discount = (order.pricing.subtotal > 0 && totalOrderDiscount > 0)
+            ? Math.round((itemSubtotal / order.pricing.subtotal) * totalOrderDiscount * 100) / 100
+            : 0;
+          const gstPercent = item.taxRate ?? (order.pricing.taxRate ?? 18);
           
           // If pricing is inclusive:
           const isInclusive = settings.gstPricingMode !== "exclusive";
-          let taxVal = (rate - discount) * qty;
-          let taxAmt = item.taxAmount || (taxVal * (gstPercent / 100));
+          let taxVal = (rate * qty) - discount;
+          let taxAmt = item.taxAmount !== undefined
+            ? (discount > 0 && itemSubtotal > 0 ? Math.round(item.taxAmount * (1 - discount / itemSubtotal) * 100) / 100 : item.taxAmount)
+            : (taxVal * (gstPercent / 100));
           let totalAmt = taxVal + (isInclusive ? 0 : taxAmt);
 
           if (isInclusive) {

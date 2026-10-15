@@ -109,7 +109,7 @@ const MainNav = () => {
           </Link>
           
           <Link 
-            href="/riding-gear/riding-jacket" 
+            href="/riding-gear/riding-jackets" 
             className="px-4 py-2 rounded-full hover:text-white hover:bg-white/10 transition-all duration-200"
           >
             Jackets

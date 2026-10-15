@@ -6,6 +6,7 @@ import { StarIcon, ChevronLeftIcon, ChevronRightIcon, UserIcon } from "@heroicon
 import { TestimonialData } from "../types/homepage.types";
 
 export interface TestimonialsSectionProps {
+  title?: string;
   testimonials: TestimonialData[];
 }
 
@@ -74,7 +75,10 @@ const TestimonialCard: React.FC<{ data: TestimonialData }> = ({ data }) => {
 /**
  * TestimonialsSection Component
  */
-export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({ testimonials }) => {
+export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({
+  title = "WHAT CUSTOMERS SAY ABOUT US",
+  testimonials,
+}) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -142,11 +146,11 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({ testim
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 relative">
         
         {/* Centered Header (Matching Wireframe) */}
-        <div className="text-center mb-8 md:mb-12">
-          <h2 className="font-sans text-[16px] min-[375px]:text-[18px] sm:text-2xl md:text-3xl lg:text-[40px] font-extrabold uppercase tracking-wide md:tracking-wider text-neutral-900 leading-tight whitespace-nowrap">
-            WHAT CUSTOMERS SAY ABOUT US
+        <div className="text-center mb-6 md:mb-12 px-4">
+          <h2 className="font-sans text-xl min-[375px]:text-2xl sm:text-3xl lg:text-[38px] xl:text-[40px] font-extrabold uppercase tracking-wide md:tracking-wider text-neutral-900 leading-tight">
+            {title}
           </h2>
-          <div className="w-10 md:w-16 h-1 bg-banner mx-auto mt-2 md:mt-4 rounded-full"></div>
+          <div className="w-12 md:w-16 h-1 bg-banner mx-auto mt-2.5 md:mt-4 rounded-full" />
         </div>
 
         {/* Prev / Next Desktop Controls (Hidden on mobile to keep layout clean like wireframe) */}
@@ -196,13 +200,6 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({ testim
         </div>
 
       </div>
-
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          .hide-scrollbar::-webkit-scrollbar { display: none; }
-          .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        `
-      }} />
     </section>
   );
 };

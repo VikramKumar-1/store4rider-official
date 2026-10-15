@@ -170,7 +170,16 @@ export const migrationWorker = new Worker("migrationQueue", async (job: Job) => 
 
     // Map Magento specific text fields explicitly to avoid them getting dumped in attributes
     const sizeChart = row.size_chart || row.sizechart || "";
-    const gender = row.gender || row.gender_1 || "";
+    // Only map gender for wearable products (apparel, footwear, gloves, protection)
+    const isWearableProduct = (() => {
+      const lowerCat = (row.categories || "").toLowerCase();
+      const lowerAttr = (row.attribute_set_code || row.attribute_set || "").toLowerCase();
+      const lowerName = (row.name || "").toLowerCase();
+      return ['jacket', 'pant', 'jean', 'suit', 'riding gear', 'apparel', 'boot', 'shoe', 'glove', 'guard', 'armor', 'armour', 'layer'].some(kw => 
+        lowerCat.includes(kw) || lowerAttr.includes(kw) || lowerName.includes(kw)
+      );
+    })();
+    const gender = isWearableProduct ? (row.gender || row.gender_1 || "") : "";
     const countryOfManufacture = row.country_of_manufacture || row.country_of_origin || "";
     const attributeSetCode = row.attribute_set_code || row.attribute_set || "";
     const configurableVariationLabels = row.configurable_variation_labels || "";
@@ -217,25 +226,22 @@ export const migrationWorker = new Worker("migrationQueue", async (job: Job) => 
         parts.forEach((p: string) => {
           let slug = p.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
           slug = slug.replace(/^-+|-+$/g, '');
-          if (!slug || slug.includes("root-test")) return;
+          if (!slug || slug.includes("root-test") || slug.includes("default-category") || slug.includes("price") || slug.includes("under-")) return;
           
           mapped.add(slug);
           
-          if (slug.endsWith('helmet')) mapped.add(slug + 's');
-          if (slug.endsWith('bag')) mapped.add(slug + 's');
-          if (slug.endsWith('jacket')) mapped.add(slug + 's');
-          if (slug.endsWith('pant')) mapped.add(slug + 's');
-          if (slug.endsWith('glove')) mapped.add(slug + 's');
-          if (slug.endsWith('shoe')) mapped.add(slug + 's');
-          if (slug.endsWith('boot')) mapped.add(slug + 's');
-          if (slug.endsWith('guard')) mapped.add(slug + 's');
-          if (slug.endsWith('protector')) mapped.add(slug + 's');
+          // Universal singular & plural generation for any category / submenu
+          if (slug.endsWith('s') && !slug.endsWith('ss')) {
+            mapped.add(slug.slice(0, -1)); // Add singular
+          } else {
+            mapped.add(slug + 's'); // Add plural
+          }
           
           if (slug.includes('full-face')) { mapped.add('full-face-helmets'); mapped.add('full-face-helmet'); }
           if (slug.includes('open-face')) { mapped.add('open-face-helmets'); mapped.add('open-face-helmet'); }
           if (slug.includes('flip-up') || slug.includes('modular')) { mapped.add('flip-up-helmets'); mapped.add('modular-helmets'); }
           if (slug.includes('tail-bag')) { mapped.add('tail-bags'); }
-          if (slug.includes('saddle-bag')) { mapped.add('saddle-bags'); }
+          if (slug.includes('saddle-bag')) { mapped.add('saddle-bags'); mapped.add('saddle-bags-bikes'); }
         });
         return Array.from(mapped);
       })(),

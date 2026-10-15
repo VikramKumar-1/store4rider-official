@@ -1,4 +1,5 @@
 import { SettingService } from "./setting.service";
+import { SettingValidator } from "./setting.validator";
 import { ApiResponse } from "../../core/response/ApiResponse";
 
 export class SettingController {
@@ -40,7 +41,8 @@ export class SettingController {
   }
 
   static async updateSettings(req: any) {
-    const settings = await SettingService.updateSettings(req.body);
+    const validatedData = await SettingValidator.validateUpdateSettings(req);
+    const settings = await SettingService.updateSettings(validatedData);
     return ApiResponse.success(settings, "Settings updated successfully");
   }
 }

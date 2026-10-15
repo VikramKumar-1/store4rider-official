@@ -10,6 +10,7 @@ import SocialMediaSection from "./components/SocialMediaSection";
 import TestimonialsSection from "./components/TestimonialsSection";
 import Footer from "./components/Footer";
 import { NavLinkItem, HeroProductCardData, CategoryCardData, BrowseProductData, TestimonialData } from "./types/homepage.types";
+import { IHomepageConfig } from "@store4riders/shared-types";
 
 /**
  * HomepageModule Component
@@ -18,7 +19,10 @@ import { NavLinkItem, HeroProductCardData, CategoryCardData, BrowseProductData, 
  * Clean, module-based architecture containing purely UI components with zero frontend business logic.
  * Data is passed cleanly as structured props for maintainability and backend integration.
  */
-export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendProducts = [] }) => {
+export const HomepageModule: React.FC<{ backendProducts?: any[]; homepageConfig?: IHomepageConfig }> = ({
+  backendProducts = [],
+  homepageConfig,
+}) => {
   // Navigation items matching Figma structure
   const navItems: NavLinkItem[] = [
     { id: "catalog", label: "Catalog", href: "/products", hasDropdown: true },
@@ -29,7 +33,9 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
 
   // Featured product cards matching Figma floating card elements
   // (Using rider motorcycle gear images & high-resolution product imagery)
-  const featuredProducts: HeroProductCardData[] = [
+  const featuredProducts: HeroProductCardData[] = (homepageConfig?.hero?.featuredCards && homepageConfig.hero.featuredCards.length > 0)
+    ? homepageConfig.hero.featuredCards
+    : [
     {
       id: "prod-1",
       title: "Riding Armor Jacket",
@@ -52,27 +58,135 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
   const categoryData = {
     helmets: {
       id: "cat-helmets",
-      title: "HELMETS",
-      imageUrl: "/helmetcat.jpg",
-      linkUrl: "/motorcycle-helmets"
+      title: homepageConfig?.sections?.featuredCategories?.helmets?.title || "HELMETS",
+      imageUrl: homepageConfig?.sections?.featuredCategories?.helmets?.imageUrl || "/helmetcat.jpg",
+      linkUrl: homepageConfig?.sections?.featuredCategories?.helmets?.linkUrl || "/motorcycle-helmets"
     },
     gloves: {
       id: "cat-gloves",
-      title: "GLOVES",
-      imageUrl: "/glovescat.jpg",
-      linkUrl: "/gloves"
+      title: homepageConfig?.sections?.featuredCategories?.gloves?.title || "GLOVES",
+      imageUrl: homepageConfig?.sections?.featuredCategories?.gloves?.imageUrl || "/glovescat.jpg",
+      linkUrl:
+        !homepageConfig?.sections?.featuredCategories?.gloves?.linkUrl ||
+        homepageConfig?.sections?.featuredCategories?.gloves?.linkUrl === "/gloves" ||
+        homepageConfig?.sections?.featuredCategories?.gloves?.linkUrl === "/riding-gloves" ||
+        homepageConfig?.sections?.featuredCategories?.gloves?.linkUrl === "/riding-gear/motorcycle-riding-gloves"
+          ? "/riding-gear/riding-gloves"
+          : homepageConfig?.sections?.featuredCategories?.gloves?.linkUrl
     },
     jackets: {
       id: "cat-jackets",
-      title: "JACKETS",
-      imageUrl: "/jacketcat.jpg",
-      linkUrl: "/jackets"
+      title: homepageConfig?.sections?.featuredCategories?.jackets?.title || "JACKETS",
+      imageUrl: homepageConfig?.sections?.featuredCategories?.jackets?.imageUrl || "/jacketcat.jpg",
+      linkUrl:
+        !homepageConfig?.sections?.featuredCategories?.jackets?.linkUrl ||
+        homepageConfig?.sections?.featuredCategories?.jackets?.linkUrl === "/jackets" ||
+        homepageConfig?.sections?.featuredCategories?.jackets?.linkUrl === "/riding-jackets" ||
+        homepageConfig?.sections?.featuredCategories?.jackets?.linkUrl === "/riding-gear/riding-jacket"
+          ? "/riding-gear/riding-jackets"
+          : homepageConfig?.sections?.featuredCategories?.jackets?.linkUrl
     }
   };
 
-  // Map real backend products to grid data, or fallback to dummy data if none exist yet
-  const gridProducts: BrowseProductData[] = backendProducts && backendProducts.length > 0 
-    ? backendProducts.slice(0, 8).map((p: any, idx: number) => {
+  // Define diverse riding gear categories to represent in BROWSE RIDING GEAR CATEGORIES
+  const categoryRules = [
+    {
+      label: 'RIDING BOOTS',
+      matcher: (cat: string, name: string) => /boot/i.test(cat) || /boot/i.test(name),
+    },
+    {
+      label: 'RIDING PANTS',
+      matcher: (cat: string, name: string) => /pant|trouser|jean/i.test(cat) || /pant|trouser|jean/i.test(name),
+    },
+    {
+      label: 'TAIL BAGS',
+      matcher: (cat: string, name: string) => /tail\s*bag/i.test(cat) || /tail\s*bag/i.test(name),
+    },
+    {
+      label: 'ARMOUR & GUARDS',
+      matcher: (cat: string, name: string) => /knee|guard|protector|armour|armor|chest|back|hip/i.test(cat) || /knee|guard|protector|armour|armor|chest|back|hip/i.test(name),
+    },
+    {
+      label: 'RIDING SHOES',
+      matcher: (cat: string, name: string) => /shoe|sneaker/i.test(cat) || /shoe|sneaker/i.test(name),
+    },
+    {
+      label: 'TANK BAGS',
+      matcher: (cat: string, name: string) => /tank\s*bag|saddle\s*bag|pannier/i.test(cat) || /tank\s*bag|saddle\s*bag|pannier/i.test(name),
+    },
+    {
+      label: 'HYDRATION PACKS',
+      matcher: (cat: string, name: string) => /hydration|bladder|backpack/i.test(cat) || /hydration|bladder|backpack/i.test(name),
+    },
+    {
+      label: 'RAIN GEAR',
+      matcher: (cat: string, name: string) => /rain|waterproof\s*cover|monsoon/i.test(cat) || /rain|waterproof\s*cover/i.test(name),
+    },
+    {
+      label: 'ACCESSORIES',
+      matcher: (cat: string, name: string) => /mount|holder|light|flash|spec\s*easy|bungee/i.test(cat) || /mount|holder|light|flash|spec\s*easy|bungee/i.test(name),
+    },
+  ];
+
+  // Helper to identify and exclude spare parts, helmets, jackets, and gloves
+  const isExcludedGear = (p: any) => {
+    const catStr = (p.magentoCategories || "").toLowerCase();
+    const nameStr = (p.name || "").toLowerCase();
+    const slugStr = (p.slug || "").toLowerCase();
+
+    // Exclude spare parts (air filters, spark plugs, brake pads, oils, exhausts)
+    if (/spare part|air filter|spark plug|brake pad|oils & lubes|exhaust/i.test(catStr) || /air filter|spark plug|iridium|exhaust/i.test(nameStr)) return true;
+
+    // Exclude helmets, jackets, gloves
+    const hasHelmet = /\b(helmet|helmets|visor|visors|pinlock)\b/i.test(catStr) || 
+                      /\b(helmet|helmets|visor|visors|pinlock)\b/i.test(nameStr) ||
+                      /(?:helmet|visor|pinlock)/i.test(slugStr);
+
+    const hasJacket = /\b(jacket|jackets)\b/i.test(catStr) || 
+                      /\b(jacket|jackets)\b/i.test(nameStr) ||
+                      /(?:jacket|jackets)/i.test(slugStr);
+
+    const hasGloves = /\b(glove|gloves|gauntlet)\b/i.test(catStr) || 
+                      /\b(glove|gloves|gauntlet)\b/i.test(nameStr) ||
+                      /(?:glove|gloves|gauntlet)/i.test(slugStr);
+
+    return hasHelmet || hasJacket || hasGloves;
+  };
+
+  const eligibleProducts = (backendProducts || []).filter((p: any) => !isExcludedGear(p));
+
+  // Pick exactly 1 latest product from each category rule for maximum variety
+  const diverseProducts: any[] = [];
+  const usedIds = new Set<string>();
+
+  categoryRules.forEach(rule => {
+    const match = eligibleProducts.find((p: any) => 
+      !usedIds.has(p._id) && 
+      rule.matcher((p.magentoCategories || "").toLowerCase(), (p.name || "").toLowerCase())
+    );
+    if (match) {
+      diverseProducts.push({ ...match, displayCategory: rule.label });
+      usedIds.add(match._id);
+    }
+  });
+
+  // If fewer than 8, backfill with remaining eligible products without duplicates
+  if (diverseProducts.length < 8) {
+    categoryRules.forEach(rule => {
+      if (diverseProducts.length >= 8) return;
+      const match = eligibleProducts.find((p: any) => 
+        !usedIds.has(p._id) && 
+        rule.matcher((p.magentoCategories || "").toLowerCase(), (p.name || "").toLowerCase())
+      );
+      if (match) {
+        diverseProducts.push({ ...match, displayCategory: rule.label });
+        usedIds.add(match._id);
+      }
+    });
+  }
+
+  const gridProducts: BrowseProductData[] = diverseProducts.length > 0 
+    ? diverseProducts.map((p: any, idx: number) => {
         // Resolve price with fallbacks: basePrice → variant prices → specialPrice
         let effectivePrice = p.basePrice || 0;
         if (effectivePrice === 0 && Array.isArray(p.variants) && p.variants.length > 0) {
@@ -82,93 +196,114 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
         if (effectivePrice === 0 && p.specialPrice && p.specialPrice > 0) effectivePrice = p.specialPrice;
         const displayPrice = (p.specialPrice && p.specialPrice > 0 && effectivePrice > 0 && p.specialPrice < effectivePrice)
           ? p.specialPrice : effectivePrice;
-        // Extract category from magentoCategories path
-        const catParts = (p.magentoCategories || "").split(",")[0].split("/");
-        const catName = catParts.filter((c: string) => !c.toLowerCase().includes("root")).pop()?.trim() || "GEAR";
+
         return {
           id: p._id || p.id || `grid-${idx}`,
-          category: catName.toUpperCase(),
+          category: p.displayCategory || "RIDING GEAR",
           name: p.name,
           priceFormatted: `₹ ${displayPrice?.toLocaleString('en-IN') || '0'}`,
-          imageUrl: (p.images && p.images.length > 0) ? p.images[0].url : "/no-image.svg",
-          rating: 4.8,
+          imageUrl: (p.images && p.images.length > 0 && p.images[0].url) ? p.images[0].url : "/no-image.svg",
+          rating: 4.85,
           productUrl: `/${p.slug || p._id}`
         };
       })
     : [
     {
       id: "grid-1",
-      category: "JACKETS",
-      name: "Premium Leather Jacket",
+      category: "BOOTS",
+      name: "Waterproof Adventure Boots",
       priceFormatted: "₹ 8,999",
-      imageUrl: "/no-image.svg",
+      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
       rating: 4.95,
-      productUrl: "/1"
+      productUrl: "/products/boots"
     },
     {
       id: "grid-2",
-      category: "GLOVES",
-      name: "Tactical Riding Gloves",
-      priceFormatted: "₹ 2,499",
-      imageUrl: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=600&q=80",
-      rating: 4.80,
-      productUrl: "/products/2"
+      category: "PANTS",
+      name: "Armored Cordura Riding Pants",
+      priceFormatted: "₹ 5,499",
+      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
+      rating: 4.85,
+      productUrl: "/products/pants"
     },
     {
       id: "grid-3",
-      category: "HELMETS",
-      name: "Matte Black Helmet",
-      priceFormatted: "₹ 4,500",
-      imageUrl: "https://images.unsplash.com/photo-1520975954732-57dd22299614?auto=format&fit=crop&w=600&q=80",
+      category: "PROTECTION",
+      name: "Bionic Knee & Shin Guards",
+      priceFormatted: "₹ 3,299",
+      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
       rating: 4.90,
-      productUrl: "/products/3"
+      productUrl: "/products/protection"
     },
     {
       id: "grid-4",
-      category: "BOOTS",
-      name: "Touring Boots",
-      priceFormatted: "₹ 6,299",
+      category: "LUGGAGE",
+      name: "Heavy Duty Tail Bag 50L",
+      priceFormatted: "₹ 4,200",
       imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
       rating: 4.95,
-      productUrl: "/products/4"
+      productUrl: "/products/luggage"
     },
     {
       id: "grid-5",
-      category: "JACKETS",
-      name: "All-Weather Riding Jacket",
-      priceFormatted: "₹ 7,499",
-      imageUrl: "/no-image.svg",
+      category: "ACCESSORIES",
+      name: "Anti-Vibration Phone Mount",
+      priceFormatted: "₹ 1,899",
+      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
       rating: 4.80,
-      productUrl: "/products/5"
+      productUrl: "/products/accessories"
     },
     {
       id: "grid-6",
-      category: "GLOVES",
-      name: "Full Gauntlet Gloves",
-      priceFormatted: "₹ 3,299",
-      imageUrl: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=600&q=80",
+      category: "RAIN GEAR",
+      name: "High-Visibility Rain Suit",
+      priceFormatted: "₹ 2,799",
+      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
       rating: 4.85,
-      productUrl: "/products/6"
+      productUrl: "/products/rain-gear"
     },
     {
       id: "grid-7",
-      category: "HELMETS",
-      name: "Carbon Fiber Helmet",
-      priceFormatted: "₹ 12,500",
-      imageUrl: "https://images.unsplash.com/photo-1520975954732-57dd22299614?auto=format&fit=crop&w=600&q=80",
-      rating: 4.95,
-      productUrl: "/products/7"
+      category: "ARMOR",
+      name: "CE Level 2 Back Protector Insert",
+      priceFormatted: "₹ 2,450",
+      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
+      rating: 4.90,
+      productUrl: "/products/armor"
     },
     {
       id: "grid-8",
-      category: "PANTS",
-      name: "Armored Riding Pants",
-      priceFormatted: "₹ 5,999",
+      category: "FOOTWEAR",
+      name: "Urban Motorcycle Riding Sneakers",
+      priceFormatted: "₹ 6,499",
       imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
-      rating: 4.90,
-      productUrl: "/products/8"
+      rating: 4.95,
+      productUrl: "/products/footwear"
     }
   ];
+
+  // 8 slots 1-to-1 mapped: Slot 1 (idx 0) is always Position 1, Slot 8 (idx 7) is Position 8
+  const configuredItems = homepageConfig?.sections?.browseCategories?.items;
+  const hasAnyConfigured = Array.isArray(configuredItems) && configuredItems.some((it: any) => it?.name && (it?.imageUrl || it?.productUrl));
+
+  const finalBrowseProducts: BrowseProductData[] = hasAnyConfigured
+    ? Array.from({ length: 8 }, (_, idx) => {
+        const configured = configuredItems?.[idx];
+        if (configured && configured.name && (configured.imageUrl || configured.productUrl)) {
+          return {
+            id: configured.id || `custom-browse-${idx + 1}`,
+            category: (configured.category || "RIDING GEAR").toUpperCase(),
+            name: configured.name,
+            priceFormatted: configured.priceFormatted || "₹ 0",
+            imageUrl: configured.imageUrl || "/no-image.svg",
+            rating: configured.rating || 4.85,
+            productUrl: configured.productUrl || "/products",
+          };
+        }
+        // Fallback for this slot to the dynamic catalog product at the same index
+        return gridProducts[idx] || gridProducts[0];
+      })
+    : gridProducts;
 
   // Filter backend products for touring and adventure riding gear
   const matchedTouring = (backendProducts || []).filter((p: any) => {
@@ -297,12 +432,15 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
   return (
     <div className="w-full min-h-screen flex flex-col font-sans bg-neutral-100 antialiased selection:bg-amber-800 selection:text-white">
       {/* 1. Top Announcement Bar */}
-      <header>
-        <TopBanner
-          message="Discount 20% For New Member,"
-          highlightText="ONLY FOR TODAY!!"
-        />
-      </header>
+      {homepageConfig?.sections?.topBanner?.isEnabled !== false && (
+        <header>
+          <TopBanner
+            message={homepageConfig?.sections?.topBanner?.message || "Discount 20% For New Member,"}
+            highlightText={homepageConfig?.sections?.topBanner?.highlightText || "ONLY FOR TODAY!!"}
+            bannerUrl={homepageConfig?.sections?.topBanner?.linkUrl}
+          />
+        </header>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 w-full">
@@ -311,33 +449,56 @@ export const HomepageModule: React.FC<{ backendProducts?: any[] }> = ({ backendP
           {/* 2. Header Navigation */}
           <Navbar
             logoText="Store4Riders"
-            
             theme="dark"
           />
 
           <HeroSection
-            subtitle="BROWSE THE COLLECTION"
-            title="RIDING GEAR THAT KEEPS YOU SAFE"
-            bgImageUrl={heroBgImage}
-            bgImageUrls={["/heropic1.jpg", "/heropic2.jpg"]}
+            subtitle={homepageConfig?.hero?.subtitle || "BROWSE THE COLLECTION"}
+            title={homepageConfig?.hero?.title || "RIDING GEAR THAT KEEPS YOU SAFE"}
+            bgImageUrl={homepageConfig?.hero?.bgImages?.[0] || heroBgImage}
+            bgImageUrls={homepageConfig?.hero?.bgImages?.length ? homepageConfig.hero.bgImages : ["/heropic1.jpg", "/heropic2.jpg"]}
             featuredProducts={featuredProducts}
+            ctaText={homepageConfig?.hero?.ctaText || "Shop Now"}
+            ctaLink={homepageConfig?.hero?.ctaLink || "/products"}
           />
         </div>
 
-        {/* 4. Featured Categories (Bento Box Grid) */}
-        <FeaturedCategories categories={categoryData} />
+        {/* 4. Featured Categories (3 Equal Cards Grid) */}
+        <FeaturedCategories
+          title={homepageConfig?.sections?.featuredCategories?.sectionTitle || "SHOP BY CATEGORY"}
+          categories={categoryData}
+        />
 
-        {/* 5. Browse Products Section (4-column grid) */}
-        <BrowseProductsSection title="BROWSE RIDING GEAR CATEGORIES" products={gridProducts} />
+        {/* 5. Browse Products Section (Scrollable Carousel with Arrows) */}
+        <BrowseProductsSection
+          title={homepageConfig?.sections?.browseCategories?.sectionTitle || "BROWSE RIDING GEAR CATEGORIES"}
+          products={finalBrowseProducts}
+          mobileLayout="scroll"
+        />
 
         {/* 6. Touring Gear Section */}
-        <BrowseProductsSection title="BEST GEAR FOR TOURING" products={touringProducts} showSeeMore={true} mobileLayout="grid" />
+        <BrowseProductsSection
+          title={homepageConfig?.sections?.touringGear?.sectionTitle || "BEST GEAR FOR TOURING"}
+          products={touringProducts}
+          showSeeMore={true}
+          seeMoreText={homepageConfig?.sections?.touringGear?.seeMoreText || "SEE MORE"}
+          seeMoreLink={homepageConfig?.sections?.touringGear?.seeMoreLink || "/products?q=touring"}
+          mobileLayout="grid"
+        />
 
         {/* 7. Social Media / Insta Reels Section */}
-        <SocialMediaSection />
+        <SocialMediaSection
+          title={homepageConfig?.sections?.socialMedia?.sectionTitle || "INSTA REELS"}
+          reelImages={homepageConfig?.sections?.socialMedia?.reelImages}
+          bannerTop={homepageConfig?.sections?.socialMedia?.bannerTop}
+          bannerBottom={homepageConfig?.sections?.socialMedia?.bannerBottom}
+        />
 
         {/* 8. Testimonials Section */}
-        <TestimonialsSection testimonials={testimonialsData} />
+        <TestimonialsSection
+          title={homepageConfig?.sections?.testimonials?.sectionTitle || "WHAT CUSTOMERS SAY ABOUT US"}
+          testimonials={testimonialsData}
+        />
       </main>
 
       {/* 9. Footer */}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -8,7 +8,6 @@ import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { getGuideBySlug, getRelatedGuides } from "../data/guides-data";
 import { GuideAuthorCard } from "./GuideAuthorCard";
 import { GuideCard } from "./GuideCard";
-import { buildBlogPostingSchema, buildBreadcrumbSchema } from "../utils/schema";
 import {
   Calendar,
   Clock,
@@ -32,19 +31,6 @@ export const GuideDetailModule: React.FC<GuideDetailModuleProps> = ({ slug }) =>
 
   const relatedPosts = getRelatedGuides(post.slug, 3);
 
-  const blogPostingSchema = useMemo(() => {
-    return buildBlogPostingSchema(post);
-  }, [post]);
-
-  const breadcrumbSchema = useMemo(() => {
-    return buildBreadcrumbSchema([
-      { name: "Home", url: "/" },
-      { name: "Guides", url: "/guides" },
-      { name: post.categoryName, url: `/guides/category/${post.categorySlug}` },
-      { name: post.title, url: `/guides/post/${post.slug}` },
-    ]);
-  }, [post]);
-
   const formattedDate = post.publishedDate
     ? new Date(post.publishedDate).toLocaleDateString("en-IN", {
         year: "numeric",
@@ -66,19 +52,6 @@ export const GuideDetailModule: React.FC<GuideDetailModuleProps> = ({ slug }) =>
 
   return (
     <article className="min-h-screen bg-neutral-50/50 pb-24">
-      {/* 1. Official Google & Schema.org JSON-LD BlogPosting Schema */}
-      <script
-        type="application/ld+json"
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingSchema) }}
-      />
-
-      {/* 2. Official Google BreadcrumbList JSON-LD Schema */}
-      <script
-        type="application/ld+json"
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
 
       {/* Breadcrumb Navigation */}
       <Breadcrumb

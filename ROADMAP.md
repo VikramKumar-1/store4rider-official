@@ -1803,10 +1803,11 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
   - Merge best components from `src/modules/home/` and `src/modules/homepage/`
   - Wire: NewArrivals, BrandMarquee, PromoBanner, FeaturedProducts, Bestsellers into active homepage
   - Remove unused duplicate module
-- [ ] **14.2** Build admin-manageable homepage banners
-  - Backend: `homepage-banner.model.ts` — image, link, title, subtitle, position, isActive, sortOrder
-  - Admin UI: banner management with image upload, drag-to-reorder
-  - Frontend: HeroSection reads from API instead of hardcoded data
+- [x] **14.2** Build admin-manageable homepage banners & section config
+  - Backend: DDD `homepage` module (model, repo, service, controller, validator, route) with Redis caching
+  - Admin UI: `/admin/homepage/sections` & `/admin/homepage/hero-seo` with browser-side WebP compression
+  - Catalog Picker: Live search by SKU / Title to auto-fill card details and store category picker
+  - Frontend: Storefront HeroSection and Homepage sections read dynamically from API with fallback defaults
 - [ ] **14.3** Build product comparison feature
   - Frontend: `useCompareStore` (Zustand) — max 4 products
   - "Add to Compare" button on product cards and PDP

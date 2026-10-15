@@ -102,9 +102,14 @@ export default function RootLayout({
         description: "India's leading destination for certified motorcycle riding helmets, jackets, boots, gloves, and riding accessories.",
         ...(process.env.NEXT_PUBLIC_STORE_PHONE ? { telephone: process.env.NEXT_PUBLIC_STORE_PHONE } : {}),
         email: "contact@store4riders.com",
-        currenciesAccepted: "INR",
-        paymentAccepted: "Cash on Delivery, Credit Card, Debit Card, UPI, Net Banking, EMI",
-        priceRange: "₹₹",
+        acceptedPaymentMethod: [
+          "Cash on Delivery",
+          "Credit Card",
+          "Debit Card",
+          "UPI",
+          "Net Banking",
+          "EMI",
+        ],
         address: {
           "@type": "PostalAddress",
           addressCountry: "IN",

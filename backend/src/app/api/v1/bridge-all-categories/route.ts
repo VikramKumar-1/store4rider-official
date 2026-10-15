@@ -9,18 +9,26 @@ export async function GET(req: NextRequest) {
     const frontendToMagento: Record<string, string[]> = {
       // Helmets
       "modular-helmets": ["modular-helmets", "flip-up-helmets", "smk-glide-modular-helmet"],
+      "open-face-helmets": ["open-face-helmets", "half-face-helmets", "open-face"],
       "half-face-helmets": ["half-face-helmets", "open-face", "open-face-helmets"],
       "off-road-motocross": ["off-road-helmets", "motocross-helmet", "off-road-motocross-riding-gear", "off-road"],
       
       // Riding Gear
-      "riding-jacket": ["riding-jacket", "motorcycle-jackets", "riding-jackets-bike-jackets", "riding-jackets-motorcycle-jackets"],
+      "riding-jackets": ["riding-jackets", "riding-jacket", "motorcycle-jackets", "riding-jackets-bike-jackets", "riding-jackets-motorcycle-jackets"],
+      "riding-jacket": ["riding-jacket", "riding-jackets", "motorcycle-jackets", "riding-jackets-bike-jackets", "riding-jackets-motorcycle-jackets"],
+      "protectors-armour": ["protectors-armour", "protectors", "armour", "armor"],
+      "riding-gear-for-women": ["riding-gear-for-women", "women-riding-gear", "riding-gear-women"],
+      "women-riding-gear": ["women-riding-gear", "riding-gear-for-women", "riding-gear-women"],
       "touring-pants": ["touring-pant", "riding-pants", "riding-pants-below-rs-7000"],
-      "riding-jeans": ["riding-jeans"],
+      "riding-jeans": ["riding-jeans", "motorcycle-riding-jeans"],
+      "motorcycle-riding-jeans": ["motorcycle-riding-jeans", "riding-jeans"],
       "knee-guard": ["knee-guards-for-bikers", "knee-guard"],
+      "knee-guards-bikers": ["knee-guards-for-bikers", "knee-guard", "knee-guards-bikers"],
       
       // Main Categories
       "motorcycle-helmets": ["motorcycle-helmets", "helmets"],
       "riding-gear": ["riding-gear", "touring-gear"],
+      "riding-gloves": ["riding-gloves-biker-gloves", "riding-gloves", "gloves", "biker-gloves"],
       "motorcycle-riding-gloves": ["riding-gloves-biker-gloves", "riding-gloves", "gloves", "biker-gloves"],
       "riding-gloves-biker-gloves": ["riding-gloves-biker-gloves", "riding-gloves", "gloves", "biker-gloves"],
       "motorcycle-bags": ["motorcycle-bags", "bike-luggage", "luggage"],
@@ -28,30 +36,57 @@ export async function GET(req: NextRequest) {
       
       // Gloves
       "full-gauntlet-gloves": ["full-gauntlet-gloves", "premium-full-gauntlet-riding-gloves", "full-gauntlet-riding-gloves-below-rs-3000"],
-      "semi-gauntlet-gloves": ["semi-gauntlet-bike-riding-gloves", "semi-gauntlet", "short-cuff-biker-gloves"],
+      "semi-gauntlet-gloves": ["semi-gauntlet-bike-riding-gloves", "semi-gauntlet"],
+      "short-motorbike-gloves": ["short-cuff-biker-gloves", "short-cuff-biker-glove"],
       
       // Boots
       "short-biking-boots": ["short-biking-boots"],
       "sports-riding-shoes": ["sports-riding-shoes", "sport-riding-shoes", "city-riding-biking-boots"],
       "motocross-boots": ["motocross-boots"],
+      "off-road-riding-boots": ["off-road-boots", "off-road-riding-boots-motocross-boots", "off-road-riding-boots"],
+      "off-road-motocross-riding-gear": ["off-road-motocross", "off-road-motocross-riding-gear"],
       
       // Luggage
       "saddle-bags": ["saddle-bags-for-bikes-panniers", "saddle-bags-for-bikes", "panniers", "rynox-saddle-bags"],
+      "saddle-bags-bikes": ["saddle-bags-for-bikes-panniers", "saddle-bags-for-bikes", "panniers", "saddle-bags"],
       "tank-bags": ["tank-bags", "tank-bags-for-bike", "rynox-tank-bags"],
+      "tank-bags-bikes": ["tank-bags", "tank-bags-for-bike", "rynox-tank-bags", "tank-bags-bikes"],
       "tail-bags": ["tail-bags", "rynox-tail-bags"],
+      "motorcycle-tail-bags": ["tail-bags", "motorcycle-tail-bags", "rynox-tail-bags"],
+      "bike-top-box": ["top-box", "top-boxes", "bike-top-box"],
+      "hydration-bag": ["hydration-bag", "hydration-bags"],
+      "motorcycle-other-luggage": ["other-luggage", "other-luggages", "motorcycle-other-luggage"],
       
       // Accessories
       "bike-phone-holders": ["bike-phone-holders-mobile-holder-for-bike", "mobile-holder-for-bike", "bike-phone-holders"],
       "bike-auxiliary-lights": ["bike-auxiliary-lights"],
+      "auxiliary-lights": ["bike-auxiliary-lights", "bike-auxiliary-light"],
+      "clamps-and-mounts-for-lights": ["bike-auxiliary-light-clamps-and-mounts", "bike-auxiliary-light-clamps-and-mount"],
+      "bike-auxiliary-light-clamps-mounts": ["bike-auxiliary-light-clamps-and-mounts", "clamps-and-mounts-for-lights", "bike-auxiliary-light-clamps-mounts"],
+      "auxiliary-light-filter": ["auxiliary-light-filter", "auxiliary-light-filters"],
+      "auxiliary-light-filters": ["auxiliary-light-filter", "auxiliary-light-filters"],
+      "auxiliary-light-wiring-harness-and-switch": ["auxiliary-light-wiring-harness-and-switch"],
+      "auxiliary-light-wiring-harness-switch": ["auxiliary-light-wiring-harness-and-switch"],
+      "off-beat-accessories": ["off-beat-bike-accessories-online"],
+      "off-beat-motorcycle-accessories": ["off-beat-bike-accessories-online", "off-beat-accessories"],
+      "rally-tower": ["rally-tower", "rally-towers-navigation-tower"],
       "bike-covers": ["bike-covers"],
       
       // Spares
-      "spares": ["bike-spare-parts-online", "performance-parts"],
-      "chain-care": ["chain-care", "chain-sprocket-kits"],
+      "spares": ["bike-spare-parts-online", "performance-parts", "spares", "bike-spares"],
+      "bike-spares": ["bike-spare-parts-online", "performance-parts", "spares", "bike-spares"],
+      "performance-air-filters": ["performance-air-filters-for-bikes", "performance-air-filters-for-bike"],
+      "performance-air-filter-bike": ["performance-air-filters-for-bikes", "performance-air-filters", "performance-air-filter-bike"],
+      "chain-care": ["chain-care"],
+      "chain-sprocket-kits": ["chain-sprocket-kits"],
+      "iridium-spark-plug": ["iridium-spark-plug", "iridium-spark-plugs"],
+      "brake-pads": ["brake-pads"],
       
       // Gadgets
       "communicators": ["communicators"],
-      "helmet-accessories": ["helmet-accessories-helmet-visors", "helmet-visors", "balaclava", "helmet-cleaner"]
+      "bluetooth-intercoms": ["communicators", "communicator"],
+      "helmet-accessories": ["helmet-accessories-helmet-visors", "helmet-visors", "balaclava", "helmet-cleaner"],
+      "helmet-visors": ["helmet-accessories-helmet-visors", "helmet-visors", "balaclava", "helmet-cleaner"]
     };
 
     let totalUpdated = 0;

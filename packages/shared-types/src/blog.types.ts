@@ -30,6 +30,22 @@ export interface IGuidePost {
   wordCount?: number;
 }
 
+export interface IPersonSchema {
+  "@context": "https://schema.org";
+  "@type": "Person";
+  "@id"?: string;
+  name: string;
+  url: string;
+  jobTitle?: string;
+  description?: string;
+  worksFor?: {
+    "@type": "Organization";
+    name: string;
+    url?: string;
+  };
+  sameAs?: string[];
+}
+
 export interface IBlogPostingSchema {
   "@context": "https://schema.org";
   "@type": "BlogPosting";
@@ -63,13 +79,23 @@ export interface IBlogPostingSchema {
     | string[];
   datePublished: string;
   dateModified: string;
-  author: {
-    "@type": "Person";
-    name: string;
-    url: string;
-    jobTitle?: string;
-    sameAs?: string[];
-  };
+  author:
+    | {
+        "@type": "Person";
+        "@id"?: string;
+        name: string;
+        url: string;
+        jobTitle?: string;
+        sameAs?: string[];
+      }
+    | Array<{
+        "@type": "Person";
+        "@id"?: string;
+        name: string;
+        url: string;
+        jobTitle?: string;
+        sameAs?: string[];
+      }>;
   publisher: {
     "@type": "Organization";
     name: string;

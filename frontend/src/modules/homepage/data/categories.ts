@@ -12,7 +12,7 @@ export const STORE_CATEGORIES: CategoryItem[] = [
     image: "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?q=80&w=1200&auto=format&fit=crop",
     subcategories: [
       { name: "Full Face Helmets", slug: "full-face-helmets" },
-      { name: "Open Face Helmets", slug: "half-face-helmets" },
+      { name: "Open Face Helmets", slug: "open-face-helmets" },
       { name: "Modular / Flip-up", slug: "modular-helmets" },
       { name: "Off-Road / Motocross", slug: "off-road-helmets" },
     ],
@@ -22,7 +22,7 @@ export const STORE_CATEGORIES: CategoryItem[] = [
     slug: "riding-gear",
     image: "https://images.unsplash.com/photo-1551028719-00167b16eac5?q=80&w=1200&auto=format&fit=crop",
     subcategories: [
-      { name: "Riding Jackets", slug: "riding-jacket" },
+      { name: "Riding Jackets", slug: "riding-jackets" },
       { name: "Riding Pants", slug: "touring-pants" },
       { name: "Riding Gloves", slug: "full-gauntlet-gloves" },
       { name: "Riding Boots", slug: "short-biking-boots" },

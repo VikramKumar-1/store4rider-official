@@ -29,6 +29,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   bgImageUrl,
   bgImageUrls,
   featuredProducts,
+  ctaText = "Shop Now",
+  ctaLink = "/products",
 }) => {
   const topProduct = featuredProducts[0];
   const bottomProduct = featuredProducts[1] || featuredProducts[0];
@@ -87,17 +89,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               {subtitle}
             </p>
             <h1 className="font-sans text-5xl md:text-6xl font-black uppercase tracking-wide leading-[1.12] text-white drop-shadow-md">
-              RIDING GEAR THAT<br />
-              KEEPS YOU SAFE
+              {title || "RIDING GEAR THAT KEEPS YOU SAFE"}
             </h1>
           </div>
 
           {/* Desktop Button (Hidden on mobile) */}
           <Link
-            href="/products"
+            href={ctaLink || "/products"}
             className="hidden lg:inline-flex mt-5 items-center gap-2 bg-banner text-white text-sm font-bold uppercase tracking-widest px-6 py-3 rounded-full shadow-lg hover:bg-orange-600 transition-colors self-start"
           >
-            Shop Now
+            {ctaText || "Shop Now"}
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
@@ -105,10 +106,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
           {/* Mobile Button: Glassmorphism, small, left-aligned, pushed to bottom (Hidden on desktop) */}
           <Link
-            href="/products"
+            href={ctaLink || "/products"}
             className="lg:hidden mt-auto inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md border border-white/30 text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full shadow-lg hover:bg-white/30 transition-colors self-start"
           >
-            Shop Now
+            {ctaText || "Shop Now"}
             <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>

@@ -2,16 +2,53 @@
 export const slugMap: Record<string, string> = {
   "full-face-helmets": "full-face",
   "modular-helmets": "modular-flip-up",
+  "modular-helmets-flip-up-helmets": "modular-flip-up",
+  "open-face-helmets": "open-face",
   "half-face-helmets": "open-face",
+  "off-road-helmets": "off-road-motocross-gear",
   "off-road-motocross": "off-road-motocross-gear",
   "off-road-riding-boots": "off-road-riding-boots",
+  "off-road-boots": "off-road-riding-boots",
   "riding-jacket": "riding-jackets",
+  "riding-jackets": "riding-jackets",
+  "protectors-armour": "protectors-armour",
   "riding-jean": "riding-jeans",
+  "riding-jeans": "riding-jeans",
+  "motorcycle-riding-jeans": "riding-jeans",
   "touring-pant": "touring-pants",
   "knee-guard": "knee-guards",
+  "knee-guards-for-bikers": "knee-guards",
+  "knee-guards-bikers": "knee-guards",
+  "motorcycle-riding-gloves": "riding-gloves",
+  "riding-gloves": "riding-gloves",
+  "semi-gauntlet-gloves": "semi-gauntlet",
+  "short-motorbike-gloves": "short-cuff-biker-gloves",
+  "short-biking-boots": "short-city-riding-biking-boots",
+  "sports-riding-shoes": "sport-riding-shoes",
+  "tank-bags-bikes": "tank-bags",
   "saddle-bags": "saddle-bags-bikes",
+  "saddle-bags-bikes": "saddle-bags-bikes",
+  "motorcycle-tail-bags": "motorcycle-tail-bags",
   "tail-bags": "motorcycle-tail-bags",
-  "women-riding-gear": "riding-gear-for-women"
+  "bike-top-box": "top-box",
+  "hydration-bag": "hydration-bag",
+  "motorcycle-other-luggage": "other-luggage",
+  "women-riding-gear": "riding-gear-for-women",
+  "riding-gear-for-women": "riding-gear-for-women",
+  "helmet-accessories": "helmet-accessories",
+  "helmet-visors": "helmet-accessories",
+  "bluetooth-intercoms": "communicators",
+  "communicators": "communicators",
+  "bike-phone-holders": "bike-phone-holders-mobile-holder-for-bike",
+  "bike-auxiliary-light-clamps-mounts": "clamps-and-mounts-for-lights",
+  "auxiliary-light-wiring-harness-switch": "auxiliary-light-wiring-harness-and-switch",
+  "off-beat-motorcycle-accessories": "off-beat-accessories",
+  "rally-tower": "rally-tower",
+  "bike-spares": "spares",
+  "iridium-spark-plugs": "iridium-spark-plug",
+  "performance-air-filters": "performance-air-filters-for-bikes",
+  "performance-air-filter-bike": "performance-air-filters-for-bikes",
+  "brake-pads": "brake-pads"
 };
 
 export function getCategoryRegexRule(categorySlug: string): any {
@@ -141,6 +178,8 @@ export function getCategoryRegexRule(categorySlug: string): any {
     const keywords = cleanSlug.replace(/-/g, " ").replace(/s$/, "").trim();
     regexRule = {
       $or: [
+        { name: /\bgloves?\b/i },
+        { magentoCategories: /\bgloves?\b/i },
         { name: new RegExp(keywords.split(" ").join(".*"), "i") },
         { magentoCategories: new RegExp(keywords, "i") }
       ]
@@ -176,7 +215,7 @@ export function getCategoryRegexRule(categorySlug: string): any {
     regexRule = {
       $or: [{ name: /touring.*pant/i }, { magentoCategories: /touring.*pant/i }]
     };
-  } else if (cleanSlug.includes("riding-jeans")) {
+  } else if (cleanSlug.includes("riding-jeans") || cleanSlug.includes("motorcycle-riding-jeans") || cleanSlug.includes("riding-jean")) {
     regexRule = {
       $or: [{ name: /\bjeans?\b/i }, { magentoCategories: /\bjeans?\b/i }]
     };
@@ -246,7 +285,12 @@ export function getCategoryRegexRule(categorySlug: string): any {
     };
   } else if (cleanSlug.includes("knee-guard") || cleanSlug.includes("knee-slider")) {
     regexRule = {
-      $or: [{ name: /knee.*guard|knee.*slider|knee.*brace/i }, { magentoCategories: /knee.*guard|knee.*slider|knee.*brace/i }]
+      $and: [
+        {
+          $or: [{ name: /knee.*guard|knee.*slider|knee.*brace/i }, { magentoCategories: /knee.*guard|knee.*slider|knee.*brace/i }]
+        },
+        { name: { $not: /\b(hip|elbow|shoulder|back|chest|tailbone)\b/i } }
+      ]
     };
   } else if (cleanSlug.includes("off-road-motocross") || cleanSlug.includes("offroad") || cleanSlug.includes("off-road")) {
     regexRule = {

@@ -19,6 +19,8 @@ export class OrderService {
   
   static async createOrder(userId: string | undefined, input: any) { 
     const { shippingAddressId, shippingAddress, guestEmail, paymentMethod, couponCode, idempotencyKey, customerGstin, businessName } = input;
+    const sanitizedGstin = customerGstin ? String(customerGstin).trim().toUpperCase() : undefined;
+    const sanitizedBusinessName = businessName ? String(businessName).trim() : undefined;
     
     if (idempotencyKey) {
       const existingOrder = await OrderRepository.findByIdempotencyKey(idempotencyKey);
@@ -243,8 +245,8 @@ export class OrderService {
           items: orderItems,
           shippingAddress: shippingAddressSnapshot,
           paymentMethod,
-          ...(customerGstin ? { customerGstin } : {}),
-          ...(businessName ? { businessName } : {}),
+          ...(sanitizedGstin ? { customerGstin: sanitizedGstin } : {}),
+          ...(sanitizedBusinessName ? { businessName: sanitizedBusinessName } : {}),
           idempotencyKey,
         };
 

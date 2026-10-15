@@ -2,11 +2,12 @@ import { updateSettingSchema } from "@store4riders/shared-validation";
 import { AppError } from "../../core/errors/AppError";
 
 export class SettingValidator {
-  static validateUpdateSettings(req: any) {
-    const result = updateSettingSchema.safeParse(req.body);
+  static async validateUpdateSettings(req: any) {
+    const body = await req.json();
+    const result = updateSettingSchema.safeParse(body);
     if (!result.success) {
       throw new AppError(result.error.errors[0].message, 400);
     }
-    req.body = result.data;
+    return result.data;
   }
 }

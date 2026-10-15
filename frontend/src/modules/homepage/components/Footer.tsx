@@ -59,9 +59,9 @@ export const Footer: React.FC = () => {
           <h3 className="text-[10px] min-[400px]:text-[11px] sm:text-lg font-semibold tracking-wide">Gear Menu</h3>
           <ul className="flex flex-col gap-2 sm:gap-4 text-[9px] min-[400px]:text-[10px] sm:text-sm md:text-[15px] text-white/80">
             <li><Link href="/motorcycle-helmets" className="hover:text-white transition-colors whitespace-nowrap">Helmets</Link></li>
-            <li><Link href="/riding-gear/riding-jacket" className="hover:text-white transition-colors whitespace-nowrap">Riding Jackets</Link></li>
+            <li><Link href="/riding-gear/riding-jackets" className="hover:text-white transition-colors whitespace-nowrap">Riding Jackets</Link></li>
             <li><Link href="/riding-gear/riding-pants" className="hover:text-white transition-colors whitespace-nowrap">Riding Pants</Link></li>
-            <li><Link href="/riding-gear/motorcycle-riding-gloves" className="hover:text-white transition-colors whitespace-nowrap">Riding Gloves</Link></li>
+            <li><Link href="/riding-gear/riding-gloves" className="hover:text-white transition-colors whitespace-nowrap">Riding Gloves</Link></li>
             <li><Link href="/riding-gear/motorcycle-riding-boots" className="hover:text-white transition-colors whitespace-nowrap">Riding Boots</Link></li>
             <li><Link href="/motorcycle-bags-bike-luggage" className="hover:text-white transition-colors whitespace-nowrap">Motorcycle Luggage</Link></li>
           </ul>

@@ -1,12 +1,17 @@
-import React from "react";
+"use client";
+
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 import { BrowseProductData } from "../types/homepage.types";
 
 export interface BrowseProductsSectionProps {
   title: string;
   products: BrowseProductData[];
   showSeeMore?: boolean;
+  seeMoreText?: string;
+  seeMoreLink?: string;
   mobileLayout?: "scroll" | "grid";
 }
 
@@ -15,11 +20,11 @@ export interface BrowseProductsSectionProps {
  */
 const GridProductCard: React.FC<{ product: BrowseProductData; layout?: "scroll" | "grid" }> = ({ 
   product, 
-  layout = "scroll" 
+  layout = "grid" 
 }) => {
-  // Use fixed width for scrolling carousel on all devices so they never shrink to tiny sizes
+  // Balanced width matching 2-col on mobile and 4-col on desktop
   const containerClass = layout === "scroll" 
-    ? "w-[140px] sm:w-[180px] md:w-[220px] lg:w-[280px] flex-shrink-0" 
+    ? "w-[165px] min-[375px]:w-[185px] sm:w-[220px] md:w-[260px] lg:w-[280px] flex-shrink-0" 
     : "w-full";
 
   return (
@@ -30,7 +35,7 @@ const GridProductCard: React.FC<{ product: BrowseProductData; layout?: "scroll" 
           src={product.imageUrl}
           alt={product.name}
           fill
-          className="object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500 ease-out will-change-transform"
+          className="object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500 ease-out will-change-transform p-3 sm:p-4"
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
         
@@ -44,18 +49,18 @@ const GridProductCard: React.FC<{ product: BrowseProductData; layout?: "scroll" 
 
         {/* Hover "Add to Cart" Button Overlay */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto bg-black/5 z-20 hidden lg:flex">
-          <button className="bg-white hover:bg-[#FF5429] text-neutral-900 hover:text-white w-[85%] py-2.5 rounded flex items-center justify-center gap-2 text-[10px] font-bold tracking-widest shadow-xl translate-y-4 group-hover:translate-y-0 transition-all duration-300 ease-out">
+          <span className="bg-white hover:bg-[#FF5429] text-neutral-900 hover:text-white w-[85%] py-2.5 rounded flex items-center justify-center gap-2 text-[10px] font-bold tracking-widest shadow-xl translate-y-4 group-hover:translate-y-0 transition-all duration-300 ease-out select-none">
             ADD TO CART
-          </button>
+          </span>
         </div>
       </div>
 
-      {/* Product Details (Category label removed) */}
+      {/* Product Details */}
       <div className="flex flex-col space-y-0.5 md:space-y-1 mt-1">
-        <h3 className="font-sans font-bold text-[12px] md:text-[15px] text-neutral-900 line-clamp-1 leading-tight">
+        <h3 className="font-sans font-bold text-[12px] md:text-[14px] text-neutral-900 line-clamp-1 leading-tight">
           {product.name}
         </h3>
-        <span className="text-[10px] md:text-xs text-neutral-500 font-sans font-semibold tracking-wide">
+        <span className="text-[11px] md:text-sm text-neutral-600 font-sans font-semibold tracking-wide">
           {product.priceFormatted}
         </span>
       </div>
@@ -70,53 +75,119 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
   title,
   products,
   showSeeMore = false,
-  mobileLayout = "scroll"
+  seeMoreText = "SEE MORE",
+  seeMoreLink = "/products?q=touring",
+  mobileLayout = "grid"
 }) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 10);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+  }, []);
+
+  useEffect(() => {
+    if (mobileLayout !== "scroll") return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    window.addEventListener("resize", checkScroll);
+    return () => {
+      el.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [checkScroll, mobileLayout, products]);
+
+  const handleScroll = (direction: "left" | "right") => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const scrollAmount = Math.max(el.clientWidth * 0.75, 280);
+    el.scrollBy({
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth"
+    });
+  };
+
   return (
-    <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 py-6 md:py-16 bg-white overflow-hidden">
-      {/* Title */}
-      <div className="text-center mb-5 md:mb-12 px-2">
-        <h2 className="font-sans text-[16px] min-[375px]:text-[18px] sm:text-2xl md:text-3xl lg:text-[40px] font-extrabold text-neutral-900 uppercase tracking-wide md:tracking-wider leading-tight">
+    <section className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 py-8 md:py-14 bg-white">
+      {/* Section Title */}
+      <div className="text-center mb-6 md:mb-12 px-4">
+        <h2 className="font-sans text-xl min-[375px]:text-2xl sm:text-3xl lg:text-[38px] xl:text-[40px] font-extrabold text-neutral-900 uppercase tracking-wide md:tracking-wider leading-tight">
           {title}
         </h2>
-        <div className="w-10 md:w-16 h-1 bg-banner mx-auto mt-2 md:mt-4 rounded-full"></div>
+        <div className="w-12 md:w-16 h-1 bg-banner mx-auto mt-2.5 md:mt-4 rounded-full" />
       </div>
 
-      {/* Products Row/Grid */}
-      <div className={mobileLayout === "scroll" ? "-mx-4 px-4 sm:mx-0 sm:px-0" : ""}>
-        <div className={
-          mobileLayout === "scroll" 
-            ? "flex gap-4 md:gap-5 lg:gap-6 overflow-x-auto snap-x snap-mandatory pb-4 hide-scrollbar"
-            : "grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6"
-        }>
+      {/* Carousel / Grid Container */}
+      <div className="relative">
+        {/* Left Scroll Arrow */}
+        {mobileLayout === "scroll" && (
+          <button
+            onClick={() => handleScroll("left")}
+            disabled={!canScrollLeft}
+            aria-label="Previous products"
+            className={`absolute -left-2 sm:-left-4 md:-left-5 lg:-left-6 top-[42%] -translate-y-1/2 z-30 w-9 h-9 sm:w-11 sm:h-11 lg:w-12 lg:h-12 rounded-full bg-neutral-200/90 backdrop-blur-md border border-neutral-300/90 shadow-lg flex items-center justify-center transition-all duration-300 ease-out text-neutral-900 hover:bg-neutral-900 hover:text-white hover:scale-110 hover:shadow-xl ${
+              canScrollLeft
+                ? "cursor-pointer opacity-100"
+                : "opacity-0 pointer-events-none"
+            }`}
+          >
+            <ChevronLeftIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
+          </button>
+        )}
+
+        {/* Products Row / Grid */}
+        <div
+          ref={scrollContainerRef}
+          className={
+            mobileLayout === "scroll"
+              ? "flex gap-3 sm:gap-4 md:gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 hide-scrollbar px-1"
+              : "grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6"
+          }
+        >
           {products.map((product) => (
-            <Link key={product.id} href={product.productUrl} className={mobileLayout === "scroll" ? "block snap-start" : "block"}>
+            <Link
+              key={product.id}
+              href={product.productUrl}
+              className={mobileLayout === "scroll" ? "block snap-start shrink-0" : "block w-full"}
+            >
               <GridProductCard product={product} layout={mobileLayout} />
             </Link>
           ))}
         </div>
+
+        {/* Right Scroll Arrow */}
+        {mobileLayout === "scroll" && (
+          <button
+            onClick={() => handleScroll("right")}
+            disabled={!canScrollRight}
+            aria-label="Next products"
+            className={`absolute -right-2 sm:-right-4 md:-right-5 lg:-right-6 top-[42%] -translate-y-1/2 z-30 w-9 h-9 sm:w-11 sm:h-11 lg:w-12 lg:h-12 rounded-full bg-neutral-200/90 backdrop-blur-md border border-neutral-300/90 shadow-lg flex items-center justify-center transition-all duration-300 ease-out text-neutral-900 hover:bg-neutral-900 hover:text-white hover:scale-110 hover:shadow-xl ${
+              canScrollRight
+                ? "cursor-pointer opacity-100"
+                : "opacity-0 pointer-events-none"
+            }`}
+          >
+            <ChevronRightIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
+          </button>
+        )}
       </div>
 
       {/* Conditional See More Button */}
       {showSeeMore && (
         <div className="mt-8 md:mt-12 flex justify-center">
           <Link
-            href="/products?q=touring"
+            href={seeMoreLink || "/products?q=touring"}
             className="bg-banner text-white px-8 md:px-12 py-3 md:py-3.5 text-xs sm:text-sm font-semibold tracking-[0.2em] shadow-md hover:bg-orange-600 hover:shadow-lg transition-all duration-300 rounded-sm"
           >
-            SEE MORE
+            {seeMoreText || "SEE MORE"}
           </Link>
         </div>
-      )}
-
-      {/* Add custom CSS to hide scrollbar but keep functionality */}
-      {mobileLayout === "scroll" && (
-        <style dangerouslySetInnerHTML={{
-          __html: `
-            .hide-scrollbar::-webkit-scrollbar { display: none; }
-            .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-          `
-        }} />
       )}
     </section>
   );

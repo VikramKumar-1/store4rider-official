@@ -8,6 +8,8 @@ import {
   buildBreadcrumbSchema,
 } from "@/modules/guides";
 
+export const dynamic = "force-static";
+
 interface Props {
   params: Promise<{ categorySlug: string }>;
 }

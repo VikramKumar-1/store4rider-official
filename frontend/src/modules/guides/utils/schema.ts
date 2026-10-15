@@ -1,4 +1,9 @@
-import { IGuidePost, IBlogPostingSchema } from "@store4riders/shared-types";
+import {
+  IGuidePost,
+  IBlogPostingSchema,
+  IPersonSchema,
+  IGuideAuthor,
+} from "@store4riders/shared-types";
 
 /**
  * Strips HTML tags and excessive whitespace to extract clean plain text.
@@ -20,8 +25,40 @@ export function stripHtmlToText(html: string): string {
 }
 
 /**
+ * Builds standalone Schema.org Person JSON-LD for the guide author.
+ * Directly surfaces Author structured data in Google Search and Schema.org validators.
+ */
+export function buildAuthorSchema(
+  author: IGuideAuthor,
+  siteUrl = "https://www.store4riders.com"
+): IPersonSchema {
+  const authorUrl = author?.url || `${siteUrl}/guides/author/vishwas-mokashi`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": authorUrl,
+    name: author?.name || "Vishwas Mokashi",
+    url: authorUrl,
+    jobTitle: author?.jobTitle || "Founder & Motorcycle Gear Specialist",
+    description:
+      author?.bio ||
+      "Founder of Store4Riders with over 15 years of motorcycle riding and protective gear expertise.",
+    worksFor: {
+      "@type": "Organization",
+      name: "Store4Riders",
+      url: siteUrl,
+    },
+    sameAs: author?.sameAs || [
+      "https://www.instagram.com/store4riders/",
+      "https://www.facebook.com/store4riders/",
+      "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg",
+    ],
+  };
+}
+
+/**
  * Builds a 100% compliant Schema.org BlogPosting JSON-LD object.
- * Follows https://schema.org/BlogPosting specification and Google Search guidelines.
+ * Follows https://schema.org/BlogPosting specification and Google Search Article guidelines.
  */
 export function buildBlogPostingSchema(
   post: IGuidePost,
@@ -30,6 +67,7 @@ export function buildBlogPostingSchema(
   const canonicalUrl = `${siteUrl}/guides/post/${post.slug}`;
   const cleanBody = stripHtmlToText(post.content);
   const wordCount = post.wordCount || cleanBody.split(" ").filter(Boolean).length;
+  const authorUrl = post.author?.url || `${siteUrl}/guides/author/vishwas-mokashi`;
 
   return {
     "@context": "https://schema.org",
@@ -49,12 +87,6 @@ export function buildBlogPostingSchema(
     isFamilyFriendly: true,
     wordCount: wordCount,
     keywords: post.tags?.join(", ") || `${post.categoryName}, motorcycle riding gear, store4riders`,
-    backstory:
-      "Store4Riders was founded to provide authentic rider advice, technical maintenance guides, and certified safety apparel guidance for motorcyclists across India.",
-    speakable: {
-      "@type": "SpeakableSpecification",
-      cssSelector: [".guide-headline", ".guide-article-body"],
-    },
     image: {
       "@type": "ImageObject",
       url: post.featuredImage,
@@ -63,17 +95,20 @@ export function buildBlogPostingSchema(
     },
     datePublished: post.publishedDate,
     dateModified: post.modifiedDate || post.publishedDate,
-    author: {
-      "@type": "Person",
-      name: post.author.name || "Vishwas Mokashi",
-      url: post.author.url || `${siteUrl}/guides/author/vishwas-mokashi`,
-      jobTitle: post.author.jobTitle || "Founder & Motorcycle Gear Specialist",
-      sameAs: post.author.sameAs || [
-        "https://www.instagram.com/store4riders/",
-        "https://www.facebook.com/store4riders/",
-        "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg",
-      ],
-    },
+    author: [
+      {
+        "@type": "Person",
+        "@id": authorUrl,
+        name: post.author?.name || "Vishwas Mokashi",
+        url: authorUrl,
+        jobTitle: post.author?.jobTitle || "Founder & Motorcycle Gear Specialist",
+        sameAs: post.author?.sameAs || [
+          "https://www.instagram.com/store4riders/",
+          "https://www.facebook.com/store4riders/",
+          "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg",
+        ],
+      },
+    ],
     publisher: {
       "@type": "Organization",
       name: "Store4Riders",
@@ -137,6 +172,7 @@ export function buildBlogCollectionSchema(
       author: {
         "@type": "Person",
         name: post.author.name,
+        url: post.author.url || `${siteUrl}/guides/author/vishwas-mokashi`,
       },
     })),
   };
