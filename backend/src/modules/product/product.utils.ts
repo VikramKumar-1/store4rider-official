@@ -113,7 +113,11 @@ export function getCategoryRegexRule(categorySlug: string): any {
     };
   } else if (cleanSlug.includes("off-road-helmet") || cleanSlug.includes("motocross-helmet")) {
     regexRule = {
-      $or: [{ name: /off.*road|motocross/i }, { magentoCategories: /off.*road|motocross/i }]
+      $or: [
+        { name: /\b(off\s*road|motocross|mx|dirt|x-cross)\b.*\b(helmet|helmets)\b|\b(helmet|helmets)\b.*\b(off\s*road|motocross|mx|dirt|x-cross)\b/i },
+        { magentoCategories: /off.*road.*helmet|motocross.*helmet/i }
+      ],
+      name: { $not: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement|cleaner|spray|mask|balaclava|lens|shield|glove|gloves|jacket|jackets|boots?|shoes?|pants?|backpacks?|bags?|luggage|hydration|tail\s*bag|tank\s*bag|saddle\s*bag|panniers?)\b/i }
     };
   } else if (cleanSlug.includes("helmet")) {
     const keywords = cleanSlug.replace(/-/g, " ").replace(/s$/, "").trim();

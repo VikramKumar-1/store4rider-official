@@ -11,19 +11,19 @@ export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNod
   const searchParams = useSearchParams();
   const params = useParams();
   
-  let category = searchParams.get("category") || undefined;
+  let category = (searchParams.get("category") || "").replace(/\.html$/i, "") || undefined;
   if (!category && params) {
     const rawParam = params.categorySlug || params.slug || params.category;
     if (rawParam && !params.brandSlug) {
       const slugArr = Array.isArray(rawParam) ? rawParam : [rawParam];
-      category = slugArr[slugArr.length - 1];
+      category = (slugArr[slugArr.length - 1] || "").replace(/\.html$/i, "");
     }
   }
   
-  let brand = searchParams.get("brand") || undefined;
+  let brand = (searchParams.get("brand") || "").replace(/\.html$/i, "") || undefined;
   if (!brand && params?.brandSlug) {
     const slugArr = Array.isArray(params.brandSlug) ? params.brandSlug : [params.brandSlug];
-    brand = slugArr[slugArr.length - 1];
+    brand = (slugArr[slugArr.length - 1] || "").replace(/\.html$/i, "");
   }
   
   const search = searchParams.get("search") || searchParams.get("q") || undefined;

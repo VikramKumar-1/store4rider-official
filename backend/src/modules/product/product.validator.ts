@@ -90,8 +90,8 @@ export class ProductValidator {
         "full-face-helmets": ["full-face-helmets", "full-face-helmet", "full-face", "premium-full-face-helmets"],
         "modular-helmets": ["modular-helmets-flip-up-helmets", "modular-flip-up", "modular-helmet", "smk-glide-modular-helmet"],
         "modular-helmets-flip-up-helmets": ["modular-helmets", "modular-flip-up", "modular-helmet"],
-        "off-road-helmets": ["off-road-helmets-motocross-helmet", "motocross-helmet", "off-road"],
-        "off-road-helmets-motocross-helmet": ["off-road-helmets", "motocross-helmet", "off-road"],
+        "off-road-helmets": ["off-road-helmets-motocross-helmet", "motocross-helmet", "off-road-helmet", "motocross-helmets"],
+        "off-road-helmets-motocross-helmet": ["off-road-helmets", "motocross-helmet", "off-road-helmet", "motocross-helmets"],
         "open-face-helmets": ["open-face-helmets", "half-face-helmets", "open-face", "open-face-helmet", "half-face-helmet"],
         "half-face-helmets": ["open-face-helmets", "half-face-helmets", "open-face", "open-face-helmet", "half-face-helmet"],
         "helmet-accessories": ["helmet-accessories-helmet-visors", "helmet-visors", "helmet-accessories", "visors", "visor"],
@@ -161,6 +161,9 @@ export class ProductValidator {
         "motorcycle-other-luggage": ["other-luggage", "other-luggages", "motorcycle-other-luggage"],
 
         // Accessories
+        "motorcycle-accessories-online": ["motorcycle-accessories-bike-accessories", "motorcycle-accessories-online", "bike-accessories"],
+        "motorcycle-accessories-bike-accessories": ["motorcycle-accessories-online", "motorcycle-accessories-bike-accessories", "bike-accessories"],
+        "bike-accessories": ["motorcycle-accessories-bike-accessories", "motorcycle-accessories-online"],
         "bike-auxiliary-lights-filters-flashers": ["bike-auxiliary-lights-filters-flashers", "bike-auxiliary-lights"],
         "auxiliary-lights": ["bike-auxiliary-lights", "bike-auxiliary-light", "bike-auxiliary-lights-filters-flashers"],
         "bike-auxiliary-lights": ["auxiliary-lights", "bike-auxiliary-lights", "bike-auxiliary-lights-filters-flashers"],
@@ -210,7 +213,7 @@ export class ProductValidator {
       if ((cleanSlug.includes("boot") || cleanSlug.includes("shoe")) && !cleanSlug.includes("sock") && !cleanSlug.includes("lace") && !cleanSlug.includes("insole") && !cleanSlug.includes("cover") && !cleanSlug.includes("slider")) {
         excludeConditions.push({ name: { $not: /\b(socks?|laces?|insole|covers?|toe\s*slider)\b/i } });
       } else if (cleanSlug.includes("helmet") && !cleanSlug.includes("visor") && !cleanSlug.includes("cleaner") && !cleanSlug.includes("balaclava") && !cleanSlug.includes("intercom") && !cleanSlug.includes("communicator") && !cleanSlug.includes("spoiler") && !cleanSlug.includes("pinlock") && !cleanSlug.includes("lens") && !cleanSlug.includes("shield")) {
-        excludeConditions.push({ name: { $not: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement|cleaner|spray|mask|balaclava|lens|shield|glove|gloves|jacket|jackets|boots?|shoes?|pants?)\b/i } });
+        excludeConditions.push({ name: { $not: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement|cleaner|spray|mask|balaclava|lens|shield|glove|gloves|jacket|jackets|boots?|shoes?|pants?|backpacks?|bags?|luggage|hydration|tail\s*bag|tank\s*bag|saddle\s*bag|panniers?)\b/i } });
       } else if ((cleanSlug.includes("jacket") || cleanSlug.includes("suit") || cleanSlug.includes("pant") || cleanSlug.includes("jeans")) && !cleanSlug.includes("armor") && !cleanSlug.includes("armour") && !cleanSlug.includes("protector") && !cleanSlug.includes("guard") && !cleanSlug.includes("pad") && !cleanSlug.includes("insert") && !cleanSlug.includes("layer") && !cleanSlug.includes("liner")) {
         excludeConditions.push({ name: { $not: /\b((hip|knee|elbow|back|shoulder|chest)\s*(protector|armor|armour|insert|pad|pads)|armour\s*insert|armor\s*insert|base\s*layer|liner)\b/i } });
       } else if ((cleanSlug.includes("communicator") || cleanSlug.includes("intercom")) && !cleanSlug.includes("mount") && !cleanSlug.includes("cable") && !cleanSlug.includes("wire") && !cleanSlug.includes("battery") && !cleanSlug.includes("clamp") && !cleanSlug.includes("pad")) {
@@ -230,7 +233,7 @@ export class ProductValidator {
       
       // HELMETS
       if (c.includes("modular") || c.includes("flip-up")) regexConditions.push({ name: /\b(modular|flip\s*up)\b/i });
-      else if (c.includes("off-road") || c.includes("motocross")) regexConditions.push({ name: /\b(off\s*road|motocross|mx|dirt|x-cross)\b/i });
+      else if ((c.includes("off-road") || c.includes("motocross")) && c.includes("helmet")) regexConditions.push({ name: /\b(off\s*road|motocross|mx|dirt|x-cross)\b.*\b(helmet|helmets)\b|\b(helmet|helmets)\b.*\b(off\s*road|motocross|mx|dirt|x-cross)\b/i });
       else if (c.includes("full-face")) regexConditions.push({ name: /\b(full\s*face)\b/i });
       else if (c.includes("open-face") || c.includes("half-face")) regexConditions.push({ name: /\b(open\s*face|half\s*face|jet\s*helmet|retro\s*jet)\b/i });
       else if (c.includes("dual-sport") || c.includes("adv")) regexConditions.push({ name: /\b(dual\s*sport|adv|adventure\s*helmet)\b/i });

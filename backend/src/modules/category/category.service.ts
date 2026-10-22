@@ -50,17 +50,18 @@ export class CategoryService {
   }
 
   static async getCategoryBySlug(slug: string): Promise<ICategory | null> {
-    let cat = await CategoryRepository.findBySlug(slug);
-    if (!cat && slug.endsWith("s")) {
-      cat = await CategoryRepository.findBySlug(slug.slice(0, -1));
-    } else if (!cat && !slug.endsWith("s")) {
-      cat = await CategoryRepository.findBySlug(`${slug}s`);
+    const cleanSlug = slug.replace(/\.html$/i, "");
+    let cat = await CategoryRepository.findBySlug(cleanSlug);
+    if (!cat && cleanSlug.endsWith("s")) {
+      cat = await CategoryRepository.findBySlug(cleanSlug.slice(0, -1));
+    } else if (!cat && !cleanSlug.endsWith("s")) {
+      cat = await CategoryRepository.findBySlug(`${cleanSlug}s`);
     }
     if (!cat) {
       const aliasMap: Record<string, string[]> = {
         "full-face-helmets": ["full-face-helmets", "full-face-helmet", "premium-full-face-helmets"],
         "modular-helmets": ["modular-helmets-flip-up-helmets", "modular-flip-up"],
-        "off-road-helmets": ["off-road-helmets-motocross-helmet", "off-road"],
+        "off-road-helmets": ["off-road-helmets-motocross-helmet", "off-road-helmet", "motocross-helmet"],
         "open-face-helmets": ["half-face-helmets", "open-face", "half-face-helmet"],
         "half-face-helmets": ["open-face-helmets", "open-face", "half-face-helmet"],
         "helmet-accessories": ["helmet-accessories-helmet-visors", "helmet-visors"],
@@ -94,6 +95,9 @@ export class CategoryService {
         "bike-top-box": ["top-box", "top-boxes"],
         "hydration-bag": ["hydration-bag", "hydration-bags"],
         "motorcycle-other-luggage": ["other-luggage", "other-luggages"],
+        "motorcycle-accessories-online": ["motorcycle-accessories-bike-accessories", "bike-accessories", "motorcycle-accessories"],
+        "motorcycle-accessories-bike-accessories": ["motorcycle-accessories-online", "bike-accessories"],
+        "bike-accessories": ["motorcycle-accessories-bike-accessories", "motorcycle-accessories-online"],
         "auxiliary-lights": ["bike-auxiliary-lights", "bike-auxiliary-lights-filters-flashers"],
         "bike-auxiliary-lights": ["auxiliary-lights", "bike-auxiliary-lights"],
         "auxiliary-light-filter": ["auxiliary-light-filters"],

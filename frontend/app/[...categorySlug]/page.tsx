@@ -36,7 +36,7 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
   
   const slugArray = resolvedParams.categorySlug;
   const isSingleSegment = slugArray.length === 1;
-  const candidateSlug = slugArray[slugArray.length - 1]; // Use deepest segment
+  const candidateSlug = (slugArray[slugArray.length - 1] || "").replace(/\.html$/i, ""); // Use deepest segment without .html
 
   // 1. Check if this slug resolves to a Product (ONLY for single-segment root-level URLs)
   if (isSingleSegment && candidateSlug) {
@@ -113,12 +113,14 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
           return null;
         };
         let catNode = findCategory(data?.data || []);
-        if (!catNode) {
+        if (!catNode || !catNode.description) {
           const singleUrl = baseUrl.includes('/v1') ? `${baseUrl}/categories/${category}` : `${baseUrl}/v1/categories/${category}`;
-          const singleRes = await fetch(singleUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(2500) });
+          const singleRes = await fetch(singleUrl, { cache: 'no-store', signal: AbortSignal.timeout(2500) });
           if (singleRes.ok) {
             const singleData = await singleRes.json();
-            catNode = singleData?.data || null;
+            if (singleData?.data) {
+              catNode = { ...catNode, ...singleData.data };
+            }
           }
         }
         if (catNode) {
@@ -202,7 +204,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   const resolvedParams = await params;
   const slugArray = resolvedParams.categorySlug;
   const isSingleSegment = slugArray.length === 1;
-  const candidateSlug = slugArray[slugArray.length - 1];
+  const candidateSlug = (slugArray[slugArray.length - 1] || "").replace(/\.html$/i, "");
 
   // 1. If single segment resolves to a Product, render the Product Detail Page directly!
   if (isSingleSegment && candidateSlug) {
@@ -269,12 +271,14 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         };
         initialCategoryNode = findCategory(data?.data || []);
       }
-      if (!initialCategoryNode) {
+      if (!initialCategoryNode || !initialCategoryNode.description) {
         const singleUrl = baseUrl.includes('/v1') ? `${baseUrl}/categories/${category}` : `${baseUrl}/v1/categories/${category}`;
-        const singleRes = await fetch(singleUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(2500) });
+        const singleRes = await fetch(singleUrl, { cache: 'no-store', signal: AbortSignal.timeout(2500) });
         if (singleRes.ok) {
           const singleData = await singleRes.json();
-          initialCategoryNode = singleData?.data || undefined;
+          if (singleData?.data) {
+            initialCategoryNode = { ...initialCategoryNode, ...singleData.data };
+          }
         }
       }
 
