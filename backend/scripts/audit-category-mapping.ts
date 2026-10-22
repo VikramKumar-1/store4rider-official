@@ -40,6 +40,79 @@ const MAGENTO_TO_NAVBAR_SLUG: Record<string, string> = {
   "communicators": "bluetooth-intercoms",
   "helmet cleaners": "helmet-cleaners",
 
+  // Handle & in CSV (Magento uses & and &amp;)
+  "helmet accessories & helmet visors": "helmet-accessories",
+  "helmet accessories &amp; helmet visors": "helmet-accessories",
+
+  // Singular forms (Magento CSV inconsistency)
+  "full face helmet": "full-face-helmets",
+  "off-road helmet": "off-road-helmets",
+  "modular helmet": "modular-helmets",
+  "open face helmet": "open-face-helmets",
+  "half face helmet": "open-face-helmets",
+
+  // Brand-specific Magento categories → parent product type
+  "smk twister helmet": "full-face-helmets",
+  "smk stellar helmet": "full-face-helmets",
+  "smk typhoon helmet": "full-face-helmets",
+  "smk glide helmet": "modular-helmets",
+  "smk glide modular helmet": "modular-helmets",
+  "smk titan helmet": "open-face-helmets",
+  "smk hybrid evo": "off-road-helmets",
+
+  // Marketing/price-range categories → parent type
+  "helmets between rs.5000-6000": "motorcycle-helmets",
+  "helmets between rs.4000-5000": "motorcycle-helmets",
+  "helmets between rs.3000-4000": "motorcycle-helmets",
+  "helmets between rs.2000-3000": "motorcycle-helmets",
+  "helmets between rs.6000-8000": "motorcycle-helmets",
+  "helmets between rs.8000-10000": "motorcycle-helmets",
+  "helmets above rs.10000": "motorcycle-helmets",
+  "helmets below rs.2000": "motorcycle-helmets",
+
+  // Missing specific categories
+  "flashers": "bike-auxiliary-lights-filters-flashers",
+  "bike exhausts": "performance-parts",
+  "exhaust": "performance-parts",
+  "exhausts": "performance-parts",
+  "panniers": "saddle-bags-bikes",
+  "armour": "protectors-armour",
+  "armor": "protectors-armour",
+  "riding shirts": "riding-jackets",
+  "inner wear": "riding-gear",
+  "base layer": "riding-gear",
+  "rain gear": "riding-gear",
+  "rain suit": "riding-gear",
+  "rain suits": "riding-gear",
+  "riding suits": "racing-suits",
+
+  // Products with escaped slashes and pipe-separated names in CSV
+  "saddle bags for bikes / panniers": "saddle-bags-bikes",
+  "bike auxiliary lights / filters/ flashers": "bike-auxiliary-lights-filters-flashers",
+  "bike auxiliary lights / filters / flashers": "bike-auxiliary-lights-filters-flashers",
+  "motorcycle accessories | bike accessories": "motorcycle-accessories-online",
+  "motorcycle accessories / bike accessories": "motorcycle-accessories-online",
+  "riding gloves | biker gloves": "riding-gloves",
+  "riding gloves / biker gloves": "riding-gloves",
+  "riding jackets | bike jackets": "riding-jackets",
+  "biker t-shirts | motorcycle t shirts": "motorcycle-accessories-online",
+  "biker t-shirts / motorcycle t shirts": "motorcycle-accessories-online",
+
+  // Product-specific categories
+  "royal enfield himalayan accessories": "motorcycle-accessories-online",
+  "radiator guard": "motorcycle-accessories-online",
+  "saddle stay / crash guard / leg guard": "motorcycle-accessories-online",
+  "saddle stay": "motorcycle-accessories-online",
+  "crash guard": "motorcycle-accessories-online",
+  "leg guard": "motorcycle-accessories-online",
+  "protectors": "protectors-armour",
+  "gadgets": "motorcycle-accessories-online",
+  "touring gear": "riding-gear",
+  "monsoon gear for riders": "riding-gear",
+  "short biker gloves between rs.3000-4000": "short-motorbike-gloves",
+
+  // Skip marketing/non-product categories
+  "sale": "motorcycle-helmets",
   // Riding Jackets & Suits
   "riding jackets": "riding-jackets",
   "riding jackets / bike jackets": "riding-jackets",
@@ -172,9 +245,10 @@ function parseMagentoCategories(raw: string): string[] {
 }
 
 function extractLeafCategory(catPath: string): string | null {
-  // "Root Test 01/Motorcycle Helmets/Off-Road Helmets (Motocross Helmet)"
-  // Extract leaf: "Off-Road Helmets (Motocross Helmet)"
-  const segments = catPath.split("/").map(s => s.trim()).filter(Boolean);
+  // Magento exports escape path-separator slashes as \/
+  // First, temporarily replace escaped slashes to preserve them in leaf names
+  const preserved = catPath.replace(/\\\//g, '##SLASH##');
+  const segments = preserved.split("/").map(s => s.replace(/##SLASH##/g, '/').trim()).filter(Boolean);
   if (segments.length === 0) return null;
   
   // Return the deepest segment (leaf)
@@ -241,6 +315,7 @@ async function audit() {
   for (const p of products as any[]) {
     const paths = parseMagentoCategories(p.magentoCategories);
     let bestSlug: string | null = null;
+    const allMatchedSlugs: string[] = [];
 
     for (const catPath of paths) {
       const leaf = extractLeafCategory(catPath);
@@ -248,10 +323,30 @@ async function audit() {
       
       const slug = mapToNavbarSlug(leaf);
       if (slug) {
-        // Prefer the most specific (deepest leaf that's a product category, not a discipline)
-        bestSlug = slug;
-        break; // First valid match is the primary category
+        allMatchedSlugs.push(slug);
       }
+    }
+
+    if (allMatchedSlugs.length > 0) {
+      // Prefer the most specific slug (longer slugs are more specific)
+      // e.g., "hydration-bag" > "motorcycle-other-luggage" > "motorcycle-bags-bike-luggage"
+      // Also prefer leaf categories over parent categories
+      const PARENT_SLUGS = new Set([
+        "motorcycle-helmets", "motorcycle-bags-bike-luggage", "riding-gear",
+        "motorcycle-accessories-online", "motorcycle-riding-boots",
+      ]);
+      const leafSlugs = allMatchedSlugs.filter(s => !PARENT_SLUGS.has(s));
+      bestSlug = leafSlugs.length > 0 ? leafSlugs[0] : allMatchedSlugs[0];
+    }
+
+    // Product name-based fallback for hydration products with CSV path "Other Luggage"
+    if ((!bestSlug || bestSlug === "motorcycle-other-luggage") && p.name) {
+      const nameLower = p.name.toLowerCase();
+      if (nameLower.includes("hydration")) bestSlug = "hydration-bag";
+      else if (nameLower.includes("tank bag") || nameLower.includes("tankbag")) bestSlug = "tank-bags-bikes";
+      else if (nameLower.includes("saddle bag") || nameLower.includes("pannier")) bestSlug = "saddle-bags-bikes";
+      else if (nameLower.includes("tail bag") || nameLower.includes("tailbag")) bestSlug = "motorcycle-tail-bags";
+      else if (nameLower.includes("top box") || nameLower.includes("top case")) bestSlug = "bike-top-box";
     }
 
     if (bestSlug) {

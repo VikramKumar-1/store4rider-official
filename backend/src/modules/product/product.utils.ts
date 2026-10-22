@@ -1,55 +1,8 @@
 
-export const slugMap: Record<string, string> = {
-  "full-face-helmets": "full-face",
-  "modular-helmets": "modular-flip-up",
-  "modular-helmets-flip-up-helmets": "modular-flip-up",
-  "open-face-helmets": "open-face",
-  "half-face-helmets": "open-face",
-  "off-road-helmets": "off-road-motocross-gear",
-  "off-road-motocross": "off-road-motocross-gear",
-  "off-road-riding-boots": "off-road-riding-boots",
-  "off-road-boots": "off-road-riding-boots",
-  "riding-jacket": "riding-jackets",
-  "riding-jackets": "riding-jackets",
-  "protectors-armour": "protectors-armour",
-  "riding-jean": "riding-jeans",
-  "riding-jeans": "riding-jeans",
-  "motorcycle-riding-jeans": "riding-jeans",
-  "touring-pant": "touring-pants",
-  "knee-guard": "knee-guards",
-  "knee-guards-for-bikers": "knee-guards",
-  "knee-guards-bikers": "knee-guards",
-  "motorcycle-riding-gloves": "riding-gloves",
-  "riding-gloves": "riding-gloves",
-  "semi-gauntlet-gloves": "semi-gauntlet",
-  "short-motorbike-gloves": "short-cuff-biker-gloves",
-  "short-biking-boots": "short-city-riding-biking-boots",
-  "sports-riding-shoes": "sport-riding-shoes",
-  "tank-bags-bikes": "tank-bags",
-  "saddle-bags": "saddle-bags-bikes",
-  "saddle-bags-bikes": "saddle-bags-bikes",
-  "motorcycle-tail-bags": "motorcycle-tail-bags",
-  "tail-bags": "motorcycle-tail-bags",
-  "bike-top-box": "top-box",
-  "hydration-bag": "hydration-bag",
-  "motorcycle-other-luggage": "other-luggage",
-  "women-riding-gear": "riding-gear-for-women",
-  "riding-gear-for-women": "riding-gear-for-women",
-  "helmet-accessories": "helmet-accessories",
-  "helmet-visors": "helmet-accessories",
-  "bluetooth-intercoms": "communicators",
-  "communicators": "communicators",
-  "bike-phone-holders": "bike-phone-holders-mobile-holder-for-bike",
-  "bike-auxiliary-light-clamps-mounts": "clamps-and-mounts-for-lights",
-  "auxiliary-light-wiring-harness-switch": "auxiliary-light-wiring-harness-and-switch",
-  "off-beat-motorcycle-accessories": "off-beat-accessories",
-  "rally-tower": "rally-tower",
-  "bike-spares": "spares",
-  "iridium-spark-plugs": "iridium-spark-plug",
-  "performance-air-filters": "performance-air-filters-for-bikes",
-  "performance-air-filter-bike": "performance-air-filters-for-bikes",
-  "brake-pads": "brake-pads"
-};
+import { NAVBAR_TO_DB_SLUG_MAP } from "./product.category-constants";
+
+// Re-export for backward compatibility if anything imports slugMap directly
+export const slugMap = NAVBAR_TO_DB_SLUG_MAP;
 
 export function getCategoryRegexRule(categorySlug: string): any {
   let cleanSlug = categorySlug.toLowerCase().trim();
@@ -296,9 +249,13 @@ export function getCategoryRegexRule(categorySlug: string): any {
         { name: { $not: /\b(hip|elbow|shoulder|back|chest|tailbone)\b/i } }
       ]
     };
-  } else if (cleanSlug.includes("off-road-motocross") || cleanSlug.includes("offroad") || cleanSlug.includes("off-road")) {
+  } else if (cleanSlug.includes("off-road-motocross") || (cleanSlug.includes("off-road") && !cleanSlug.includes("helmet") && !cleanSlug.includes("boot"))) {
+    // Discipline page: requires product to be actual gear, not just tagged 'off-road'
     regexRule = {
-      $or: [{ name: /off.*road|motocross|dirt|mx/i }, { magentoCategories: /off.*road|motocross|dirt|mx/i }]
+      $or: [
+        { name: /\b(off\s*road|motocross|dirt|mx)\b.*\b(helmet|boot|jacket|glove|pants?|gear|jersey|kit|guard|protector)\b|\b(helmet|boot|jacket|glove|pants?|gear|jersey|kit|guard|protector)\b.*\b(off\s*road|motocross|dirt|mx)\b/i },
+        { magentoCategories: /off.*road|motocross/i }
+      ]
     };
   } else if (cleanSlug.includes("riding-gear")) {
     regexRule = {

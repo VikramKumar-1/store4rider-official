@@ -81,7 +81,9 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
             {/* Mega Menu Dropdown */}
             {item.hasDropdown && (item.megaMenuItems || item.megaMenuFeatured) && (
               <div
-                className={`absolute top-full pt-3 z-50 ${
+                className={`absolute ${
+                  (item.megaMenuItems?.length ?? 0) <= 2 ? "top-full pt-3" : "top-full -mt-3 pt-3"
+                } z-50 ${
                   hoveredMenuId === item.id ? "pointer-events-auto" : "pointer-events-none"
                 } ${
                   item.id === "helmets"

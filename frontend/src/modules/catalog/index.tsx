@@ -134,7 +134,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
         )}
 
         {/* Category Description & Google Reviews Accordions */}
-        <div className="w-full flex flex-col gap-2 mb-6 mt-4">
+        <div className={`w-full flex flex-col gap-2 ${categoryNode?.description ? "mb-6 mt-4" : "hidden md:flex mb-6 mt-4"}`}>
           <CategorySEOAccordion 
             categoryName="Category Info & Reviews" 
             items={[
@@ -146,7 +146,8 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
               {
                 id: 'google-reviews',
                 title: 'Google Reviews',
-                content: <StoreReviews />
+                content: <StoreReviews />,
+                className: 'hidden md:block'
               }
             ]}
           />

@@ -9,6 +9,7 @@ export interface AccordionItem {
   id: string;
   title: string;
   content: string | React.ReactNode;
+  className?: string;
 }
 
 interface CategorySEOAccordionProps {
@@ -84,7 +85,7 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
           return (
             <div
               key={item.id}
-              className="border border-neutral-200/90 rounded-lg overflow-hidden bg-white shadow-xs transition-colors duration-200"
+              className={`border border-neutral-200/90 rounded-lg overflow-hidden bg-white shadow-xs transition-colors duration-200 ${item.className || ""}`}
             >
               {/* Accordion Header - Semantic HTML with unique IDs for anchor linking */}
               <h3 id={item.id} className="m-0">

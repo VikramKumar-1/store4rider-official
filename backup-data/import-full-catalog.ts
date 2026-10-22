@@ -31,6 +31,7 @@ import path from 'path';
 import Papa from 'papaparse';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import { resolveCanonicalCategorySlugs } from '../backend/src/modules/product/product.category-constants';
 
 // Load environment variables — try root .env, then backend .env
 dotenv.config({ path: path.join(process.cwd(), '.env') });
@@ -56,6 +57,7 @@ const productSchema = new mongoose.Schema(
     slug: { type: String, required: true, unique: true, index: true },
     sku: { type: String, required: true, unique: true, index: true },
     categoryId: { type: String, index: true },
+    categorySlugs: [{ type: String, index: true }],
     basePrice: { type: Number, required: true },
     specialPrice: { type: Number },
     weight: { type: Number },
@@ -123,6 +125,17 @@ productSchema.index({ avgRating: -1, _id: -1 });
 
 const ProductModel =
   mongoose.models.Product || mongoose.model('Product', productSchema);
+
+const categorySchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    slug: { type: String, required: true, unique: true },
+  },
+  { timestamps: true }
+);
+
+const CategoryModel =
+  mongoose.models.Category || mongoose.model('Category', categorySchema);
 
 // ──────────────────────────────────────────────────────────────
 // Types
@@ -513,6 +526,20 @@ async function buildSkuIndex(): Promise<void> {
 async function processProducts(): Promise<void> {
   console.log('\n📦 Pass 2: Processing and importing visible products...\n');
 
+  // Load existing categories from database for automated categoryId linkage
+  const categoryBySlug = new Map<string, string>();
+  try {
+    const categories = await CategoryModel.find({}).lean().exec();
+    for (const cat of categories) {
+      if (cat.slug && cat._id) {
+        categoryBySlug.set(cat.slug, cat._id.toString());
+      }
+    }
+    console.log(`   📂 Loaded ${categoryBySlug.size} categories for auto-linking categoryId.`);
+  } catch (err: any) {
+    console.warn('   ⚠️ Could not load categories for linking:', err.message);
+  }
+
   let batch: any[] = [];
   let totalParsed = 0;
   let totalImported = 0;
@@ -762,13 +789,28 @@ async function processProducts(): Promise<void> {
           const upsellSkus = splitSkus(row.upsell_skus);
           const crosssellSkus = splitSkus(row.crosssell_skus);
 
+          // ─── CANONICAL CATEGORY MAPPING ───
+          const categorySlugs = resolveCanonicalCategorySlugs({
+            name: row.name || row.sku,
+            magentoCategories: row.categories,
+          });
+
+          let matchedCategoryId: string | undefined = undefined;
+          for (const cSlug of categorySlugs) {
+            if (categoryBySlug.has(cSlug)) {
+              matchedCategoryId = categoryBySlug.get(cSlug);
+              break;
+            }
+          }
+
           // ─── BUILD PRODUCT DOCUMENT ───
           const productDoc: Record<string, any> = {
             name: row.name || row.sku,
             description,
             slug,
             sku: row.sku,
-            categoryId: undefined, // Will be mapped in category assignment phase
+            categoryId: matchedCategoryId,
+            categorySlugs,
             basePrice,
             specialPrice,
             weight: safeParseFloat(row.weight),

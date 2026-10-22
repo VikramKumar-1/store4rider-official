@@ -22,6 +22,7 @@ import mongoose from "mongoose";
 import fs from "fs";
 import path from "path";
 import Papa from "papaparse";
+import { resolveCanonicalCategorySlugs } from "../backend/src/modules/product/product.category-constants";
 
 // -----------------------------------------------------------
 // 1. MongoDB Connection (same as backend/.env)
@@ -38,6 +39,7 @@ const productSchema = new mongoose.Schema(
     slug: { type: String, required: true, unique: true, index: true },
     sku: { type: String, required: true, unique: true, index: true },
     categoryId: { type: String, index: true },
+    categorySlugs: [{ type: String, index: true }],
     basePrice: { type: Number, required: true },
     specialPrice: { type: Number },
     weight: { type: Number },
@@ -74,6 +76,17 @@ const productSchema = new mongoose.Schema(
 
 const ProductModel =
   mongoose.models.Product || mongoose.model("Product", productSchema);
+
+const categorySchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    slug: { type: String, required: true, unique: true },
+  },
+  { timestamps: true }
+);
+
+const CategoryModel =
+  mongoose.models.Category || mongoose.model("Category", categorySchema);
 
 // -----------------------------------------------------------
 // 3. S3 Base URL for product images
@@ -121,7 +134,7 @@ interface CSVRow {
   [key: string]: string;
 }
 
-function mapCsvRowToProduct(row: CSVRow, allRows: CSVRow[]) {
+function mapCsvRowToProduct(row: CSVRow, allRows: CSVRow[], categoryBySlug?: Map<string, string>) {
   const name = (row.name || row.sku || "").trim();
   if (!name) return null;
 
@@ -191,11 +204,29 @@ function mapCsvRowToProduct(row: CSVRow, allRows: CSVRow[]) {
   const description = (row.description || "").trim();
   const shortDescription = (row.short_description || "").trim();
 
+  // --- Canonical Category Mapping ---
+  const categorySlugs = resolveCanonicalCategorySlugs({
+    name,
+    magentoCategories: row.categories,
+  });
+
+  let categoryId: string | undefined = undefined;
+  if (categoryBySlug) {
+    for (const cSlug of categorySlugs) {
+      if (categoryBySlug.has(cSlug)) {
+        categoryId = categoryBySlug.get(cSlug);
+        break;
+      }
+    }
+  }
+
   // --- Build product document ---
   return {
     name,
     sku,
     slug,
+    categoryId,
+    categorySlugs,
     description: description || "No description available.",
     shortDescription: shortDescription || undefined,
     basePrice,
@@ -238,6 +269,20 @@ async function run() {
   console.log("🔌 Connecting to MongoDB...");
   await mongoose.connect(MONGODB_URI);
   console.log("✅ Connected to MongoDB");
+
+  // Load existing categories for auto-linking categoryId
+  const categoryBySlug = new Map<string, string>();
+  try {
+    const categories = await CategoryModel.find({}).lean().exec();
+    for (const cat of categories) {
+      if (cat.slug && cat._id) {
+        categoryBySlug.set(cat.slug, cat._id.toString());
+      }
+    }
+    console.log(`📂 Loaded ${categoryBySlug.size} categories for auto-linking categoryId`);
+  } catch (err: any) {
+    console.warn("⚠️ Could not load categories:", err.message);
+  }
 
   // Read & parse CSV
   console.log(`📄 Reading CSV: ${csvPath}`);
@@ -292,7 +337,7 @@ async function run() {
     await Promise.all(
       batch.map(async (row) => {
         try {
-          const productData = mapCsvRowToProduct(row, allRows);
+          const productData = mapCsvRowToProduct(row, allRows, categoryBySlug);
           if (!productData) {
             skipped++;
             return;

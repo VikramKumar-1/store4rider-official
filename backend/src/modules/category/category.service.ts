@@ -1,6 +1,7 @@
 import { CategoryRepository } from "./category.repository";
 import { ICategory } from "@store4riders/shared-types";
 import { getCache, setCache, deleteCache } from "../../core/cache/redis";
+import { CATEGORY_ALIAS_MAP } from "../product/product.category-constants";
 
 const CACHE_KEY = "category_tree_v2";
 
@@ -58,66 +59,8 @@ export class CategoryService {
       cat = await CategoryRepository.findBySlug(`${cleanSlug}s`);
     }
     if (!cat) {
-      const aliasMap: Record<string, string[]> = {
-        "full-face-helmets": ["full-face-helmets", "full-face-helmet", "premium-full-face-helmets"],
-        "modular-helmets": ["modular-helmets-flip-up-helmets", "modular-flip-up"],
-        "off-road-helmets": ["off-road-helmets-motocross-helmet", "off-road-helmet", "motocross-helmet"],
-        "open-face-helmets": ["half-face-helmets", "open-face", "half-face-helmet"],
-        "half-face-helmets": ["open-face-helmets", "open-face", "half-face-helmet"],
-        "helmet-accessories": ["helmet-accessories-helmet-visors", "helmet-visors"],
-        "helmet-visors": ["helmet-accessories-helmet-visors", "helmet-accessories"],
-        "bluetooth-intercoms": ["communicators"],
-        "riding-gloves": ["motorcycle-riding-gloves", "riding-gloves-biker-gloves", "gloves", "biker-gloves"],
-        "motorcycle-riding-gloves": ["riding-gloves", "riding-gloves-biker-gloves", "gloves", "biker-gloves"],
-        "full-gauntlet-gloves": ["premium-full-gauntlet-riding-gloves"],
-        "semi-gauntlet-gloves": ["semi-gauntlet-bike-riding-gloves"],
-        "short-motorbike-gloves": ["short-cuff-biker-gloves"],
-        "riding-jacket": ["riding-jackets", "riding-jackets-bike-jackets", "riding-jackets-motorcycle-jackets", "motorcycle-jackets"],
-        "riding-jackets": ["riding-jacket", "riding-jackets-bike-jackets", "riding-jackets-motorcycle-jackets", "motorcycle-jackets"],
-        "protectors-armour": ["protectors-armour", "protectors", "armour", "armor"],
-        "women-riding-gear": ["riding-gear-for-women", "women-riding-gear", "riding-gear-women"],
-        "riding-gear-for-women": ["women-riding-gear", "riding-gear-for-women", "riding-gear-women"],
-        "riding-jeans": ["motorcycle-riding-jeans", "riding-jeans", "riding-jean"],
-        "motorcycle-riding-jeans": ["riding-jeans", "motorcycle-riding-jeans", "riding-jean"],
-        "knee-guards": ["knee-guards-for-bikers"],
-        "knee-guards-bikers": ["knee-guards-for-bikers", "knee-guards", "knee-guard"],
-        "touring-pants": ["touring-pant", "riding-pants"],
-        "short-biking-boots": ["short-city-riding-biking-boots"],
-        "sports-riding-shoes": ["sport-riding-shoes"],
-        "off-road-boots": ["off-road-riding-boots-motocross-boots"],
-        "off-road-riding-boots": ["off-road-boots", "off-road-riding-boots-motocross-boots"],
-        "off-road-motocross": ["off-road-motocross-riding-gear"],
-        "off-road-motocross-riding-gear": ["off-road-motocross", "off-road-motocross-riding-gear"],
-        "tank-bags": ["tank-bags-for-bike"],
-        "tank-bags-bikes": ["tank-bags-for-bike", "tank-bags"],
-        "saddle-bags": ["saddle-bags-bikes", "saddle-bags-for-bikes-panniers", "saddle-bags-for-bikes"],
-        "saddle-bags-bikes": ["saddle-bags", "saddle-bags-for-bikes-panniers"],
-        "bike-top-box": ["top-box", "top-boxes"],
-        "hydration-bag": ["hydration-bag", "hydration-bags"],
-        "motorcycle-other-luggage": ["other-luggage", "other-luggages"],
-        "motorcycle-accessories-online": ["motorcycle-accessories-bike-accessories", "bike-accessories", "motorcycle-accessories"],
-        "motorcycle-accessories-bike-accessories": ["motorcycle-accessories-online", "bike-accessories"],
-        "bike-accessories": ["motorcycle-accessories-bike-accessories", "motorcycle-accessories-online"],
-        "auxiliary-lights": ["bike-auxiliary-lights", "bike-auxiliary-lights-filters-flashers"],
-        "bike-auxiliary-lights": ["auxiliary-lights", "bike-auxiliary-lights"],
-        "auxiliary-light-filter": ["auxiliary-light-filters"],
-        "auxiliary-light-filters": ["auxiliary-light-filter"],
-        "clamps-and-mounts-for-lights": ["bike-auxiliary-light-clamps-and-mounts"],
-        "bike-auxiliary-light-clamps-mounts": ["bike-auxiliary-light-clamps-and-mounts", "clamps-and-mounts-for-lights"],
-        "auxiliary-light-wiring-harness-switch": ["auxiliary-light-wiring-harness-and-switch"],
-        "off-beat-accessories": ["off-beat-bike-accessories-online"],
-        "off-beat-motorcycle-accessories": ["off-beat-bike-accessories-online", "off-beat-accessories"],
-        "rally-tower": ["rally-tower", "rally-towers-navigation-tower"],
-        "bike-phone-holders": ["bike-phone-holders-mobile-holder-for-bike"],
-        "iridium-spark-plugs": ["iridium-spark-plug"],
-        "iridium-spark-plug": ["iridium-spark-plugs"],
-        "performance-air-filters": ["performance-air-filters-for-bikes"],
-        "performance-air-filter-bike": ["performance-air-filters-for-bikes", "performance-air-filters"],
-        "spares": ["bike-spare-parts-online", "bike-spares"],
-        "bike-spares": ["bike-spare-parts-online", "spares"],
-        "brake-pads": ["brake-pads"],
-      };
-      const aliases = aliasMap[slug] || [];
+      // Use shared alias map (single source of truth from product.category-constants.ts)
+      const aliases = CATEGORY_ALIAS_MAP[cleanSlug] || [];
       for (const alias of aliases) {
         cat = await CategoryRepository.findBySlug(alias);
         if (cat) break;
