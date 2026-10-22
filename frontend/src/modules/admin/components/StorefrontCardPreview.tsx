@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Image from "next/image";
 import { 
-  Eye, Check, Star, Camera, AlertCircle, Sparkles, Layers,
+  Eye, Check, Star, Camera, AlertCircle, Layers,
   ChevronRight, Palette, Tag
 } from "lucide-react";
 import Button from "@/components/ui/Button";

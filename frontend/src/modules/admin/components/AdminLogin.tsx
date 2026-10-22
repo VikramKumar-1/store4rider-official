@@ -61,6 +61,9 @@ export function AdminLogin() {
               src="/Store4riders-Logo.jpg" 
               alt="Store4Riders Logo" 
               fill 
+              sizes="192px"
+              priority
+              loading="eager"
               className="object-contain p-1" 
             />
           </div>

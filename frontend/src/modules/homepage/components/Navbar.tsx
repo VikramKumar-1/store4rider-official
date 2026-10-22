@@ -101,14 +101,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
         />
 
-        <nav className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-3 xl:px-4 py-3.5 flex items-center justify-between">
+        <nav className="relative z-10 w-full max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-2.5 xl:px-4 py-3 flex items-center justify-between">
           {/* Logo (Fades out on mobile when search is open) */}
           <Link
             href="/"
             className={`items-center group transition-opacity duration-200 ${isMobileSearchOpen ? "opacity-0 pointer-events-none sm:flex sm:opacity-100 sm:pointer-events-auto" : "flex opacity-100"
               }`}
           >
-            <div className="relative h-6 w-28 sm:h-7 sm:w-32 md:h-8 md:w-36 lg:h-8 lg:w-40 xl:h-9 xl:w-44 transition-transform duration-300 group-hover:scale-105 will-change-transform">
+            <div className="relative h-6 w-28 sm:h-7 sm:w-32 md:h-7 md:w-32 lg:h-7 lg:w-32 xl:h-7.5 xl:w-36 2xl:w-44 transition-transform duration-300 group-hover:scale-105 will-change-transform">
               <Image
                 src="/Store4riders-Logo.jpg"
                 alt={logoText || "Store4Riders Logo"}
@@ -134,7 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           />
 
           {/* Right actions (Fades out on mobile when search is open) */}
-          <div className={`flex items-center gap-1 sm:gap-3 transition-opacity duration-200 ${isMobileSearchOpen ? "opacity-0 pointer-events-none sm:opacity-100 sm:pointer-events-auto" : "opacity-100"
+          <div className={`flex items-center gap-1 sm:gap-1.5 lg:gap-1.5 xl:gap-2.5 shrink-0 transition-opacity duration-200 ${isMobileSearchOpen ? "opacity-0 pointer-events-none sm:opacity-100 sm:pointer-events-auto" : "opacity-100"
             }`}>
 
             {/* Desktop Search Input (Hidden on tablets/small laptops to save space) */}
@@ -146,7 +146,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => setIsMobileSearchOpen(true)}
               aria-label="Search"
-              className={`sm:hidden p-2.5 rounded-full transition-all duration-200 cursor-pointer active:scale-90 ${isLight
+              className={`sm:hidden p-2 rounded-full transition-all duration-200 cursor-pointer active:scale-90 ${isLight
                   ? "text-neutral-700 hover:text-neutral-950 hover:bg-neutral-900/[0.06]"
                   : "text-white/80 hover:text-white hover:bg-white/10"
                 }`}
@@ -158,7 +158,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Link
               href="/cart"
               aria-label="Shopping Cart"
-              className={`relative p-2.5 rounded-full transition-all duration-200 cursor-pointer active:scale-95 ${isLight
+              className={`relative p-2 xl:p-2.5 rounded-full transition-all duration-200 cursor-pointer active:scale-95 ${isLight
                   ? "text-neutral-700 hover:text-neutral-950 hover:bg-neutral-900/[0.06]"
                   : "text-white/80 hover:text-white hover:bg-white/10"
                 }`}
@@ -200,19 +200,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
-          {/* Mobile Full-Width Search Overlay with Smooth Fluid Motion */}
-          <div
-            className={`absolute inset-x-3.5 top-1/2 -translate-y-1/2 z-30 sm:hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform ${isMobileSearchOpen
-                ? "opacity-100 scale-100 translate-y-[-50%] pointer-events-auto"
-                : "opacity-0 scale-95 translate-y-[-45%] pointer-events-none"
-              }`}
-          >
-            <SearchAutocomplete
-              isLight={isLight}
-              isMobileFull={true}
-              onClose={() => setIsMobileSearchOpen(false)}
-            />
-          </div>
+          {/* Mobile Full-Screen Search Modal */}
+          {isMobileSearchOpen && (
+            <div className="fixed inset-0 z-[100] sm:hidden bg-white animate-in fade-in duration-200">
+              <SearchAutocomplete
+                isLight={true}
+                isMobileFull={true}
+                onClose={() => setIsMobileSearchOpen(false)}
+              />
+            </div>
+          )}
         </nav>
       </header>
 

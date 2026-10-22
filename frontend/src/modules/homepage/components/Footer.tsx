@@ -31,6 +31,7 @@ export const Footer: React.FC = () => {
               src="/Store4riders-Logo.jpg" 
               alt="Store4Riders Logo" 
               fill 
+              sizes="(max-width: 768px) 160px, 192px"
               className="object-contain object-left" 
             />
           </div>
@@ -73,7 +74,7 @@ export const Footer: React.FC = () => {
           <ul className="flex flex-col gap-2 sm:gap-4 text-[9px] min-[400px]:text-[10px] sm:text-sm md:text-[15px] text-white/80">
             <li><Link href="/faq" className="hover:text-white transition-colors whitespace-nowrap">FAQ</Link></li>
             <li><Link href="/support" className="hover:text-white transition-colors whitespace-nowrap">Customer Service</Link></li>
-            <li><Link href="/returns" className="hover:text-white transition-colors whitespace-nowrap">Refund and Return</Link></li>
+            <li><Link href="/returns" className="hover:text-white transition-colors whitespace-nowrap">Exchange Policy</Link></li>
             <li><Link href="/terms" className="hover:text-white transition-colors whitespace-nowrap">Terms & Conditions</Link></li>
             <li><Link href="/shipping" className="hover:text-white transition-colors whitespace-nowrap">Shipping</Link></li>
           </ul>

@@ -4,7 +4,7 @@
  * Keeps Mongoose specifics completely hidden from the Service layer.
  */
 import mongoose, { ClientSession } from "mongoose";
-import { OrderModel } from "./order.model";
+import { OrderModel, OrderCounterModel, IOrderCounter } from "./order.model";
 import { IOrder } from "@store4riders/shared-types";
 
 export class OrderRepository {
@@ -13,16 +13,93 @@ export class OrderRepository {
     return (await order.save({ session })).toObject() as IOrder;
   }
 
+  static async getNextOrderSequence(): Promise<number> {
+    let counter = (await OrderCounterModel.findByIdAndUpdate(
+      "order_sequence",
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    ).lean().exec()) as unknown as IOrderCounter | null;
+
+    if (!counter || counter.seq < 100001) {
+      const existingCount = await OrderModel.countDocuments().exec();
+      const initialSeq = Math.max(100000 + existingCount + 1, 100001);
+      counter = (await OrderCounterModel.findByIdAndUpdate(
+        "order_sequence",
+        { $set: { seq: initialSeq } },
+        { new: true, upsert: true }
+      ).lean().exec()) as unknown as IOrderCounter | null;
+    }
+
+    return counter?.seq || 100001;
+  }
+
+  private static async populateItemImages(orders: any[]): Promise<void> {
+    if (!orders || orders.length === 0) return;
+    
+    const missingProductIds = new Set<string>();
+    for (const order of orders) {
+      if (order && order.items && Array.isArray(order.items)) {
+        for (const item of order.items) {
+          if (!item.image && item.productId) {
+            missingProductIds.add(String(item.productId));
+          }
+        }
+      }
+    }
+
+    if (missingProductIds.size === 0) return;
+
+    try {
+      const { ProductModel } = await import("../product/product.model");
+      const products = await ProductModel.find({
+        _id: { $in: Array.from(missingProductIds) }
+      }).select("images slug thumbnail image variants").lean().exec();
+
+      const productMap = new Map<string, any>();
+      for (const p of products) {
+        productMap.set(String(p._id), p);
+      }
+
+      for (const order of orders) {
+        if (order && order.items && Array.isArray(order.items)) {
+          for (const item of order.items) {
+            if (!item.image && item.productId) {
+              const p = productMap.get(String(item.productId));
+              if (p) {
+                const variantObj = item.variantId ? p.variants?.find((v: any) => v.id === item.variantId || v.sku === item.variantId) : null;
+                item.image = variantObj?.image || p.images?.[0]?.url || p.thumbnail || p.image || "";
+                if (!item.slug) item.slug = p.slug || "";
+              }
+            }
+          }
+        }
+      }
+    } catch {
+      // Non-fatal, return plain orders
+    }
+  }
+
   static async findByUserId(userId: string, session?: ClientSession): Promise<IOrder[]> {
-    return OrderModel.find({ userId }).session(session || null).sort({ createdAt: -1 }).lean().exec() as unknown as IOrder[];
+    const orders = await OrderModel.find({ userId }).session(session || null).sort({ createdAt: -1 }).lean().exec() as unknown as IOrder[];
+    await OrderRepository.populateItemImages(orders);
+    return orders;
   }
 
   static async findById(id: string, session?: ClientSession): Promise<IOrder | null> {
-    return OrderModel.findById(id).session(session || null).lean().exec() as unknown as IOrder | null;
+    const order = await OrderModel.findById(id).session(session || null).lean().exec() as unknown as IOrder | null;
+    if (order) await OrderRepository.populateItemImages([order]);
+    return order;
   }
 
   static async findByGatewayOrderId(gatewayOrderId: string, session?: ClientSession): Promise<IOrder | null> {
-    return OrderModel.findOne({ gatewayOrderId }).session(session || null).lean().exec() as unknown as IOrder | null;
+    const isObjectId = mongoose.Types.ObjectId.isValid(gatewayOrderId);
+    return OrderModel.findOne({
+      $or: [
+        { gatewayOrderId },
+        { orderNumber: gatewayOrderId },
+        ...(isObjectId ? [{ _id: gatewayOrderId }] : [])
+      ]
+    }).session(session || null).lean().exec() as unknown as IOrder | null;
   }
 
   static async linkGuestOrders(email: string, userId: string): Promise<number> {
@@ -66,6 +143,7 @@ export class OrderRepository {
       OrderModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).session(session || null).lean().exec(),
       OrderModel.countDocuments(query).session(session || null).exec()
     ]);
+    await OrderRepository.populateItemImages(items);
     return { items, total };
   }
 
@@ -79,6 +157,14 @@ export class OrderRepository {
       { $push: { notes: note } },
       { new: true, session }
     ).lean().exec() as unknown as IOrder | null;
+  }
+
+  static async updateWarehouse(id: string, warehouseId: string, note?: import("@store4riders/shared-types").IOrderNote, session?: ClientSession): Promise<IOrder | null> {
+    const update: any = { $set: { warehouseId } };
+    if (note) {
+      update.$push = { notes: note };
+    }
+    return OrderModel.findByIdAndUpdate(id, update, { new: true, session }).lean().exec() as unknown as IOrder | null;
   }
 }
 

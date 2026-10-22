@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { createProductSchema, updateProductSchema } from "@store4riders/shared-validation";
+import { resolveFuzzySearchTerms } from "../../core/utils/fuzzySearch";
 
 /**
  * ProductValidator
@@ -410,8 +411,8 @@ export class ProductValidator {
     const size = searchParams.get("size");
     if (size) {
       const sizes = size.split(',').map(s => s.trim()).filter(Boolean);
-      // Match "size=X" or "eu_size=X" inside configurableVariations
-      const configVarRegexes = sizes.map(s => new RegExp(`(?:size|eu_size)=${ProductValidator.escapeRegExp(s)}(\\||,|$)`, "i"));
+      // Match "size=X", "eu_size=X", or "eu_size_for_boots=X" inside configurableVariations
+      const configVarRegexes = sizes.map(s => new RegExp(`(?:size|eu_size|eu_size_for_boots)=${ProductValidator.escapeRegExp(s)}(\\||,|$)`, "i"));
       const exactRegexes = sizes.map(s => new RegExp(`^${ProductValidator.escapeRegExp(s)}$`, "i"));
       const skuSizeRegexes = sizes.map(s => new RegExp(`[-_]${ProductValidator.escapeRegExp(s)}(?:[-_]|$)`, "i"));
       andConditions.push({
@@ -419,14 +420,52 @@ export class ProductValidator {
           { configurableVariations: { $in: configVarRegexes } },
           { "variants.attributes.size": { $in: exactRegexes } },
           { "variants.attributes.eu_size": { $in: exactRegexes } },
+          { "variants.attributes.eu_size_for_boots": { $in: exactRegexes } },
           { "attributes.size": { $in: exactRegexes } },
           { "attributes.eu_size": { $in: exactRegexes } },
-          { sku: { $in: skuSizeRegexes } }
+          { "attributes.eu_size_for_boots": { $in: exactRegexes } },
+          { sku: { $in: skuSizeRegexes } },
+          { "variants.sku": { $in: skuSizeRegexes } }
         ],
       });
     }
 
     const colour = searchParams.get("colour") || searchParams.get("color");
+    if (size && colour) {
+      const sizes = size.split(',').map(s => s.trim()).filter(Boolean);
+      const colours = colour.split(',').map(c => c.trim()).filter(Boolean);
+      const sizeExact = sizes.map(s => new RegExp(`^${ProductValidator.escapeRegExp(s)}$`, "i"));
+      const colourExact = colours.map(c => new RegExp(`^${ProductValidator.escapeRegExp(c)}$`, "i"));
+
+      // For multi-variant products, require at least ONE variant to match BOTH size & color
+      andConditions.push({
+        $or: [
+          {
+            variants: {
+              $elemMatch: {
+                $and: [
+                  {
+                    $or: [
+                      { "attributes.size": { $in: sizeExact } },
+                      { "attributes.eu_size": { $in: sizeExact } },
+                      { "attributes.eu_size_for_boots": { $in: sizeExact } },
+                    ]
+                  },
+                  {
+                    $or: [
+                      { "attributes.color": { $in: colourExact } },
+                      { "attributes.colour": { $in: colourExact } },
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          // Standalone / simple product without variants array
+          { "variants.0": { $exists: false } }
+        ]
+      });
+    }
     if (colour) {
       const colours = colour.split(',').map(c => c.trim()).filter(Boolean);
       // Match "color=X" inside configurableVariations string precisely
@@ -490,23 +529,31 @@ export class ProductValidator {
     }
 
     if (search) {
-      // Convert hyphens/underscores to spaces and split into individual words
-      const searchTerms = search.trim().replace(/[-_]/g, " ").split(/\s+/).filter(Boolean);
+      // Resolve search terms with fuzzy typo-tolerance (e.g. 'helmt' -> 'helmet')
+      const { terms, correctedTerms } = resolveFuzzySearchTerms(search);
       
-      if (searchTerms.length > 0) {
-        const searchConditions = searchTerms.map(term => {
-          const searchRegex = new RegExp(ProductValidator.escapeRegExp(term), "i");
+      if (terms.length > 0) {
+        const searchConditions = terms.map((term, idx) => {
+          const corrected = correctedTerms[idx] || term;
+          const regexes = [
+            new RegExp(ProductValidator.escapeRegExp(term), "i")
+          ];
+
+          if (corrected.toLowerCase() !== term.toLowerCase()) {
+            regexes.push(new RegExp(ProductValidator.escapeRegExp(corrected), "i"));
+          }
+
           return {
-            $or: [
+            $or: regexes.flatMap(searchRegex => [
               { name: { $regex: searchRegex } },
               { brand: { $regex: searchRegex } },
               { sku: { $regex: searchRegex } },
               { magentoCategories: { $regex: searchRegex } },
-            ],
+            ]),
           };
         });
         
-        // $and ensures ALL typed words must be present somewhere in the document
+        // $and ensures ALL typed concepts match (either exact or typo-corrected)
         andConditions.push({ $and: searchConditions });
       }
     }

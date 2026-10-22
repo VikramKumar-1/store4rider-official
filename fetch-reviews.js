@@ -27,7 +27,12 @@ if (!SERPAPI_KEY) {
   SERPAPI_KEY = process.env.SERPAPI_KEY || "";
 }
 if (!MONGODB_URI) {
-  MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL || "mongodb+srv://japamic979_db_user:d3X5fxfCo5wBPeCr@store4riders.fg8q7zs.mongodb.net/store4riders";
+  MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL || "";
+}
+
+if (!MONGODB_URI) {
+  console.error("❌ MONGODB_URI not found in environment.");
+  process.exit(1);
 }
 
 if (!SERPAPI_KEY) {
@@ -98,11 +103,34 @@ async function fetchAndSaveReviews() {
 
     console.log(`✅ Fetched ${latestReviews.length} reviews. Saving to database...`);
 
-    // Clear existing google reviews
-    await StoreReview.deleteMany({ source: "google" });
+    const operations = latestReviews.map((r, idx) => {
+      const externalId = r.externalId || `google-review-${(r.author || "customer").toLowerCase().replace(/[^a-z0-9]/g, "-")}-${idx}`;
+      return {
+        updateOne: {
+          filter: { externalId },
+          update: {
+            $set: {
+              author: r.author,
+              rating: typeof r.rating === "number" ? r.rating : 5,
+              date: r.date || "Recently",
+              text: r.text || "",
+              link: r.link,
+              avatarUrl: r.avatarUrl,
+              source: "google",
+              externalId,
+              isActive: true,
+            },
+            $setOnInsert: {
+              createdAt: new Date(),
+            },
+          },
+          upsert: true,
+        },
+      };
+    });
 
-    await StoreReview.insertMany(latestReviews);
-    console.log("🎉 Successfully saved 10 latest reviews to the database!");
+    await StoreReview.bulkWrite(operations);
+    console.log("🎉 Successfully saved/updated reviews in the database without deleting existing data!");
 
   } catch (error) {
     console.error("❌ Error:", error);

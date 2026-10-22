@@ -12,6 +12,9 @@ interface ImageUploadWebPProps {
   onChange: (url: string) => void;
   aspectRatio?: string;
   hint?: string;
+  recommendedDimensions?: string;
+  recommendedRatio?: string;
+  safeAreaNotice?: string;
   maxDimension?: number;
   quality?: number;
   className?: string;
@@ -23,8 +26,11 @@ export function ImageUploadWebP({
   onChange,
   aspectRatio = "aspect-video",
   hint = "Images are automatically converted to optimized WebP in your browser before upload.",
-  maxDimension = 1600,
-  quality = 0.85,
+  recommendedDimensions,
+  recommendedRatio,
+  safeAreaNotice,
+  maxDimension = 1440,
+  quality = 0.82,
   className = "",
 }: ImageUploadWebPProps) {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -48,9 +54,9 @@ export function ImageUploadWebP({
 
     try {
       setIsProcessing(true);
-      setStatusMessage("Converting to WebP in browser...");
+      setStatusMessage("Optimizing to WebP in browser...");
 
-      // 1. Convert to WebP in client browser
+      // 1. Convert to WebP in client browser (0.82 quality for 80-180KB industry standard)
       const result = await compressImageToWebP(file, maxDimension, quality);
       
       const savedPercent = Math.round(
@@ -107,6 +113,32 @@ export function ImageUploadWebP({
         </label>
       )}
 
+      {/* Specifications Box: Explicit Dimensions, Ratio & Safe Area */}
+      {(recommendedDimensions || recommendedRatio) && (
+        <div className="bg-amber-50 border border-amber-200/90 rounded-md px-2.5 py-1.5 text-xs space-y-1 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
+            {recommendedDimensions && (
+              <span className="font-semibold text-slate-800">
+                <span className="text-slate-500 font-normal">Target Size: </span>
+                <span className="font-mono text-slate-900 bg-white px-1.5 py-0.5 rounded border border-amber-200/60 font-bold">
+                  {recommendedDimensions}
+                </span>
+              </span>
+            )}
+            {recommendedRatio && (
+              <span className="text-[10px] font-bold text-brand bg-white px-1.5 py-0.5 rounded border border-amber-200/60">
+                Ratio: {recommendedRatio}
+              </span>
+            )}
+          </div>
+          {safeAreaNotice && (
+            <p className="text-[10px] text-amber-900/90 font-medium leading-tight">
+              ★ {safeAreaNotice}
+            </p>
+          )}
+        </div>
+      )}
+
       <input
         ref={fileInputRef}
         type="file"
@@ -128,8 +160,9 @@ export function ImageUploadWebP({
           </div>
 
           {/* WebP Badge */}
-          <div className="absolute top-2 left-2 bg-slate-900/80 text-white text-[10px] font-mono px-2 py-0.5 rounded shadow-xs">
-            WebP
+          <div className="absolute top-2 left-2 bg-slate-900/80 text-white text-[10px] font-mono px-2 py-0.5 rounded shadow-xs flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>WebP Ultra-HD</span>
           </div>
 
           {/* Hover Overlay Actions */}
@@ -181,7 +214,7 @@ export function ImageUploadWebP({
             <div className="flex flex-col items-center gap-1.5 py-2">
               <Loader2 className="w-6 h-6 text-brand animate-spin" />
               <p className="text-xs font-bold text-slate-800">{statusMessage}</p>
-              <p className="text-[10px] text-slate-500">Converting to .webp with browser Canvas API</p>
+              <p className="text-[10px] text-slate-500">Fast WebP Compression (~80–180 KB Target)</p>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-1.5 py-1">
@@ -193,7 +226,7 @@ export function ImageUploadWebP({
                   Click to upload or drag & drop
                 </p>
                 <p className="text-[10px] text-slate-500">
-                  PNG, JPG, WEBP (Auto WebP)
+                  PNG, JPG, WEBP • Auto WebP (~80–180 KB)
                 </p>
               </div>
             </div>
@@ -203,13 +236,13 @@ export function ImageUploadWebP({
 
       {compressionRatio && (
         <p className="text-[11px] text-emerald-700 font-medium flex items-center gap-1">
-          <CheckCircle2 size={12} className="text-emerald-600" />
-          <span>WebP Compressed: {compressionRatio}</span>
+          <CheckCircle2 size={12} className="text-emerald-600 shrink-0" />
+          <span>WebP Processed: {compressionRatio}</span>
         </p>
       )}
 
-      {hint && !compressionRatio && (
-        <p className="text-[11px] text-slate-500">{hint}</p>
+      {hint && (
+        <p className="text-[11px] text-slate-500 leading-tight">{hint}</p>
       )}
     </div>
   );

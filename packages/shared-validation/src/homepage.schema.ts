@@ -63,23 +63,49 @@ export const touringGearSectionSchema = z.object({
 });
 
 export const socialMediaBannerTopSchema = z.object({
-  imageUrl: z.string().min(1, "Image is required"),
-  linkUrl: z.string().min(1, "Link is required").max(500),
+  imageUrl: z.string().optional().default(""),
+  linkUrl: z.string().max(500).optional().default(""),
+  title: z.string().max(150).optional().default(""),
+  subtitle: z.string().max(150).optional().default(""),
+  description: z.string().max(500).optional().default(""),
+  buttonText: z.string().max(50).optional().default(""),
+  imagePosition: z.enum(["top", "center", "bottom"]).optional().default("top"),
 });
 
 export const socialMediaBannerBottomSchema = z.object({
-  imageUrl: z.string().min(1, "Image is required"),
-  linkUrl: z.string().min(1, "Link is required").max(500),
-  title: z.string().default("New Arrivals"),
-  subtitle: z.string().default("Explore Now"),
-  description: z.string().default("Check out the latest riding gear and premium accessories."),
+  imageUrl: z.string().optional().default(""),
+  linkUrl: z.string().max(500).optional().default(""),
+  title: z.string().max(150).optional().default(""),
+  subtitle: z.string().max(150).optional().default(""),
+  description: z.string().max(500).optional().default(""),
+  buttonText: z.string().max(50).optional().default(""),
+  imagePosition: z.enum(["top", "center", "bottom"]).optional().default("top"),
+});
+
+export const instagramReelSchema = z.object({
+  _id: z.string().optional(),
+  id: z.string().optional(),
+  title: z.string().max(300).optional().default(""),
+  thumbnailUrl: z.string().min(1, "Thumbnail is required"),
+  videoType: z.enum(["upload", "embed"]).default("embed"),
+  videoUrl: z.string().default(""),
+  instagramUrl: z.string().optional().default("https://www.instagram.com/store4riders/"),
+  views: z.string().max(50).optional().default(""),
+  likes: z.string().max(50).optional().default(""),
+  author: z.string().max(100).optional().default("@store4riders"),
+  order: z.number().optional().default(0),
+  isActive: z.boolean().optional().default(true),
 });
 
 export const socialMediaSectionSchema = z.object({
   sectionTitle: z.string().min(1, "Section title is required").max(100),
-  reelImages: z.array(z.string().min(1)).default([]),
-  bannerTop: socialMediaBannerTopSchema,
-  bannerBottom: socialMediaBannerBottomSchema,
+  sectionSubtitle: z.string().max(300).optional().default("Catch our latest rides, gear reviews, and track days in action."),
+  instagramHandle: z.string().max(100).optional().default("store4riders"),
+  instagramProfileUrl: z.string().max(500).optional().default("https://www.instagram.com/store4riders/"),
+  reels: z.array(instagramReelSchema).optional().default([]),
+  reelImages: z.array(z.string()).default([]),
+  bannerTop: socialMediaBannerTopSchema.optional().default({ imageUrl: "", linkUrl: "" }),
+  bannerBottom: socialMediaBannerBottomSchema.optional().default({ imageUrl: "", linkUrl: "", title: "", subtitle: "", description: "" }),
 });
 
 export const testimonialsSectionSchema = z.object({

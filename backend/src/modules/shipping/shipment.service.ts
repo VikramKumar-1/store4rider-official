@@ -1,9 +1,12 @@
+import mongoose from "mongoose";
 import { AppError, NotFoundError, ValidationError } from "../../core/errors/AppError";
 import { ShipmentModel } from "./shipment.model";
 import { ShipmentRepository } from "./shipment.repository";
 import { OrderModel } from "../order/order.model";
 import { ProductModel } from "../product/product.model";
 import { WarehouseRepository } from "../warehouse/warehouse.repository";
+import { WarehouseModel } from "../warehouse/warehouse.model";
+import { PincodeRepository } from "../pincode/pincode.repository";
 import { ShippingProviderFactory } from "../../core/shipping/ShippingProviderFactory";
 import { CreateShipmentInput } from "../../core/shipping/ShippingProvider";
 import { logger } from "../../core/utils/logger";
@@ -17,7 +20,7 @@ export class ShipmentService {
    * open the order, select Pickup Location (Kolkata/Pune etc.), edit weight,
    * choose courier, and print labels.
    */
-  static async pushOrderToShiprocket(orderId: string): Promise<any> {
+  static async pushOrderToShiprocket(orderId: string, warehouseId?: string): Promise<any> {
     const order = await OrderModel.findById(orderId);
     if (!order) {
       throw new NotFoundError("Order");
@@ -48,9 +51,17 @@ export class ShipmentService {
     }
     if (totalWeight <= 0) totalWeight = 0.5;
 
-    // Get default warehouse for initial registration in Shiprocket
-    const defaultWarehouse = await WarehouseRepository.findDefault();
-    const pickupLocation = defaultWarehouse?.shiprocketLocationId || defaultWarehouse?.pincode;
+    // Resolve warehouse: explicitly passed > order.warehouseId > default warehouse
+    let targetWarehouse: any = null;
+    if (warehouseId) {
+      targetWarehouse = await WarehouseRepository.findById(warehouseId);
+    } else if (order.warehouseId) {
+      targetWarehouse = await WarehouseRepository.findById(order.warehouseId);
+    }
+    if (!targetWarehouse) {
+      targetWarehouse = await WarehouseRepository.findDefault();
+    }
+    const pickupLocation = targetWarehouse?.shiprocketLocationId || targetWarehouse?.pincode;
 
     const input: CreateShipmentInput = {
       orderId: String(order._id),
@@ -78,7 +89,7 @@ export class ShipmentService {
       breadth: 15,
       height: 10,
       weight: Number(totalWeight.toFixed(2)),
-      warehouseId: defaultWarehouse ? String(defaultWarehouse._id) : undefined,
+      warehouseId: targetWarehouse ? String(targetWarehouse._id) : undefined,
     };
 
     const providerInstance = ShippingProviderFactory.create("shiprocket");
@@ -89,6 +100,7 @@ export class ShipmentService {
     if (!shipment) {
       shipment = new ShipmentModel({
         orderId: String(order._id),
+        warehouseId: targetWarehouse ? String(targetWarehouse._id) : undefined,
         provider: "shiprocket",
         shipmentType: "forward",
         status: result.awb ? "AWB_ASSIGNED" : "SHIPMENT_CREATED",
@@ -104,6 +116,9 @@ export class ShipmentService {
       });
     } else {
       shipment.provider = "shiprocket";
+      if (targetWarehouse) {
+        shipment.warehouseId = String(targetWarehouse._id);
+      }
       shipment.status = result.awb ? "AWB_ASSIGNED" : "SHIPMENT_CREATED";
       shipment.providerShipmentId = result.shipmentId;
       shipment.awb = result.awb;
@@ -112,6 +127,10 @@ export class ShipmentService {
       shipment.providerStatus = "Order pushed to Shiprocket Dashboard";
     }
     await shipment.save();
+
+    if (targetWarehouse) {
+      order.warehouseId = String(targetWarehouse._id);
+    }
 
     // Update Order with note
     order.notes.push({
@@ -198,6 +217,7 @@ export class ShipmentService {
       status: result.awb ? "AWB_ASSIGNED" : "SHIPMENT_CREATED",
       providerShipmentId: result.shipmentId,
       awb: result.awb,
+      warehouseId,
       courierName: result.courierName || provider,
       labelUrl: result.labelUrl,
       providerStatus: `Dispatched via ${provider} from ${warehouse.name}`,
@@ -214,6 +234,7 @@ export class ShipmentService {
     } else {
       order.status = "packed";
     }
+    order.warehouseId = warehouseId;
     order.notes.push({
       text: `Dispatched directly via ${provider.toUpperCase()} from ${warehouse.name} (AWB: ${result.awb || "Pending"})`,
       author: "admin",
@@ -330,7 +351,7 @@ export class ShipmentService {
       const normalized = trackingInfo.currentStatus.toLowerCase();
       if (normalized.includes("delivered")) {
         shipment.status = "DELIVERED";
-        await OrderModel.findByIdAndUpdate(shipment.orderId, { status: "delivered" });
+        await OrderModel.findByIdAndUpdate(shipment.orderId, { status: "delivered", $unset: { invoiceUrl: 1 } });
       } else if (normalized.includes("out for delivery")) {
         shipment.status = "OUT_FOR_DELIVERY";
       } else if (normalized.includes("transit") || normalized.includes("shipped")) {
@@ -373,23 +394,52 @@ export class ShipmentService {
    * Check Pincode Serviceability with Redis Caching
    */
   static async checkServiceability(deliveryPincode: string, weightKg: number = 0.5, isCod: boolean = false) {
-    const hasConfiguredCredentials = Boolean(
-      (ENV.SHIPROCKET_EMAIL && ENV.SHIPROCKET_PASSWORD) ||
-      ENV.DELHIVERY_API_KEY ||
-      ENV.XPRESSBEES_API_KEY
-    );
+    const cleanPincode = (deliveryPincode || "").trim();
+    const isValidIndianPincode = /^[1-9][0-9]{5}$/.test(cleanPincode);
 
-    // If carrier API credentials are not yet configured (e.g. dev/sandbox testing),
-    // gracefully allow serviceability so order checkout testing can proceed
-    if (!hasConfiguredCredentials) {
+    // If pincode is not 6 digits, it cannot be serviced
+    if (!isValidIndianPincode) {
       return {
-        serviceable: true,
-        codAvailable: true,
-        provider: "sandbox",
+        serviceable: false,
+        codAvailable: false,
+        message: "Please enter a valid 6-digit Indian PIN code",
       };
     }
 
-    const cacheKey = `shipping:serviceability:${deliveryPincode}:${weightKg}:${isCod}`;
+    const isPlaceholder = (val?: string) =>
+      !val ||
+      val.includes("example.com") ||
+      val.includes("your_") ||
+      val.includes("placeholder") ||
+      val.trim() === "";
+
+    const hasConfiguredCredentials = Boolean(
+      (!isPlaceholder(ENV.SHIPROCKET_EMAIL) && !isPlaceholder(ENV.SHIPROCKET_PASSWORD)) ||
+      !isPlaceholder(ENV.DELHIVERY_API_KEY) ||
+      !isPlaceholder(ENV.XPRESSBEES_API_KEY)
+    );
+
+    // 1. If carrier API credentials are not yet configured (e.g. dev/sandbox testing or flat rate delivery),
+    // verify against our master database of 19,586 authentic Indian Post Office PIN codes!
+    if (!hasConfiguredCredentials) {
+      const pincodeDoc = await PincodeRepository.findByPincode(cleanPincode);
+      if (!pincodeDoc) {
+        return {
+          serviceable: false,
+          codAvailable: false,
+          message: `PIN code ${cleanPincode} is not a valid Indian postal location`,
+        };
+      }
+      return {
+        serviceable: true,
+        codAvailable: true,
+        provider: "standard",
+        district: pincodeDoc.district,
+        state: pincodeDoc.state,
+      };
+    }
+
+    const cacheKey = `shipping:serviceability:${cleanPincode}:${weightKg}:${isCod}`;
     const cached = await getCache(cacheKey);
     if (cached && (cached as any).serviceable) {
       return cached;
@@ -399,12 +449,14 @@ export class ShipmentService {
     let serviceable = false;
     let codAvailable = false;
     let fastestDays = 999;
-    let selectedProvider = "shiprocket";
+    let selectedProvider = "standard";
+    let hasLiveSuccessfulResponse = false;
 
     for (const provider of providers) {
       if (provider.checkServiceability) {
         try {
-          const res = await provider.checkServiceability(deliveryPincode, weightKg, isCod);
+          const res = await provider.checkServiceability(cleanPincode, weightKg, isCod);
+          hasLiveSuccessfulResponse = true;
           if (res.serviceable) {
             serviceable = true;
             if (res.codAvailable) codAvailable = true;
@@ -419,6 +471,28 @@ export class ShipmentService {
       }
     }
 
+    // 2. If live provider APIs were unreachable or failed authentication (e.g. timeout, downtime),
+    // check against our verified master database of 19,586 Indian Post Office PIN codes!
+    // If it's a real postal location, allow standard/Speed Post delivery so checkout is not blocked.
+    // If it's a fake/non-existent PIN code, reject it.
+    if (!hasLiveSuccessfulResponse) {
+      const pincodeDoc = await PincodeRepository.findByPincode(cleanPincode);
+      if (pincodeDoc) {
+        return {
+          serviceable: true,
+          codAvailable: true,
+          provider: "standard",
+          district: pincodeDoc.district,
+          state: pincodeDoc.state,
+        };
+      }
+      return {
+        serviceable: false,
+        codAvailable: false,
+        message: `PIN code ${cleanPincode} is not a valid Indian postal location`,
+      };
+    }
+
     const result = {
       serviceable,
       codAvailable,
@@ -426,13 +500,19 @@ export class ShipmentService {
       provider: selectedProvider,
     };
 
-    // Cache for 24 hours
-    await setCache(cacheKey, result, 86400);
+    // Cache successful serviceability for 24 hours
+    if (serviceable) {
+      await setCache(cacheKey, result, 86400);
+    }
     return result;
   }
 
   /**
    * Handle Webhook from Shiprocket / Delhivery / Xpressbees
+   * Automatically syncs:
+   * 1. AWB & Live Tracking Status
+   * 2. Pickup Warehouse chosen in Courier Dashboard (Shiprocket / Delhivery / Xpressbees)
+   * 3. Order Origin State for Intra-State vs Inter-State GST Tax Invoices
    */
   static async handleWebhook(provider: string, payload: any, headers: Record<string, string>): Promise<void> {
     const providerInstance = ShippingProviderFactory.create(provider);
@@ -443,39 +523,163 @@ export class ShipmentService {
 
     logger.info(`[ShipmentService] Processing webhook for provider: ${provider}`);
 
-    // Shiprocket Webhook parsing
+    // Universal normalization across courier payloads
+    let orderRef: string | undefined;
+    let awb: string | undefined;
+    let courierName: string | undefined;
+    let currentStatusRaw: string = "";
+    let pickupLocationName: string | undefined;
+    let pickupLocationId: string | undefined;
+    let pickupPincode: string | undefined;
+    let pickupState: string | undefined;
+    let pickupCity: string | undefined;
+
     if (provider === "shiprocket") {
-      const orderNumber = payload.order_id || payload.channel_order_id;
-      const awb = payload.awb || payload.awb_code;
-      const courierName = payload.courier_name;
-      const currentStatus = (payload.current_status || payload.shipment_status || "").toLowerCase();
+      orderRef = payload.channel_order_id || payload.order_id;
+      awb = payload.awb || payload.awb_code;
+      courierName = payload.courier_name;
+      currentStatusRaw = (payload.current_status || payload.shipment_status || "").toLowerCase();
+      pickupLocationName = (payload.pickup_location || payload.pickup_location_name || payload.origin || "").trim();
+      pickupLocationId = payload.pickup_location_id ? String(payload.pickup_location_id) : undefined;
+      pickupPincode = payload.pickup_pincode || payload.origin_pincode;
+      pickupState = payload.pickup_state || payload.origin_state;
+      pickupCity = payload.pickup_city || payload.origin_city;
+    } else if (provider === "delhivery") {
+      orderRef = payload.ref_num || payload.order_id || payload.client;
+      awb = payload.waybill || payload.awb;
+      courierName = "Delhivery";
+      currentStatusRaw = (payload.status || payload.current_status || "").toLowerCase();
+      pickupLocationName = (payload.pickup_location || payload.origin || "").trim();
+      pickupPincode = payload.origin_pincode || payload.pickup_pincode;
+      pickupState = payload.origin_state || payload.pickup_state;
+      pickupCity = payload.origin_city || payload.pickup_city;
+    } else if (provider === "xpressbees") {
+      orderRef = payload.order_number || payload.order_id;
+      awb = payload.awb || payload.tracking_id;
+      courierName = "Xpressbees";
+      currentStatusRaw = (payload.status || payload.current_status || "").toLowerCase();
+      pickupLocationName = (payload.pickup_location || payload.origin || "").trim();
+      pickupLocationId = payload.warehouse_id || payload.pickup_location_id;
+      pickupPincode = payload.origin_pincode || payload.pickup_pincode;
+      pickupState = payload.origin_state || payload.pickup_state;
+      pickupCity = payload.origin_city;
+    }
 
-      if (orderNumber || awb) {
-        const shipment = await ShipmentModel.findOne({
-          $or: [{ awb }, { orderId: orderNumber }],
-        });
+    // Resolve Order in DB
+    let order: any = null;
+    if (orderRef) {
+      order = await OrderModel.findOne({
+        $or: [
+          { orderNumber: orderRef },
+          ...(mongoose.Types.ObjectId.isValid(orderRef) ? [{ _id: orderRef }] : []),
+        ],
+      });
+    }
 
-        if (shipment) {
-          if (awb && !shipment.awb) shipment.awb = awb;
-          if (courierName) shipment.courierName = courierName;
-          shipment.providerStatus = payload.current_status || shipment.providerStatus;
+    // Resolve Shipment in DB
+    let shipment: any = null;
+    const shipmentQuery: any[] = [];
+    if (awb) shipmentQuery.push({ awb });
+    if (order) shipmentQuery.push({ orderId: String(order._id) });
+    if (orderRef) shipmentQuery.push({ orderId: orderRef });
 
-          if (currentStatus.includes("delivered")) {
-            shipment.status = "DELIVERED";
-            await OrderModel.findByIdAndUpdate(shipment.orderId, { status: "delivered" });
-          } else if (currentStatus.includes("out for delivery")) {
-            shipment.status = "OUT_FOR_DELIVERY";
-          } else if (currentStatus.includes("transit") || currentStatus.includes("shipped")) {
-            shipment.status = "IN_TRANSIT";
-            await OrderModel.findByIdAndUpdate(shipment.orderId, { status: "shipped" });
-          } else if (currentStatus.includes("rto")) {
-            shipment.status = "RTO_INITIATED";
-          }
+    if (shipmentQuery.length > 0) {
+      shipment = await ShipmentModel.findOne({ $or: shipmentQuery });
+    }
 
-          await shipment.save();
-          logger.info(`[ShipmentService] Updated shipment status from webhook to ${shipment.status}`);
+    if (!order && shipment?.orderId) {
+      order = await OrderModel.findById(shipment.orderId);
+    }
+
+    // Match or Register Warehouse selected in Courier Dashboard
+    let matchedWarehouse: any = null;
+    if (pickupLocationName || pickupLocationId || pickupPincode) {
+      const whQueries: any[] = [];
+      if (provider === "shiprocket" && pickupLocationName) {
+        whQueries.push({ shiprocketLocationId: pickupLocationName });
+      }
+      if (provider === "delhivery" && pickupLocationName) {
+        whQueries.push({ delhiveryWarehouseName: pickupLocationName });
+      }
+      if (provider === "xpressbees" && pickupLocationId) {
+        whQueries.push({ xpressbeesWarehouseId: pickupLocationId });
+      }
+      if (pickupLocationName) {
+        whQueries.push({ name: new RegExp(`^${pickupLocationName}$`, "i") });
+        whQueries.push({ warehouseCode: new RegExp(`^${pickupLocationName}$`, "i") });
+      }
+      if (pickupPincode) {
+        whQueries.push({ pincode: String(pickupPincode).trim() });
+      }
+
+      if (whQueries.length > 0) {
+        matchedWarehouse = await WarehouseModel.findOne({ $or: whQueries }).lean();
+      }
+
+      // Auto-register warehouse if new pickup location & state arrived from courier
+      if (!matchedWarehouse && pickupLocationName && pickupState) {
+        try {
+          matchedWarehouse = await WarehouseModel.create({
+            name: pickupLocationName,
+            warehouseCode: pickupLocationName.toUpperCase().replace(/[^A-Z0-9]/g, "_").slice(0, 15) || "WH_" + Date.now(),
+            contactPerson: "Courier Dispatch Hub",
+            phone: "0000000000",
+            email: "logistics@store4riders.com",
+            addressLine1: pickupLocationName,
+            city: pickupCity || pickupState,
+            state: pickupState,
+            pincode: pickupPincode ? String(pickupPincode).trim() : "411001",
+            shiprocketLocationId: provider === "shiprocket" ? pickupLocationName : undefined,
+            delhiveryWarehouseName: provider === "delhivery" ? pickupLocationName : undefined,
+            xpressbeesWarehouseId: provider === "xpressbees" ? pickupLocationId : undefined,
+            isDefault: false,
+            isActive: true,
+          });
+          logger.info(`[ShipmentService] Auto-registered warehouse '${pickupLocationName}' in '${pickupState}' from ${provider} webhook`);
+        } catch (err: any) {
+          logger.warn(`[ShipmentService] Could not auto-create warehouse: ${err.message}`);
         }
       }
+    }
+
+    if (shipment) {
+      if (awb && !shipment.awb) shipment.awb = awb;
+      if (courierName) shipment.courierName = courierName;
+      shipment.providerStatus = payload.current_status || payload.status || shipment.providerStatus;
+
+      if (matchedWarehouse) {
+        shipment.warehouseId = String(matchedWarehouse._id);
+      }
+
+      if (currentStatusRaw.includes("delivered")) {
+        shipment.status = "DELIVERED";
+        if (order) await OrderModel.findByIdAndUpdate(order._id, { status: "delivered", $unset: { invoiceUrl: 1 } });
+      } else if (currentStatusRaw.includes("out for delivery")) {
+        shipment.status = "OUT_FOR_DELIVERY";
+      } else if (currentStatusRaw.includes("transit") || currentStatusRaw.includes("shipped")) {
+        shipment.status = "IN_TRANSIT";
+        if (order && order.status !== "shipped" && order.status !== "delivered") {
+          await OrderModel.findByIdAndUpdate(order._id, { status: "shipped" });
+        }
+      } else if (currentStatusRaw.includes("rto")) {
+        shipment.status = "RTO_INITIATED";
+      }
+
+      await shipment.save();
+      logger.info(`[ShipmentService] Updated shipment status from ${provider} webhook to ${shipment.status}`);
+    }
+
+    // Sync Order warehouse and invalidate cached invoice URL
+    if (order && matchedWarehouse) {
+      order.warehouseId = String(matchedWarehouse._id);
+      order.invoiceUrl = undefined; // Invalidate cached invoice URL so PDF regenerates with live warehouse origin state
+      order.notes.push({
+        text: `Dispatch warehouse synced from ${provider.toUpperCase()} Dashboard: ${matchedWarehouse.name} (${matchedWarehouse.state} - ${matchedWarehouse.pincode})`,
+        author: "system",
+        timestamp: new Date(),
+      });
+      await order.save();
+      logger.info(`[ShipmentService] Order ${order.orderNumber} warehouse updated to ${matchedWarehouse.name} (${matchedWarehouse.state})`);
     }
   }
 }

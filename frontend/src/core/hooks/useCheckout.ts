@@ -63,16 +63,19 @@ export function useCheckout() {
       return { ...response.data, paymentMethod };
     },
     onSuccess: (data) => {
-      const { gatewayOrderId, amount, paymentMethod, gatewayResponse } = data.data;
+      const resData = data?.data || data || {};
+      const method = (resData.paymentMethod || data?.paymentMethod || "").toLowerCase();
+      const gatewayOrderId = resData.gatewayOrderId;
+      const gatewayResponse = resData.gatewayResponse;
 
       // Handle COD without partial payment (handled in CheckoutPageModule onSuccess)
-      if (paymentMethod === "cod" && !gatewayOrderId) {
+      if (method === "cod" && !gatewayOrderId) {
         toast.success("Order Confirmed Successfully!");
         return;
       }
 
       // Handle PayU, UPI, and COD partial payment with PayU
-      if (((paymentMethod === "payu" || paymentMethod === "upi") || (paymentMethod === "cod" && gatewayOrderId)) && gatewayResponse) {
+      if (((method === "payu" || method === "upi") || (method === "cod" && gatewayOrderId)) && gatewayResponse) {
         toast.success("Redirecting to PayU Payment Gateway...");
 
         // If backend already resolved the sanitized redirect URL (bypassing PayU space bug)
@@ -82,17 +85,16 @@ export function useCheckout() {
         }
 
         // Standard PayU India form submit redirect
-        // NOTE: Vercel sets NODE_ENV=production on ALL deployments (including preview).
-        // Use a dedicated env var NEXT_PUBLIC_PAYU_MODE to control test vs production.
+        // Backend provides actionUrl based on PAYU_MODE ("live" vs "test"); fallback to NEXT_PUBLIC_PAYU_MODE
         const isPayuLive = process.env.NEXT_PUBLIC_PAYU_MODE === "live";
-        const payuAction = isPayuLive ? "https://secure.payu.in/_payment" : "https://test.payu.in/_payment";
+        const payuAction = gatewayResponse.actionUrl || (isPayuLive ? "https://secure.payu.in/_payment" : "https://test.payu.in/_payment");
 
         const form = document.createElement("form");
         form.method = "POST";
         form.action = payuAction;
 
         Object.entries(gatewayResponse).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && key !== "redirectUrl") {
+          if (value !== undefined && value !== null && key !== "redirectUrl" && key !== "actionUrl") {
             const input = document.createElement("input");
             input.type = "hidden";
             input.name = key;
@@ -107,28 +109,30 @@ export function useCheckout() {
       }
 
       // Handle CCAvenue — form POST with encrypted request
-      if (paymentMethod === "ccavenue" && gatewayResponse) {
+      if (method === "ccavenue" && gatewayResponse) {
         toast.success("Redirecting to CCAvenue...");
 
         const isLive = process.env.NEXT_PUBLIC_CCAVENUE_MODE === "live";
-        const ccavAction = isLive
+        const ccavAction = gatewayResponse.actionUrl || (isLive
           ? "https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction"
-          : "https://test.ccavenue.com/transaction/transaction.do?command=initiateTransaction";
+          : "https://test.ccavenue.com/transaction/transaction.do?command=initiateTransaction");
 
         const form = document.createElement("form");
         form.method = "POST";
         form.action = ccavAction;
 
-        // CCAvenue expects encRequest and access_code as form fields
-        Object.entries(gatewayResponse).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            const input = document.createElement("input");
-            input.type = "hidden";
-            input.name = key;
-            input.value = String(value);
-            form.appendChild(input);
-          }
-        });
+        // CCAvenue officially requires ONLY encRequest and access_code as POST form inputs
+        const encInput = document.createElement("input");
+        encInput.type = "hidden";
+        encInput.name = "encRequest";
+        encInput.value = String(gatewayResponse.encRequest || "");
+        form.appendChild(encInput);
+
+        const accessInput = document.createElement("input");
+        accessInput.type = "hidden";
+        accessInput.name = "access_code";
+        accessInput.value = String(gatewayResponse.access_code || "");
+        form.appendChild(accessInput);
 
         document.body.appendChild(form);
         form.submit();
@@ -136,7 +140,7 @@ export function useCheckout() {
       }
 
       // Handle Snapmint — form POST to Snapmint checkout
-      if (paymentMethod === "snapmint" && gatewayResponse) {
+      if (method === "snapmint" && gatewayResponse) {
         toast.success("Redirecting to Snapmint...");
 
         const isLive = process.env.NEXT_PUBLIC_SNAPMINT_MODE === "live";

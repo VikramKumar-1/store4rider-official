@@ -82,3 +82,36 @@ export function useAdminDeleteOrder() {
     }
   });
 }
+
+export function useAdminResendInvoiceEmail() {
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const response = await apiClient.post(`/orders/admin/${orderId}/resend-invoice-email`);
+      return response.data.data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Tax invoice emailed to ${data?.recipientEmail || "customer"}`);
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "Failed to send invoice email");
+    }
+  });
+}
+
+export function useAdminAssignWarehouse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ orderId, warehouseId }: { orderId: string; warehouseId: string }) => {
+      const response = await apiClient.put(`/orders/admin/${orderId}/warehouse`, { warehouseId });
+      return response.data.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-order", variables.orderId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      toast.success("Dispatch warehouse updated successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "Failed to update warehouse");
+    }
+  });
+}

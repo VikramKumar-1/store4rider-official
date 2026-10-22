@@ -29,17 +29,59 @@ export class ReviewRepository {
     return { avgRating, reviewCount: reviews.length };
   }
 
-  static async getStoreReviews(): Promise<IStoreReview[]> {
+  static async getStoreReviews(limit: number = 20, random: boolean = false): Promise<IStoreReview[]> {
+    if (random) {
+      return StoreReviewModel.aggregate([
+        { $match: { isActive: true } },
+        { $sample: { size: limit } },
+      ]).exec() as unknown as IStoreReview[];
+    }
     return StoreReviewModel.find({ isActive: true })
       .sort({ createdAt: -1 })
-      .limit(10)
+      .limit(limit)
       .lean()
       .exec() as unknown as IStoreReview[];
   }
 
+  static async countStoreReviews(): Promise<number> {
+    return StoreReviewModel.countDocuments({ isActive: true });
+  }
+
   static async saveStoreReviews(reviews: Partial<IStoreReview>[]): Promise<IStoreReview[]> {
-    await StoreReviewModel.deleteMany({});
-    const created = await StoreReviewModel.insertMany(reviews);
-    return JSON.parse(JSON.stringify(created)) as IStoreReview[];
+    if (!reviews || reviews.length === 0) {
+      return this.getStoreReviews();
+    }
+
+    const operations = reviews.map((r, idx) => {
+      const externalId =
+        r.externalId ||
+        `google-review-${(r.author || "customer").toLowerCase().replace(/[^a-z0-9]/g, "-")}-${idx}`;
+
+      return {
+        updateOne: {
+          filter: { externalId },
+          update: {
+            $set: {
+              author: r.author,
+              rating: typeof r.rating === "number" ? r.rating : 5,
+              date: r.date || "Recently",
+              text: r.text || "",
+              link: r.link,
+              avatarUrl: r.avatarUrl,
+              source: r.source || "google",
+              externalId,
+              isActive: r.isActive !== undefined ? r.isActive : true,
+            },
+            $setOnInsert: {
+              createdAt: new Date(),
+            },
+          },
+          upsert: true,
+        },
+      };
+    });
+
+    await StoreReviewModel.bulkWrite(operations);
+    return this.getStoreReviews();
   }
 }

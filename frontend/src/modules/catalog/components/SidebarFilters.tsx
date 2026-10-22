@@ -247,7 +247,13 @@ export function SidebarFilters() {
   if (!isDedicatedBrandView) {
     activeBrands.forEach(b => activePills.push({ label: "Brand", param: "brand", value: b, displayValue: b }));
   }
-  activeSizes.forEach(s => activePills.push({ label: "Size", param: "size", value: s, displayValue: s }));
+  let currentSizeLabel = "Size";
+  if (currentCategory?.toLowerCase().includes('boot') || currentCategory?.toLowerCase().includes('shoe')) {
+    currentSizeLabel = "EU Size for Boots";
+  } else if (currentCategory?.toLowerCase().includes('pant') || currentCategory?.toLowerCase().includes('jean')) {
+    currentSizeLabel = "Size for Pants";
+  }
+  activeSizes.forEach(s => activePills.push({ label: currentSizeLabel, param: "size", value: s, displayValue: s }));
   activeColours.forEach(c => activePills.push({ label: "Color", param: "colour", value: c, displayValue: c }));
   
   DYNAMIC_FILTERS.forEach(df => {

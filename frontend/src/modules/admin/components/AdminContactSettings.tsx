@@ -77,7 +77,8 @@ export function AdminContactSettings() {
     e.preventDefault();
     setSaving(true);
     try {
-      await apiClient.put("/admin/settings", settings);
+      const { _id, __v, createdAt, updatedAt, id, ...payload } = settings as any;
+      await apiClient.put("/admin/settings", payload);
       toast.success("Store contact & SEO settings saved successfully!");
     } catch (err: any) {
       toast.error(err.response?.data?.message || err.message || "Failed to update settings");
@@ -298,7 +299,7 @@ export function AdminContactSettings() {
               <RotateCcw className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-neutral-900">Return & Exchange Window</h2>
+              <h2 className="text-base font-bold text-neutral-900">Exchange Window</h2>
               <p className="text-xs text-neutral-500">Informs Google Merchant Center & Shoppers</p>
             </div>
           </div>
@@ -306,7 +307,7 @@ export function AdminContactSettings() {
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1.5">
-                Merchant Return Days
+                Merchant Exchange Days
               </label>
               <div className="flex items-center gap-3">
                 <input
@@ -314,7 +315,16 @@ export function AdminContactSettings() {
                   min={0}
                   max={90}
                   value={settings.returnWindowDays ?? 7}
-                  onChange={(e) => setSettings({ ...settings, returnWindowDays: parseInt(e.target.value, 10) || 0 })}
+                  onKeyDown={(e) => {
+                    if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") {
+                      e.preventDefault();
+                    }
+                  }}
+                  onChange={(e) => {
+                    const parsed = parseInt(e.target.value, 10);
+                    const clamped = isNaN(parsed) ? 0 : Math.min(90, Math.max(0, parsed));
+                    setSettings({ ...settings, returnWindowDays: clamped });
+                  }}
                   className="w-32 text-sm border border-neutral-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand font-mono"
                 />
                 <span className="text-sm font-medium text-neutral-600">Days from delivery</span>

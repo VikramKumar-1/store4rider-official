@@ -158,9 +158,38 @@ const touringGearSectionSchema = new Schema(
   { _id: false }
 );
 
+const instagramReelSchema = new Schema(
+  {
+    title: { type: String, default: "" },
+    thumbnailUrl: { type: String, default: "" },
+    videoType: { type: String, enum: ["upload", "embed"], default: "embed" },
+    videoUrl: { type: String, default: "" },
+    instagramUrl: { type: String, default: "https://www.instagram.com/store4riders/" },
+    views: { type: String, default: "" },
+    likes: { type: String, default: "" },
+    author: { type: String, default: "@store4riders" },
+    order: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+  },
+  { _id: true }
+);
+
 const socialMediaSectionSchema = new Schema(
   {
     sectionTitle: { type: String, default: "INSTA REELS" },
+    sectionSubtitle: {
+      type: String,
+      default: "Catch our latest rides, gear reviews, and track days in action.",
+    },
+    instagramHandle: { type: String, default: "store4riders" },
+    instagramProfileUrl: {
+      type: String,
+      default: "https://www.instagram.com/store4riders/",
+    },
+    reels: {
+      type: [instagramReelSchema],
+      default: [],
+    },
     reelImages: {
       type: [String],
       default: [
@@ -178,6 +207,11 @@ const socialMediaSectionSchema = new Schema(
         default: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80",
       },
       linkUrl: { type: String, default: "/products" },
+      title: { type: String, default: "" },
+      subtitle: { type: String, default: "" },
+      description: { type: String, default: "" },
+      buttonText: { type: String, default: "" },
+      imagePosition: { type: String, enum: ["top", "center", "bottom"], default: "top" },
     },
     bannerBottom: {
       imageUrl: {
@@ -191,6 +225,8 @@ const socialMediaSectionSchema = new Schema(
         type: String,
         default: "Check out the latest riding gear and premium accessories designed for your next adventure.",
       },
+      buttonText: { type: String, default: "" },
+      imagePosition: { type: String, enum: ["top", "center", "bottom"], default: "top" },
     },
   },
   { _id: false }
@@ -223,6 +259,11 @@ const homepageSchema = new Schema<IHomepageConfig>(
   },
   { timestamps: true }
 );
+
+// In development/HMR environments, ensure model is updated with any schema additions
+if (mongoose.models.Homepage) {
+  mongoose.deleteModel("Homepage");
+}
 
 export const HomepageModel =
   mongoose.models.Homepage || mongoose.model<IHomepageConfig>("Homepage", homepageSchema);

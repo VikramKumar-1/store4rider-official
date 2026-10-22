@@ -13,6 +13,8 @@ export interface IOrderItem {
   taxRate: number;
   taxAmount: number;
   hsnCode?: string;
+  image?: string;
+  slug?: string;
 }
 
 export interface IOrderPricing {
@@ -58,6 +60,8 @@ export interface IOrder {
   paymentMethod: PaymentMethodType;
   customerGstin?: string;
   businessName?: string;
+  warehouseId?: string;
+  invoiceUrl?: string;
   gatewayOrderId?: string;
   paymentId?: string;
   paymentSignature?: string;

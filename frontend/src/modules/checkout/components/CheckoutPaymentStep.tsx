@@ -7,7 +7,7 @@ interface CheckoutPaymentStepProps {
   generatedOrderNumber: string;
   paymentOption: PaymentMethodType;
   setPaymentOption: (option: PaymentMethodType) => void;
-  setCurrentStep: (step: 1 | 2 | 3) => void;
+  setCurrentStep: (step: 1 | 2) => void;
   handleAgreeToPay: () => void;
   isProcessing: boolean;
   shippingAddressSummary?: string;
@@ -134,7 +134,7 @@ export const CheckoutPaymentStep = ({
   }, [availableGateways, paymentOption, setPaymentOption]);
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+    <div className="flex flex-col gap-4 animate-in fade-in duration-300">
       
       {/* Alert banner if redirected back after cancel/failure */}
       {isFailedParam && (
@@ -165,7 +165,7 @@ export const CheckoutPaymentStep = ({
           </div>
           <button
             type="button"
-            onClick={() => setCurrentStep(2)}
+            onClick={() => setCurrentStep(1)}
             className="text-xs font-bold text-banner hover:text-orange-600 uppercase tracking-wider px-2 py-1 shrink-0"
           >
             Edit
@@ -174,7 +174,7 @@ export const CheckoutPaymentStep = ({
       )}
 
       {/* Gateway Options */}
-      <div className="flex flex-col gap-3 pt-1">
+      <div className="flex flex-col gap-2.5 pt-1">
         {isLoading ? (
           <div className="p-4 border border-neutral-200 animate-pulse bg-neutral-50 h-24" />
         ) : (
@@ -189,7 +189,7 @@ export const CheckoutPaymentStep = ({
               <label
                 key={method}
                 onClick={() => setPaymentOption(method as PaymentMethodType)}
-                className={`relative flex flex-col p-4 border rounded-none cursor-pointer transition-all overflow-hidden ${
+                className={`relative flex flex-col p-3.5 border rounded-none cursor-pointer transition-all overflow-hidden ${
                   isSelected
                     ? "border-banner bg-orange-50/20 ring-1 ring-banner"
                     : "border-neutral-300 hover:border-neutral-400 bg-white"
@@ -222,31 +222,33 @@ export const CheckoutPaymentStep = ({
         )}
       </div>
 
-      {/* Action Buttons */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 bg-white border-t border-neutral-200 z-[60] flex items-center justify-between gap-4 shadow-[0_-8px_16px_-6px_rgba(0,0,0,0.15)] lg:relative lg:p-0 lg:pb-0 lg:border-t-0 lg:z-auto lg:shadow-none lg:bg-transparent">
+      {/* Desktop Back Navigation */}
+      <div className="hidden lg:flex items-center justify-start pt-2">
+        <button
+          type="button"
+          onClick={() => setCurrentStep(1)}
+          className="border border-neutral-300 hover:border-neutral-900 text-neutral-700 hover:text-neutral-900 text-xs uppercase font-bold px-5 py-3 transition-colors flex items-center gap-1.5"
+        >
+          ← Back to Shipping Details
+        </button>
+      </div>
+
+      {/* Mobile Fixed Sticky Bottom Bar */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 bg-white border-t border-neutral-200 z-[60] flex items-center justify-between gap-4 shadow-[0_-8px_16px_-6px_rgba(0,0,0,0.15)] lg:hidden">
         {/* Mobile Total Display */}
-        <div className="flex flex-col lg:hidden min-w-0">
+        <div className="flex flex-col min-w-0">
           <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Total</span>
           <span className="text-lg font-black text-banner leading-none line-clamp-1">
             {total !== undefined ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(total) : "₹0.00"}
           </span>
         </div>
 
-        {/* Back Button (Desktop Only) */}
-        <button
-          type="button"
-          onClick={() => setCurrentStep(2)}
-          className="hidden lg:flex border border-neutral-300 hover:border-neutral-900 text-neutral-700 hover:text-neutral-900 text-xs uppercase font-bold px-5 py-3.5 transition-colors items-center gap-1.5"
-        >
-          ← Back
-        </button>
-
-        {/* Continue Button */}
+        {/* Continue Button on Mobile */}
         <button
           type="button"
           onClick={handleAgreeToPay}
           disabled={isProcessing || !paymentOption}
-          className="flex-1 lg:flex-none lg:w-auto bg-banner hover:bg-orange-600 text-white font-bold tracking-wider text-xs uppercase py-3.5 lg:py-4 px-4 md:px-12 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap lg:self-start"
+          className="flex-1 bg-banner hover:bg-orange-600 text-white font-bold tracking-wider text-xs uppercase py-3.5 px-6 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap"
         >
           {isProcessing ? "PROCESSING..." : "PLACE ORDER"}
         </button>

@@ -30,11 +30,13 @@ const storeReviewSchema = new Schema<IStoreReview>(
     link: { type: String },
     avatarUrl: { type: String },
     source: { type: String, default: "google" },
-    externalId: { type: String },
-    isActive: { type: Boolean, default: true },
+    externalId: { type: String, index: true },
+    isActive: { type: Boolean, default: true, index: true },
   },
   { timestamps: true }
 );
+
+storeReviewSchema.index({ isActive: 1, createdAt: -1 });
 
 export const StoreReviewModel =
   mongoose.models.StoreReview || mongoose.model<IStoreReview>("StoreReview", storeReviewSchema);

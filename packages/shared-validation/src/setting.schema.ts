@@ -33,6 +33,7 @@ export const updateSettingSchema = z.object({
   instagramUrl: z.string().optional(),
   youtubeUrl: z.string().optional(),
   returnWindowDays: z.number().min(0).max(365).optional(),
+  popularSearches: z.array(z.string()).optional(),
 });
 
 export type UpdateSettingInput = z.infer<typeof updateSettingSchema>;

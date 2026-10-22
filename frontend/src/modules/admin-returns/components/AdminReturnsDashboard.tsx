@@ -160,7 +160,10 @@ const ProcessQCModal = ({ returnDoc, onClose }: { returnDoc: IReturn, onClose: (
               <label className="block text-sm font-medium mb-1">Enter Exact Amount to Refund (₹) *</label>
               <input 
                 type="number" 
-                {...register("customRefundAmount", { valueAsNumber: true })}
+                min={0}
+                step="0.01"
+                onKeyDown={(e) => { if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") e.preventDefault(); }}
+                {...register("customRefundAmount", { valueAsNumber: true, min: 0 })}
                 className="w-full border p-2 rounded" 
                 placeholder={`Max: ₹${returnDoc.refundAmount}`}
               />

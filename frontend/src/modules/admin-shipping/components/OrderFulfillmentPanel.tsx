@@ -64,7 +64,7 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
 
   const handlePushToShiprocket = () => {
     setErrorMessage(null);
-    pushShiprocketMutation.mutate(orderId, {
+    pushShiprocketMutation.mutate({ orderId, warehouseId: selectedWarehouseId }, {
       onSuccess: (data) => {
         setCreatedShipment({
           ...data,
@@ -306,18 +306,38 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                       SR
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm text-neutral-900">Shiprocket Fulfillment Flow</h4>
+                      <h4 className="font-bold text-sm text-neutral-900">Shiprocket Dashboard Fulfillment</h4>
                       <p className="text-xs text-neutral-500 mt-0.5">
-                        Clicking the button below will push this order to your Shiprocket account.
+                        Push order to your Shiprocket account and manage dispatch directly in Shiprocket.
                       </p>
                     </div>
                   </div>
 
                   <div className="bg-white border border-neutral-200 rounded p-4 text-xs text-neutral-600 leading-relaxed flex flex-col gap-2">
-                    <p>• Order details (Customer address, items, payment mode: <b>{order.paymentMethod.toUpperCase()}</b>) will be sent to Shiprocket.</p>
-                    <p>• In the Shiprocket Dashboard (<b>app.shiprocket.in</b>), open this order and click <b>Ship Now</b>.</p>
-                    <p>• Select your <b>Pickup Location (Kolkata / Pune / Delhi)</b> directly in Shiprocket and generate your label.</p>
-                    <p>• Our system will automatically sync tracking status via Shiprocket webhooks.</p>
+                    <p>• Order details (Customer address, items, payment mode: <b>{order.paymentMethod.toUpperCase()}</b>) will sync to Shiprocket.</p>
+                    <p>• <b>Warehouse Selection:</b> In your Shiprocket Dashboard (<b>app.shiprocket.in</b>), open this order, click <b>Ship Now</b>, and pick your Dispatch Warehouse / Pickup Location (e.g. Kolkata Hub, Mumbai, Pune).</p>
+                    <p>• <b>Auto-Sync:</b> Once dispatched in Shiprocket, our webhook automatically detects your chosen warehouse, updates the order tracking, and aligns the Tax Invoice PDF (Intra-State vs Inter-State GST).</p>
+                  </div>
+
+                  {/* Optional Default Hint */}
+                  <div>
+                    <label className="text-[10px] font-bold text-neutral-600 uppercase block mb-1">
+                      Initial Pickup Location Hint (Optional Default)
+                    </label>
+                    <select
+                      value={selectedWarehouseId}
+                      onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-300 rounded text-sm bg-white focus:border-brand focus:outline-none"
+                    >
+                      {warehouses?.map((wh: any) => (
+                        <option key={wh.id || String(wh._id)} value={wh.id || String(wh._id)}>
+                          {wh.name} — {wh.city}, {wh.state} ({wh.pincode}) {wh.isDefault ? "[Default]" : ""} {wh.shiprocketLocationId ? `• Pickup: ${wh.shiprocketLocationId}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-neutral-400 mt-1">
+                      Initial default passed to Shiprocket API. You can change this to any warehouse directly in your Shiprocket Dashboard.
+                    </p>
                   </div>
 
                   <button
@@ -375,9 +395,11 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                       <label className="text-[10px] font-bold text-neutral-600 uppercase">Weight (kg)</label>
                       <input
                         type="number"
+                        min={0}
                         step="0.1"
                         value={dimensions.weightKg}
-                        onChange={(e) => setDimensions((d) => ({ ...d, weightKg: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") e.preventDefault(); }}
+                        onChange={(e) => setDimensions((d) => ({ ...d, weightKg: e.target.value === "" ? "" : (Number(e.target.value) < 0 ? "0" : e.target.value) }))}
                         className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none"
                       />
                     </div>
@@ -385,8 +407,10 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                       <label className="text-[10px] font-bold text-neutral-600 uppercase">Length (cm)</label>
                       <input
                         type="number"
+                        min={0}
                         value={dimensions.length}
-                        onChange={(e) => setDimensions((d) => ({ ...d, length: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") e.preventDefault(); }}
+                        onChange={(e) => setDimensions((d) => ({ ...d, length: e.target.value === "" ? "" : (Number(e.target.value) < 0 ? "0" : e.target.value) }))}
                         className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none"
                       />
                     </div>
@@ -394,8 +418,10 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                       <label className="text-[10px] font-bold text-neutral-600 uppercase">Breadth (cm)</label>
                       <input
                         type="number"
+                        min={0}
                         value={dimensions.breadth}
-                        onChange={(e) => setDimensions((d) => ({ ...d, breadth: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") e.preventDefault(); }}
+                        onChange={(e) => setDimensions((d) => ({ ...d, breadth: e.target.value === "" ? "" : (Number(e.target.value) < 0 ? "0" : e.target.value) }))}
                         className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none"
                       />
                     </div>
@@ -403,8 +429,10 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                       <label className="text-[10px] font-bold text-neutral-600 uppercase">Height (cm)</label>
                       <input
                         type="number"
+                        min={0}
                         value={dimensions.height}
-                        onChange={(e) => setDimensions((d) => ({ ...d, height: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") e.preventDefault(); }}
+                        onChange={(e) => setDimensions((d) => ({ ...d, height: e.target.value === "" ? "" : (Number(e.target.value) < 0 ? "0" : e.target.value) }))}
                         className="w-full mt-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:border-brand focus:outline-none"
                       />
                     </div>

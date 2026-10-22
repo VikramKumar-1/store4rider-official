@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Save,
   Eye,
@@ -28,25 +29,42 @@ import {
   Box,
   ChevronDown,
   ChevronUp,
-  Sparkles,
+  Film,
+  Play,
+  Video,
+  Heart,
 } from "lucide-react";
 import { useHomepageConfig, useUpdateHomepageSections } from "@/core/hooks/useHomepage";
-import { IHomepageSectionsConfig, IBrowseProductItem } from "@store4riders/shared-types";
+import { IHomepageSectionsConfig, IBrowseProductItem, IInstagramReel } from "@store4riders/shared-types";
 import { ImageUploadWebP } from "./ImageUploadWebP";
 import { MultiImageUploadWebP } from "./MultiImageUploadWebP";
 import { LinkSelectorInput } from "./LinkSelectorInput";
 import { ProductCategoryPicker, SelectedItemData } from "./ProductCategoryPicker";
+import { ReelEditorModal } from "./ReelEditorModal";
 import { toast } from "sonner";
 
 export function AdminHomepageSectionsModule() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+
   const { data: config, isLoading, isError } = useHomepageConfig();
   const updateMutation = useUpdateHomepageSections();
 
-  const [activeSection, setActiveSection] = useState<string>("featuredCategories");
+  const [activeSection, setActiveSection] = useState<string>(tabParam || "featuredCategories");
+
+  useEffect(() => {
+    if (tabParam) {
+      setActiveSection(tabParam);
+    }
+  }, [tabParam]);
 
   // Section 2: Browse Riding Gear Categories Modal & Edit State
   const [pickerSlotIdx, setPickerSlotIdx] = useState<number | null>(null);
   const [editingSlotIdx, setEditingSlotIdx] = useState<number | null>(null);
+
+  // Section 4: Instagram Reels Modal & Edit State
+  const [isReelModalOpen, setIsReelModalOpen] = useState<boolean>(false);
+  const [editingReelIdx, setEditingReelIdx] = useState<number | null>(null);
 
   // Local state for all sections (excluding Hero)
   const [sectionsState, setSectionsState] = useState<IHomepageSectionsConfig>({
@@ -84,7 +102,11 @@ export function AdminHomepageSectionsModule() {
       seeMoreLink: "/products?q=touring",
     },
     socialMedia: {
-      sectionTitle: "TAG @STORE4RIDERS TO BE FEATURED",
+      sectionTitle: "INSTA REELS",
+      sectionSubtitle: "",
+      instagramHandle: "store4riders",
+      instagramProfileUrl: "https://www.instagram.com/store4riders/",
+      reels: [],
       reelImages: [
         "/reel-1.jpg",
         "/reel-2.jpg",
@@ -96,6 +118,11 @@ export function AdminHomepageSectionsModule() {
       bannerTop: {
         imageUrl: "/banner-top.jpg",
         linkUrl: "/motorcycle-helmets",
+        title: "",
+        subtitle: "",
+        description: "",
+        buttonText: "SHOP NOW",
+        imagePosition: "top" as "top" | "center" | "bottom",
       },
       bannerBottom: {
         imageUrl: "/banner-bottom.jpg",
@@ -103,6 +130,8 @@ export function AdminHomepageSectionsModule() {
         title: "ACCESSORIES",
         subtitle: "Complete Your Kit",
         description: "Up to 30% Off",
+        buttonText: "EXPLORE NOW",
+        imagePosition: "top" as "top" | "center" | "bottom",
       },
     },
     testimonials: {
@@ -155,6 +184,28 @@ export function AdminHomepageSectionsModule() {
             ...prev.browseCategories,
             ...config.sections?.browseCategories,
             items: config.sections?.browseCategories?.items || [],
+          },
+          socialMedia: {
+            ...prev.socialMedia,
+            ...config.sections?.socialMedia,
+            bannerTop: {
+              imageUrl: config.sections?.socialMedia?.bannerTop?.imageUrl ?? prev.socialMedia?.bannerTop?.imageUrl ?? "",
+              linkUrl: config.sections?.socialMedia?.bannerTop?.linkUrl ?? prev.socialMedia?.bannerTop?.linkUrl ?? "",
+              title: config.sections?.socialMedia?.bannerTop?.title ?? prev.socialMedia?.bannerTop?.title ?? "",
+              subtitle: config.sections?.socialMedia?.bannerTop?.subtitle ?? prev.socialMedia?.bannerTop?.subtitle ?? "",
+              description: config.sections?.socialMedia?.bannerTop?.description ?? prev.socialMedia?.bannerTop?.description ?? "",
+              buttonText: config.sections?.socialMedia?.bannerTop?.buttonText ?? prev.socialMedia?.bannerTop?.buttonText ?? "",
+              imagePosition: (config.sections?.socialMedia?.bannerTop?.imagePosition as "top" | "center" | "bottom") ?? "top",
+            },
+            bannerBottom: {
+              imageUrl: config.sections?.socialMedia?.bannerBottom?.imageUrl ?? prev.socialMedia?.bannerBottom?.imageUrl ?? "",
+              linkUrl: config.sections?.socialMedia?.bannerBottom?.linkUrl ?? prev.socialMedia?.bannerBottom?.linkUrl ?? "",
+              title: config.sections?.socialMedia?.bannerBottom?.title ?? prev.socialMedia?.bannerBottom?.title ?? "",
+              subtitle: config.sections?.socialMedia?.bannerBottom?.subtitle ?? prev.socialMedia?.bannerBottom?.subtitle ?? "",
+              description: config.sections?.socialMedia?.bannerBottom?.description ?? prev.socialMedia?.bannerBottom?.description ?? "",
+              buttonText: config.sections?.socialMedia?.bannerBottom?.buttonText ?? prev.socialMedia?.bannerBottom?.buttonText ?? "",
+              imagePosition: (config.sections?.socialMedia?.bannerBottom?.imagePosition as "top" | "center" | "bottom") ?? "top",
+            },
           },
         };
       });
@@ -253,8 +304,124 @@ export function AdminHomepageSectionsModule() {
     setPickerSlotIdx(null);
   };
 
+  // Section 4: Instagram Reels Handlers
+  // Section 4: Instagram Reels Handlers with Instant Database Persistence
+  const handlePersistSections = (newSections: IHomepageSectionsConfig, successMsg?: string) => {
+    setSectionsState(newSections);
+    updateMutation.mutate(
+      { sections: newSections },
+      {
+        onSuccess: () => {
+          if (successMsg) toast.success(successMsg);
+        },
+        onError: (err: any) => {
+          toast.error(err?.response?.data?.message || err?.message || "Failed to update homepage in database");
+        },
+      }
+    );
+  };
+
+  const handleOpenAddReel = () => {
+    setEditingReelIdx(null);
+    setIsReelModalOpen(true);
+  };
+
+  const handleOpenEditReel = (idx: number) => {
+    setEditingReelIdx(idx);
+    setIsReelModalOpen(true);
+  };
+
+  const handleSaveReel = (savedReel: IInstagramReel) => {
+    const existingReels = sectionsState.socialMedia.reels ? [...sectionsState.socialMedia.reels] : [];
+    if (editingReelIdx !== null && editingReelIdx >= 0) {
+      existingReels[editingReelIdx] = savedReel;
+    } else {
+      existingReels.push({ ...savedReel, order: existingReels.length + 1 });
+    }
+    const updatedImages = existingReels.map((r) => r.thumbnailUrl).filter(Boolean);
+    const updatedSections: IHomepageSectionsConfig = {
+      ...sectionsState,
+      socialMedia: {
+        ...sectionsState.socialMedia,
+        reels: existingReels,
+        reelImages: updatedImages.length > 0 ? updatedImages : sectionsState.socialMedia.reelImages,
+      },
+    };
+    handlePersistSections(
+      updatedSections,
+      editingReelIdx !== null ? "Reel updated & saved to homepage!" : "New reel added & saved to homepage!"
+    );
+  };
+
+  const handleDeleteReel = (idx: number) => {
+    const existingReels = sectionsState.socialMedia.reels ? [...sectionsState.socialMedia.reels] : [];
+    existingReels.splice(idx, 1);
+    const updatedImages = existingReels.map((r) => r.thumbnailUrl).filter(Boolean);
+    const updatedSections: IHomepageSectionsConfig = {
+      ...sectionsState,
+      socialMedia: {
+        ...sectionsState.socialMedia,
+        reels: existingReels,
+        reelImages: updatedImages.length > 0 ? updatedImages : sectionsState.socialMedia.reelImages,
+      },
+    };
+    handlePersistSections(updatedSections, "Reel removed & homepage updated!");
+  };
+
+  const handleToggleReelActive = (idx: number) => {
+    const existingReels = sectionsState.socialMedia.reels ? [...sectionsState.socialMedia.reels] : [];
+    if (existingReels[idx]) {
+      const willBeActive = existingReels[idx].isActive === false;
+      existingReels[idx] = {
+        ...existingReels[idx],
+        isActive: willBeActive,
+      };
+      const updatedSections: IHomepageSectionsConfig = {
+        ...sectionsState,
+        socialMedia: {
+          ...sectionsState.socialMedia,
+          reels: existingReels,
+        },
+      };
+      handlePersistSections(
+        updatedSections,
+        willBeActive ? "Reel activated on storefront!" : "Reel deactivated from storefront!"
+      );
+    }
+  };
+
+  const handleMoveReel = (idx: number, direction: "up" | "down") => {
+    const existingReels = sectionsState.socialMedia.reels ? [...sectionsState.socialMedia.reels] : [];
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= existingReels.length) return;
+    const temp = existingReels[idx];
+    existingReels[idx] = existingReels[targetIdx];
+    existingReels[targetIdx] = temp;
+    existingReels.forEach((r, i) => {
+      r.order = i + 1;
+    });
+    const updatedSections: IHomepageSectionsConfig = {
+      ...sectionsState,
+      socialMedia: {
+        ...sectionsState.socialMedia,
+        reels: existingReels,
+      },
+    };
+    handlePersistSections(updatedSections, "Reels reordered & saved!");
+  };
+
   const handleSave = () => {
-    updateMutation.mutate({ sections: sectionsState });
+    updateMutation.mutate(
+      { sections: sectionsState },
+      {
+        onSuccess: () => {
+          toast.success("Homepage sections saved successfully!");
+        },
+        onError: (err: any) => {
+          toast.error(err?.response?.data?.message || err?.message || "Failed to update homepage sections");
+        },
+      }
+    );
   };
 
   if (isLoading) {
@@ -414,7 +581,10 @@ export function AdminHomepageSectionsModule() {
                             }))
                           }
                           aspectRatio="aspect-[16/9]"
-                          hint="Converts to WebP before upload"
+                          recommendedDimensions="800 × 450 px"
+                          recommendedRatio="16:9 Landscape"
+                          safeAreaNotice="Keep helmet & brand centered; bottom 25% has the dark title pill"
+                          hint="Auto WebP (~80–150 KB). Fast mobile loading, zero storage bloat."
                         />
                       </div>
 
@@ -543,7 +713,10 @@ export function AdminHomepageSectionsModule() {
                             }))
                           }
                           aspectRatio="aspect-[16/9]"
-                          hint="Converts to WebP before upload"
+                          recommendedDimensions="800 × 450 px"
+                          recommendedRatio="16:9 Landscape"
+                          safeAreaNotice="Keep gloves & product centered; bottom 25% has the dark title pill"
+                          hint="Auto WebP (~80–150 KB). Fast mobile loading, zero storage bloat."
                         />
                       </div>
 
@@ -672,7 +845,10 @@ export function AdminHomepageSectionsModule() {
                             }))
                           }
                           aspectRatio="aspect-[4/3]"
-                          hint="Converts to WebP before upload"
+                          recommendedDimensions="800 × 600 px"
+                          recommendedRatio="4:3 Portrait / Vertical Stack"
+                          safeAreaNotice="Tall card spanning both rows. Keep rider torso centered."
+                          hint="Auto WebP (~90–160 KB). Fast mobile loading, zero storage bloat."
                         />
                       </div>
 
@@ -1320,44 +1496,270 @@ export function AdminHomepageSectionsModule() {
                 </p>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Section Heading (Title)
-                </label>
-                <input
-                  type="text"
-                  value={sectionsState.socialMedia.sectionTitle}
-                  onChange={(e) =>
-                    setSectionsState((prev) => ({
-                      ...prev,
-                      socialMedia: {
-                        ...prev.socialMedia,
-                        sectionTitle: e.target.value,
-                      },
-                    }))
-                  }
-                  className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-3 py-1.5 rounded-md focus:outline-none focus:border-brand font-semibold shadow-2xs"
-                />
+              {/* Section Meta Inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Section Heading (Title)
+                  </label>
+                  <input
+                    type="text"
+                    value={sectionsState.socialMedia.sectionTitle}
+                    onChange={(e) =>
+                      setSectionsState((prev) => ({
+                        ...prev,
+                        socialMedia: {
+                          ...prev.socialMedia,
+                          sectionTitle: e.target.value,
+                        },
+                      }))
+                    }
+                    className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-3 py-1.5 rounded-md focus:outline-none focus:border-brand font-semibold shadow-2xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Section Subtitle / Tagline
+                  </label>
+                  <input
+                    type="text"
+                    value={sectionsState.socialMedia.sectionSubtitle || ""}
+                    onChange={(e) =>
+                      setSectionsState((prev) => ({
+                        ...prev,
+                        socialMedia: {
+                          ...prev.socialMedia,
+                          sectionSubtitle: e.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="e.g. Tag @store4riders to be featured. Catch gear reviews & ride action!"
+                    className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-3 py-1.5 rounded-md focus:outline-none focus:border-brand font-medium shadow-2xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Instagram Handle
+                  </label>
+                  <input
+                    type="text"
+                    value={sectionsState.socialMedia.instagramHandle || "store4riders"}
+                    onChange={(e) =>
+                      setSectionsState((prev) => ({
+                        ...prev,
+                        socialMedia: {
+                          ...prev.socialMedia,
+                          instagramHandle: e.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="store4riders"
+                    className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-3 py-1.5 rounded-md focus:outline-none focus:border-brand font-medium shadow-2xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Instagram Profile Link
+                  </label>
+                  <input
+                    type="text"
+                    value={sectionsState.socialMedia.instagramProfileUrl || "https://www.instagram.com/store4riders/"}
+                    onChange={(e) =>
+                      setSectionsState((prev) => ({
+                        ...prev,
+                        socialMedia: {
+                          ...prev.socialMedia,
+                          instagramProfileUrl: e.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="https://www.instagram.com/store4riders/"
+                    className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-3 py-1.5 rounded-md focus:outline-none focus:border-brand font-medium shadow-2xs"
+                  />
+                </div>
               </div>
 
-              {/* Reels Images */}
-              <div className="border-t border-slate-100 pt-3 space-y-2">
-                <MultiImageUploadWebP
-                  label="Instagram Reel Images (9:16 Aspect)"
-                  values={sectionsState.socialMedia.reelImages}
-                  onChange={(urls) =>
-                    setSectionsState((prev) => ({
-                      ...prev,
-                      socialMedia: {
-                        ...prev.socialMedia,
-                        reelImages: urls,
-                      },
-                    }))
-                  }
-                  aspectRatio="aspect-[9/16]"
-                  maxImages={6}
-                  hint="6 vertical images. Drag & drop or batch select. Converts directly to WebP in browser."
-                />
+              {/* Instagram Video Reels Manager */}
+              <div className="border-t border-slate-100 pt-3 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <Film size={14} className="text-brand" />
+                      <span>Instagram Video Reels</span>
+                      <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full text-[10px] font-mono">
+                        {sectionsState.socialMedia.reels?.length || 0} configured
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Add video reels via Instagram Embed Link or direct Video File Upload (.mp4/.webm). Customers can click any reel on the storefront homepage to play it in a video modal.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handlePersistSections(sectionsState, "Instagram reels saved successfully!")}
+                      disabled={updateMutation.isPending}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {updateMutation.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      )}
+                      <span>Save Reels</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenAddReel}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand hover:bg-brand/90 text-white font-bold text-xs uppercase tracking-wider shadow-2xs transition-all w-fit cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add New Reel</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Reels Grid */}
+                {(!sectionsState.socialMedia.reels || sectionsState.socialMedia.reels.length === 0) ? (
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center bg-slate-50/50 flex flex-col items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-2">
+                      <Film className="w-6 h-6" />
+                    </div>
+                    <p className="text-xs font-bold text-slate-700">No Instagram Reels Configured</p>
+                    <p className="text-[11px] text-slate-500 max-w-sm mt-0.5 mb-3">
+                      Add your Instagram reels or uploaded videos to display them on the storefront homepage with video playback modal.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleOpenAddReel}
+                      className="px-3.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-brand text-slate-700 font-bold text-xs flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-brand" />
+                      <span>Add First Reel</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {sectionsState.socialMedia.reels.map((reel, idx) => (
+                      <div
+                        key={reel._id || reel.videoUrl || idx}
+                        className={`group relative rounded-xl overflow-hidden border bg-white flex flex-col shadow-2xs transition-all ${
+                          reel.isActive === false ? "opacity-60 border-slate-200" : "border-slate-300 hover:border-brand hover:shadow-xs"
+                        }`}
+                      >
+                        {/* Thumbnail Container (9:16) */}
+                        <div className="relative aspect-[9/16] w-full bg-slate-900 overflow-hidden">
+                          {reel.thumbnailUrl ? (
+                            <Image
+                              src={reel.thumbnailUrl}
+                              alt={reel.title || `Reel ${idx + 1}`}
+                              fill
+                              className="object-cover"
+                              sizes="160px"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-500">
+                              <Film className="w-6 h-6" />
+                            </div>
+                          )}
+
+                          {/* Source Badge */}
+                          <div className="absolute top-2 left-2 z-10">
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white backdrop-blur-xs flex items-center gap-0.5 shadow-xs ${
+                              reel.videoType === "upload" ? "bg-amber-600/90" : "bg-[#e1306c]/90"
+                            }`}>
+                              {reel.videoType === "upload" ? (
+                                <>
+                                  <Video className="w-2.5 h-2.5" />
+                                  <span>MP4</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Instagram className="w-2.5 h-2.5" />
+                                  <span>Embed</span>
+                                </>
+                              )}
+                            </span>
+                          </div>
+
+                          {/* Active Toggle Switch */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleReelActive(idx)}
+                            title={reel.isActive === false ? "Click to Activate" : "Click to Deactivate"}
+                            className="absolute top-2 right-2 z-10 w-5 h-5 rounded-full bg-black/60 backdrop-blur-xs flex items-center justify-center text-white hover:scale-110 transition-transform cursor-pointer"
+                          >
+                            <span className={`w-2 h-2 rounded-full ${reel.isActive === false ? "bg-slate-400" : "bg-emerald-400"}`} />
+                          </button>
+
+                          {/* Views Badge */}
+                          <div className="absolute bottom-1.5 left-2 z-10 flex items-center gap-1 text-white text-[10px] font-bold drop-shadow-md">
+                            <Play className="w-2.5 h-2.5 fill-current text-banner" />
+                            <span>{reel.views || "10K"}</span>
+                          </div>
+                        </div>
+
+                        {/* Card Info & Actions */}
+                        <div className="p-2 flex flex-col justify-between flex-1 bg-white">
+                          <p className="text-[11px] font-bold text-slate-800 line-clamp-2 leading-tight mb-2" title={reel.title}>
+                            {reel.title || "Untitled Reel"}
+                          </p>
+
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px]">
+                            {/* Reorder arrows */}
+                            <div className="flex items-center gap-1 text-slate-400">
+                              <button
+                                type="button"
+                                onClick={() => handleMoveReel(idx, "up")}
+                                disabled={idx === 0}
+                                className="hover:text-slate-700 disabled:opacity-30 disabled:hover:text-slate-400 cursor-pointer"
+                                title="Move Earlier"
+                              >
+                                ◀
+                              </button>
+                              <span className="font-mono text-slate-500 font-semibold">{idx + 1}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleMoveReel(idx, "down")}
+                                disabled={!sectionsState.socialMedia.reels || idx === sectionsState.socialMedia.reels.length - 1}
+                                className="hover:text-slate-700 disabled:opacity-30 disabled:hover:text-slate-400 cursor-pointer"
+                                title="Move Later"
+                              >
+                                ▶
+                              </button>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditReel(idx)}
+                                className="p-1 text-slate-600 hover:text-brand hover:bg-slate-100 rounded transition-colors cursor-pointer"
+                                title="Edit Reel"
+                              >
+                                <Sliders className="w-3 h-3" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteReel(idx)}
+                                className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                title="Remove Reel"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Side Banners with SKU / Category Search */}
@@ -1375,8 +1777,8 @@ export function AdminHomepageSectionsModule() {
                         <span className="w-2.5 h-2.5 rounded-full bg-brand shrink-0" />
                         Top Promo Banner
                       </span>
-                      <span className="text-[10px] font-mono text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
-                        Aspect 4:3
+                      <span className="text-[10px] font-mono font-medium text-brand bg-brand/5 px-2.5 py-0.5 rounded border border-brand/20">
+                        Banner ~16:7 (1200×500 px)
                       </span>
                     </div>
 
@@ -1394,8 +1796,11 @@ export function AdminHomepageSectionsModule() {
                               },
                             }))
                           }
-                          aspectRatio="aspect-[4/3]"
-                          hint="Converts to WebP before upload"
+                          aspectRatio="aspect-[16/7]"
+                          recommendedDimensions="1200 × 500 px (Retina: 1920 × 800)"
+                          recommendedRatio="~16:7 Banner (2.4 : 1)"
+                          safeAreaNotice="Keep heads, faces & helmets in top 70%. Bottom 30% has card title."
+                          hint="Auto WebP (~100–180 KB). Auto Focal Alignment preserves faces & helmets."
                         />
                       </div>
 
@@ -1414,6 +1819,96 @@ export function AdminHomepageSectionsModule() {
                           }
                           placeholder="e.g. /products or click 'Browse Catalog'"
                         />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                              Card Title (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={sectionsState.socialMedia.bannerTop.title || ""}
+                              onChange={(e) =>
+                                setSectionsState((prev) => ({
+                                  ...prev,
+                                  socialMedia: {
+                                    ...prev.socialMedia,
+                                    bannerTop: { ...prev.socialMedia.bannerTop, title: e.target.value },
+                                  },
+                                }))
+                              }
+                              placeholder="e.g. TRACK READY HELMETS"
+                              className="w-full bg-white border border-slate-300 text-slate-800 text-xs px-3 py-2 rounded-md focus:outline-none focus:border-brand shadow-2xs font-semibold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                              Card Description (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={sectionsState.socialMedia.bannerTop.description || ""}
+                              onChange={(e) =>
+                                setSectionsState((prev) => ({
+                                  ...prev,
+                                  socialMedia: {
+                                    ...prev.socialMedia,
+                                    bannerTop: { ...prev.socialMedia.bannerTop, description: e.target.value },
+                                  },
+                                }))
+                              }
+                              placeholder="e.g. ECE 22.06 & DOT Certified Helmets"
+                              className="w-full bg-white border border-slate-300 text-slate-800 text-xs px-3 py-2 rounded-md focus:outline-none focus:border-brand shadow-2xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-[#FF5429]" />
+                              Orange CTA Button Text (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={sectionsState.socialMedia.bannerTop.buttonText || ""}
+                              onChange={(e) =>
+                                setSectionsState((prev) => ({
+                                  ...prev,
+                                  socialMedia: {
+                                    ...prev.socialMedia,
+                                    bannerTop: { ...prev.socialMedia.bannerTop, buttonText: e.target.value },
+                                  },
+                                }))
+                              }
+                              placeholder="e.g. SHOP NOW"
+                              className="w-full bg-white border border-[#FF5429]/40 text-[#FF5429] text-xs px-3 py-2 rounded-md focus:outline-none focus:border-[#FF5429] focus:ring-1 focus:ring-[#FF5429]/20 shadow-2xs font-bold"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            Auto Focal Alignment (Prevents Heads & Helmets from Cropping)
+                          </label>
+                          <select
+                            value={sectionsState.socialMedia.bannerTop.imagePosition || "top"}
+                            onChange={(e) =>
+                              setSectionsState((prev) => ({
+                                ...prev,
+                                socialMedia: {
+                                  ...prev.socialMedia,
+                                  bannerTop: {
+                                    ...prev.socialMedia.bannerTop,
+                                    imagePosition: e.target.value as "top" | "center" | "bottom",
+                                  },
+                                },
+                              }))
+                            }
+                            className="w-full bg-white border border-slate-300 text-slate-800 text-xs px-3 py-2 rounded-md focus:outline-none focus:border-brand shadow-2xs font-medium"
+                          >
+                            <option value="top">Top Focus (Recommended — Keeps faces, heads & helmets safe)</option>
+                            <option value="center">Center Focus (Standard)</option>
+                            <option value="bottom">Bottom Focus</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1425,8 +1920,8 @@ export function AdminHomepageSectionsModule() {
                         <span className="w-2.5 h-2.5 rounded-full bg-brand shrink-0" />
                         Bottom Promo Banner with Badge Card
                       </span>
-                      <span className="text-[10px] font-mono text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
-                        Aspect 4:3
+                      <span className="text-[10px] font-mono font-medium text-brand bg-brand/5 px-2.5 py-0.5 rounded border border-brand/20">
+                        Banner ~16:7 (1200×500 px)
                       </span>
                     </div>
 
@@ -1444,8 +1939,11 @@ export function AdminHomepageSectionsModule() {
                               },
                             }))
                           }
-                          aspectRatio="aspect-[4/3]"
-                          hint="Converts to WebP before upload"
+                          aspectRatio="aspect-[16/7]"
+                          recommendedDimensions="1200 × 500 px (Retina: 1920 × 800)"
+                          recommendedRatio="~16:7 Banner (2.4 : 1)"
+                          safeAreaNotice="Keep heads, faces & helmets in top 70%. Bottom 30% has card title."
+                          hint="Auto WebP (~100–180 KB). Auto Focal Alignment preserves faces & helmets."
                         />
                       </div>
 
@@ -1482,10 +1980,10 @@ export function AdminHomepageSectionsModule() {
                           placeholder="e.g. /products or click 'Browse Catalog'"
                         />
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                           <div>
                             <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                              Badge Title
+                              Badge Title (Optional)
                             </label>
                             <input
                               type="text"
@@ -1505,7 +2003,7 @@ export function AdminHomepageSectionsModule() {
                           </div>
                           <div>
                             <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                              Badge Subtitle
+                              Badge Subtitle / Desc (Optional)
                             </label>
                             <input
                               type="text"
@@ -1523,10 +2021,77 @@ export function AdminHomepageSectionsModule() {
                               className="w-full bg-white border border-slate-300 text-slate-800 text-xs px-3 py-2 rounded-md focus:outline-none focus:border-brand shadow-2xs"
                             />
                           </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-[#FF5429]" />
+                              Orange CTA Button Text (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={sectionsState.socialMedia.bannerBottom.buttonText || ""}
+                              onChange={(e) =>
+                                setSectionsState((prev) => ({
+                                  ...prev,
+                                  socialMedia: {
+                                    ...prev.socialMedia,
+                                    bannerBottom: { ...prev.socialMedia.bannerBottom, buttonText: e.target.value },
+                                  },
+                                }))
+                              }
+                              placeholder="e.g. EXPLORE NOW"
+                              className="w-full bg-white border border-[#FF5429]/40 text-[#FF5429] text-xs px-3 py-2 rounded-md focus:outline-none focus:border-[#FF5429] focus:ring-1 focus:ring-[#FF5429]/20 shadow-2xs font-bold"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            Auto Focal Alignment (Prevents Heads & Helmets from Cropping)
+                          </label>
+                          <select
+                            value={sectionsState.socialMedia.bannerBottom.imagePosition || "top"}
+                            onChange={(e) =>
+                              setSectionsState((prev) => ({
+                                ...prev,
+                                socialMedia: {
+                                  ...prev.socialMedia,
+                                  bannerBottom: {
+                                    ...prev.socialMedia.bannerBottom,
+                                    imagePosition: e.target.value as "top" | "center" | "bottom",
+                                  },
+                                },
+                              }))
+                            }
+                            className="w-full bg-white border border-slate-300 text-slate-800 text-xs px-3 py-2 rounded-md focus:outline-none focus:border-brand shadow-2xs font-medium"
+                          >
+                            <option value="top">Top Focus (Recommended — Keeps faces, heads & helmets safe)</option>
+                            <option value="center">Center Focus (Standard)</option>
+                            <option value="bottom">Bottom Focus</option>
+                          </select>
                         </div>
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Dedicated Save Action Bar for Promotional Cards */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-slate-200">
+                  <div className="text-[11px] text-slate-500">
+                    <span className="font-semibold text-slate-700">Ready to publish?</span> Card text, titles, links, and orange CTA buttons will update on the storefront immediately.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handlePersistSections(sectionsState, "Promotional banner cards saved successfully!")}
+                    disabled={updateMutation.isPending}
+                    className="inline-flex items-center gap-1.5 bg-[#FF5429] hover:bg-[#e0451d] disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-md shadow-xs shadow-[#FF5429]/25 transition-all cursor-pointer shrink-0"
+                  >
+                    {updateMutation.isPending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Save size={14} />
+                    )}
+                    <span>{updateMutation.isPending ? "Saving..." : "Save Promotional Cards"}</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1657,6 +2222,18 @@ export function AdminHomepageSectionsModule() {
           )}
         </div>
       </div>
+
+      {/* Instagram Reel Editor Modal */}
+      <ReelEditorModal
+        isOpen={isReelModalOpen}
+        onClose={() => setIsReelModalOpen(false)}
+        initialReel={
+          editingReelIdx !== null && sectionsState.socialMedia.reels
+            ? sectionsState.socialMedia.reels[editingReelIdx] || null
+            : null
+        }
+        onSave={handleSaveReel}
+      />
     </div>
   );
 }

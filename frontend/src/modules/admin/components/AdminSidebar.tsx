@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Home,
   Users,
@@ -16,6 +17,7 @@ import {
   Layers,
   ChevronDown,
   ChevronRight,
+  Instagram,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useRouter, usePathname } from "next/navigation";
@@ -41,6 +43,7 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Hero & SEO", href: "/admin/homepage/hero-seo", icon: Globe },
       { name: "Section Edit", href: "/admin/homepage/sections", icon: Layers },
+      { name: "Insta Reels", href: "/admin/homepage/sections?tab=socialMedia", icon: Instagram },
     ],
   },
   { name: "Users", href: "/admin/users", icon: Users },
@@ -75,8 +78,15 @@ export function AdminSidebar() {
   return (
     <aside className="w-64 bg-slate-900 text-white min-h-screen flex flex-col shadow-xl z-10">
       <div className="p-6 border-b border-slate-800 flex items-center">
-        <Link href="/admin" className="hover:opacity-80 transition-opacity block w-full">
-          <img src="/Store4riders-Logo.jpg" alt="Store4Riders" className="h-10 w-full object-contain rounded" />
+        <Link href="/admin" className="hover:opacity-80 transition-opacity block w-full relative h-10">
+          <Image
+            src="/Store4riders-Logo.jpg"
+            alt="Store4Riders"
+            fill
+            sizes="200px"
+            className="object-contain rounded"
+            priority
+          />
         </Link>
       </div>
       

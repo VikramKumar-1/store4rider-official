@@ -63,18 +63,44 @@ export interface ITouringGearSectionConfig {
 export interface ISocialMediaBannerBottom {
   imageUrl: string;
   linkUrl: string;
-  title: string;
-  subtitle: string;
-  description: string;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  buttonText?: string;
+  imagePosition?: "top" | "center" | "bottom";
 }
 
 export interface ISocialMediaBannerTop {
   imageUrl: string;
   linkUrl: string;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  buttonText?: string;
+  imagePosition?: "top" | "center" | "bottom";
+}
+
+export interface IInstagramReel {
+  _id?: string;
+  id?: string;
+  title?: string;
+  thumbnailUrl: string;
+  videoType: "upload" | "embed";
+  videoUrl: string;
+  instagramUrl?: string;
+  views?: string;
+  likes?: string;
+  author?: string;
+  order?: number;
+  isActive?: boolean;
 }
 
 export interface ISocialMediaSectionConfig {
   sectionTitle: string;
+  sectionSubtitle?: string;
+  instagramHandle?: string;
+  instagramProfileUrl?: string;
+  reels?: IInstagramReel[];
   reelImages: string[];
   bannerTop: ISocialMediaBannerTop;
   bannerBottom: ISocialMediaBannerBottom;

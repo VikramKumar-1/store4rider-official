@@ -63,7 +63,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
         </div>
         <div className="flex flex-col items-center text-center gap-2 p-4 bg-zinc-50 dark:bg-zinc-900 rounded-xl">
           <RotateCcw className="text-brand" size={24} />
-          <span className="text-xs font-semibold">7 Days Return</span>
+          <span className="text-xs font-semibold">7 Days Exchange</span>
         </div>
       </div>
     </div>

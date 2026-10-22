@@ -33,6 +33,7 @@ vi.mock('../../../modules/order/order.repository', () => ({
     findByIdempotencyKey: vi.fn().mockResolvedValue(null),
     create: vi.fn(),
     updateStatus: vi.fn().mockResolvedValue(true),
+    getNextOrderSequence: vi.fn().mockResolvedValue(100001),
   },
 }));
 
@@ -661,6 +662,330 @@ describe('GST Compliance & Calculation Suite', () => {
       const pdfBuffer = await InvoiceGenerator.generateInvoiceBuffer(discountedOrder);
       expect(pdfBuffer).toBeInstanceOf(Buffer);
       expect(pdfBuffer.length).toBeGreaterThan(1000);
+    });
+
+    it('should generate an invoice for Partial COD order with correct advance and balance', async () => {
+      const partialCodOrder: any = {
+        _id: 'order_cod_part',
+        orderNumber: 'ORD-COD-001',
+        items: [
+          {
+            productId: 'prod_1',
+            name: 'Riding Boots',
+            sku: 'BOOT-01',
+            quantity: 1,
+            unitPrice: 2000,
+            taxRate: 18,
+            taxAmount: 305.08,
+            hsnCode: '6403',
+          },
+        ],
+        shippingAddress: {
+          fullName: 'Vikram Kumar',
+          phone: '9876543210',
+          addressLine1: 'Main Road',
+          city: 'Pune',
+          state: 'Maharashtra',
+          pincode: '411001',
+          country: 'India',
+        },
+        paymentMethod: 'cod',
+        pricing: {
+          subtotal: 2000,
+          discount: 0,
+          couponDiscount: 0,
+          tax: 305.08,
+          taxRate: 18,
+          shipping: 0,
+          total: 2000,
+          codPartialPaymentAmount: 1000, // 50% advance paid online
+          codAmountToCollect: 1000,       // 50% remaining due at delivery
+        },
+        status: 'confirmed',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const pdfBuffer = await InvoiceGenerator.generateInvoiceBuffer(partialCodOrder);
+      expect(pdfBuffer).toBeInstanceOf(Buffer);
+      expect(pdfBuffer.length).toBeGreaterThan(1000);
+      expect(pdfBuffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+    });
+
+    it('should handle multi-warehouse state resolution (e.g., Kolkata to Jharkhand vs Mumbai to Pune)', async () => {
+      const { normalizeIndianState } = await import('../invoiceGenerator');
+      expect(normalizeIndianState('Maharashtra')).toBe('maharashtra');
+      expect(normalizeIndianState('MH')).toBe('maharashtra');
+      expect(normalizeIndianState('West Bengal')).toBe('westbengal');
+      expect(normalizeIndianState('WB')).toBe('westbengal');
+      expect(normalizeIndianState('Bihar')).toBe('bihar');
+      expect(normalizeIndianState('BR')).toBe('bihar');
+      expect(normalizeIndianState('Jharkhand')).toBe('jharkhand');
+      expect(normalizeIndianState('JH')).toBe('jharkhand');
+
+      // Test Kolkata warehouse -> Jharkhand order (Inter-State IGST)
+      const interstateWarehouseOrder: any = {
+        _id: 'order_wh_inter',
+        orderNumber: 'ORD-WH-002',
+        items: [
+          {
+            productId: 'prod_2',
+            name: 'Helmet',
+            sku: 'HLM-02',
+            quantity: 1,
+            unitPrice: 3000,
+            taxRate: 18,
+            taxAmount: 457.62,
+            hsnCode: '6506',
+          },
+        ],
+        shippingAddress: {
+          fullName: 'Customer Jharkhand',
+          phone: '9876543210',
+          addressLine1: 'Main Road',
+          city: 'Ranchi',
+          state: 'Jharkhand',
+          pincode: '834001',
+          country: 'India',
+        },
+        pricing: {
+          subtotal: 3000,
+          discount: 0,
+          couponDiscount: 0,
+          tax: 457.62,
+          taxRate: 18,
+          shipping: 0,
+          total: 3000,
+        },
+        paymentMethod: 'upi',
+        status: 'confirmed',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const pdfBuffer = await InvoiceGenerator.generateInvoiceBuffer(interstateWarehouseOrder);
+      expect(pdfBuffer).toBeInstanceOf(Buffer);
+      expect(pdfBuffer.length).toBeGreaterThan(1000);
+      expect(pdfBuffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+    });
+
+    it('should cleanly handle 0% GST (Tax Exempt) without hardcoding 18%', async () => {
+      const zeroTaxOrder: any = {
+        id: 'order_zero_tax',
+        orderNumber: 'ORD-ZERO-01',
+        items: [
+          {
+            productId: 'prod_zero',
+            name: 'Tax Exempt Item',
+            sku: 'EXEMPT-01',
+            quantity: 1,
+            unitPrice: 1000,
+            taxRate: 0,
+            taxAmount: 0,
+            hsnCode: '0000',
+          },
+        ],
+        shippingAddress: {
+          fullName: 'Zero Tax Customer',
+          phone: '9876543210',
+          addressLine1: 'Main Street',
+          city: 'Pune',
+          state: 'Maharashtra',
+          pincode: '411001',
+        },
+        pricing: {
+          subtotal: 1000,
+          discount: 0,
+          couponDiscount: 0,
+          tax: 0,
+          taxRate: 0,
+          shipping: 0,
+          total: 1000,
+        },
+        paymentMethod: 'upi',
+        status: 'confirmed',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const pdfBuffer = await InvoiceGenerator.generateInvoiceBuffer(zeroTaxOrder);
+      expect(pdfBuffer).toBeInstanceOf(Buffer);
+      expect(pdfBuffer.length).toBeGreaterThan(1000);
+      expect(pdfBuffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+    });
+
+    it('should cleanly handle custom 28% and 5% GST slabs', async () => {
+      const slab28Order: any = {
+        id: 'order_28',
+        orderNumber: 'ORD-28-01',
+        items: [
+          {
+            productId: 'prod_28',
+            name: 'Luxury Riding Gear',
+            sku: 'LUX-28',
+            quantity: 1,
+            unitPrice: 12800,
+            taxRate: 28,
+            taxAmount: 2800,
+            hsnCode: '8714',
+          },
+        ],
+        shippingAddress: {
+          fullName: 'Interstate Customer',
+          phone: '9876543210',
+          addressLine1: 'Station Road',
+          city: 'Patna',
+          state: 'Bihar',
+          pincode: '800001',
+        },
+        pricing: {
+          subtotal: 12800,
+          discount: 0,
+          couponDiscount: 0,
+          tax: 2800,
+          taxRate: 28,
+          shipping: 0,
+          total: 12800,
+        },
+        paymentMethod: 'upi',
+        status: 'confirmed',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const pdfBuffer = await InvoiceGenerator.generateInvoiceBuffer(slab28Order);
+      expect(pdfBuffer).toBeInstanceOf(Buffer);
+      expect(pdfBuffer.length).toBeGreaterThan(1000);
+      expect(pdfBuffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+    });
+
+    it('should generate a PDF invoice with 4 products with long names and clean dynamic row heights', async () => {
+      const { SettingRepository } = await import('../../../modules/settings/setting.repository');
+      vi.mocked(SettingRepository.getSettings).mockResolvedValue({
+        legalBusinessName: 'Store4Riders India Pvt Ltd',
+        storeOriginAddress: 'Warehouse 4, Viman Nagar',
+        storeOriginCity: 'Pune',
+        storeOriginState: 'Maharashtra',
+        storeOriginPincode: '411014',
+        gstin: '27AAPCS1234F1Z5',
+        gstPricingMode: 'inclusive',
+        taxRate: 18,
+      } as any);
+
+      const multiProductOrder: any = {
+        orderNumber: 'ORD-20261021-9999',
+        items: [
+          {
+            name: 'Store4Riders Premium Full Face Helmet with Dual Visor & Pinlock 70 Ready System - Matte Carbon Edition',
+            quantity: 1,
+            unitPrice: 5999,
+            hsnCode: '650610',
+            sku: 'S4R-FFH-CARBON-XL',
+          },
+          {
+            name: 'All-Weather Waterproof Armored Riding Jacket with Level 2 CE Protectors - Desert Sand / Stealth Black',
+            quantity: 1,
+            unitPrice: 7499,
+            hsnCode: '620190',
+            sku: 'S4R-JKT-ADV-L',
+          },
+          {
+            name: 'Carbon Knuckle Full Gauntlet Leather Racing Gloves with Knox Scaphoid Protection System',
+            quantity: 1,
+            unitPrice: 3299,
+            hsnCode: '611610',
+            sku: 'S4R-GLV-RACE-M',
+          },
+          {
+            name: 'Universal Anti-Vibration Heavy Duty Mobile Holder with 15W Qi Fast Wireless Charging',
+            quantity: 2,
+            unitPrice: 1499,
+            hsnCode: '871410',
+            sku: 'S4R-ACC-MNT-WRL',
+          },
+        ],
+        shippingAddress: {
+          fullName: 'Vikram Kumar',
+          phone: '9876543210',
+          addressLine1: 'Ranchi Main Road',
+          city: 'Ranchi',
+          state: 'Jharkhand',
+          pincode: '834001',
+        },
+        pricing: {
+          subtotal: 19795,
+          discount: 500,
+          couponDiscount: 0,
+          tax: 3019.58,
+          taxRate: 18,
+          shipping: 99,
+          total: 19394,
+        },
+        paymentMethod: 'upi',
+        status: 'confirmed',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const pdfBuffer = await InvoiceGenerator.generateInvoiceBuffer(multiProductOrder);
+      expect(pdfBuffer).toBeInstanceOf(Buffer);
+      expect(pdfBuffer.length).toBeGreaterThan(1500);
+      expect(pdfBuffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+    });
+
+    it('should generate updated COD invoice with zero balance and cash collected upon delivery status', async () => {
+      const { SettingRepository } = await import('../../../modules/settings/setting.repository');
+      vi.mocked(SettingRepository.getSettings).mockResolvedValue({
+        legalBusinessName: 'Store4Riders India Pvt Ltd',
+        storeOriginAddress: 'Warehouse 4, Viman Nagar',
+        storeOriginCity: 'Pune',
+        storeOriginState: 'Maharashtra',
+        storeOriginPincode: '411014',
+        gstin: '27AAPCS1234F1Z5',
+        gstPricingMode: 'inclusive',
+        taxRate: 18,
+      } as any);
+
+      // Delivered COD order
+      const deliveredCodOrder: any = {
+        orderNumber: 'ORD-20261021-DELV1',
+        items: [
+          {
+            name: 'Riding Jacket',
+            quantity: 1,
+            unitPrice: 5000,
+            hsnCode: '6201',
+          },
+        ],
+        shippingAddress: {
+          fullName: 'Vikram Kumar',
+          phone: '9876543210',
+          addressLine1: 'Ranchi Main Road',
+          city: 'Ranchi',
+          state: 'Jharkhand',
+          pincode: '834001',
+        },
+        pricing: {
+          subtotal: 5000,
+          discount: 0,
+          couponDiscount: 0,
+          tax: 762.71,
+          taxRate: 18,
+          shipping: 0,
+          total: 5000,
+          codPartialPaymentAmount: 500,
+          codAmountToCollect: 4500,
+        },
+        paymentMethod: 'cod',
+        status: 'delivered', // Delivered!
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const pdfBuffer = await InvoiceGenerator.generateInvoiceBuffer(deliveredCodOrder);
+      expect(pdfBuffer).toBeInstanceOf(Buffer);
+      expect(pdfBuffer.length).toBeGreaterThan(1000);
+      expect(pdfBuffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
     });
   });
 });

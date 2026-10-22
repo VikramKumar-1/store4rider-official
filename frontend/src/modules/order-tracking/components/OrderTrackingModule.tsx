@@ -37,13 +37,13 @@ const OrderActionsRow = ({ order }: { order: any }) => {
               onClick={() => setShowReturnInput(true)}
               className="px-4 py-2 bg-neutral-900 text-white text-xs font-bold uppercase rounded hover:bg-neutral-800 transition-colors"
             >
-              Request Return
+              Request Exchange
             </button>
           ) : (
             <div className="flex gap-2 items-center">
               <input 
                 type="text" 
-                placeholder="Reason for return..." 
+                placeholder="Reason for exchange (e.g. size/fit)..." 
                 value={returnReason}
                 onChange={e => setReturnReason(e.target.value)}
                 className="px-3 py-1.5 border border-neutral-300 rounded text-sm focus:outline-none focus:border-brand"
@@ -63,17 +63,17 @@ const OrderActionsRow = ({ order }: { order: any }) => {
       
       {order.status === "return_requested" && (
         <span className="px-4 py-2 bg-orange-100 text-orange-800 text-xs font-bold uppercase rounded">
-          Return Pending Approval
+          Exchange Pending Approval
         </span>
       )}
       {order.status === "return_approved" && (
         <span className="px-4 py-2 bg-purple-100 text-purple-800 text-xs font-bold uppercase rounded">
-          Return Approved - Pickup Scheduled
+          Exchange Approved - Pickup Scheduled
         </span>
       )}
       {order.status === "returned" && (
         <span className="px-4 py-2 bg-green-100 text-green-800 text-xs font-bold uppercase rounded">
-          Returned & Refunded
+          Exchange Completed
         </span>
       )}
     </div>

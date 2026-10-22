@@ -56,6 +56,8 @@ export class HomepageRepository {
       doc = new HomepageModel({});
     }
     doc.sections = sections;
+    doc.markModified("sections");
+    doc.markModified("sections.socialMedia");
     await doc.save({ session });
     return doc.toObject() as IHomepageConfig;
   }

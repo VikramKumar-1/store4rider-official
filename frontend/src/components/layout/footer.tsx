@@ -69,7 +69,7 @@ const Footer = () => {
               <li><Link href="/guides" className="hover:text-white transition-colors">Motorcycle Guides & Advice</Link></li>
               <li><Link href="/shipping" className="hover:text-white transition-colors">Shipping Policy</Link></li>
               <li><Link href="/warranty" className="hover:text-white transition-colors">Warranty</Link></li>
-              <li><Link href="/returns" className="hover:text-white transition-colors">Refund / Exchange Policy</Link></li>
+              <li><Link href="/returns" className="hover:text-white transition-colors">Exchange Policy</Link></li>
               <li><Link href="/care" className="hover:text-white transition-colors">Care Instructions</Link></li>
               <li><Link href="/insurance" className="hover:text-white transition-colors">Wingman Insurance</Link></li>
               <li><Link href="/terms" className="hover:text-white transition-colors">Terms Of Service</Link></li>

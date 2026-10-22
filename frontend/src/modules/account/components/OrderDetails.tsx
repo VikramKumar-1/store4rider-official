@@ -46,8 +46,24 @@ export function OrderDetails({ orderId }: { orderId: string }) {
   const order = data.data;
   
   // Status Stepper Logic
-  const statuses = ["pending_payment", "processing", "shipped", "delivered"];
-  const currentStatusIndex = statuses.indexOf(order.status?.toLowerCase() || "pending_payment");
+  const getStatusStepIndex = (status?: string): number => {
+    switch (status?.toLowerCase()) {
+      case "pending_payment":
+        return 0;
+      case "confirmed":
+        return 0; // Placed & Confirmed -> Checkmark on Order Placed!
+      case "processing":
+      case "packed":
+        return 1;
+      case "shipped":
+        return 2;
+      case "delivered":
+        return 3;
+      default:
+        return 0;
+    }
+  };
+  const currentStatusIndex = getStatusStepIndex(order.status);
   const isCancelled = order.status?.toLowerCase() === "cancelled";
 
   const handleDownloadInvoice = async () => {
@@ -156,44 +172,49 @@ export function OrderDetails({ orderId }: { orderId: string }) {
             </div>
             
             <div className="flex flex-col">
-              {order.items?.map((item: any) => (
-                <div key={item._id || item.productId} className="flex flex-col sm:flex-row gap-4 p-5 border-b border-neutral-100 last:border-0 group">
-                  {item.product?.slug ? (
-                    <Link href={`/${item.product.slug}`} className="shrink-0">
-                      <div className="relative w-24 h-24 bg-neutral-50 border border-neutral-100 flex items-center justify-center p-2 hover:border-brand transition-colors">
+              {order.items?.map((item: any) => {
+                const itemImg = item.image || item.product?.images?.[0]?.url || item.product?.image || "/no-image.svg";
+                const itemSlug = item.slug || item.product?.slug || "";
+                const itemName = item.name || item.product?.name || "Riding Gear";
+
+                return (
+                  <div key={item._id || item.productId} className="flex flex-col sm:flex-row gap-4 p-5 border-b border-neutral-100 last:border-0 group">
+                    {itemSlug ? (
+                      <Link href={`/${itemSlug}`} className="shrink-0">
+                        <div className="relative w-24 h-24 bg-neutral-50 border border-neutral-100 flex items-center justify-center p-2 hover:border-brand transition-colors">
+                          <Image 
+                            src={itemImg} 
+                            alt={itemName} 
+                            fill 
+                            className="object-contain p-1 mix-blend-multiply" 
+                            sizes="96px"
+                          />
+                        </div>
+                      </Link>
+                    ) : (
+                      <div className="shrink-0 relative w-24 h-24 bg-neutral-50 border border-neutral-100 flex items-center justify-center p-2">
                         <Image 
-                          src={item.product?.images?.[0]?.url || item.product?.image || "/no-image.svg"} 
-                          alt="Product" 
+                          src={itemImg} 
+                          alt={itemName} 
                           fill 
                           className="object-contain p-1 mix-blend-multiply" 
                           sizes="96px"
                         />
                       </div>
-                    </Link>
-                  ) : (
-                    <div className="shrink-0 relative w-24 h-24 bg-neutral-50 border border-neutral-100 flex items-center justify-center p-2">
-                      <Image 
-                        src={item.product?.images?.[0]?.url || item.product?.image || "/no-image.svg"} 
-                        alt="Product" 
-                        fill 
-                        className="object-contain p-1 mix-blend-multiply" 
-                        sizes="96px"
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="flex flex-col flex-1 min-w-0">
-                    {item.product?.slug ? (
-                      <Link href={`/${item.product.slug}`}>
-                        <p className="text-sm font-bold text-neutral-900 uppercase leading-snug mb-1 hover:text-brand transition-colors">
-                          {item.name || item.product?.name || "Riding Gear"}
-                        </p>
-                      </Link>
-                    ) : (
-                      <p className="text-sm font-bold text-neutral-900 uppercase leading-snug mb-1">
-                        {item.name || item.product?.name || "Riding Gear"}
-                      </p>
                     )}
+                    
+                    <div className="flex flex-col flex-1 min-w-0">
+                      {itemSlug ? (
+                        <Link href={`/${itemSlug}`}>
+                          <p className="text-sm font-bold text-neutral-900 uppercase leading-snug mb-1 hover:text-brand transition-colors">
+                            {itemName}
+                          </p>
+                        </Link>
+                      ) : (
+                        <p className="text-sm font-bold text-neutral-900 uppercase leading-snug mb-1">
+                          {itemName}
+                        </p>
+                      )}
                     
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-500 mb-3">
                       {item.variantId && <span>Variant: <strong className="text-neutral-700">{item.variantId}</strong></span>}
@@ -209,7 +230,8 @@ export function OrderDetails({ orderId }: { orderId: string }) {
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           </div>
         </div>
@@ -230,6 +252,17 @@ export function OrderDetails({ orderId }: { orderId: string }) {
                 <span>Shipping</span>
                 <span className="font-medium text-neutral-900">{formatPrice(order.pricing?.shipping || 0)}</span>
               </div>
+              {order.pricing?.tax > 0 && (
+                <div className="flex justify-between text-neutral-600">
+                  <span className="flex items-center gap-1.5">
+                    GST ({typeof order.pricing?.taxRate === "number" ? order.pricing.taxRate : 18}%)
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-slate-100 text-slate-700">
+                      {(order.shippingAddress?.state || "").toLowerCase().includes("maharashtra") ? "CGST + SGST" : "IGST"}
+                    </span>
+                  </span>
+                  <span className="font-medium text-neutral-900">{formatPrice(order.pricing?.tax)}</span>
+                </div>
+              )}
               {order.pricing?.discount > 0 && (
                 <div className="flex justify-between text-emerald-600">
                   <span>Discount</span>
@@ -241,6 +274,19 @@ export function OrderDetails({ orderId }: { orderId: string }) {
                 <span className="font-bold text-neutral-900 uppercase tracking-wider">Grand Total</span>
                 <span className="text-xl font-black text-brand">{formatPrice(order.pricing?.total || order.totalAmount || 0)}</span>
               </div>
+
+              {order.paymentMethod === 'cod' && (order.pricing?.codPartialPaymentAmount || 0) > 0 && (
+                <div className="mt-3 p-3 rounded bg-amber-50 border border-amber-200 text-xs space-y-1.5">
+                  <div className="flex justify-between text-amber-900 font-medium">
+                    <span>Advance Paid Online:</span>
+                    <span className="font-bold">{formatPrice(order.pricing?.codPartialPaymentAmount || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-red-700 font-bold border-t border-amber-200/60 pt-1.5 text-xs">
+                    <span>Cash on Delivery Due:</span>
+                    <span>{formatPrice(order.pricing?.codAmountToCollect ?? (order.pricing?.total - (order.pricing?.codPartialPaymentAmount || 0)))}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

@@ -1,6 +1,14 @@
 import mongoose from "mongoose";
+import dns from "node:dns";
 import { ENV } from "../config/env";
 import { logger } from "../utils/logger";
+
+// Configure reliable DNS servers to resolve MongoDB Atlas SRV records without querySrv EBADRESP
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch {
+  // Ignore if custom DNS servers are restricted
+}
 
 const MONGODB_URI = process.env.MONGODB_URI as string;
 
@@ -45,7 +53,7 @@ export async function connectToDatabase() {
           initCronJobs();
           logger.info("Enterprise Background Workers and Cron Jobs successfully initialized!");
         } catch (workerErr) {
-          logger.error("Failed to initialize background workers:", workerErr);
+          logger.error(workerErr, "Failed to initialize background workers");
         }
       }
 
@@ -57,7 +65,7 @@ export async function connectToDatabase() {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
-    logger.error("Error connecting to MongoDB:", e);
+    logger.error(e, "Error connecting to MongoDB");
     throw e;
   }
 

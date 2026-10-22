@@ -73,13 +73,16 @@ export function useCreateShipment() {
 export function usePushToShiprocket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (orderId: string) => {
-      const response = await apiClient.post(`/shipments/admin/push-shiprocket`, { orderId });
+    mutationFn: async (data: string | { orderId: string; warehouseId?: string }) => {
+      const payload = typeof data === "string" ? { orderId: data } : data;
+      const response = await apiClient.post(`/shipments/admin/push-shiprocket`, payload);
       return response.data.data as IShipment;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "shipments"] });
       queryClient.invalidateQueries({ queryKey: ["shipments", "order", data.orderId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-order", data.orderId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
     },
   });
 }

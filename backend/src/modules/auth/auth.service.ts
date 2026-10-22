@@ -47,21 +47,6 @@ export class AuthService {
   }
 
   static async login(data: LoginInput) {
-    if (process.env.ADMIN_BYPASS_EMAIL && data.email === process.env.ADMIN_BYPASS_EMAIL && data.password === process.env.ADMIN_BYPASS_PASSWORD) {
-      const tokens = generateTokens("admin-bypass-id");
-      return {
-        tokens,
-        user: {
-          id: "admin-bypass-id",
-          email: data.email,
-          firstName: "Admin",
-          lastName: "Bypass",
-          name: "Admin Bypass",
-          role: "admin",
-        }
-      };
-    }
-
     const user = await UserRepository.findByEmailWithPassword(data.email);
     if (!user) throw new UnauthorizedError("Invalid credentials");
 

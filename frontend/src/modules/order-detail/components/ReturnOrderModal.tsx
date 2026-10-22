@@ -51,11 +51,11 @@ export const ReturnOrderModal: React.FC<ReturnOrderModalProps> = ({ order, onClo
     setErrorMsg("");
     createReturn(data, {
       onSuccess: () => {
-        alert("Return request submitted successfully!");
+        alert("Exchange request submitted successfully!");
         onClose();
       },
       onError: (error: any) => {
-        setErrorMsg(error?.response?.data?.message || "Failed to submit return request");
+        setErrorMsg(error?.response?.data?.message || "Failed to submit exchange request");
       },
     });
   };
@@ -70,7 +70,7 @@ export const ReturnOrderModal: React.FC<ReturnOrderModalProps> = ({ order, onClo
           &times;
         </button>
         
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">Request a Return</h2>
+        <h2 className="text-2xl font-bold mb-4 text-gray-800">Request an Exchange</h2>
         
         {errorMsg && (
           <div className="bg-red-50 text-brand p-3 rounded mb-4 text-sm border border-brand/20">
@@ -80,9 +80,9 @@ export const ReturnOrderModal: React.FC<ReturnOrderModalProps> = ({ order, onClo
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           
-          {/* ITEMS TO RETURN */}
+          {/* ITEMS TO EXCHANGE */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-gray-700 border-b pb-2">Select Items to Return</h3>
+            <h3 className="font-semibold text-gray-700 border-b pb-2">Select Items to Exchange</h3>
             {order.items.map((item, index) => (
               <div key={index} className="bg-gray-50 p-4 rounded border">
                 <div className="flex justify-between items-start mb-2">
@@ -92,12 +92,12 @@ export const ReturnOrderModal: React.FC<ReturnOrderModalProps> = ({ order, onClo
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Reason for Return *</label>
+                  <label className="block text-sm text-gray-600 mb-1">Reason for Exchange (Size / Fit / Replacement) *</label>
                   <textarea 
                     {...register(`items.${index}.reason` as const)}
                     className="w-full border rounded p-2 text-sm focus:ring-brand focus:border-brand"
                     rows={2}
-                    placeholder="e.g., Size too small, damaged product..."
+                    placeholder="e.g., Size too small / requesting size M exchange..."
                   />
                   {errors.items?.[index]?.reason && (
                     <p className="text-brand text-xs mt-1">{errors.items[index]?.reason?.message}</p>

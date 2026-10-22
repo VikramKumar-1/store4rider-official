@@ -19,7 +19,7 @@ export class ShippingController {
     if (!body.orderId) {
       throw new AppError("orderId is required", 400);
     }
-    const result = await ShipmentService.pushOrderToShiprocket(body.orderId);
+    const result = await ShipmentService.pushOrderToShiprocket(body.orderId, body.warehouseId);
     return ApiResponse.success(result.shipment, result.message, 200);
   }
 

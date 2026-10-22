@@ -18,7 +18,7 @@ const memoryLimiterInstances = new Map<string, RateLimiterMemory>();
  * Helper to initialize or retrieve a RateLimiterRedis instance for a given rule
  */
 function getLimiter(rule: RateLimitRule): RateLimiterRedis | null {
-  if (!redisClient) return null;
+  if (!redisClient || redisClient.status !== "ready") return null;
 
   if (!limiterInstances.has(rule.keyPrefix)) {
     limiterInstances.set(

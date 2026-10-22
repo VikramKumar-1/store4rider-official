@@ -33,6 +33,7 @@ export interface ISetting {
   instagramUrl?: string;
   youtubeUrl?: string;
   returnWindowDays?: number;
+  popularSearches?: string[];
 }
 
 export interface IPublicSettings {

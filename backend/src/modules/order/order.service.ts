@@ -9,7 +9,7 @@ import { SettingRepository } from "../settings/setting.repository";
 import { PaymentRepository } from "../payment/payment.repository";
 import { PaymentGatewayFactory } from "../../core/payments/PaymentGatewayFactory";
 import { IOrder, IPayment } from "@store4riders/shared-types";
-import { AppError } from "../../core/errors/AppError";
+import { AppError, NotFoundError, ValidationError } from "../../core/errors/AppError";
 import { addEmailJob } from "../../core/queue/email.queue";
 import { logger } from "../../core/utils/logger";
 import { ENV } from "../../core/config/env";
@@ -17,6 +17,14 @@ import { calculateTax, calculateInclusiveTax, getTaxRateFromClass } from "@store
 
 export class OrderService {
   
+  static async generateOrderNumber(): Promise<string> {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const seq = await OrderRepository.getNextOrderSequence();
+    return `OD-S4R-${yy}${mm}${seq}`;
+  }
+
   static async createOrder(userId: string | undefined, input: any) { 
     const { shippingAddressId, shippingAddress, guestEmail, paymentMethod, couponCode, idempotencyKey, customerGstin, businessName } = input;
     const sanitizedGstin = customerGstin ? String(customerGstin).trim().toUpperCase() : undefined;
@@ -116,7 +124,7 @@ export class OrderService {
     }
 
     const settings = await SettingRepository.getSettings();
-    const defaultTaxRate = settings.taxRate || 18;
+    const defaultTaxRate = typeof settings.taxRate === "number" ? settings.taxRate : 18;
     const freeShippingThreshold = settings.freeShippingThreshold || 0;
     const shippingCost = settings.shippingCost || 0;
 
@@ -161,17 +169,28 @@ export class OrderService {
 
       const itemHsnCode = (item.variantId ? product.variants?.find((v: any) => v.id === item.variantId || v.sku === item.variantId)?.hsnCode : undefined) || product.hsnCode || "";
 
+      const variantObj = item.variantId ? product.variants?.find((v: any) => v.id === item.variantId || v.sku === item.variantId) : null;
+      const itemImage = (variantObj as any)?.image
+        || (variantObj as any)?.images?.[0]?.url
+        || product.images?.[0]?.url
+        || (product as any).thumbnail
+        || (product as any).image
+        || "";
+
       orderItems.push({
         productId: String(product._id),
         variantId: item.variantId,
         name: product.name,
-        sku: item.variantId ? (product.variants?.find((v: any) => v.id === item.variantId || v.sku === item.variantId)?.sku || product.sku) : product.sku,
+        sku: item.variantId ? (variantObj?.sku || product.sku) : product.sku,
         quantity: item.quantity,
         unitPrice,
         taxRate: itemTaxRate,
         taxAmount: itemTax,
         hsnCode: itemHsnCode,
         allowBackorders: product.allowBackorders,
+        isFreeShipping: Boolean(product.isFreeShipping),
+        image: itemImage,
+        slug: product.slug || "",
       });
     }
 
@@ -188,7 +207,8 @@ export class OrderService {
     const discountedSubtotal = Math.max(0, subtotal - couponDiscount);
 
     const isInclusive = settings.gstPricingMode !== "exclusive";
-    const shipping = (discountedSubtotal > 0 && discountedSubtotal < freeShippingThreshold) ? shippingCost : 0;
+    const allFreeShipping = orderItems.length > 0 && orderItems.every((item: any) => item.isFreeShipping);
+    const shipping = (allFreeShipping || (discountedSubtotal >= freeShippingThreshold)) ? 0 : (discountedSubtotal > 0 ? shippingCost : 0);
     const totalAmount = isInclusive
       ? discountedSubtotal + shipping
       : discountedSubtotal + totalTax + shipping;
@@ -229,7 +249,7 @@ export class OrderService {
       }
     }
 
-    const orderNumber = `ORD-${Date.now()}-${crypto.randomBytes(2).toString("hex").toUpperCase()}`;
+    const orderNumber = await this.generateOrderNumber();
 
     const session = await mongoose.startSession();
     let resultData;
@@ -444,22 +464,31 @@ export class OrderService {
 
     if (!gatewayOrderId) {
       logger.warn(`Webhook received without gatewayOrderId for ${gatewayType}`);
-      return;
+      return { success: false, message: "Missing gatewayOrderId" };
     }
 
     let stockFailed = false;
     let paymentRecord: any = null;
+    let finalOrderNumber = "";
+    let finalOrderId = "";
 
     const session = await mongoose.startSession();
     try {
       await session.withTransaction(async () => {
         const order = await OrderRepository.findByGatewayOrderId(gatewayOrderId, session);
+
         if (!order) {
           logger.warn(`Order not found for Gateway Order ID: ${gatewayOrderId}`);
           return;
         }
 
-        const payment = await PaymentRepository.findByGatewayOrderId(gatewayOrderId, session);
+        finalOrderNumber = order.orderNumber;
+        finalOrderId = String((order as any)._id || order.id);
+
+        let payment = await PaymentRepository.findByGatewayOrderId(gatewayOrderId, session);
+        if (!payment) {
+          payment = await PaymentRepository.findByOrderId(finalOrderId, session);
+        }
         if (!payment) {
           logger.warn(`Payment not found for Gateway Order ID: ${gatewayOrderId}`);
           return;
@@ -575,6 +604,14 @@ export class OrderService {
         logger.error(`Webhook failed to initiate refund for payment ${paymentRecord._id || paymentRecord.id}: ${err.message}`);
       }
     }
+
+    return {
+      success: eventName === "payment.captured" && !stockFailed,
+      orderNumber: finalOrderNumber || gatewayOrderId,
+      orderId: finalOrderId || gatewayOrderId,
+      eventName,
+      message: eventName === "payment.captured" ? (stockFailed ? "Insufficient stock" : "Payment captured") : "Payment failed",
+    };
   }
 
   static async requestRefund(orderId: string, amount?: number, reason?: string) {
@@ -697,6 +734,12 @@ export class OrderService {
     // e.g., restoring stock if cancelled/returned
 
     const updatedOrder = await OrderRepository.updateStatus(orderId, newStatus);
+    if (updatedOrder) {
+      try {
+        const { OrderModel } = await import("./order.model");
+        await OrderModel.findByIdAndUpdate(orderId, { $unset: { invoiceUrl: 1 } });
+      } catch {}
+    }
     return updatedOrder;
   }
 
@@ -764,6 +807,131 @@ export class OrderService {
     const { InvoiceGenerator } = require("../../core/utils/invoiceGenerator");
     const url = await InvoiceGenerator.getOrGenerateInvoiceUrl(order);
     return url;
+  }
+
+  static async resendInvoiceEmail(orderId: string): Promise<{ invoiceUrl: string; recipientEmail: string }> {
+    const order = await OrderRepository.findById(orderId);
+    if (!order) {
+      throw new NotFoundError("Order");
+    }
+
+    const { InvoiceGenerator } = require("../../core/utils/invoiceGenerator");
+    const invoiceUrl = await InvoiceGenerator.getOrGenerateInvoiceUrl(order);
+
+    let recipientEmail = order.guestEmail;
+    if (!recipientEmail && order.userId) {
+      try {
+        const { UserModel } = await import("../user/user.model");
+        const user = await UserModel.findById(order.userId).lean().exec();
+        recipientEmail = (user as any)?.email;
+      } catch {}
+    }
+
+    if (!recipientEmail) {
+      throw new ValidationError("No customer email found for this order");
+    }
+
+    const isCod = String(order.paymentMethod || "").toLowerCase() === "cod";
+    const advancePaid = isCod ? (order.pricing?.codPartialPaymentAmount || 0) : order.pricing?.total;
+    const balanceDue = isCod
+      ? (order.pricing?.codAmountToCollect !== undefined
+          ? order.pricing.codAmountToCollect
+          : Math.max(0, (order.pricing?.total || 0) - advancePaid))
+      : 0;
+
+    const emailSubject = `Tax Invoice for Order #${order.orderNumber} - Store4Riders`;
+    const emailBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <h2 style="color: #AB1509; margin-top: 0;">Store4Riders Tax Invoice</h2>
+        <p>Hello <strong>${order.shippingAddress?.fullName || "Rider"}</strong>,</p>
+        <p>Thank you for choosing Store4Riders for your riding gear. Here is your official tax invoice for Order <strong>#${order.orderNumber}</strong>.</p>
+        
+        <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 15px; margin: 20px 0;">
+          <h3 style="margin-top: 0; font-size: 14px; color: #0f172a;">Order & Payment Summary</h3>
+          <p style="margin: 4px 0; font-size: 13px;"><strong>Order ID:</strong> #${order.orderNumber}</p>
+          <p style="margin: 4px 0; font-size: 13px;"><strong>Grand Total:</strong> Rs. ${order.pricing?.total?.toFixed(2)}</p>
+          <p style="margin: 4px 0; font-size: 13px;"><strong>Payment Method:</strong> ${isCod ? "Cash on Delivery" : order.paymentMethod.toUpperCase()}</p>
+          ${isCod ? `
+            <p style="margin: 4px 0; font-size: 13px; color: #15803d;"><strong>Advance Paid Online:</strong> Rs. ${advancePaid.toFixed(2)}</p>
+            <p style="margin: 4px 0; font-size: 14px; color: #b91c1c;"><strong>Balance Cash Due on Delivery:</strong> Rs. ${balanceDue.toFixed(2)}</p>
+          ` : `
+            <p style="margin: 4px 0; font-size: 13px; color: #15803d;"><strong>Payment Status:</strong> Paid in Full Online</p>
+          `}
+        </div>
+
+        <div style="text-align: center; margin: 25px 0;">
+          <a href="${invoiceUrl}" target="_blank" style="background-color: #AB1509; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; display: inline-block;">
+            Download Tax Invoice PDF
+          </a>
+        </div>
+
+        <p style="font-size: 12px; color: #64748b; line-height: 1.5;">
+          * Note: Store4Riders operates under a strict 7-Day Size & Gear Exchange Policy. No monetary returns/refunds.
+        </p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #94a3b8; text-align: center;">
+          Store4Riders | Premium Motorcycle Riding Gear | support@store4riders.com
+        </p>
+      </div>
+    `;
+
+    try {
+      const { addEmailJob } = require("../../core/queue/email.queue");
+      await addEmailJob(recipientEmail, emailSubject, emailBody);
+    } catch {
+      try {
+        const { sendEmail } = require("../../core/email/ses");
+        await sendEmail(recipientEmail, emailSubject, emailBody);
+      } catch (err: any) {
+        logger.error("[OrderService] Failed to queue or send invoice email", err);
+      }
+    }
+
+    // Add note on order
+    await OrderRepository.addNote(orderId, {
+      text: `Tax Invoice resent via email to ${recipientEmail}`,
+      author: "admin",
+      timestamp: new Date(),
+    });
+
+    return { invoiceUrl, recipientEmail };
+  }
+
+  static async adminAssignWarehouse(orderId: string, warehouseId: string): Promise<any> {
+    const order = await OrderRepository.findById(orderId);
+    if (!order) {
+      throw new NotFoundError("Order");
+    }
+
+    const { WarehouseRepository } = await import("../warehouse/warehouse.repository");
+    const warehouse = await WarehouseRepository.findById(warehouseId);
+    if (!warehouse) {
+      throw new NotFoundError("Warehouse");
+    }
+
+    const note = {
+      text: `Dispatch warehouse assigned to ${warehouse.name} (${warehouse.city}, ${warehouse.state})`,
+      author: "admin",
+      timestamp: new Date(),
+    };
+
+    const updatedOrder = await OrderRepository.updateWarehouse(orderId, warehouseId, note);
+
+    // Also update any existing forward shipment
+    try {
+      const { ShipmentModel } = await import("../shipping/shipment.model");
+      await ShipmentModel.updateMany({ orderId: String(orderId) }, { $set: { warehouseId: String(warehouse._id) } });
+    } catch {}
+
+    // Regenerate invoice with updated warehouse
+    try {
+      const { InvoiceGenerator } = require("../../core/utils/invoiceGenerator");
+      if (updatedOrder) {
+        await InvoiceGenerator.generateAndSaveInvoice(updatedOrder);
+      }
+    } catch {}
+
+    return updatedOrder;
   }
 
   static async cleanupAbandonedOrders(): Promise<number> {

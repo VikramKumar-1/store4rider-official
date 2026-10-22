@@ -11,6 +11,8 @@ const orderItemSchema = new Schema<IOrderItem>({
   taxRate: { type: Number, required: true },
   taxAmount: { type: Number, required: true },
   hsnCode: { type: String },
+  image: { type: String },
+  slug: { type: String },
 });
 
 const pricingSchema = new Schema<IOrderPricing>(
@@ -53,6 +55,8 @@ const orderSchema = new Schema<IOrder>(
     paymentMethod: { type: String, required: true },
     customerGstin: { type: String },
     businessName: { type: String },
+    warehouseId: { type: String },
+    invoiceUrl: { type: String },
     gatewayOrderId: { type: String },
     paymentId: { type: String },
     paymentSignature: { type: String },
@@ -69,3 +73,20 @@ const orderSchema = new Schema<IOrder>(
 );
 
 export const OrderModel = mongoose.models.Order || mongoose.model<IOrder>("Order", orderSchema);
+
+export interface IOrderCounter {
+  _id: string;
+  seq: number;
+}
+
+const orderCounterSchema = new Schema<IOrderCounter>(
+  {
+    _id: { type: String, required: true },
+    seq: { type: Number, default: 100000 },
+  },
+  { collection: "counters" }
+);
+
+export const OrderCounterModel =
+  mongoose.models.OrderCounter ||
+  mongoose.model<IOrderCounter>("OrderCounter", orderCounterSchema);

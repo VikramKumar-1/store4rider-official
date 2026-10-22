@@ -7,15 +7,20 @@ export const dynamic = "force-dynamic";
  * Proxies to backend to fetch saved Google reviews from MongoDB.
  * Strict zero-mock compliance: Returns actual saved reviews or empty state.
  */
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const queryString = searchParams.toString() ? `?${searchParams.toString()}` : "";
+
     const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "http://localhost:4000/api";
     const baseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
-    const fetchUrl = baseUrl.includes("/v1") ? `${baseUrl}/reviews/store` : `${baseUrl}/v1/reviews/store`;
+    const fetchUrl = baseUrl.includes("/v1")
+      ? `${baseUrl}/reviews/store${queryString}`
+      : `${baseUrl}/v1/reviews/store${queryString}`;
 
     const response = await fetch(fetchUrl, {
       cache: "no-store",
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(10000),
     });
 
     if (response.ok) {
@@ -59,6 +64,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         apiKey: body.apiKey || process.env.SERPAPI_KEY,
+        pages: body.pages,
       }),
     });
 

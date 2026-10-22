@@ -67,20 +67,58 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
   };
 
   const searchParams = useSearchParams();
-  const activeColorParam = searchParams?.get("colour");
+  const activeColorParam = searchParams?.get("colour") || searchParams?.get("color");
   const activeColors = activeColorParam ? activeColorParam.split(",").map(c => c.trim().toLowerCase()) : [];
 
-  let bestRawUrl = product.images?.[0]?.url || product.image || "/no-image.svg";
+  let bestRawUrl =
+    product.thumbnail ||
+    (Array.isArray(product.images) && product.images.length > 0
+      ? (typeof product.images[0] === "string" ? product.images[0] : product.images[0]?.url)
+      : "") ||
+    product.image ||
+    "/no-image.svg";
 
-  // If a color filter is active, try to find an image that matches the color
-  if (activeColors.length > 0 && product.images && product.images.length > 0) {
-    const matchedImage = product.images.find((img: any) => {
-      const altText = (img.altText || "").toLowerCase();
-      const urlText = (img.url || "").toLowerCase();
-      return activeColors.some(color => altText.includes(color) || urlText.includes(color.replace(/\s+/g, '-')));
-    });
-    if (matchedImage) {
-      bestRawUrl = matchedImage.url;
+  // If a color filter is active, find the matching color image
+  if (activeColors.length > 0) {
+    // 1. Check colorImages dictionary (most accurate mapping)
+    if (product.colorImages && typeof product.colorImages === "object") {
+      const colorImagesKeys = Object.keys(product.colorImages);
+      for (const color of activeColors) {
+        const matchingKey = colorImagesKeys.find(
+          (k) => k.toLowerCase() === color || k.toLowerCase().includes(color) || color.includes(k.toLowerCase())
+        );
+        if (matchingKey && product.colorImages[matchingKey]) {
+          bestRawUrl = product.colorImages[matchingKey];
+          break;
+        }
+      }
+    }
+
+    // 2. Check variants array for matching variant image
+    if (bestRawUrl === (product.images?.[0]?.url || product.image || "/no-image.svg") && product.variants && product.variants.length > 0) {
+      const matchedVariant = product.variants.find((v: any) => {
+        const vCol = (v.attributes?.color || v.attributes?.colour || "").toLowerCase();
+        return v.imageUrl && activeColors.some((c) => vCol === c || vCol.includes(c) || c.includes(vCol));
+      });
+      if (matchedVariant?.imageUrl) {
+        bestRawUrl = matchedVariant.imageUrl;
+      }
+    }
+
+    // 3. Fallback to product.images array
+    if (bestRawUrl === (product.images?.[0]?.url || product.image || "/no-image.svg") && product.images && product.images.length > 0) {
+      const matchedImage = product.images.find((img: any) => {
+        const altText = (img.altText || "").toLowerCase();
+        const urlText = (img.url || "").toLowerCase();
+        return activeColors.some((color) => {
+          const cleanColor = color.replace(/\s+/g, "-");
+          const parts = color.split(/[\/\s.-]+/).filter((p: string) => p.length > 2 && p !== "black");
+          return altText.includes(color) || urlText.includes(cleanColor) || parts.some((p: string) => urlText.includes(p) || altText.includes(p));
+        });
+      });
+      if (matchedImage?.url) {
+        bestRawUrl = matchedImage.url;
+      }
     }
   }
 

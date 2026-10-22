@@ -21,12 +21,16 @@ if (REDIS_URL) {
 
     redisClient.on("connect", () => {
       isRedisConnected = true;
+      (globalThis as any).__hasLoggedRedisOffline = false;
       logger.info("Connected to Redis Cache Engine");
     });
 
     redisClient.on("error", (err) => {
       isRedisConnected = false;
-      logger.warn(`Redis Offline / Error (${err.message}). Using instant Memory Cache fallback.`);
+      if (!(globalThis as any).__hasLoggedRedisOffline) {
+        (globalThis as any).__hasLoggedRedisOffline = true;
+        logger.warn(`Redis Offline / Unreachable (${err.message || "Connection refused"}). Using instant Memory Cache fallback.`);
+      }
     });
   } catch (err) {
     isRedisConnected = false;

@@ -4,6 +4,7 @@ import { IShipment } from "@store4riders/shared-types"; // Might need update lat
 
 export interface ShipmentDocument extends Document {
   orderId: string;
+  warehouseId?: string;
   provider: string; // "shiprocket", "delhivery", "xpressbees"
   shipmentType: "forward" | "reverse";
   
@@ -98,6 +99,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
 const shipmentSchema = new Schema<ShipmentDocument>(
   {
     orderId: { type: String, required: true, index: true },
+    warehouseId: { type: String },
     provider: { type: String, required: true },
     shipmentType: { type: String, enum: ["forward", "reverse"], default: "forward" },
     

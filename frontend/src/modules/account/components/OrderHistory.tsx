@@ -80,7 +80,9 @@ export function OrderHistory() {
         {orders.map((order: any) => {
           const statusConfig = getStatusDisplay(order.status);
           const firstItem = order.items?.[0];
-          const productImg = firstItem?.product?.images?.[0]?.url || firstItem?.product?.image || "/no-image.svg";
+          const productImg = firstItem?.image || firstItem?.product?.images?.[0]?.url || firstItem?.product?.image || "/no-image.svg";
+          const itemSlug = firstItem?.slug || firstItem?.product?.slug || "";
+          const itemName = firstItem?.name || firstItem?.product?.name || "Riding Gear";
           const additionalItemsCount = Math.max(0, (order.items?.length || 0) - 1);
           
           return (
@@ -100,25 +102,43 @@ export function OrderHistory() {
 
                 <div className="flex gap-4">
                   {/* Item Image */}
-                  <Link href={`/${firstItem?.product?.slug}`} className="shrink-0">
-                    <div className="relative w-20 h-20 bg-neutral-50 border border-neutral-100 flex items-center justify-center p-1 hover:border-brand transition-colors">
+                  {itemSlug ? (
+                    <Link href={`/${itemSlug}`} className="shrink-0">
+                      <div className="relative w-20 h-20 bg-neutral-50 border border-neutral-100 flex items-center justify-center p-1 hover:border-brand transition-colors">
+                        <Image 
+                          src={productImg} 
+                          alt={itemName} 
+                          fill 
+                          className="object-contain p-1 mix-blend-multiply" 
+                          sizes="80px"
+                        />
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="shrink-0 relative w-20 h-20 bg-neutral-50 border border-neutral-100 flex items-center justify-center p-1">
                       <Image 
                         src={productImg} 
-                        alt="Product" 
+                        alt={itemName} 
                         fill 
                         className="object-contain p-1 mix-blend-multiply" 
                         sizes="80px"
                       />
                     </div>
-                  </Link>
+                  )}
                   
                   {/* Item Details */}
                   <div className="flex flex-col justify-center min-w-0">
-                    <Link href={`/${firstItem?.product?.slug}`}>
-                      <p className="text-xs font-bold text-neutral-900 uppercase line-clamp-2 mb-1 hover:text-brand transition-colors">
-                        {firstItem?.product?.name || "Riding Gear"}
+                    {itemSlug ? (
+                      <Link href={`/${itemSlug}`}>
+                        <p className="text-xs font-bold text-neutral-900 uppercase line-clamp-2 mb-1 hover:text-brand transition-colors">
+                          {itemName}
+                        </p>
+                      </Link>
+                    ) : (
+                      <p className="text-xs font-bold text-neutral-900 uppercase line-clamp-2 mb-1">
+                        {itemName}
                       </p>
-                    </Link>
+                    )}
                     <p className="text-[11px] text-neutral-500 font-medium">
                       Placed on {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>

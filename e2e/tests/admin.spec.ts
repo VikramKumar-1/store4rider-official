@@ -18,9 +18,8 @@ test.describe('Admin Portal E2E', () => {
   test('should login as admin and view dashboard', async ({ page }) => {
     await page.goto('http://localhost:3000/admin');
 
-    // Use environment variables if available, otherwise default to the standard bypass
-    const adminEmail = process.env.ADMIN_BYPASS_EMAIL || 'admin@store4riders.com';
-    const adminPassword = process.env.ADMIN_BYPASS_PASSWORD || 'admin';
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@store4riders.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'AdminPassword123!';
 
     await page.fill('input[type="email"]', adminEmail);
     await page.fill('input[type="password"]', adminPassword);

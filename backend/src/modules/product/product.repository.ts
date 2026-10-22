@@ -150,10 +150,15 @@ export class ProductRepository {
       const matchKey = variant.sku ? "sku" : "id";
       const matchValue = variant.sku || variant.id;
 
+      const elemMatchFilter: any = { [matchKey]: matchValue };
+      if (!product.allowBackorders) {
+        elemMatchFilter.stock = { $gte: quantity };
+      }
+
       const result = await ProductModel.updateOne(
         { 
           _id: productId, 
-          variants: { $elemMatch: { [matchKey]: matchValue } } 
+          variants: { $elemMatch: elemMatchFilter } 
         },
         { $inc: { "variants.$.stock": -quantity } }
       ).session(session || null).exec();

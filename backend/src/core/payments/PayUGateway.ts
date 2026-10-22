@@ -11,8 +11,9 @@ export class PayUGateway implements PaymentGateway {
     const key = (ENV.PAYU_MERCHANT_KEY || process.env.PAYU_MERCHANT_KEY || "").trim();
     const salt = (ENV.PAYU_SALT || process.env.PAYU_SALT || "").trim();
 
-    if (!key || !salt) {
-      throw new AppError("PayU / UPI credentials are not configured in backend/.env", 400);
+    const isPlaceholder = (val: string) => !val || val.startsWith("your_") || val === "your_payu_key" || val === "your_payu_salt";
+    if (isPlaceholder(key) || isPlaceholder(salt)) {
+      throw new AppError("PayU credentials in backend/.env are missing or set to placeholder values ('your_payu_key'). Please update backend/.env with your real PayU Merchant Key and Salt.", 400);
     }
     
     // PayU txnid MUST be strictly <= 25 characters.
@@ -36,6 +37,11 @@ export class PayUGateway implements PaymentGateway {
     }
     const cleanApiBase = rawApiUrl.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
 
+    const mode = (ENV.PAYU_MODE || process.env.PAYU_MODE || "test").trim().toLowerCase();
+    const actionUrl = mode === "live"
+      ? "https://secure.payu.in/_payment"
+      : "https://test.payu.in/_payment";
+
     const payuPayload: Record<string, string> = {
       key,
       txnid,
@@ -47,6 +53,7 @@ export class PayUGateway implements PaymentGateway {
       hash,
       surl: `${cleanApiBase}/api/v1/orders/webhook/payu/success`,
       furl: `${cleanApiBase}/api/v1/orders/webhook/payu/failure`,
+      actionUrl,
     };
 
     // IMPORTANT: We MUST return the raw payload and let the browser's HTML form submit it.

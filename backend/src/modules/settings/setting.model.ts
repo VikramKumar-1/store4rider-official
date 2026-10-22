@@ -31,6 +31,7 @@ export interface ISetting extends Document {
   instagramUrl?: string;
   youtubeUrl?: string;
   returnWindowDays?: number;
+  popularSearches?: string[];
 }
 
 const settingSchema = new Schema<ISetting>(
@@ -59,6 +60,7 @@ const settingSchema = new Schema<ISetting>(
     instagramUrl: { type: String, default: "https://www.instagram.com/store4riders/" },
     youtubeUrl: { type: String, default: "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg" },
     returnWindowDays: { type: Number, default: 7 },
+    popularSearches: { type: [String], default: [] },
     packagePresets: { 
       type: [{ name: String, length: Number, breadth: Number, height: Number }], 
       default: [

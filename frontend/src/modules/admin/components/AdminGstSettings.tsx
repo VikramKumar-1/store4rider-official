@@ -13,7 +13,6 @@ import {
   AlertCircle, 
   HelpCircle, 
   ShieldCheck, 
-  Sparkles,
   MapPin,
   Info
 } from "lucide-react";
@@ -69,10 +68,12 @@ export function AdminGstSettings() {
 
     setSaving(true);
     try {
-      await apiClient.put("/admin/settings", settings);
+      const { _id, __v, createdAt, updatedAt, id, ...payload } = settings as any;
+      await apiClient.put("/admin/settings", payload);
       toast.success("GST and Tax settings saved successfully");
     } catch (err: any) {
-      toast.error(err.message || "Failed to save GST settings");
+      const msg = err.response?.data?.message || err.message || "Failed to save GST settings";
+      toast.error(typeof msg === "string" ? msg : "Failed to save GST settings");
     } finally {
       setSaving(false);
     }
@@ -304,7 +305,16 @@ export function AdminGstSettings() {
                     step="0.01"
                     required
                     value={settings.taxRate}
-                    onChange={(e) => setSettings({ ...settings, taxRate: Number(e.target.value) })}
+                    onKeyDown={(e) => {
+                      if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") {
+                        e.preventDefault();
+                      }
+                    }}
+                    onChange={(e) => {
+                      const num = Number(e.target.value);
+                      const clamped = isNaN(num) ? 0 : Math.min(100, Math.max(0, num));
+                      setSettings({ ...settings, taxRate: clamped });
+                    }}
                     className="w-full border border-neutral-300 rounded-lg p-2.5 text-sm pr-8 focus:ring-2 focus:ring-brand focus:outline-none"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400">

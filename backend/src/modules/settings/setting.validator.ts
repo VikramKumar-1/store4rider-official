@@ -3,7 +3,15 @@ import { AppError } from "../../core/errors/AppError";
 
 export class SettingValidator {
   static async validateUpdateSettings(req: any) {
-    const body = await req.json();
+    let body = (req as any).parsedBody;
+    if (!body) {
+      if (typeof req.json === "function") {
+        body = await req.json();
+      } else {
+        body = (req as any).body;
+      }
+      (req as any).parsedBody = body;
+    }
     const result = updateSettingSchema.safeParse(body);
     if (!result.success) {
       throw new AppError(result.error.errors[0].message, 400);

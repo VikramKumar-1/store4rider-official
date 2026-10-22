@@ -26,8 +26,8 @@ export const updateUserRoleSchema = z.object({
   role: userRoleSchema,
 });
 
-const addressRegex = /^[a-zA-Z0-9\s\-,.'/#]+$/;
-const addressMessage = "Can only contain letters, numbers, spaces, and basic punctuation (-,.'/#)";
+const addressRegex = /^[a-zA-Z0-9\s\-,.'/#&():]+$/;
+const addressMessage = "Can only contain letters, numbers, spaces, and basic punctuation (-,.'/#&():)";
 
 export const addressSchema = z.object({
   street: z.string().min(3).max(255).regex(addressRegex, addressMessage),

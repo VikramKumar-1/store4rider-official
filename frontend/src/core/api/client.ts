@@ -31,7 +31,13 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     // If 401 Unauthorized, and we haven't already retried this request
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Never attempt token refresh on login/register endpoints
+    const isAuthRoute =
+      originalRequest?.url?.includes("/auth/login") ||
+      originalRequest?.url?.includes("/auth/register") ||
+      originalRequest?.url?.includes("/auth/refresh");
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRoute) {
       originalRequest._retry = true;
 
       try {

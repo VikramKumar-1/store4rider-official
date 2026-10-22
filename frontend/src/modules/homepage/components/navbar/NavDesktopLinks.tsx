@@ -30,7 +30,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
 }) => {
   return (
     <div
-      className="hidden lg:flex flex-1 items-center justify-start lg:pl-4 xl:justify-center gap-0 px-0.5 xl:px-2.5 pointer-events-auto whitespace-nowrap static lg:relative"
+      className="hidden lg:flex flex-1 items-center justify-start lg:pl-1 xl:pl-2 2xl:pl-4 gap-0 lg:gap-0 xl:gap-0.5 2xl:gap-1 pointer-events-auto whitespace-nowrap static"
       onMouseLeave={onNavLeave}
     >
       {items.map((item, idx) => {
@@ -44,7 +44,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
           >
             <Link
               href={item.href}
-              className={`relative flex items-center gap-1 xl:gap-1.5 text-[9px] lg:text-[10px] xl:text-[11px] 2xl:text-[12px] font-sans font-bold tracking-wider xl:tracking-widest uppercase px-1.5 lg:px-1.5 xl:px-3 py-2 rounded-full transition-colors duration-200 z-10 ${
+              className={`relative flex items-center gap-0.5 lg:gap-1 text-[9px] lg:text-[9.5px] xl:text-[10px] 2xl:text-[11.5px] font-sans font-bold tracking-tight lg:tracking-normal xl:tracking-wide 2xl:tracking-wider uppercase px-1 lg:px-1 xl:px-1.5 2xl:px-2.5 py-1.5 rounded-full transition-colors duration-200 z-10 ${
                 isLight
                   ? isHovered ? "text-neutral-950" : "text-neutral-700 hover:text-neutral-950"
                   : isHovered ? "text-white" : "text-white/90 hover:text-white drop-shadow-sm"
@@ -65,12 +65,12 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
               <motion.span
                 animate={{ y: isHovered ? -1.5 : 0, scale: isHovered ? 1.03 : 1 }}
                 transition={{ type: "spring", stiffness: 450, damping: 22, mass: 0.4 }}
-                className="relative z-10 flex items-center gap-1.5"
+                className="relative z-10 flex items-center gap-0.5 lg:gap-1"
               >
                 <span>{item.label}</span>
                 {item.hasDropdown && (
                   <ChevronDownIcon
-                    className={`w-3 h-3 transition-transform duration-300 stroke-[2.5] ${
+                    className={`w-2.5 h-2.5 transition-transform duration-300 stroke-[2] ${
                       hoveredMenuId === item.id ? "rotate-180 text-neutral-900" : isLight ? "text-neutral-400" : "text-white/70"
                     }`}
                   />
@@ -84,8 +84,10 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
                 className={`absolute top-full pt-3 z-50 ${
                   hoveredMenuId === item.id ? "pointer-events-auto" : "pointer-events-none"
                 } ${
-                  item.id === "guides"
+                  item.id === "helmets"
                     ? "left-0"
+                    : item.id === "guides"
+                    ? "right-0"
                     : "left-1/2 -translate-x-1/2"
                 }`}
               >
@@ -100,7 +102,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
                       : item.megaMenuItems?.length === 2
                       ? "w-[540px] xl:w-[620px]" // 2 columns
                       : "w-[280px]" // 1 column
-                  } bg-white/95 backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_-10px_rgba(0,0,0,0.12)] border border-neutral-200/80 transition-all duration-300 ease-out overflow-hidden transform ring-1 ring-black/[0.04] ${
+                  } max-w-[calc(100vw-2rem)] bg-white/95 backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_-10px_rgba(0,0,0,0.12)] border border-neutral-200/80 transition-all duration-300 ease-out overflow-hidden transform ring-1 ring-black/[0.04] ${
                     hoveredMenuId === item.id
                       ? "opacity-100 translate-y-0"
                       : "opacity-0 translate-y-2"

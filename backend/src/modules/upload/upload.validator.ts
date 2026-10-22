@@ -18,9 +18,16 @@ export class UploadValidator {
       throw new AppError("fileName and fileType are required", 400);
     }
 
-    const validTypes = ["image/jpeg", "image/png", "image/webp"];
+    const validTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "video/mp4",
+      "video/webm",
+      "video/quicktime",
+    ];
     if (!validTypes.includes(fileType)) {
-      throw new AppError("Invalid file type. Only jpg, png, and webp are allowed.", 400);
+      throw new AppError("Invalid file type. Only jpg, png, webp, and mp4/webm videos are allowed.", 400);
     }
 
     return { fileName, fileType };

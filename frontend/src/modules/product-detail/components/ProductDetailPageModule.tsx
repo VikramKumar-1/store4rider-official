@@ -752,7 +752,7 @@ export const ProductDetailPageModule = ({ slug: propSlug }: ProductDetailPageMod
   const { data: kitProducts } = useProductKit(slug);
   const { data: upsellProducts } = useProductsBySkus(upsellSkus);
   const { data: reviewsData } = useProductReviews(productId);
-  const { data: storeReviewsData, fetchNextPage, hasNextPage, isFetchingNextPage } = useStoreReviews();
+  const { data: storeReviewsData, fetchNextPage, hasNextPage, isFetchingNextPage } = useStoreReviews({ random: true });
 
   const addRecentView = useRecentViewsStore((state) => state.addRecentView);
 

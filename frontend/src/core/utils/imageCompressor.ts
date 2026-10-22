@@ -19,8 +19,8 @@ export interface CompressionResult {
 
 export async function compressImageToWebP(
   file: File,
-  maxDimension = 1600,
-  quality = 0.85
+  maxDimension = 1440,
+  quality = 0.82
 ): Promise<CompressionResult> {
   return new Promise((resolve, reject) => {
     // If not an image, reject
@@ -36,6 +36,22 @@ export async function compressImageToWebP(
       img.onload = () => {
         let width = img.width;
         let height = img.height;
+
+        // If the uploaded file is ALREADY an optimized WebP under 250 KB and within maxDimension,
+        // pass it through directly to save processing time.
+        if (
+          file.type === "image/webp" &&
+          width <= maxDimension &&
+          height <= maxDimension &&
+          file.size <= 250 * 1024
+        ) {
+          return resolve({
+            file,
+            previewUrl: URL.createObjectURL(file),
+            originalSize: file.size,
+            compressedSize: file.size,
+          });
+        }
 
         // Maintain aspect ratio while constraining to maxDimension
         if (width > maxDimension || height > maxDimension) {

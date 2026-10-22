@@ -16,6 +16,10 @@ export class PaymentRepository {
     return PaymentModel.findOne({ gatewayOrderId }).session(session || null).exec();
   }
 
+  static async findByOrderId(orderId: string, session?: ClientSession): Promise<PaymentDocument | null> {
+    return PaymentModel.findOne({ orderId }).session(session || null).exec();
+  }
+
   static async findByIdempotencyKey(idempotencyKey: string, session?: ClientSession): Promise<PaymentDocument | null> {
     return PaymentModel.findOne({ idempotencyKey }).session(session || null).exec();
   }

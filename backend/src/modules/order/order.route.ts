@@ -77,7 +77,7 @@ export async function orderRouter(req: NextRequest, routePath: string[]): Promis
     return await OrderController.create(req);
   }
 
-  if (method === "POST" && routePath[0] === "webhook") {
+  if ((method === "POST" || method === "GET") && routePath[0] === "webhook") {
     return await OrderController.webhook(req, routePath);
   }
 
@@ -115,6 +115,14 @@ export async function orderRouter(req: NextRequest, routePath: string[]): Promis
 
   if (method === "POST" && pathLen === 2 && routePath[1] === "return") {
     return await OrderController.requestReturn(req, routePath[0]);
+  }
+
+  if (method === "POST" && pathLen === 3 && routePath[0] === "admin" && routePath[2] === "resend-invoice-email") {
+    return await OrderController.adminResendInvoiceEmail(req, routePath[1]);
+  }
+
+  if (method === "PUT" && pathLen === 3 && routePath[0] === "admin" && routePath[2] === "warehouse") {
+    return await OrderController.adminAssignWarehouse(req, routePath[1]);
   }
 
   if (method === "GET" && pathLen === 2 && routePath[1] === "invoice") {

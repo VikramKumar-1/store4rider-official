@@ -32,5 +32,19 @@ export async function searchRouter(req: Request, routePath: string) {
     return await SearchController.suggest(req);
   }
 
+  /**
+   * @swagger
+   * /api/v1/search/trending:
+   *   get:
+   *     summary: Get popular/trending search keywords and top categories
+   *     tags: [Search]
+   *     responses:
+   *       200:
+   *         description: Trending searches fetched successfully
+   */
+  if (method === "GET" && (routePath === "trending" || routePath === "popular")) {
+    return await SearchController.trending(req);
+  }
+
   throw new AppError("Route not found in Search module", 404);
 }

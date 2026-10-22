@@ -175,8 +175,8 @@ export class ShiprocketProvider implements ShippingProvider {
   }
 
   async getRates(input: GetRatesInput): Promise<ShippingRate[]> {
-    const token = await this.getAuthToken();
     try {
+      const token = await this.getAuthToken();
       const warehouse = input.warehouseId 
         ? await WarehouseRepository.findById(input.warehouseId) 
         : await WarehouseRepository.findDefault();

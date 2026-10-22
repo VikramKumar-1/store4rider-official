@@ -16,4 +16,9 @@ export class SearchController {
     const data = await SearchService.suggest(validated.data.q);
     return ApiResponse.success(data, "Suggestions fetched successfully", 200);
   }
+
+  static async trending(req: Request) {
+    const data = await SearchService.getTrendingSearches();
+    return ApiResponse.success(data, "Trending searches fetched successfully", 200);
+  }
 }

@@ -36,7 +36,7 @@ export class ProductService {
         .join(";");
     };
 
-    const cacheKey = `products_v14_${page}_${limit}_${serializeFilter(filters)}_${serializeFilter(sort)}`;
+    const cacheKey = `products_v15_${page}_${limit}_${serializeFilter(filters)}_${serializeFilter(sort)}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -285,7 +285,7 @@ export class ProductService {
       return Object.entries(obj).map(([k, v]) => `${k}:${serializeFilter(v)}`).sort().join(";");
     };
 
-    const cacheKey = `aggs_v27_${categorySlug || 'all'}_${serializeFilter(rawActiveFilters || {})}`;
+    const cacheKey = `aggs_v28_${categorySlug || 'all'}_${serializeFilter(rawActiveFilters || {})}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -667,7 +667,7 @@ export class ProductService {
         p.variants.forEach((v: any) => {
           const vCol = getDynamicAttrLocal(v.attributes, ['color', 'colour']);
           if (vCol) availableColors.add(vCol.toLowerCase());
-          const vSiz = getDynamicAttrLocal(v.attributes, ['size', 'eu_size']);
+          const vSiz = getDynamicAttrLocal(v.attributes, ['size', 'eu_size', 'eu_size_for_boots']);
           if (vSiz) availableSizes.add(vSiz.toLowerCase());
         });
       }
@@ -681,7 +681,9 @@ export class ProductService {
             if (k && v) {
               const kl = k.trim().toLowerCase();
               if (kl === 'color' || kl === 'colour') availableColors.add(v.trim().toLowerCase());
-              if (kl === 'size' || kl === 'eu_size') availableSizes.add(v.trim().toLowerCase());
+              if (kl === 'size' || kl === 'eu_size' || kl === 'eu_size_for_boots' || (kl.includes('size') && !kl.includes('chart'))) {
+                availableSizes.add(v.trim().toLowerCase());
+              }
             }
           }
         }
@@ -729,15 +731,17 @@ export class ProductService {
       };
 
       if (p.variants && p.variants.length > 0) {
+        const topDefaultColor = getDynamicAttr(p.attributes, ['color', 'colour']);
         p.variants.forEach((v: any) => {
           extractedVariants.push({ 
-            color: getDynamicAttr(v.attributes, ['color', 'colour']), 
-            size: getDynamicAttr(v.attributes, ['size', 'eu_size']) 
+            color: getDynamicAttr(v.attributes, ['color', 'colour']) || topDefaultColor, 
+            size: getDynamicAttr(v.attributes, ['size', 'eu_size', 'eu_size_for_boots']) 
           });
         });
       }
       
       if (p.configurableVariations) {
+        const topDefaultColor = getDynamicAttr(p.attributes, ['color', 'colour']);
         const vars = p.configurableVariations.split("|");
         for (const variant of vars) {
           const vObj: any = {};
@@ -746,8 +750,8 @@ export class ProductService {
             if (k && v) vObj[k.trim().toLowerCase()] = v.trim();
           });
           extractedVariants.push({ 
-            color: getDynamicAttr(vObj, ['color', 'colour']), 
-            size: getDynamicAttr(vObj, ['size', 'eu_size']) 
+            color: getDynamicAttr(vObj, ['color', 'colour']) || topDefaultColor, 
+            size: getDynamicAttr(vObj, ['size', 'eu_size', 'eu_size_for_boots']) 
           });
         }
       }
@@ -760,7 +764,7 @@ export class ProductService {
 
       if (p.attributes && typeof p.attributes === 'object') {
         const topColor = getDynamicAttr(p.attributes, ['color', 'colour']);
-        const topSize = getDynamicAttr(p.attributes, ['size', 'eu_size']);
+        const topSize = getDynamicAttr(p.attributes, ['size', 'eu_size', 'eu_size_for_boots']);
         if (topColor || topSize) {
           extractedVariants.push({ color: topColor, size: topSize });
         }
@@ -771,8 +775,9 @@ export class ProductService {
         const vSize = v.size;
         
         let vMatchesSize = true;
-        if (activeSizes.length > 0 && vSize) {
-          vMatchesSize = activeSizes.includes(vSize.toLowerCase());
+        if (activeSizes.length > 0) {
+          if (vSize) vMatchesSize = activeSizes.includes(vSize.toLowerCase());
+          else vMatchesSize = matchesSize;
         }
         
         if (matchesBrand && vMatchesSize && vColor) {
@@ -781,8 +786,9 @@ export class ProductService {
         }
 
         let vMatchesColor = true;
-        if (activeColors.length > 0 && vColor) {
-          vMatchesColor = activeColors.includes(vColor.toLowerCase());
+        if (activeColors.length > 0) {
+          if (vColor) vMatchesColor = activeColors.includes(vColor.toLowerCase());
+          else vMatchesColor = matchesColor;
         }
         
         if (matchesBrand && vMatchesColor && vSize) {

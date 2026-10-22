@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { StarIcon, ArrowTopRightOnSquareIcon, ArrowPathIcon, CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 import { toast } from "sonner";
 import Button from "@/components/ui/Button";
@@ -23,6 +24,7 @@ export function AdminGoogleReviewsSettings() {
   const [apiKey, setApiKey] = useState("");
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [pagesToFetch, setPagesToFetch] = useState(1);
 
   useEffect(() => {
     fetchReviews();
@@ -55,7 +57,10 @@ export function AdminGoogleReviewsSettings() {
       const res = await fetch("/api/reviews/store", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: apiKey.trim() || undefined }),
+        body: JSON.stringify({ 
+          apiKey: apiKey.trim() || undefined,
+          pages: pagesToFetch,
+        }),
       });
 
       const json = await res.json();
@@ -125,6 +130,21 @@ export function AdminGoogleReviewsSettings() {
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-1.5 text-xs text-neutral-600 font-medium">
+              <span>Fetch:</span>
+              <select
+                value={pagesToFetch}
+                onChange={(e) => setPagesToFetch(Number(e.target.value))}
+                disabled={syncing}
+                className="h-[42px] px-2.5 py-1.5 bg-white border border-neutral-300 rounded-lg text-xs font-semibold text-neutral-800 focus:outline-none focus:ring-1 focus:ring-brand"
+              >
+                <option value={1}>1 Page (~10 reviews)</option>
+                <option value={3}>3 Pages (~30 reviews)</option>
+                <option value={5}>5 Pages (~50 reviews)</option>
+                <option value={10}>10 Pages (~100 reviews)</option>
+              </select>
+            </div>
+
             <Button
               type="button"
               onClick={handleFetchAndSave}
@@ -132,7 +152,7 @@ export function AdminGoogleReviewsSettings() {
               className="h-[42px] px-6 bg-brand hover:bg-[#8F1207] text-white font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 rounded-lg shadow-sm cursor-pointer"
             >
               <ArrowPathIcon className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "Syncing Latest 10..." : "Sync Latest 10 Reviews"}
+              {syncing ? `Syncing ${pagesToFetch} Page(s)...` : `Sync Reviews`}
             </Button>
           </div>
         </div>
@@ -205,9 +225,9 @@ export function AdminGoogleReviewsSettings() {
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#4a1c1c] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
+                      <div className="w-8 h-8 rounded-full bg-[#4a1c1c] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden relative">
                         {rev.avatarUrl ? (
-                          <img src={rev.avatarUrl} alt={rev.author} className="w-full h-full object-cover" />
+                          <Image src={rev.avatarUrl} alt={rev.author} fill sizes="32px" className="object-cover" unoptimized />
                         ) : (
                           rev.author.charAt(0).toUpperCase()
                         )}

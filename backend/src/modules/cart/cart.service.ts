@@ -147,7 +147,8 @@ export class CartService {
         // Calculate per-item tax
         const settings = await SettingRepository.getSettings();
         const isInclusive = settings.gstPricingMode !== "exclusive";
-        const itemTaxRate = getTaxRateFromClass(product.taxClassName, settings.taxRate);
+        const defaultTaxRate = typeof settings.taxRate === "number" ? settings.taxRate : 18;
+        const itemTaxRate = getTaxRateFromClass(product.taxClassName, defaultTaxRate);
         const itemTotal = price * item.quantity;
         const itemTax = isInclusive
           ? calculateInclusiveTax(itemTotal, itemTaxRate).taxAmount
@@ -177,6 +178,7 @@ export class CartService {
     const isInclusive = settings.gstPricingMode !== "exclusive";
     const freeShippingThreshold = settings.freeShippingThreshold;
     const shippingCost = settings.shippingCost;
+    const defaultTaxRate = typeof settings.taxRate === "number" ? settings.taxRate : 18;
 
     let totalTax = 0;
     for (const item of cart.items) {
@@ -187,8 +189,8 @@ export class CartService {
         // Fallback for edge cases
         const itemPrice = ((item.product as any)?.price || 0) * item.quantity;
         totalTax += isInclusive
-          ? calculateInclusiveTax(itemPrice, settings.taxRate).taxAmount
-          : calculateTax(itemPrice, settings.taxRate);
+          ? calculateInclusiveTax(itemPrice, defaultTaxRate).taxAmount
+          : calculateTax(itemPrice, defaultTaxRate);
       }
     }
 

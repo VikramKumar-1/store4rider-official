@@ -60,6 +60,7 @@ export default async function Home() {
   let backendProducts = [];
   let storeSettings: any = null;
   let homepageConfig: any = null;
+  let storeReviews: any[] = [];
 
   try {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -89,12 +90,23 @@ export default async function Home() {
     // Fetch public homepage configuration (Hero, SEO, Sections)
     const homepageUrl = baseUrl.includes('/v1') ? `${baseUrl}/homepage/public` : `${baseUrl}/v1/homepage/public`;
     const homepageRes = await fetch(homepageUrl, {
-      next: { revalidate: 60 },
+      next: { revalidate: 10 },
       signal: AbortSignal.timeout(2500),
     });
     if (homepageRes.ok) {
       const hData = await homepageRes.json();
       homepageConfig = hData?.data || null;
+    }
+
+    // Fetch verified store reviews from database for instant SSR rendering
+    const reviewsUrl = baseUrl.includes('/v1') ? `${baseUrl}/reviews/store` : `${baseUrl}/v1/reviews/store`;
+    const reviewsRes = await fetch(reviewsUrl, {
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(2500),
+    });
+    if (reviewsRes.ok) {
+      const rData = await reviewsRes.json();
+      storeReviews = rData?.data || [];
     }
   } catch (error) {
     // Fallback gracefully
@@ -160,7 +172,11 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(onlineStoreSchema) }}
       />
-      <HomepageModule backendProducts={backendProducts} homepageConfig={homepageConfig} />
+      <HomepageModule
+        backendProducts={backendProducts}
+        homepageConfig={homepageConfig}
+        storeReviews={storeReviews}
+      />
     </>
   );
 }

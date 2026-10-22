@@ -63,7 +63,7 @@ import { useStoreReviews } from "@/core/hooks/useStoreReviews";
 export const StoreReviews: React.FC<{ reviews?: ReviewData[] }> = ({ reviews: propReviews }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useStoreReviews();
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useStoreReviews({ random: true });
   const fetchedReviews = data?.pages.flatMap(p => p.data) || [];
   
   // Use fetched reviews if available, fallback to props

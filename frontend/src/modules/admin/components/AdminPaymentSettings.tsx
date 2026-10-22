@@ -53,18 +53,25 @@ export function AdminPaymentSettings() {
     e.preventDefault();
     if (!settings) return;
     try {
-      await apiClient.put("/admin/settings", settings);
+      const { _id, __v, createdAt, updatedAt, id, ...payload } = settings as any;
+      await apiClient.put("/admin/settings", payload);
       toast.success("Settings saved successfully");
-    } catch (err) {
-      toast.error("Failed to save settings");
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.response?.data?.error || "Failed to save settings";
+      toast.error(typeof msg === "string" ? msg : "Failed to save settings");
     }
   };
 
   const handleGatewayToggle = (gateway: string) => {
     if (!settings) return;
-    const enabled = settings.enabledGateways.includes(gateway);
-    let newGateways = [...settings.enabledGateways];
+    const currentGateways = settings.enabledGateways || [];
+    const enabled = currentGateways.includes(gateway);
+    let newGateways = [...currentGateways];
     if (enabled) {
+      if (newGateways.length <= 1) {
+        toast.error("At least one payment gateway must remain enabled.");
+        return;
+      }
       newGateways = newGateways.filter((g) => g !== gateway);
     } else {
       newGateways.push(gateway);
@@ -86,16 +93,16 @@ export function AdminPaymentSettings() {
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Enabled Gateways</label>
-            <div className="space-x-4">
-              {["payu", "ccavenue", "snapmint", "cod"].map((gw) => (
-                <label key={gw} className="inline-flex items-center">
+            <div className="flex flex-wrap gap-4">
+              {["upi", "payu", "ccavenue", "snapmint", "cod"].map((gw) => (
+                <label key={gw} className="inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
                     className="rounded text-brand"
                     checked={(settings?.enabledGateways || []).includes(gw)}
                     onChange={() => handleGatewayToggle(gw)}
                   />
-                  <span className="ml-2 uppercase text-sm">{gw}</span>
+                  <span className="ml-2 uppercase text-sm font-semibold">{gw}</span>
                 </label>
               ))}
             </div>
@@ -116,32 +123,92 @@ export function AdminPaymentSettings() {
               </label>
             </div>
             {settings.codPartialPaymentEnabled && (
-              <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Partial Payment Type</label>
-                <select 
-                  className="w-full border rounded p-2"
-                  value={settings.codPartialPaymentType}
-                  onChange={(e) => setSettings({ ...settings, codPartialPaymentType: e.target.value as "percentage" | "fixed" })}
-                >
-                  <option value="percentage">Percentage</option>
-                  <option value="fixed">Fixed Amount</option>
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 p-4 bg-neutral-50 border border-neutral-200">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-neutral-700 mb-1.5">
+                    Partial Payment Type
+                  </label>
+                  <select 
+                    className="w-full border border-neutral-300 rounded p-2.5 text-sm bg-white"
+                    value={settings.codPartialPaymentType || "percentage"}
+                    onChange={(e) => setSettings({ 
+                      ...settings, 
+                      codPartialPaymentType: e.target.value as "percentage" | "fixed" 
+                    })}
+                  >
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="fixed">Fixed Amount (₹)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-neutral-700 mb-1.5">
+                    Advance Value {settings.codPartialPaymentType === "percentage" ? "(%)" : "(₹)"}
+                  </label>
+                  <input 
+                    type="number"
+                    min={0}
+                    max={settings.codPartialPaymentType === "percentage" ? 100 : undefined}
+                    step={settings.codPartialPaymentType === "percentage" ? 1 : 10}
+                    placeholder="Enter advance amount"
+                    className="w-full border border-neutral-300 rounded p-2.5 text-sm"
+                    value={settings.codPartialPaymentValue ?? 0}
+                    onKeyDown={(e) => {
+                      if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") {
+                        e.preventDefault();
+                      }
+                    }}
+                    onChange={(e) => {
+                      const num = Number(e.target.value);
+                      let val = isNaN(num) ? 0 : Math.max(0, num);
+                      if (settings.codPartialPaymentType === "percentage") {
+                        val = Math.min(100, val);
+                      }
+                      setSettings({ ...settings, codPartialPaymentValue: val });
+                    }}
+                  />
+                  <span className="text-[11px] text-neutral-500 mt-1 block">
+                    {settings.codPartialPaymentType === "percentage"
+                      ? "Percentage of total order amount customer pays online (0-100%)."
+                      : "Fixed ₹ amount customer pays online as advance to confirm COD."}
+                  </span>
+                </div>
+
+                {/* Live Partial COD Example Pill */}
+                <div className="col-span-1 sm:col-span-2 p-3 bg-white border border-neutral-200 rounded text-xs space-y-1 shadow-2xs">
+                  <span className="font-bold text-neutral-800 flex items-center gap-1.5">
+                    💡 Customer COD Order Example (Sample Order Total ₹5,000):
+                  </span>
+                  <div className="flex flex-wrap gap-4 text-[11px] text-neutral-700 pt-0.5">
+                    <span>
+                      Online Advance to Pay Now:{" "}
+                      <strong className="text-brand font-black">
+                        ₹
+                        {settings.codPartialPaymentType === "percentage"
+                          ? Math.round((5000 * (settings.codPartialPaymentValue || 0)) / 100)
+                          : Math.min(5000, settings.codPartialPaymentValue || 0)}
+                      </strong>
+                    </span>
+                    <span>
+                      Balance Due on Doorstep Delivery:{" "}
+                      <strong className="text-emerald-700 font-black">
+                        ₹
+                        {settings.codPartialPaymentType === "percentage"
+                          ? Math.max(
+                              0,
+                              5000 - Math.round((5000 * (settings.codPartialPaymentValue || 0)) / 100)
+                            )
+                          : Math.max(0, 5000 - (settings.codPartialPaymentValue || 0))}
+                      </strong>
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Value</label>
-                <input 
-                  type="number"
-                  className="w-full border rounded p-2"
-                  value={settings.codPartialPaymentValue}
-                  onChange={(e) => setSettings({ ...settings, codPartialPaymentValue: Number(e.target.value) })}
-                />
-              </div>
-            </div>
             )}
           </div>
 
-          <Button type="submit" className="mt-4">Save Settings</Button>
+          <div className="pt-2">
+            <Button type="submit">Save Payment & COD Settings</Button>
+          </div>
         </form>
       </div>
 

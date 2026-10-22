@@ -12,7 +12,7 @@ export class SettingRepository {
       settings = await SettingModel.create({
         enabledGateways: ["upi", "payu", "ccavenue", "snapmint", "cod"]
       });
-    } else if (!settings.enabledGateways || settings.enabledGateways.length < 3) {
+    } else if (!settings.enabledGateways) {
       settings.enabledGateways = ["upi", "payu", "ccavenue", "snapmint", "cod"];
       await settings.save();
     }
@@ -36,7 +36,8 @@ export class SettingRepository {
 
   static async updateSettings(data: Partial<ISetting>): Promise<ISetting> {
     const settings = await this.getSettings();
-    Object.assign(settings, data);
+    const { _id, __v, createdAt, updatedAt, id, ...cleanData } = data as any;
+    Object.assign(settings, cleanData);
     return await settings.save();
   }
 }

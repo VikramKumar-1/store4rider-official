@@ -8,64 +8,118 @@ import { logger } from "../utils/logger";
 export class CCavenueGateway implements PaymentGateway {
   
   private encrypt(plainText: string, workingKey: string): string {
-    const m = crypto.createHash('md5');
+    const m = crypto.createHash("md5");
     m.update(workingKey);
     const key = m.digest();
-    const iv = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f';
-    const cipher = crypto.createCipheriv('aes-128-cbc', key, iv);
-    let encoded = cipher.update(plainText, 'utf8', 'hex');
-    encoded += cipher.final('hex');
+    const iv = Buffer.from([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f]);
+    const cipher = crypto.createCipheriv("aes-128-cbc", key, iv);
+    let encoded = cipher.update(plainText, "utf8", "hex");
+    encoded += cipher.final("hex");
     return encoded;
   }
 
   private decrypt(encText: string, workingKey: string): string {
-    const m = crypto.createHash('md5');
+    const m = crypto.createHash("md5");
     m.update(workingKey);
     const key = m.digest();
-    const iv = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f';
-    const decipher = crypto.createDecipheriv('aes-128-cbc', key, iv);
-    let decoded = decipher.update(encText, 'hex', 'utf8');
-    decoded += decipher.final('utf8');
+    const iv = Buffer.from([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f]);
+    const decipher = crypto.createDecipheriv("aes-128-cbc", key, iv);
+    let decoded = decipher.update(encText, "hex", "utf8");
+    decoded += decipher.final("utf8");
     return decoded;
   }
 
   async createOrder(order: IOrder, amount: number): Promise<GatewayOrderResult> {
-    if (!ENV.CCAVENUE_MERCHANT_ID || !ENV.CCAVENUE_ACCESS_CODE || !ENV.CCAVENUE_WORKING_KEY) {
-      throw new AppError("CCAvenue credentials are not configured in backend/.env", 400);
-    }
-    const merchantId = ENV.CCAVENUE_MERCHANT_ID;
-    const accessCode = ENV.CCAVENUE_ACCESS_CODE;
-    const workingKey = ENV.CCAVENUE_WORKING_KEY;
+    const merchantId = (ENV.CCAVENUE_MERCHANT_ID || process.env.CCAVENUE_MERCHANT_ID || "").trim();
+    const accessCode = (ENV.CCAVENUE_ACCESS_CODE || process.env.CCAVENUE_ACCESS_CODE || "").trim();
+    const workingKey = (ENV.CCAVENUE_WORKING_KEY || process.env.CCAVENUE_WORKING_KEY || "").trim();
 
-    const orderId = String((order as any)._id || order.id || order.orderNumber);
+    const isPlaceholder = (val: string) => !val || val.startsWith("your_") || val === "your_ccavenue_id" || val === "your_ccavenue_access_code" || val === "your_ccavenue_working_key";
+    if (isPlaceholder(merchantId) || isPlaceholder(accessCode) || isPlaceholder(workingKey)) {
+      throw new AppError("CCAvenue credentials in backend/.env are missing or set to placeholder values ('your_ccavenue_id'). Please update backend/.env with your real CCAvenue Merchant ID, Access Code, and Working Key.", 400);
+    }
+
+    const orderId = String(order.orderNumber || (order as any)._id || order.id || `ORD-${Date.now()}`);
     
-    const apiBase = (ENV.API_URL || ENV.NEXT_PUBLIC_API_URL || ENV.FRONTEND_URL || "").replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
-    if (!apiBase) {
+    const rawApiUrl = (ENV.API_URL || ENV.NEXT_PUBLIC_API_URL || ENV.FRONTEND_URL || "").trim();
+    if (!rawApiUrl) {
       throw new AppError("API_URL or FRONTEND_URL is not configured. CCAvenue redirect URLs cannot be generated.", 500);
     }
+    const cleanApiBase = rawApiUrl.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
     
-    const redirectUrl = `${apiBase}/api/v1/orders/webhook/ccavenue`;
-    const cancelUrl = `${apiBase}/api/v1/orders/webhook/ccavenue`;
+    const redirectUrl = (ENV.CCAVENUE_REDIRECT_URL || process.env.CCAVENUE_REDIRECT_URL || `${cleanApiBase}/api/v1/orders/webhook/ccavenue`).trim();
+    const cancelUrl = (ENV.CCAVENUE_CANCEL_URL || process.env.CCAVENUE_CANCEL_URL || redirectUrl).trim();
     
-    const merchantData = `merchant_id=${merchantId}&order_id=${orderId}&currency=INR&amount=${amount}&redirect_url=${redirectUrl}&cancel_url=${cancelUrl}`;
-    
+    const formattedAmount = Number(amount).toFixed(2);
+
+    // Extract customer billing details from shippingAddress / order
+    const shipping = order.shippingAddress;
+    const billingName = (shipping?.fullName || (order as any).fullName || "Valued Customer").trim().slice(0, 60);
+    const billingAddress = (shipping?.street || shipping?.addressLine1 || "Address").trim().slice(0, 150);
+    const billingCity = (shipping?.city || "City").trim().slice(0, 30);
+    const billingState = (shipping?.state || "State").trim().slice(0, 30);
+    const billingZip = (shipping?.pincode || "000000").trim().slice(0, 10);
+    const billingCountry = (shipping?.country || "India").trim().slice(0, 50);
+    const rawPhone = (shipping?.phone || (order as any).phone || "").replace(/\D/g, "");
+    const billingTel = rawPhone.slice(-10);
+    const billingEmail = ((order as any).userEmail || order.guestEmail || "").trim().slice(0, 60);
+
+    const payload: Record<string, string> = {
+      merchant_id: merchantId,
+      order_id: orderId,
+      currency: "INR",
+      amount: formattedAmount,
+      redirect_url: redirectUrl,
+      cancel_url: cancelUrl,
+      language: "EN",
+    };
+
+    if (billingName) payload.billing_name = billingName;
+    if (billingAddress) payload.billing_address = billingAddress;
+    if (billingCity) payload.billing_city = billingCity;
+    if (billingState) payload.billing_state = billingState;
+    if (billingZip) payload.billing_zip = billingZip;
+    if (billingCountry) payload.billing_country = billingCountry;
+    if (billingTel) payload.billing_tel = billingTel;
+    if (billingEmail) payload.billing_email = billingEmail;
+
+    if (billingName) payload.delivery_name = billingName;
+    if (billingAddress) payload.delivery_address = billingAddress;
+    if (billingCity) payload.delivery_city = billingCity;
+    if (billingState) payload.delivery_state = billingState;
+    if (billingZip) payload.delivery_zip = billingZip;
+    if (billingCountry) payload.delivery_country = billingCountry;
+    if (billingTel) payload.delivery_tel = billingTel;
+
+    const merchantData = Object.entries(payload)
+      .filter(([_, v]) => v !== undefined && v !== null && String(v).trim() !== "")
+      .map(([k, v]) => `${k}=${encodeURIComponent(String(v).trim())}`)
+      .join("&");
+
     const encryptedData = this.encrypt(merchantData, workingKey);
+
+    const mode = (ENV.CCAVENUE_MODE || process.env.CCAVENUE_MODE || "test").trim().toLowerCase();
+    const actionUrl = mode === "live"
+      ? "https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction"
+      : "https://test.ccavenue.com/transaction/transaction.do?command=initiateTransaction";
 
     return {
       gatewayOrderId: orderId,
       gatewayResponse: {
+        command: "initiateTransaction",
         access_code: accessCode,
         encRequest: encryptedData,
+        actionUrl,
       }
     };
   }
 
   async verifyPayment(payment: IPayment, verificationData: any): Promise<VerifyPaymentResult> {
-    if (!ENV.CCAVENUE_WORKING_KEY) {
+    const workingKey = (ENV.CCAVENUE_WORKING_KEY || process.env.CCAVENUE_WORKING_KEY || "").trim();
+    if (!workingKey) {
       throw new AppError("CCAvenue credentials are not configured", 500);
     }
     const { encResp } = verificationData;
-    const workingKey = ENV.CCAVENUE_WORKING_KEY;
     
     try {
       const decryptedData = this.decrypt(encResp, workingKey);
@@ -99,14 +153,13 @@ export class CCavenueGateway implements PaymentGateway {
     const encResp = params.get("encResp") || params.get("enc_response");
     
     if (!encResp) {
-      throw new AppError("Invalid CCAvenue webhook payload", 400);
+      throw new AppError("Invalid CCAvenue webhook payload: missing encResp", 400);
     }
     
-    if (!ENV.CCAVENUE_WORKING_KEY) {
+    const workingKey = (ENV.CCAVENUE_WORKING_KEY || process.env.CCAVENUE_WORKING_KEY || "").trim();
+    if (!workingKey) {
       throw new AppError("CCAvenue credentials are not configured", 500);
     }
-    
-    const workingKey = ENV.CCAVENUE_WORKING_KEY;
     
     try {
       const decryptedData = this.decrypt(encResp, workingKey);
@@ -114,14 +167,18 @@ export class CCavenueGateway implements PaymentGateway {
       
       const orderStatus = decParams.get("order_status");
       const orderId = decParams.get("order_id") || decParams.get("order_no");
-      const trackingId = decParams.get("tracking_id");
+      const trackingId = decParams.get("tracking_id") || "";
       const amount = decParams.get("amount") || "0";
+      const statusMessage = decParams.get("status_message") || "";
+      const bankRefNo = decParams.get("bank_ref_no") || "";
+      const paymentMode = decParams.get("payment_mode") || "";
       
       if (!orderId) {
         throw new AppError("Missing order_id in CCAvenue webhook", 400);
       }
       
-      const eventName = orderStatus === "Success" ? "payment.captured" : "payment.failed";
+      const isSuccess = orderStatus === "Success";
+      const eventName = isSuccess ? "payment.captured" : "payment.failed";
       
       return {
         event: eventName,
@@ -129,11 +186,16 @@ export class CCavenueGateway implements PaymentGateway {
         id: headers["x-ccavenue-event-id"] || trackingId || `evt_${Date.now()}`,
         payload: {
           id: trackingId,
-          amount: parseFloat(amount)
+          amount: parseFloat(amount),
+          status: orderStatus,
+          statusMessage,
+          bankRefNo,
+          paymentMode,
         }
       };
-    } catch (err) {
-      throw new AppError("Failed to decrypt CCAvenue webhook payload", 400);
+    } catch (err: any) {
+      logger.error("Failed to decrypt CCAvenue webhook payload", { error: err.message });
+      throw new AppError(err.message || "Failed to decrypt CCAvenue webhook payload", 400);
     }
   }
 

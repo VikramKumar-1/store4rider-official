@@ -44,7 +44,7 @@ export function MultiImageUploadWebP({
         if (!file.type.startsWith("image/")) continue;
 
         setCurrentProgress(`Converting ${i + 1}/${files.length} to WebP in browser...`);
-        const result = await compressImageToWebP(file, 1920, 0.85);
+        const result = await compressImageToWebP(file, 1200, 0.82);
 
         setCurrentProgress(`Uploading ${i + 1}/${files.length} to cloud...`);
         const url = await uploadImageToS3(result.file);

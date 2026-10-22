@@ -11,6 +11,8 @@ import TestimonialsSection from "./components/TestimonialsSection";
 import Footer from "./components/Footer";
 import { NavLinkItem, HeroProductCardData, CategoryCardData, BrowseProductData, TestimonialData } from "./types/homepage.types";
 import { IHomepageConfig } from "@store4riders/shared-types";
+import { useStoreReviews } from "@/core/hooks/useStoreReviews";
+import { usePublicHomepageConfig } from "@/core/hooks/useHomepage";
 
 /**
  * HomepageModule Component
@@ -19,10 +21,17 @@ import { IHomepageConfig } from "@store4riders/shared-types";
  * Clean, module-based architecture containing purely UI components with zero frontend business logic.
  * Data is passed cleanly as structured props for maintainability and backend integration.
  */
-export const HomepageModule: React.FC<{ backendProducts?: any[]; homepageConfig?: IHomepageConfig }> = ({
+export const HomepageModule: React.FC<{
+  backendProducts?: any[];
+  homepageConfig?: IHomepageConfig;
+  storeReviews?: any[];
+}> = ({
   backendProducts = [],
-  homepageConfig,
+  homepageConfig: initialHomepageConfig,
+  storeReviews = [],
 }) => {
+  const { data: liveConfig } = usePublicHomepageConfig();
+  const homepageConfig = liveConfig || initialHomepageConfig;
   // Navigation items matching Figma structure
   const navItems: NavLinkItem[] = [
     { id: "catalog", label: "Catalog", href: "/products", hasDropdown: true },
@@ -389,42 +398,36 @@ export const HomepageModule: React.FC<{ backendProducts?: any[]; homepageConfig?
         }
       ];
 
-  const [testimonialsData, setTestimonialsData] = React.useState<TestimonialData[]>([]);
+  const { data: storeReviewsQuery } = useStoreReviews();
+  const queryReviews = storeReviewsQuery?.pages.flatMap((p) => p.data) || [];
+  const fetchedStoreReviews = queryReviews.length > 0 ? queryReviews : (storeReviews || []);
 
-  React.useEffect(() => {
-    // Fetch real Google Reviews from SerpApi route
-    const fetchReviews = async () => {
-      try {
-        const res = await fetch("/api/reviews/store");
-        const json = await res.json();
-        if (json.success && json.data) {
-          let mappedReviews: TestimonialData[] = json.data.map((r: any) => ({
-            id: r._id || r.id,
-            authorName: r.author,
-            date: r.date,
-            rating: r.rating || 5,
-            content: r.text,
-            verified: true,
-            link: r.link,
-            avatarUrl: r.avatarUrl,
-          }));
+  const testimonialsData: TestimonialData[] = React.useMemo(() => {
+    if (!fetchedStoreReviews || fetchedStoreReviews.length === 0) return [];
 
-          // Force exactly 10 reviews to show in the UI slider
-          if (mappedReviews.length > 0) {
-            while (mappedReviews.length < 10) {
-              mappedReviews = [...mappedReviews, ...mappedReviews].map((r, index) => ({ ...r, id: `${r.id}-${index}` }));
-            }
-            mappedReviews = mappedReviews.slice(0, 10);
-          }
+    let mappedReviews: TestimonialData[] = fetchedStoreReviews.map((r: any) => ({
+      id: r._id || r.id,
+      authorName: r.author,
+      date: r.date,
+      rating: r.rating || 5,
+      content: r.text,
+      verified: true,
+      link: r.link,
+      avatarUrl: r.avatarUrl,
+    }));
 
-          setTestimonialsData(mappedReviews);
-        }
-      } catch (error) {
-        console.error("Failed to fetch reviews:", error);
+    if (mappedReviews.length > 0) {
+      while (mappedReviews.length < 10) {
+        mappedReviews = [...mappedReviews, ...mappedReviews].map((r, index) => ({
+          ...r,
+          id: `${r.id}-${index}`,
+        }));
       }
-    };
-    fetchReviews();
-  }, []);
+      mappedReviews = mappedReviews.slice(0, 10);
+    }
+
+    return mappedReviews;
+  }, [fetchedStoreReviews]);
 
   // Background image using the provided heropic1.jpg from public folder
   const heroBgImage = "/heropic1.jpg";
@@ -489,6 +492,10 @@ export const HomepageModule: React.FC<{ backendProducts?: any[]; homepageConfig?
         {/* 7. Social Media / Insta Reels Section */}
         <SocialMediaSection
           title={homepageConfig?.sections?.socialMedia?.sectionTitle || "INSTA REELS"}
+          subtitle={homepageConfig?.sections?.socialMedia?.sectionSubtitle}
+          instagramHandle={homepageConfig?.sections?.socialMedia?.instagramHandle}
+          instagramProfileUrl={homepageConfig?.sections?.socialMedia?.instagramProfileUrl}
+          reels={homepageConfig?.sections?.socialMedia?.reels}
           reelImages={homepageConfig?.sections?.socialMedia?.reelImages}
           bannerTop={homepageConfig?.sections?.socialMedia?.bannerTop}
           bannerBottom={homepageConfig?.sections?.socialMedia?.bannerBottom}

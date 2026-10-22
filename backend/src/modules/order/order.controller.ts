@@ -4,6 +4,7 @@ import { OrderRepository } from "./order.repository";
 import { OrderValidator } from "./order.validator";
 import { ApiResponse } from "../../core/response/ApiResponse";
 import { ENV } from "../../core/config/env";
+import { ValidationError } from "../../core/errors/AppError";
 
 /**
  * @class OrderController
@@ -83,45 +84,38 @@ export class OrderController {
     };
 
     try {
+      let webhookResult: any = null;
       if (gatewayType && gatewayType !== "unknown") {
-        await OrderService.handleWebhook(rawBody, headers, gatewayType);
+        webhookResult = await OrderService.handleWebhook(rawBody, headers, gatewayType);
       }
       
-      // Redirect user back to frontend after successful webhook processing
+      // Redirect user back to frontend after webhook processing
       if (isRedirect) {
-        const orderId = getOrderId();
+        const orderId = webhookResult?.orderNumber || webhookResult?.orderId || getOrderId();
         const orderParam = orderId ? `&orderId=${encodeURIComponent(orderId)}` : "";
 
         // PayU/Snapmint: explicit /success or /failure path
-        // CCAvenue: single callback URL — if we reach here (no throw), payment was processed
-        const isSuccess = gatewayType === "ccavenue" || (routePath && routePath[2] === "success");
+        // CCAvenue: single callback URL — use webhookResult.success
+        const isSuccess = gatewayType === "ccavenue" 
+          ? Boolean(webhookResult?.success) 
+          : (routePath && routePath[2] === "success");
 
         if (isSuccess) {
           return NextResponse.redirect(`${frontendUrl}/checkout?success=true${orderParam}`, 303);
         } else {
-          return NextResponse.redirect(`${frontendUrl}/checkout?failed=true`, 303);
+          return NextResponse.redirect(`${frontendUrl}/checkout?failed=true${orderParam}`, 303);
         }
       }
 
-      return ApiResponse.success(null, "Webhook processed");
+      return ApiResponse.success(webhookResult, "Webhook processed");
     } catch (err: any) {
       if (isRedirect) {
-        // Error occurred during webhook processing
-        // For CCAvenue: error = payment failed (always redirect to failure)
-        // For PayU/Snapmint: use the URL path — if /success path threw, still redirect to success
-        //   because PayU already confirmed payment, our processing just had an issue
-        //   (e.g., stock decrement failed but payment was captured)
-        if (gatewayType === "ccavenue") {
-          return NextResponse.redirect(`${frontendUrl}/checkout?failed=true`, 303);
-        }
-
-        // PayU/Snapmint: respect the URL path even on error
         const orderId = getOrderId();
         const orderParam = orderId ? `&orderId=${encodeURIComponent(orderId)}` : "";
-        if (routePath && routePath[2] === "success") {
+        if (routePath && routePath[2] === "success" && gatewayType !== "ccavenue") {
           return NextResponse.redirect(`${frontendUrl}/checkout?success=true${orderParam}`, 303);
         }
-        return NextResponse.redirect(`${frontendUrl}/checkout?failed=true`, 303);
+        return NextResponse.redirect(`${frontendUrl}/checkout?failed=true${orderParam}`, 303);
       }
       return ApiResponse.error(err.message, err.statusCode || 500);
     }
@@ -183,5 +177,20 @@ export class OrderController {
 
     const invoiceUrl = await OrderService.getInvoiceUrl(id, effectiveUserId);
     return ApiResponse.success({ invoiceUrl }, "Invoice generated successfully");
+  }
+
+  static async adminResendInvoiceEmail(req: NextRequest, id: string) {
+    const result = await OrderService.resendInvoiceEmail(id);
+    return ApiResponse.success(result, `Invoice email sent to ${result.recipientEmail}`);
+  }
+
+  static async adminAssignWarehouse(req: NextRequest, id: string) {
+    OrderValidator.extractUserId(req);
+    const body = await req.json();
+    if (!body.warehouseId) {
+      throw new ValidationError("warehouseId is required");
+    }
+    const updated = await OrderService.adminAssignWarehouse(id, body.warehouseId);
+    return ApiResponse.success(updated, "Warehouse assigned to order successfully");
   }
 }

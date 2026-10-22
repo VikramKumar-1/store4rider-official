@@ -59,8 +59,8 @@ describe('ProductValidator', () => {
     expect(andConditions).toBeDefined();
     const sizeCond = andConditions.find((cond: any) => cond.$or && cond.$or.some((s: any) => s.configurableVariations));
     expect(sizeCond).toBeDefined();
-    expect(sizeCond.$or.length).toBe(6);
-    expect(sizeCond.$or[0].configurableVariations.$in[0].source).toEqual('(?:size|eu_size)=XL(\\||,|$)');
+    expect(sizeCond.$or.length).toBe(9);
+    expect(sizeCond.$or[0].configurableVariations.$in[0].source).toEqual('(?:size|eu_size|eu_size_for_boots)=XL(\\||,|$)');
   });
 
   it('should parse multiple sizes correctly', () => {
