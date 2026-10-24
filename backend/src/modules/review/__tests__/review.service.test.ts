@@ -25,6 +25,9 @@ describe('ReviewService', () => {
       reviewCount: 1,
     });
 
+    const { ProductRepository } = await import('../../product/product.repository');
+    vi.spyOn(ProductRepository, 'updateRatingStats').mockResolvedValue(null as any);
+
     const result = await ReviewService.addReview('user_123', {
       productId: 'prod_456',
       rating: 5,
