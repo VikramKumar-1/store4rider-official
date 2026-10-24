@@ -13,6 +13,8 @@ const phoneValidation = z.string().optional().refine((val) => {
 const USER_ROLES = [
   "super_admin",
   "admin",
+  "logistic",
+  "customer_care",
   "product_manager",
   "order_manager",
   "marketing_manager",
@@ -24,6 +26,15 @@ export const userRoleSchema = z.enum(USER_ROLES);
 
 export const updateUserRoleSchema = z.object({
   role: userRoleSchema,
+});
+
+export const createStaffUserSchema = z.object({
+  email: z.string().email().max(255, "Email is too long"),
+  password: z.string().min(8, "Password must be at least 8 characters long").max(100, "Password is too long"),
+  firstName: z.string().min(2, "First name must be at least 2 characters").max(50, "First name is too long"),
+  lastName: z.string().max(50, "Last name is too long").optional().or(z.literal('')),
+  phone: z.string().optional(),
+  role: z.enum(["admin", "logistic", "customer_care", "product_manager", "order_manager", "marketing_manager", "customer_support"]),
 });
 
 const addressRegex = /^[a-zA-Z0-9\s\-,.'/#&():]+$/;

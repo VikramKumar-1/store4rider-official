@@ -338,11 +338,31 @@ export class ShipmentService {
       throw new AppError("No AWB assigned to this shipment yet", 400);
     }
 
-    if (shipment.provider === "manual") {
-      return shipment;
+    let activeProvider = shipment.provider;
+    if (activeProvider === "manual") {
+      const cName = (shipment.courierName || "").toLowerCase();
+      if (cName.includes("shiprocket")) {
+        activeProvider = "shiprocket";
+      } else if (cName.includes("delhivery")) {
+        activeProvider = "delhivery";
+      } else if (cName.includes("xpressbees")) {
+        activeProvider = "xpressbees";
+      } else {
+        return shipment;
+      }
     }
 
-    const providerInstance = ShippingProviderFactory.create(shipment.provider);
+    if (!shipment.trackingUrl && shipment.awb) {
+      if (activeProvider === "shiprocket") {
+        shipment.trackingUrl = `https://shiprocket.co/tracking/${shipment.awb}`;
+      } else if (activeProvider === "delhivery") {
+        shipment.trackingUrl = `https://www.delhivery.com/track/package/${shipment.awb}`;
+      } else if (activeProvider === "xpressbees") {
+        shipment.trackingUrl = `https://www.xpressbees.com/track?awb=${shipment.awb}`;
+      }
+    }
+
+    const providerInstance = ShippingProviderFactory.create(activeProvider);
     const trackingInfo = await providerInstance.getTrackingInfo(shipment.awb);
 
     if (trackingInfo.success) {
@@ -359,6 +379,37 @@ export class ShipmentService {
       }
 
       await shipment.save();
+
+      if (trackingInfo.events && trackingInfo.events.length > 0) {
+        try {
+          const { ShippingTrackingEventModel } = await import("./models/shipping-tracking-event.model");
+          for (const ev of trackingInfo.events) {
+            const evTimestamp = ev.timestamp ? new Date(ev.timestamp) : new Date();
+            await ShippingTrackingEventModel.updateOne(
+              {
+                shipmentId: String(shipment._id),
+                internalState: shipment.status,
+                eventTimestamp: evTimestamp,
+              },
+              {
+                $setOnInsert: {
+                  shipmentId: String(shipment._id),
+                  awb: shipment.awb,
+                  provider: shipment.provider,
+                  internalState: shipment.status,
+                  providerState: ev.providerStatus || ev.status || trackingInfo.currentStatus,
+                  location: ev.location,
+                  message: ev.activity || ev.description,
+                  eventTimestamp: evTimestamp,
+                },
+              },
+              { upsert: true }
+            );
+          }
+        } catch {
+          // Gracefully continue
+        }
+      }
     }
 
     return shipment;

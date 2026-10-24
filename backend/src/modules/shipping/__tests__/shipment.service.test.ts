@@ -8,6 +8,7 @@ import { ShippingProviderFactory } from "../../../core/shipping/ShippingProvider
 import { AppError, NotFoundError, ValidationError } from "../../../core/errors/AppError";
 
 vi.mock("../shipment.model");
+vi.mock("../models/shipping-tracking-event.model");
 vi.mock("../../order/order.model");
 vi.mock("../../product/product.model");
 vi.mock("../../warehouse/warehouse.repository");

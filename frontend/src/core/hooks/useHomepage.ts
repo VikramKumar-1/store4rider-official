@@ -63,3 +63,7 @@ export function useUpdateHomepageSections() {
     },
   });
 }
+
+export { useSyncInstagramFeed } from "./useInstagramSync";
+
+

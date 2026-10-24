@@ -8,6 +8,8 @@ import { connectToDatabase } from "@/core/database/connection";
 import { logger } from "@/core/utils/logger";
 import { checkGeneralApiRateLimit } from "@/core/middlewares/rateLimiter";
 
+export const dynamic = "force-dynamic";
+
 const applyHeaders = (response: NextResponse, req: NextRequest): NextResponse => {
   applyCors(req, response);
   applySecurityHeaders(response);
@@ -87,4 +89,3 @@ export const PUT = handleRequest;
 export const PATCH = handleRequest;
 export const DELETE = handleRequest;
 export const OPTIONS = handleRequest;
-// trigger hot reload

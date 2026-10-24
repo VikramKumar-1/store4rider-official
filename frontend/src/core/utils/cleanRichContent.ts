@@ -46,6 +46,15 @@ export function cleanRichContent(rawHtml: string): string {
   clean = clean.replace(/href=["']\/([^"']+)\.html(\?[^"']*)?(#[^"']*)?["']/gi, 'href="/$1$2$3"');
   clean = clean.replace(/href=["']([^"'\/][^"']+)\.html(\?[^"']*)?(#[^"']*)?["']/gi, 'href="/$1$2$3"');
 
+  // Rewrite legacy Magento price bracket category links to active query params
+  clean = clean
+    .replace(/href=["'][^"']*\/bike-riding-jackets-below-6000["']/gi, 'href="/riding-gear/riding-jackets?maxPrice=6000"')
+    .replace(/href=["'][^"']*\/riding-jackets-between-rs-6000-8000["']/gi, 'href="/riding-gear/riding-jackets?minPrice=6000&maxPrice=8000"')
+    .replace(/href=["'][^"']*\/bike-jackets-between-8000-10000["']/gi, 'href="/riding-gear/riding-jackets?minPrice=8000&maxPrice=10000"')
+    .replace(/href=["'][^"']*\/best-riding-jackets-between-10000-20000["']/gi, 'href="/riding-gear/riding-jackets?minPrice=10000&maxPrice=20000"')
+    .replace(/href=["'][^"']*\/premium-mesh-riding-jackets["']/gi, 'href="/riding-gear/riding-jackets?minPrice=20000"')
+    .replace(/href=["'][^"']*\/riding-gloves-below-rs-3000["']/gi, 'href="/riding-gear/riding-gloves/short-motorbike-gloves?maxPrice=3000"');
+
   // External links (e.g. YouTube): ensure target="_blank" and rel="noopener noreferrer"
   clean = clean.replace(
     /<a\s+(?:[^>]*?\s+)?href=["'](https?:\/\/(?!(?:www\.)?store4riders\.com)[^"']+)["']([^>]*)>/gi,

@@ -2,78 +2,96 @@
 
 import React, { useState } from "react";
 import { ShipmentListTable } from "./ShipmentListTable";
-import { WarehouseManager } from "./WarehouseManager";
-import { TruckIcon, HomeModernIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { AdminLogisticsDashboard } from "./AdminLogisticsDashboard";
+import { TruckIcon, TableCellsIcon } from "@heroicons/react/24/outline";
+import { useAdminLogisticsStats } from "@/core/hooks/useAdminDashboard";
 
 export const AdminShippingDashboard = () => {
-  const [activeTab, setActiveTab] = useState<"shipments" | "warehouses">("shipments");
+  const [activeTab, setActiveTab] = useState<"intake" | "shipments">("intake");
+  const { data: stats, isLoading } = useAdminLogisticsStats();
 
   return (
-    <div className="p-6 max-w-7xl mx-auto flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Top Shipping Portal Header & Tab Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
-          <h1 className="text-2xl font-black text-neutral-900 uppercase tracking-tight">Shipping & Fulfillment</h1>
-          <p className="text-sm text-neutral-500 font-medium mt-1">Manage orders, dispatch packages, and track couriers.</p>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight uppercase">
+            Logistics &amp; Courier Fulfillment
+          </h1>
+
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-fit">
+          <button
+            onClick={() => setActiveTab("intake")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
+              activeTab === "intake"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <TruckIcon className="w-4 h-4 text-brand" />
+            <span>Orders to Dispatch</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab("shipments")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
+              activeTab === "shipments"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <TableCellsIcon className="w-4 h-4 text-slate-600" />
+            <span>Carrier Shipments</span>
+          </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-6 border-b border-neutral-200">
-        <button
-          onClick={() => setActiveTab("shipments")}
-          className={`pb-3 text-sm font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-colors ${
-            activeTab === "shipments" ? "border-brand text-brand" : "border-transparent text-neutral-500 hover:text-neutral-700"
-          }`}
-        >
-          <TruckIcon className="w-5 h-5" />
-          Shipments
-        </button>
-        <button
-          onClick={() => setActiveTab("warehouses")}
-          className={`pb-3 text-sm font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-colors ${
-            activeTab === "warehouses" ? "border-brand text-brand" : "border-transparent text-neutral-500 hover:text-neutral-700"
-          }`}
-        >
-          <HomeModernIcon className="w-5 h-5" />
-          Warehouses
-        </button>
-      </div>
-
-      {/* Content Area */}
-      {activeTab === "shipments" && (
-        <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-          
-          {/* Quick Stats (Awaiting real backend stats API - defaulting to 0 to avoid mocks) */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white p-4 border border-neutral-200 shadow-sm rounded-lg flex flex-col">
-              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Pending Fulfillment</span>
-              <span className="text-2xl font-black text-neutral-900 mt-1">0</span>
-            </div>
-            <div className="bg-white p-4 border border-neutral-200 shadow-sm rounded-lg flex flex-col">
-              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">In Transit</span>
-              <span className="text-2xl font-black text-blue-600 mt-1">0</span>
-            </div>
-            <div className="bg-white p-4 border border-neutral-200 shadow-sm rounded-lg flex flex-col">
-              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Delivered (30d)</span>
-              <span className="text-2xl font-black text-green-600 mt-1">0</span>
-            </div>
-            <div className="bg-white p-4 border border-neutral-200 shadow-sm rounded-lg flex flex-col">
-              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">RTO / Issues</span>
-              <span className="text-2xl font-black text-red-600 mt-1">0</span>
-            </div>
-          </div>
-
-          {/* Main Table */}
-          <ShipmentListTable />
-          
+      {/* Tab 1: Dispatch & Packing Queue */}
+      {activeTab === "intake" && (
+        <div className="animate-in fade-in duration-200">
+          <AdminLogisticsDashboard />
         </div>
       )}
 
-      {activeTab === "warehouses" && (
-        <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-          <WarehouseManager />
+      {/* Tab 2: Courier Shipments Register & Sync */}
+      {activeTab === "shipments" && (
+        <div className="flex flex-col gap-4 animate-in fade-in duration-200">
+          
+          {/* Quick Carrier Operational Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-white p-3 border border-slate-200 shadow-sm rounded-xl flex flex-col">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending Fulfillment</span>
+              <span className="text-xl sm:text-2xl font-black text-slate-900 mt-1 font-mono">
+                {isLoading ? "..." : stats?.overallPipeline?.pendingPacking ?? 0}
+              </span>
+            </div>
+            <div className="bg-white p-3 border border-slate-200 shadow-sm rounded-xl flex flex-col">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">In Transit</span>
+              <span className="text-xl sm:text-2xl font-black text-blue-600 mt-1 font-mono">
+                {isLoading ? "..." : stats?.overallPipeline?.inTransit ?? 0}
+              </span>
+            </div>
+            <div className="bg-white p-3 border border-slate-200 shadow-sm rounded-xl flex flex-col">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Delivered Today</span>
+              <span className="text-xl sm:text-2xl font-black text-emerald-600 mt-1 font-mono">
+                {isLoading ? "..." : stats?.overallPipeline?.deliveredToday ?? 0}
+              </span>
+            </div>
+            <div className="bg-white p-3 border border-slate-200 shadow-sm rounded-xl flex flex-col">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">NDR / Exceptions</span>
+              <span className="text-xl sm:text-2xl font-black text-rose-600 mt-1 font-mono">
+                {isLoading ? "..." : stats?.overallPipeline?.exceptions ?? 0}
+              </span>
+            </div>
+          </div>
+
+          {/* Main Shipment Table */}
+          <ShipmentListTable />
+          
         </div>
       )}
 

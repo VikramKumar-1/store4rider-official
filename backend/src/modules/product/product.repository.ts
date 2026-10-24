@@ -163,12 +163,51 @@ export class ProductRepository {
         { $inc: { "variants.$.stock": -quantity } }
       ).session(session || null).exec();
 
-      return result.modifiedCount > 0;
+      if (result.modifiedCount > 0) {
+        if (!product.allowBackorders) {
+          const updatedProduct = await ProductModel.findOne({ _id: productId }).session(session || null).select("variants").lean().exec() as any;
+          const anyInStock = updatedProduct?.variants?.some((v: any) => (v.stock || 0) > 0);
+          if (!anyInStock) {
+            await ProductModel.updateOne({ _id: productId }, { $set: { stockStatus: 0 } }).session(session || null).exec();
+          }
+        }
+        return true;
+      }
+      return false;
     } else {
-      const result = await ProductModel.findOne(
-        { _id: productId, $or: [{ stockStatus: { $ne: 0 } }, { allowBackorders: true }] }
-      ).session(session || null).select("_id").lean().exec();
-      return !!result;
+      const product = await ProductModel.findOne({ _id: productId }).session(session || null).lean().exec() as any;
+      if (!product) return false;
+
+      const currentQty = typeof product.qty === "number" ? product.qty : (product.stockStatus !== 0 ? 1 : 0);
+      if (!product.allowBackorders && currentQty < quantity) {
+        return false;
+      }
+
+      const filter: any = { _id: productId };
+      if (!product.allowBackorders && typeof product.qty === "number" && product.qty > 0) {
+        filter.qty = { $gte: quantity };
+      }
+
+      const result = await ProductModel.updateOne(
+        filter,
+        { $inc: { qty: -quantity } }
+      ).session(session || null).exec();
+
+      if (result.modifiedCount > 0) {
+        if (!product.allowBackorders) {
+          const updated = await ProductModel.findOne({ _id: productId }).session(session || null).select("qty").lean().exec() as any;
+          if (updated && typeof updated.qty === "number" && updated.qty <= 0) {
+            await ProductModel.updateOne({ _id: productId }, { $set: { stockStatus: 0 } }).session(session || null).exec();
+          }
+        }
+        return true;
+      }
+
+      // If product had no qty field initialized but was in stock
+      if (product.stockStatus !== 0 || product.allowBackorders) {
+        return true;
+      }
+      return false;
     }
   }
 
@@ -188,7 +227,18 @@ export class ProductRepository {
           _id: productId, 
           variants: { $elemMatch: { [matchKey]: matchValue } } 
         },
-        { $inc: { "variants.$.stock": quantity } }
+        { 
+          $inc: { "variants.$.stock": quantity },
+          $set: { stockStatus: 1 }
+        }
+      ).session(session || null).exec();
+    } else {
+      await ProductModel.updateOne(
+        { _id: productId },
+        { 
+          $inc: { qty: quantity },
+          $set: { stockStatus: 1 }
+        }
       ).session(session || null).exec();
     }
   }

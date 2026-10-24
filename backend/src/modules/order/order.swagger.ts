@@ -150,5 +150,36 @@
    *         description: Order details
    */
 
+/**
+ * @swagger
+ * /orders/admin/counts:
+ *   get:
+ *     summary: Get order counts breakdown (Active, Failed, Exchanges, Prepaid, COD)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Operational order counts fetched successfully
+ */
+
 // Fix for TypeScript isolatedModules error
+/**
+ * @swagger
+ * /orders/admin/suggest:
+ *   get:
+ *     summary: Fast auto-suggest order lookup by number, customer, phone, or AWB
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema: { type: string }
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Lightweight order suggestions list
+ */
+
 export {};

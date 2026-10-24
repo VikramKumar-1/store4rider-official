@@ -50,6 +50,10 @@ export class AuthService {
     const user = await UserRepository.findByEmailWithPassword(data.email);
     if (!user) throw new UnauthorizedError("Invalid credentials");
 
+    if (user.isActive === false) {
+      throw new UnauthorizedError("Your account has been disabled. Please contact administrator.");
+    }
+
     const isMatch = await bcrypt.compare(data.password, user.password);
     if (!isMatch) throw new UnauthorizedError("Invalid credentials");
 
@@ -80,8 +84,13 @@ export class AuthService {
   static async refreshToken(oldToken: string) {
     try {
       const decoded = verifyToken(oldToken, true);
+      const user = await UserRepository.findById(decoded.userId);
+      if (!user || user.isActive === false) {
+        throw new UnauthorizedError("Account has been disabled");
+      }
       return generateTokens(decoded.userId);
-    } catch (err) {
+    } catch (err: any) {
+      if (err instanceof UnauthorizedError) throw err;
       throw new UnauthorizedError("Invalid refresh token");
     }
   }

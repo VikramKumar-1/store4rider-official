@@ -95,6 +95,14 @@ export class OrderValidator {
     });
   }
 
+  static validateSuggestQuery(req: NextRequest) {
+    const { z } = require("zod");
+    const q = req.nextUrl.searchParams.get("q") || "";
+    return z.object({
+      q: z.string().default(""),
+    }).parse({ q });
+  }
+
   static async validateRequestReturn(req: NextRequest) {
     const { z } = require("zod");
     const schema = z.object({

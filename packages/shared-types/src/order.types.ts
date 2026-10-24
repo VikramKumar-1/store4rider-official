@@ -53,6 +53,8 @@ export interface IOrder {
   orderNumber: string;
   userId?: string;
   guestEmail?: string;
+  customerEmail?: string;
+  failureReason?: string;
   status: IOrderStatus;
   items: IOrderItem[];
   pricing: IOrderPricing;

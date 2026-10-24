@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { userRoleSchema } from "@store4riders/shared-validation";
+import { userRoleSchema, createStaffUserSchema } from "@store4riders/shared-validation";
 import { UserRole } from "@store4riders/shared-types";
 import { NextRequest } from "next/server";
 
@@ -9,11 +9,13 @@ export class AdminValidator {
     const page = parseInt(url.searchParams.get("page") || "1");
     const limit = parseInt(url.searchParams.get("limit") || "20");
     const role = url.searchParams.get("role") || undefined;
+    const search = url.searchParams.get("search") || undefined;
     
     return {
       page: isNaN(page) || page < 1 ? 1 : page,
       limit: isNaN(limit) || limit < 1 ? 20 : limit,
       role,
+      search,
     };
   }
 
@@ -29,5 +31,9 @@ export class AdminValidator {
       isActive: z.boolean(),
     });
     return schema.parse(body) as { isActive: boolean };
+  }
+
+  static validateCreateStaffUser(body: any) {
+    return createStaffUserSchema.parse(body);
   }
 }

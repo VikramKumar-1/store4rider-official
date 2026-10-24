@@ -25,12 +25,14 @@ export interface ITrackingEvent {
   description?: string;
   receivedAt?: string | Date;
   providerEventId?: string;
+  provider?: string;
 }
 
 export interface IShipment {
   id?: string;
   _id?: string;
   orderId: string;
+  orderNumber?: string;
   provider: "shiprocket" | "delhivery" | "xpressbees";
   shipmentType: "forward" | "reverse";
   providerOrderId?: string;

@@ -22,6 +22,20 @@ import { logger } from "../../core/utils/logger";
  *     responses:
  *       200:
  *         description: Cleanup completed
+ * 
+ * /api/v1/cron/sync-instagram:
+ *   get:
+ *     summary: Auto-sync Instagram Reels and Account Stats (cron endpoint)
+ *     tags: [Cron]
+ *     parameters:
+ *       - in: query
+ *         name: secret
+ *         schema:
+ *           type: string
+ *         description: CRON_SECRET for VPS authentication
+ *     responses:
+ *       200:
+ *         description: Instagram sync completed
  */
 export async function cronRouter(req: NextRequest, routePath: string[]) {
   const method = req.method;
@@ -45,6 +59,31 @@ export async function cronRouter(req: NextRequest, routePath: string[]) {
       );
     } catch (err: any) {
       logger.error("Cron cleanup failed", { error: err.message });
+      return ApiResponse.error(err.message, err.statusCode || 500);
+    }
+  }
+
+  if (method === "GET" && (routePath[0] === "sync-instagram" || routePath[0] === "instagram-sync")) {
+    try {
+      const headers: Record<string, string> = {};
+      req.headers.forEach((val, key) => { headers[key.toLowerCase()] = val; });
+
+      validateCronAuth({
+        headers,
+        searchParams: req.nextUrl.searchParams,
+      });
+
+      await connectToDatabase();
+      const { HomepageService } = await import("../homepage/homepage.service");
+      const updated = await HomepageService.syncInstagramFeed();
+      const count = updated?.sections?.socialMedia?.reels?.length || 0;
+
+      return ApiResponse.success(
+        { syncedReels: count },
+        `Instagram live sync complete. ${count} reels synced.`
+      );
+    } catch (err: any) {
+      logger.error("Instagram cron sync failed", { error: err.message });
       return ApiResponse.error(err.message, err.statusCode || 500);
     }
   }

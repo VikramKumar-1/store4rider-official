@@ -1,6 +1,6 @@
 import { UserRepository } from "./user.repository";
 import { IUser, IUserAddress, UserRole } from "@store4riders/shared-types";
-import { NotFoundError } from "../../core/errors/AppError";
+import { NotFoundError, ForbiddenError, ConflictError } from "../../core/errors/AppError";
 
 /**
  * @class UserService
@@ -67,21 +67,111 @@ export class UserService {
     return await this.updateProfile(userId, { addresses: user.addresses });
   }
 
-  static async getUsers(page: number, limit: number, role?: string) {
-    const items = await UserRepository.findUsers(page, limit, role);
-    const totalCount = await UserRepository.countUsers(role);
+  static async getUsers(page: number, limit: number, role?: string, search?: string) {
+    const items = await UserRepository.findUsers(page, limit, role, search);
+    const totalCount = await UserRepository.countUsers(role, search);
     return { items, totalCount };
   }
 
-  static async updateRole(userId: string, role: UserRole): Promise<IUser> {
+  static async createStaffUser(data: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName?: string;
+    phone?: string;
+    role: UserRole;
+  }, requestingUserId?: string): Promise<IUser> {
+    const existing = await UserRepository.findByEmail(data.email.toLowerCase().trim());
+    if (existing) {
+      throw new ConflictError("User with this email already exists");
+    }
+
+    if (data.role === "admin" || data.role === "super_admin") {
+      if (requestingUserId) {
+        const reqRole = await this.getRole(requestingUserId);
+        if (reqRole !== "super_admin" && reqRole !== "admin") {
+          throw new ForbiddenError("Only Administrators can create Admin users");
+        }
+      }
+    }
+
+    const bcrypt = await import("bcryptjs");
+    const hashedPassword = await bcrypt.hash(data.password, 12);
+
+    return await UserRepository.create({
+      email: data.email.toLowerCase().trim(),
+      password: hashedPassword,
+      firstName: data.firstName.trim(),
+      lastName: (data.lastName || "").trim(),
+      phone: data.phone?.trim(),
+      role: data.role,
+      isActive: true,
+      addresses: [],
+    });
+  }
+
+  static async updateRole(userId: string, role: UserRole, requestingUserId?: string): Promise<IUser> {
+    const targetUser = await UserRepository.findById(userId);
+    if (!targetUser) throw new NotFoundError("User");
+
+    if (requestingUserId) {
+      const reqRole = await this.getRole(requestingUserId);
+      if (targetUser.role === "super_admin" && reqRole !== "super_admin") {
+        throw new ForbiddenError("Only Super Admin can modify Super Admin roles");
+      }
+      if (targetUser.role === "admin" && reqRole !== "super_admin") {
+        throw new ForbiddenError("Only Super Admin can demote or modify existing Admin accounts");
+      }
+      if (role === "super_admin" && reqRole !== "super_admin") {
+        throw new ForbiddenError("Only Super Admin can assign Super Admin role");
+      }
+      if (role === "admin" && reqRole !== "super_admin" && reqRole !== "admin") {
+        throw new ForbiddenError("Only Administrators can assign Admin role");
+      }
+    }
+
     const user = await UserRepository.update(userId, { role });
     if (!user) throw new NotFoundError("User");
     return user;
   }
 
-  static async updateStatus(userId: string, isActive: boolean): Promise<IUser> {
+  static async updateStatus(userId: string, isActive: boolean, requestingUserId?: string): Promise<IUser> {
+    const targetUser = await UserRepository.findById(userId);
+    if (!targetUser) throw new NotFoundError("User");
+
+    if (targetUser.role === "super_admin") {
+      throw new ForbiddenError("Super Admin status cannot be modified");
+    }
+
+    if (requestingUserId) {
+      const reqRole = await this.getRole(requestingUserId);
+      if (targetUser.role === "admin" && reqRole !== "super_admin") {
+        throw new ForbiddenError("Only Super Admin can enable or disable Admin accounts");
+      }
+    }
+
     const user = await UserRepository.update(userId, { isActive });
     if (!user) throw new NotFoundError("User");
     return user;
+  }
+
+  static async deleteUser(userId: string, requestingUserId: string): Promise<boolean> {
+    const targetUser = await UserRepository.findById(userId);
+    if (!targetUser) throw new NotFoundError("User");
+
+    if (userId === requestingUserId) {
+      throw new ForbiddenError("You cannot delete your own account");
+    }
+
+    if (targetUser.role === "super_admin") {
+      throw new ForbiddenError("Super Admin accounts cannot be deleted");
+    }
+
+    const reqRole = await this.getRole(requestingUserId);
+    if (targetUser.role === "admin" && reqRole !== "super_admin") {
+      throw new ForbiddenError("Only Super Admin can delete Admin accounts");
+    }
+
+    return await UserRepository.delete(userId);
   }
 }

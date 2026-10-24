@@ -23,6 +23,7 @@ import { pincodeRouter } from "./modules/pincode/pincode.route";
 import { cronRouter } from "./modules/cron/cron.route";
 import { migrationRouter } from "./modules/migration/migration.route";
 import { homepageRouter } from "./modules/homepage/homepage.route";
+import { contactRouter } from "./modules/contact/contact.route";
 
 export async function centralRouter(req: NextRequest, routePath: string[]) {
   if (routePath.join("/") === "debug-images") {
@@ -72,6 +73,8 @@ export async function centralRouter(req: NextRequest, routePath: string[]) {
     case "pincodes": return pincodeRouter(req, rest);
     case "cron": return cronRouter(req, rest);
     case "migration": return migrationRouter(req, rest);
+    case "contact":
+    case "support": return contactRouter(req, rest);
     default: return null;
   }
 }

@@ -15,3 +15,4 @@ export * from "./return.types";
 export * from "./blog.types";
 export * from "./settings.types";
 export * from "./homepage.types";
+export * from "./contact.types";

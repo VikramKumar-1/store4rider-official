@@ -22,6 +22,7 @@ interface ReelVideoModalProps {
   onSelectReel: (reel: IInstagramReel) => void;
   instagramHandle?: string;
   instagramProfileUrl?: string;
+  profileAvatarUrl?: string;
 }
 
 /**
@@ -65,6 +66,7 @@ export const ReelVideoModal: React.FC<ReelVideoModalProps> = ({
   onSelectReel,
   instagramHandle = "store4riders",
   instagramProfileUrl = "https://www.instagram.com/store4riders/",
+  profileAvatarUrl,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
@@ -138,7 +140,9 @@ export const ReelVideoModal: React.FC<ReelVideoModalProps> = ({
 
   const isUploadedVideo =
     activeReel.videoType === "upload" ||
-    /\.(mp4|webm|mov)(\?.*)?$/i.test(activeReel.videoUrl);
+    /\.(mp4|webm|mov)(\?.*)?$/i.test(activeReel.videoUrl) ||
+    activeReel.videoUrl?.includes(".mp4") ||
+    activeReel.videoUrl?.includes("fbcdn.net/o1/v/t2/f2");
 
   const embedUrl = !isUploadedVideo ? getEmbedUrl(activeReel.videoUrl) : "";
 
@@ -222,7 +226,7 @@ export const ReelVideoModal: React.FC<ReelVideoModalProps> = ({
             <div className="relative w-8 h-8 rounded-full p-[1.5px] bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] shrink-0">
               <div className="w-full h-full rounded-full overflow-hidden bg-neutral-900 relative">
                 <Image
-                  src="/icon.png"
+                  src={profileAvatarUrl || "/favicon.png"}
                   alt="Store4Riders Logo"
                   fill
                   className="object-cover"

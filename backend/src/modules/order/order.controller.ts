@@ -4,7 +4,8 @@ import { OrderRepository } from "./order.repository";
 import { OrderValidator } from "./order.validator";
 import { ApiResponse } from "../../core/response/ApiResponse";
 import { ENV } from "../../core/config/env";
-import { ValidationError } from "../../core/errors/AppError";
+import { ValidationError, ForbiddenError } from "../../core/errors/AppError";
+import { UserService } from "../user/user.service";
 
 /**
  * @class OrderController
@@ -44,16 +45,6 @@ export class OrderController {
     const userId = OrderValidator.extractUserId(req);
     const order = await OrderRepository.findById(id);
     if (!order || order.userId !== userId) {
-      return ApiResponse.error("Order not found", 404);
-    }
-    return ApiResponse.success(order, "Order fetched successfully");
-  }
-
-  static async adminGetById(req: NextRequest, id: string) {
-    // Basic auth check to ensure user is logged in. In production, check admin role.
-    OrderValidator.extractUserId(req); 
-    const order = await OrderRepository.findById(id);
-    if (!order) {
       return ApiResponse.error("Order not found", 404);
     }
     return ApiResponse.success(order, "Order fetched successfully");
@@ -122,21 +113,70 @@ export class OrderController {
   }
 
   static async adminGetAll(req: NextRequest) {
-    OrderValidator.extractUserId(req);
+    const userId = OrderValidator.extractUserId(req);
+    const role = await UserService.getRole(userId);
+    const allowed = ["super_admin", "admin", "logistic", "customer_care", "order_manager", "customer_support"];
+    if (!allowed.includes(role)) {
+      throw new ForbiddenError("Staff access required");
+    }
     const query = OrderValidator.validateAdminGetQuery(req);
     const result = await OrderService.getAllAdmin(query, query.page, query.limit);
     return ApiResponse.paginated(result.items, result.total, query.page, query.limit);
   }
 
+  static async adminGetCounts(req: NextRequest) {
+    const userId = OrderValidator.extractUserId(req);
+    const role = await UserService.getRole(userId);
+    const allowed = ["super_admin", "admin", "logistic", "customer_care", "order_manager", "customer_support"];
+    if (!allowed.includes(role)) {
+      throw new ForbiddenError("Staff access required");
+    }
+    const counts = await OrderService.getAdminCounts();
+    return ApiResponse.success(counts, "Order counts fetched");
+  }
+
+  static async adminSuggest(req: NextRequest) {
+    const userId = OrderValidator.extractUserId(req);
+    const role = await UserService.getRole(userId);
+    const allowed = ["super_admin", "admin", "logistic", "customer_care", "order_manager", "customer_support"];
+    if (!allowed.includes(role)) {
+      throw new ForbiddenError("Staff access required");
+    }
+    const { q } = OrderValidator.validateSuggestQuery(req);
+    const items = await OrderService.suggestAdmin(q);
+    return ApiResponse.success(items, "Order suggestions fetched");
+  }
+
+  static async adminGetById(req: NextRequest, id: string) {
+    const userId = OrderValidator.extractUserId(req);
+    const role = await UserService.getRole(userId);
+    const allowed = ["super_admin", "admin", "logistic", "customer_care", "order_manager", "customer_support"];
+    if (!allowed.includes(role)) {
+      throw new ForbiddenError("Staff access required");
+    }
+    const order = await OrderService.getOrderById(id);
+    return ApiResponse.success(order, "Order details fetched");
+  }
+
   static async adminUpdateStatus(req: NextRequest, id: string) {
-    OrderValidator.extractUserId(req);
+    const userId = OrderValidator.extractUserId(req);
+    const role = await UserService.getRole(userId);
     const { status } = await OrderValidator.validateAdminUpdateStatus(req);
+
+    if (role === "customer_care" && status !== "cancelled") {
+      throw new ForbiddenError("Customer Care can only cancel orders");
+    }
+
     const updated = await OrderService.adminUpdateStatus(id, status);
     return ApiResponse.success(updated, "Order status updated");
   }
 
   static async adminDeleteOrder(req: NextRequest, id: string) {
-    OrderValidator.extractUserId(req);
+    const userId = OrderValidator.extractUserId(req);
+    const role = await UserService.getRole(userId);
+    if (role !== "admin" && role !== "super_admin") {
+      throw new ForbiddenError("Only Admins can delete orders");
+    }
     await OrderService.adminDeleteOrder(id);
     return ApiResponse.success(null, "Order deleted successfully");
   }
@@ -152,14 +192,18 @@ export class OrderController {
     const userId = OrderValidator.extractUserId(req);
     const { reason, images } = await OrderValidator.validateRequestReturn(req);
     const updated = await OrderService.requestReturn(id, userId, reason, images);
-    return ApiResponse.success(updated, "Return requested successfully");
+    return ApiResponse.success(updated, "Exchange requested successfully");
   }
 
   static async adminHandleReturn(req: NextRequest, id: string) {
-    OrderValidator.extractUserId(req);
+    const userId = OrderValidator.extractUserId(req);
+    const role = await UserService.getRole(userId);
+    if (role === "customer_care") {
+      throw new ForbiddenError("Customer Care cannot handle exchange requests");
+    }
     const { action, adminNote } = await OrderValidator.validateAdminHandleReturn(req);
     const updated = await OrderService.adminHandleReturn(id, action, adminNote);
-    return ApiResponse.success(updated, `Return ${action}d successfully`);
+    return ApiResponse.success(updated, `Exchange ${action}d successfully`);
   }
 
   static async generateInvoice(req: NextRequest, id: string) {
@@ -168,10 +212,8 @@ export class OrderController {
       userId = OrderValidator.extractUserId(req);
     } catch {
       // Check if admin token is present if user token fails
-      // for now, we just pass what we have, service will reject if unauthorized
     }
     
-    // As a hack for admin context, we'll let a query param override if they have admin token
     const isAdmin = req.nextUrl.searchParams.get("admin") === "true";
     const effectiveUserId = isAdmin ? "admin" : userId;
 
@@ -185,7 +227,11 @@ export class OrderController {
   }
 
   static async adminAssignWarehouse(req: NextRequest, id: string) {
-    OrderValidator.extractUserId(req);
+    const userId = OrderValidator.extractUserId(req);
+    const role = await UserService.getRole(userId);
+    if (role === "customer_care") {
+      throw new ForbiddenError("Customer Care cannot assign warehouses");
+    }
     const body = await req.json();
     if (!body.warehouseId) {
       throw new ValidationError("warehouseId is required");

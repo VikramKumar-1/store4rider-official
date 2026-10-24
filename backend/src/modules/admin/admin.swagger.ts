@@ -86,6 +86,19 @@
 
 /**
      * @swagger
+     * /admin/dashboard/logistics-stats:
+     *   get:
+     *     summary: Get logistics fulfillment pipeline and last 24 orders metrics
+     *     tags: [Admin]
+     *     security:
+     *       - bearerAuth: []
+     *     responses:
+     *       200:
+     *         description: Logistics dashboard metrics without revenue
+     */
+
+/**
+     * @swagger
      * /admin/dashboard/recent-orders:
      *   get:
      *     summary: Get recent orders

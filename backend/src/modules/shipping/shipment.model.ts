@@ -151,6 +151,7 @@ const shipmentSchema = new Schema<ShipmentDocument>(
 shipmentSchema.index({ provider: 1, providerShipmentId: 1 }, { unique: true, sparse: true });
 shipmentSchema.index({ provider: 1, awb: 1 }, { unique: true, sparse: true });
 shipmentSchema.index({ idempotencyKey: 1 }, { unique: true, sparse: true });
+shipmentSchema.index({ status: 1, updatedAt: -1 });
 
 // -----------------------------------------------------------------------------
 // Hooks (Strict State Transitions)

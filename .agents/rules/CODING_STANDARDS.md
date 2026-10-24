@@ -15,8 +15,8 @@ trigger: always_on
 
 | Layer | Technology | Version |
 |---|---|---|
-| **Frontend** | Next.js (App Router) | `15.1.6` |
-| **Backend** | Next.js (API Routes) | `latest` (15.x) |
+| **Frontend** | Next.js (App Router) + React 19 | `16.3.5` (`react: ^19.1.0`) |
+| **Backend** | Next.js (API Routes) | `16.3.5` |
 | **Database** | MongoDB (via Mongoose) | Atlas |
 | **Cache** | Redis (via ioredis) | — |
 | **Payments** | PayU / CCavenue / Snapmint | — |
@@ -32,7 +32,7 @@ trigger: always_on
 
 > **Framer Motion:** Installed but use MINIMALLY. This is an e-commerce site, not a portfolio. Heavy animations slow down page load and hurt conversion. Use CSS transitions (`transition-all duration-300`) for hover/fade effects. Framer only for modals and complex page transitions if absolutely necessary.
 
-> **Version Upgrades:** Before upgrading ANY dependency (Next.js, React, Tailwind, etc.), check the official changelog for breaking changes. NEVER blindly upgrade. Test locally after upgrade. Pin exact versions in `package.json` for stability (e.g., `"next": "15.1.6"`, not `"next": "latest"`). The backend currently uses `"next": "latest"` — consider pinning it for production stability.
+> **Version Upgrades:** Before upgrading ANY dependency (Next.js, React, Tailwind, etc.), check the official changelog for breaking changes. NEVER blindly upgrade. Test locally after upgrade. Pin exact versions in `package.json` for stability (currently pinned at `"next": "16.3.5"` and `"react": "^19.1.0"`).
 
 ---
 

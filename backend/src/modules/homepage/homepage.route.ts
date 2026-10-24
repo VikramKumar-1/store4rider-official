@@ -45,9 +45,21 @@ import { UserService } from "../user/user.service";
  *     tags: [Homepage]
  *     security:
  *       - BearerAuth: []
+ * 
+ * /api/v1/homepage/sync-instagram:
+ *   post:
+ *     summary: Sync Live Instagram Feed & Stats (Admin)
+ *     tags: [Homepage]
+ *     security:
+ *       - BearerAuth: []
  */
 export async function homepageRouter(req: any, routePath: string) {
   const method = req.method;
+
+  // Webhook: Meta Real-Time Instagram updates (/homepage/webhook/instagram or /homepage/webhook)
+  if (routePath === "webhook/instagram" || routePath === "webhook") {
+    return HomepageController.handleWebhook(req);
+  }
 
   // GET /homepage/public
   if (method === "GET" && routePath === "public") {
@@ -59,6 +71,13 @@ export async function homepageRouter(req: any, routePath: string) {
     const userId = extractUserFromAuth(req);
     await checkAdmin(userId, UserService.getRole);
     return HomepageController.getAdmin(req);
+  }
+
+  // POST /homepage/sync-instagram
+  if (method === "POST" && routePath === "sync-instagram") {
+    const userId = extractUserFromAuth(req);
+    await checkAdmin(userId, UserService.getRole);
+    return HomepageController.syncInstagram(req);
   }
 
   // PUT /homepage/hero-seo

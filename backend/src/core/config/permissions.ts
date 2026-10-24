@@ -10,9 +10,14 @@ export enum PermissionAction {
   MANAGE_CATEGORIES = "manage_categories",
   MANAGE_BRANDS = "manage_brands",
   
-  // Orders
+  // Orders & Shipping
   MANAGE_ORDERS = "manage_orders",
   MANAGE_RETURNS = "manage_returns",
+  MANAGE_SHIPPING = "manage_shipping",
+  DELETE_ORDERS = "delete_orders",
+  
+  // Customer Support & Inquiries
+  MANAGE_SUPPORT = "manage_support",
   
   // Marketing & Content
   MANAGE_PROMOTIONS = "manage_promotions",
@@ -32,16 +37,31 @@ export const ROLE_PERMISSIONS: RolePermissions = {
   super_admin: "all",
   admin: [
     PermissionAction.MANAGE_USERS,
+    PermissionAction.MANAGE_ROLES,
     PermissionAction.MANAGE_PRODUCTS,
     PermissionAction.MANAGE_CATEGORIES,
     PermissionAction.MANAGE_BRANDS,
     PermissionAction.MANAGE_ORDERS,
     PermissionAction.MANAGE_RETURNS,
+    PermissionAction.MANAGE_SHIPPING,
+    PermissionAction.DELETE_ORDERS,
+    PermissionAction.MANAGE_SUPPORT,
     PermissionAction.MANAGE_PROMOTIONS,
     PermissionAction.MANAGE_BLOGS,
     PermissionAction.MANAGE_NEWSLETTER,
     PermissionAction.VIEW_DASHBOARD,
     PermissionAction.MANAGE_SETTINGS,
+  ],
+  logistic: [
+    PermissionAction.VIEW_DASHBOARD,
+    PermissionAction.MANAGE_ORDERS,
+    PermissionAction.MANAGE_RETURNS,
+    PermissionAction.MANAGE_SHIPPING,
+  ],
+  customer_care: [
+    PermissionAction.VIEW_DASHBOARD,
+    PermissionAction.MANAGE_ORDERS,
+    PermissionAction.MANAGE_SUPPORT,
   ],
   product_manager: [
     PermissionAction.MANAGE_PRODUCTS,
@@ -52,6 +72,7 @@ export const ROLE_PERMISSIONS: RolePermissions = {
   order_manager: [
     PermissionAction.MANAGE_ORDERS,
     PermissionAction.MANAGE_RETURNS,
+    PermissionAction.MANAGE_SHIPPING,
     PermissionAction.VIEW_DASHBOARD,
   ],
   marketing_manager: [
@@ -61,9 +82,9 @@ export const ROLE_PERMISSIONS: RolePermissions = {
     PermissionAction.VIEW_DASHBOARD,
   ],
   customer_support: [
-    PermissionAction.MANAGE_ORDERS,
-    PermissionAction.MANAGE_RETURNS,
     PermissionAction.VIEW_DASHBOARD,
+    PermissionAction.MANAGE_ORDERS,
+    PermissionAction.MANAGE_SUPPORT,
   ],
   customer: [],
 };

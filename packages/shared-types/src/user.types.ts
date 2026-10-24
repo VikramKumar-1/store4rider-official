@@ -10,6 +10,8 @@ export interface IUserAddress {
 export type UserRole = 
   | "super_admin"
   | "admin"
+  | "logistic"
+  | "customer_care"
   | "product_manager"
   | "order_manager"
   | "marketing_manager"

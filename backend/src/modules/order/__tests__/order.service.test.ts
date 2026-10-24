@@ -125,7 +125,7 @@ describe('OrderService', () => {
 
       await OrderService.handleWebhook(JSON.stringify(event), {}, 'payu');
 
-      expect(OrderRepository.updateStatus).toHaveBeenCalledWith('order123', 'failed', null, expect.any(Object));
+      expect(OrderRepository.updateStatus).toHaveBeenCalledWith('order123', 'failed', expect.objectContaining({ failureReason: expect.any(String) }), expect.any(Object));
       expect(PaymentRepository.atomicStatusTransition).toHaveBeenCalledWith('payment123', ['created', 'pending'], 'failed', expect.any(Object), expect.any(Object));
       expect(ProductRepository.decrementStock).not.toHaveBeenCalled();
     });
@@ -354,8 +354,41 @@ describe('OrderService', () => {
       } as any);
 
       const result = await PaymentRepository.atomicStatusTransition('payment123', ['captured'], 'partially_refunded', undefined);
-      
       expect(result?.status).toBe('partially_refunded');
+    });
+  });
+
+  describe('Scenario 14: Admin Order Search & Filter', () => {
+    it('should include pending_payment and failed orders when admin explicitly searches', async () => {
+      vi.mocked(OrderRepository.findPaginated).mockResolvedValue({
+        items: [{ _id: 'o1', orderNumber: 'ORD-123', status: 'pending_payment' }],
+        totalCount: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1
+      } as any);
+
+      await OrderService.getAllAdmin({ search: 'ORD-123' }, 1, 10);
+
+      // Verify findPaginated was called without restricting status to non-pending
+      const [calledQuery] = vi.mocked(OrderRepository.findPaginated).mock.calls[0];
+      expect(calledQuery.status).toBeUndefined();
+      expect(calledQuery.$or).toBeDefined();
+    });
+
+    it('should exclude pending_payment and failed orders when browsing without search', async () => {
+      vi.mocked(OrderRepository.findPaginated).mockResolvedValue({
+        items: [],
+        totalCount: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0
+      } as any);
+
+      await OrderService.getAllAdmin({}, 1, 10);
+
+      const [calledQuery] = vi.mocked(OrderRepository.findPaginated).mock.calls[0];
+      expect(calledQuery.status).toEqual({ $nin: ['failed', 'pending_payment'] });
     });
   });
 });

@@ -93,6 +93,14 @@ export async function orderRouter(req: NextRequest, routePath: string[]): Promis
     return await OrderController.adminGetAll(req);
   }
 
+  if (method === "GET" && pathLen === 2 && routePath[0] === "admin" && routePath[1] === "counts") {
+    return await OrderController.adminGetCounts(req);
+  }
+
+  if (method === "GET" && pathLen === 2 && routePath[0] === "admin" && routePath[1] === "suggest") {
+    return await OrderController.adminSuggest(req);
+  }
+
   if (method === "GET" && pathLen === 2 && routePath[0] === "admin") {
     return await OrderController.adminGetById(req, routePath[1]);
   }

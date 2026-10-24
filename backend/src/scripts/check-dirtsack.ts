@@ -17,7 +17,7 @@ async function checkDirtSack() {
       console.log("Status:", product.status); // "published" or "draft"
     } else {
       console.log("❌ NOT FOUND IN DATABASE");
-      console.log("Agar ye CSV mein hai, toh sayad uski Row format mein koi dikkat thi jiske karan import fail ho gaya.");
+      console.log("If this item is in the CSV, there may have been a row formatting issue that caused the import to fail.");
     }
 
   } catch (error) {

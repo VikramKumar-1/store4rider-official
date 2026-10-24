@@ -14,6 +14,7 @@ import { addEmailJob } from "../../core/queue/email.queue";
 import { logger } from "../../core/utils/logger";
 import { ENV } from "../../core/config/env";
 import { calculateTax, calculateInclusiveTax, getTaxRateFromClass } from "@store4riders/shared-utils";
+import { getCache, setCache } from "../../core/cache/redis";
 
 export class OrderService {
   
@@ -353,6 +354,18 @@ export class OrderService {
       await session.endSession();
     }
 
+    if (resultData) {
+      try {
+        const { adminEventHub } = await import("../../core/events/adminEventHub");
+        adminEventHub.publish("ORDER_CREATED", {
+          orderId: (resultData as any).orderId,
+          orderNumber: (resultData as any).orderNumber,
+          paymentMethod: (resultData as any).paymentMethod,
+          amount: (resultData as any).amount,
+        });
+      } catch {}
+    }
+
     return resultData;
   }
 
@@ -563,18 +576,19 @@ export class OrderService {
         } 
         else if (eventName === "payment.failed") {
           if (order.status !== "pending_payment") return;
-          await OrderRepository.updateStatus(orderIdStr, "failed", null, session);
+          const failureReason = event?.payload?.statusMessage || event?.payload?.error_Message || (event?.payload?.status ? `Payment failed: ${event.payload.status}` : "Payment declined or cancelled by customer at gateway");
+          await OrderRepository.updateStatus(orderIdStr, "failed", { failureReason }, session);
           await PaymentRepository.atomicStatusTransition(paymentIdStr, ["created", "pending"], "failed", {}, session);
           
           if (order.userId) {
             const user = await UserRepository.findById(order.userId);
             if (user) {
-              addEmailJob(user.email, "Payment Failed", `Your payment attempt failed. Please try again.`);
+              addEmailJob(user.email, "Payment Failed", `Your payment attempt failed: ${failureReason}. Please try again.`);
             }
           } else if (order.guestEmail) {
-            addEmailJob(order.guestEmail, "Payment Failed", `Your payment attempt failed. Please try again.`);
+            addEmailJob(order.guestEmail, "Payment Failed", `Your payment attempt failed: ${failureReason}. Please try again.`);
           }
-          logger.info(`Webhook processed failure for order ${orderIdStr}`);
+          logger.info(`Webhook processed failure for order ${orderIdStr}: ${failureReason}`);
         }
         else if (eventName === "refund.processed") {
           if (order.status === "refunded") return;
@@ -689,20 +703,301 @@ export class OrderService {
     return result;
   }
 
+  static async getOrderById(orderId: string) {
+    const order = await OrderRepository.findById(orderId);
+    if (!order) {
+      throw new NotFoundError("Order not found");
+    }
+
+    if (order.userId) {
+      try {
+        const { UserModel } = await import("../user/user.model");
+        const user: any = await UserModel.findById(order.userId).select("email firstName lastName phone name").lean().exec();
+        if (user) {
+          (order as any).customer = user;
+          (order as any).customerEmail = (order as any).customerEmail || (order as any).guestEmail || user.email;
+          if (!order.shippingAddress?.fullName) {
+            if (!order.shippingAddress) (order as any).shippingAddress = {} as any;
+            (order.shippingAddress as any).fullName = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.name || "Customer";
+          }
+          if (!order.shippingAddress?.phone && user.phone) {
+            (order.shippingAddress as any).phone = user.phone;
+          }
+        }
+      } catch {
+        // graceful
+      }
+    } else {
+      (order as any).customerEmail = (order as any).customerEmail || (order as any).guestEmail || "";
+    }
+
+    return order;
+  }
+
   static async getAllAdmin(query: any, page: number, limit: number) {
     const dbQuery: any = {};
-    if (query.status) dbQuery.status = query.status;
-    if (query.paymentMethod) dbQuery.paymentMethod = query.paymentMethod;
-    if (query.search) {
-      dbQuery.$or = [
-        { orderNumber: { $regex: query.search, $options: "i" } },
-        { "shippingAddress.fullName": { $regex: query.search, $options: "i" } },
-        { "shippingAddress.phone": { $regex: query.search, $options: "i" } },
-      ];
+    if (query.status) {
+      if (query.status === "failed") {
+        dbQuery.status = { $in: ["failed", "pending_payment"] };
+      } else if (query.status === "exchanges") {
+        dbQuery.status = { $in: ["return_requested", "return_approved", "return_picked", "returned"] };
+      } else if (query.status === "all_orders") {
+        dbQuery.status = { $nin: ["failed", "pending_payment"] };
+      } else if (query.status === "all" || query.status === "any") {
+        // Show any status without restriction
+      } else {
+        dbQuery.status = query.status;
+      }
+    } else {
+      // DEFAULT: Do NOT include failed or pending_payment transactions in the main orders list!
+      // Main orders list only shows legitimate placed orders when browsing!
+      // But if the merchant is searching for a specific order or customer, don't hide it just because payment failed or is pending!
+      if (!query.search || !query.search.trim()) {
+        dbQuery.status = { $nin: ["failed", "pending_payment"] };
+      }
+    }
+
+    if (query.paymentMethod) {
+      if (query.paymentMethod === "prepaid") {
+        dbQuery.paymentMethod = { $ne: "cod" };
+      } else {
+        dbQuery.paymentMethod = query.paymentMethod;
+      }
+    }
+
+    if (query.search && query.search.trim()) {
+      const cleanSearch = query.search.trim();
+      const strippedOrder = cleanSearch.replace(/^(order|ord|#|\s)+/i, "").trim();
+      const escaped = cleanSearch.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      const digits = cleanSearch.replace(/[^0-9]/g, "");
+
+      // Match shipments (AWB, Courier Name)
+      let shipmentOrderIds: string[] = [];
+      try {
+        const { ShipmentModel } = await import("../shipping/shipment.model");
+        const matchingShipments = await ShipmentModel.find({
+          $or: [
+            { awb: { $regex: escaped, $options: "i" } },
+            { courierName: { $regex: escaped, $options: "i" } }
+          ]
+        }).select("orderId").limit(50).lean().exec();
+        shipmentOrderIds = matchingShipments.map((s) => s.orderId).filter(Boolean);
+      } catch {
+        // graceful
+      }
+
+      // Match registered users (email, phone, fullName)
+      let userOrderIds: string[] = [];
+      try {
+        const { UserModel } = await import("../user/user.model");
+        const userOrConditions: any[] = [
+          { email: { $regex: escaped, $options: "i" } },
+          { firstName: { $regex: escaped, $options: "i" } },
+          { lastName: { $regex: escaped, $options: "i" } },
+          {
+            $expr: {
+              $regexMatch: {
+                input: { $concat: ["$firstName", " ", "$lastName"] },
+                regex: escaped,
+                options: "i"
+              }
+            }
+          }
+        ];
+        if (digits.length >= 4) {
+          userOrConditions.push({ phone: { $regex: digits, $options: "i" } });
+        }
+        const matchingUsers = await UserModel.find({ $or: userOrConditions }).select("_id").limit(50).lean().exec();
+        userOrderIds = matchingUsers.map((u) => String(u._id));
+      } catch {
+        // graceful
+      }
+
+      const searchOr: any[] = [];
+
+      if (strippedOrder) {
+        const escapedOrder = strippedOrder.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+        searchOr.push({ orderNumber: { $regex: escapedOrder, $options: "i" } });
+      }
+
+      if (digits.length >= 2) {
+        searchOr.push({ orderNumber: { $regex: digits, $options: "i" } });
+      }
+
+      if (mongoose.Types.ObjectId.isValid(cleanSearch)) {
+        searchOr.push({ _id: new mongoose.Types.ObjectId(cleanSearch) });
+      }
+
+      searchOr.push(
+        { orderNumber: { $regex: escaped, $options: "i" } },
+        { "shippingAddress.fullName": { $regex: escaped, $options: "i" } },
+        { "shippingAddress.phone": { $regex: escaped, $options: "i" } },
+        { "shippingAddress.city": { $regex: escaped, $options: "i" } },
+        { "shippingAddress.state": { $regex: escaped, $options: "i" } },
+        { "shippingAddress.pincode": { $regex: escaped, $options: "i" } },
+        { guestEmail: { $regex: escaped, $options: "i" } },
+        { "items.name": { $regex: escaped, $options: "i" } },
+        { "items.sku": { $regex: escaped, $options: "i" } }
+      );
+
+      // Multi-word full name support
+      const words = cleanSearch.split(/\s+/).filter(Boolean);
+      if (words.length > 1) {
+        const wordRegexes = words.map((w: string) => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&"));
+        searchOr.push({
+          $and: wordRegexes.map((w: string) => ({ "shippingAddress.fullName": { $regex: w, $options: "i" } }))
+        });
+      }
+
+      if (digits.length >= 4) {
+        searchOr.push({ "shippingAddress.phone": { $regex: digits, $options: "i" } });
+      }
+
+      if (shipmentOrderIds.length > 0) {
+        const validObjIds = shipmentOrderIds
+          .filter((id) => mongoose.Types.ObjectId.isValid(id))
+          .map((id) => new mongoose.Types.ObjectId(id));
+        if (validObjIds.length > 0) {
+          searchOr.push({ _id: { $in: validObjIds } });
+        }
+        searchOr.push({ orderNumber: { $in: shipmentOrderIds } });
+      }
+
+      if (userOrderIds.length > 0) {
+        searchOr.push({ userId: { $in: userOrderIds } });
+      }
+
+      dbQuery.$or = searchOr;
     }
     if (query.userId) dbQuery.userId = query.userId;
 
-    return await OrderRepository.findPaginated(dbQuery, page, limit);
+    const result = await OrderRepository.findPaginated(dbQuery, page, limit);
+
+    // Populate customer email and user details for user accounts if guestEmail is not on order
+    const userIdsToFetch = result.items
+      .filter((o: any) => !o.guestEmail && o.userId)
+      .map((o: any) => o.userId);
+
+    if (userIdsToFetch.length > 0) {
+      try {
+        const { UserModel } = await import("../user/user.model");
+        const users = await UserModel.find({ _id: { $in: userIdsToFetch } }).select("email name phone").lean().exec();
+        const userMap = new Map(users.map((u: any) => [String(u._id), u]));
+        result.items.forEach((o: any) => {
+          if (!o.guestEmail && o.userId && userMap.has(String(o.userId))) {
+            const u = userMap.get(String(o.userId));
+            (o as any).customerEmail = u.email;
+            if (!o.shippingAddress?.fullName) {
+              if (!o.shippingAddress) o.shippingAddress = {} as any;
+              o.shippingAddress.fullName = u.name;
+            }
+          } else {
+            (o as any).customerEmail = o.guestEmail || "";
+          }
+        });
+      } catch (err) {
+        // graceful
+      }
+    } else {
+      result.items.forEach((o: any) => {
+        (o as any).customerEmail = o.guestEmail || "";
+      });
+    }
+
+    return result;
+  }
+
+  static async suggestAdmin(q: string) {
+    if (!q || !q.trim() || q.trim().length < 2) return [];
+    const cleanSearch = q.trim();
+    const cacheKey = `order_suggest_${encodeURIComponent(cleanSearch.toLowerCase())}`;
+    try {
+      const cached = await getCache(cacheKey);
+      if (cached && Array.isArray(cached)) return cached;
+    } catch {
+      // ignore
+    }
+
+    const { OrderModel } = await import("./order.model");
+    const escaped = cleanSearch.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+    const strippedOrder = cleanSearch.replace(/^(order|ord|#|\s)+/i, "").trim();
+    const digits = cleanSearch.replace(/[^0-9]/g, "");
+
+    const searchOr: any[] = [];
+    if (strippedOrder) {
+      const escapedOrder = strippedOrder.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      searchOr.push({ orderNumber: { $regex: escapedOrder, $options: "i" } });
+    }
+    if (digits.length >= 2) {
+      searchOr.push({ orderNumber: { $regex: digits, $options: "i" } });
+    }
+    if (mongoose.Types.ObjectId.isValid(cleanSearch)) {
+      searchOr.push({ _id: new mongoose.Types.ObjectId(cleanSearch) });
+    }
+
+    searchOr.push(
+      { orderNumber: { $regex: escaped, $options: "i" } },
+      { "shippingAddress.fullName": { $regex: escaped, $options: "i" } },
+      { "shippingAddress.phone": { $regex: escaped, $options: "i" } },
+      { "shippingAddress.city": { $regex: escaped, $options: "i" } },
+      { guestEmail: { $regex: escaped, $options: "i" } },
+      { "items.name": { $regex: escaped, $options: "i" } },
+      { "items.sku": { $regex: escaped, $options: "i" } }
+    );
+
+    if (digits.length >= 4) {
+      searchOr.push({ "shippingAddress.phone": { $regex: digits, $options: "i" } });
+    }
+
+    const items = await OrderModel.find({ $or: searchOr })
+      .select("_id orderNumber status paymentMethod pricing.total guestEmail userId shippingAddress.fullName shippingAddress.phone shippingAddress.city shippingAddress.state createdAt items.name items.image items.sku items.quantity")
+      .sort({ createdAt: -1 })
+      .limit(6)
+      .lean()
+      .exec();
+
+    // Cache for 15s to prevent hammering MongoDB while typing
+    try {
+      await setCache(cacheKey, items, 15);
+    } catch {
+      // ignore
+    }
+
+    return items;
+  }
+
+  static async getAdminCounts() {
+    const cacheKey = "admin_order_counts";
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const { OrderModel } = await import("./order.model");
+    const [
+      activeCount,
+      failedCount,
+      exchangeCount,
+      prepaidCount,
+      codCount
+    ] = await Promise.all([
+      OrderModel.countDocuments({ status: { $nin: ["failed", "pending_payment"] } }).exec(),
+      OrderModel.countDocuments({ status: { $in: ["failed", "pending_payment"] } }).exec(),
+      OrderModel.countDocuments({ status: { $in: ["return_requested", "return_approved", "return_picked", "returned"] } }).exec(),
+      OrderModel.countDocuments({ status: { $nin: ["failed", "pending_payment"] }, paymentMethod: { $ne: "cod" } }).exec(),
+      OrderModel.countDocuments({ status: { $nin: ["failed", "pending_payment"] }, paymentMethod: "cod" }).exec(),
+    ]);
+
+    const result = {
+      activeCount,
+      failedCount,
+      exchangeCount,
+      prepaidCount,
+      codCount
+    };
+
+    await setCache(cacheKey, result, 20); // 20s TTL
+    return result;
   }
 
   static async addNote(orderId: string, author: string, text: string) {
@@ -740,6 +1035,14 @@ export class OrderService {
         await OrderModel.findByIdAndUpdate(orderId, { $unset: { invoiceUrl: 1 } });
       } catch {}
     }
+    try {
+      const { adminEventHub } = await import("../../core/events/adminEventHub");
+      adminEventHub.publish("ORDER_STATUS_CHANGED", {
+        orderId,
+        status: newStatus,
+      });
+    } catch {}
+
     return updatedOrder;
   }
 
@@ -804,6 +1107,10 @@ export class OrderService {
       throw new AppError("Unauthorized", 403);
     }
 
+    if (order.status === "failed" || order.status === "pending_payment") {
+      throw new ValidationError("Tax invoices cannot be generated for uncompleted or failed payment orders");
+    }
+
     const { InvoiceGenerator } = require("../../core/utils/invoiceGenerator");
     const url = await InvoiceGenerator.getOrGenerateInvoiceUrl(order);
     return url;
@@ -813,6 +1120,10 @@ export class OrderService {
     const order = await OrderRepository.findById(orderId);
     if (!order) {
       throw new NotFoundError("Order");
+    }
+
+    if (order.status === "failed" || order.status === "pending_payment") {
+      throw new ValidationError("Tax invoices cannot be emailed for uncompleted or failed payment orders");
     }
 
     const { InvoiceGenerator } = require("../../core/utils/invoiceGenerator");

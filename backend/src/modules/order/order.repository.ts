@@ -37,38 +37,55 @@ export class OrderRepository {
     if (!orders || orders.length === 0) return;
     
     const missingProductIds = new Set<string>();
+    const missingSkus = new Set<string>();
     for (const order of orders) {
       if (order && order.items && Array.isArray(order.items)) {
         for (const item of order.items) {
-          if (!item.image && item.productId) {
-            missingProductIds.add(String(item.productId));
+          if (!item.image) {
+            if (item.productId && mongoose.Types.ObjectId.isValid(item.productId)) {
+              missingProductIds.add(String(item.productId));
+            } else if (item.sku) {
+              missingSkus.add(String(item.sku));
+            }
           }
         }
       }
     }
 
-    if (missingProductIds.size === 0) return;
+    if (missingProductIds.size === 0 && missingSkus.size === 0) return;
 
     try {
       const { ProductModel } = await import("../product/product.model");
-      const products = await ProductModel.find({
-        _id: { $in: Array.from(missingProductIds) }
-      }).select("images slug thumbnail image variants").lean().exec();
+      const orClauses: any[] = [];
+      if (missingProductIds.size > 0) {
+        orClauses.push({ _id: { $in: Array.from(missingProductIds) } });
+      }
+      if (missingSkus.size > 0) {
+        orClauses.push({ sku: { $in: Array.from(missingSkus) } });
+      }
+
+      const products = await ProductModel.find({ $or: orClauses })
+        .select("name images slug thumbnail image variants sku")
+        .lean()
+        .exec();
 
       const productMap = new Map<string, any>();
+      const skuMap = new Map<string, any>();
       for (const p of products) {
         productMap.set(String(p._id), p);
+        if (p.sku) skuMap.set(String(p.sku), p);
       }
 
       for (const order of orders) {
         if (order && order.items && Array.isArray(order.items)) {
           for (const item of order.items) {
-            if (!item.image && item.productId) {
-              const p = productMap.get(String(item.productId));
+            if (!item.image) {
+              const p = (item.productId ? productMap.get(String(item.productId)) : null) || (item.sku ? skuMap.get(String(item.sku)) : null);
               if (p) {
                 const variantObj = item.variantId ? p.variants?.find((v: any) => v.id === item.variantId || v.sku === item.variantId) : null;
                 item.image = variantObj?.image || p.images?.[0]?.url || p.thumbnail || p.image || "";
                 if (!item.slug) item.slug = p.slug || "";
+                if (!item.name && p.name) item.name = p.name;
               }
             }
           }
@@ -114,7 +131,7 @@ export class OrderRepository {
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
     const result = await OrderModel.updateMany(
       { status: "pending_payment", createdAt: { $lt: thirtyMinutesAgo } },
-      { $set: { status: "failed" } }
+      { $set: { status: "failed", failureReason: "Checkout abandoned / Payment window expired (30m)" } }
     ).exec();
     return result.modifiedCount;
   }
@@ -133,6 +150,7 @@ export class OrderRepository {
       if (gatewayData.gatewayOrderId) update.gatewayOrderId = gatewayData.gatewayOrderId;
       if (gatewayData.paymentId) update.paymentId = gatewayData.paymentId;
       if (gatewayData.paymentSignature) update.paymentSignature = gatewayData.paymentSignature;
+      if (gatewayData.failureReason) update.failureReason = gatewayData.failureReason;
     }
     return OrderModel.findByIdAndUpdate(id, update, { new: true, session }).lean().exec() as unknown as IOrder | null;
   }

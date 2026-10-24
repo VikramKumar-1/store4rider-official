@@ -12,8 +12,8 @@ async function undoDirtSack() {
       { $set: { status: "archived" } }
     );
 
-    console.log(`✅ SUCCESS! ${result.modifiedCount} DirtSack products wapas 'archived' kar diye gaye hain.`);
-    console.log(`Ab Biking Brotherhood ke Kit mein wapas 2 hi items dikhenge.`);
+    console.log(`✅ SUCCESS! ${result.modifiedCount} DirtSack products reverted to 'archived'.`);
+    console.log(`Biking Brotherhood kit displays only 2 items as expected.`);
     
   } catch (error) {
     console.error(error);

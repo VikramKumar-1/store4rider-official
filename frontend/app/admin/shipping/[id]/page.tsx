@@ -5,6 +5,7 @@ export const metadata = {
   description: "View and manage shipment details."
 };
 
-export default function AdminShipmentDetailPage({ params }: { params: { id: string } }) {
-  return <ShipmentDetailView shipmentId={params.id} />;
+export default async function AdminShipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <ShipmentDetailView shipmentId={id} />;
 }

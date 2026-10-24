@@ -124,6 +124,9 @@ export function useCreateManualShipment() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "shipments"] });
       queryClient.invalidateQueries({ queryKey: ["shipments", "order", data.orderId] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "logistics-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-order", data.orderId] });
     },
   });
 }

@@ -106,6 +106,9 @@ productSchema.index({ basePrice: -1, _id: -1 });
 productSchema.index({ createdAt: -1, _id: -1 });
 productSchema.index({ salesCount: -1, _id: -1 });
 productSchema.index({ avgRating: -1, _id: -1 });
+productSchema.index({ stockStatus: 1 });
+productSchema.index({ status: 1 });
+productSchema.index({ stockStatus: 1, status: 1 });
 
 // Wildcard index for dynamic attribute filtering
 // This allows efficient queries on attributes.* fields

@@ -100,6 +100,10 @@ export interface ISocialMediaSectionConfig {
   sectionSubtitle?: string;
   instagramHandle?: string;
   instagramProfileUrl?: string;
+  followersCount?: string;
+  followingCount?: string;
+  postsCount?: string;
+  profileAvatarUrl?: string;
   reels?: IInstagramReel[];
   reelImages: string[];
   bannerTop: ISocialMediaBannerTop;

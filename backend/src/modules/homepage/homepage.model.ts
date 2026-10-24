@@ -186,6 +186,10 @@ const socialMediaSectionSchema = new Schema(
       type: String,
       default: "https://www.instagram.com/store4riders/",
     },
+    followersCount: { type: String, default: "48.5K" },
+    followingCount: { type: String, default: "142" },
+    postsCount: { type: String, default: "1,280" },
+    profileAvatarUrl: { type: String, default: "" },
     reels: {
       type: [instagramReelSchema],
       default: [],

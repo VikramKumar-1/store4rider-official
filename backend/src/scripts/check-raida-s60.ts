@@ -16,7 +16,7 @@ async function checkProduct() {
       console.log("Price:", product.basePrice);
     } else {
       console.log("❌ NOT FOUND IN DATABASE");
-      console.log("Reason: Ye product CSV export mein shamil nahi tha (ya toh disabled tha ya Magento se export nahi hua).");
+      console.log("Reason: This product was not included in the CSV export (it was either disabled or omitted from Magento export).");
     }
 
   } catch (error) {

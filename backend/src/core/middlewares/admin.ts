@@ -9,3 +9,18 @@ export const checkAdmin = async (userId: string, getUserRole: (id: string) => Pr
     throw new ForbiddenError("Admin access required");
   }
 };
+
+export const checkSuperAdmin = async (userId: string, getUserRole: (id: string) => Promise<string>) => {
+  const role = await getUserRole(userId);
+  if (role !== "super_admin") {
+    throw new ForbiddenError("Super Admin access required");
+  }
+};
+
+export const checkStaffOrAdmin = async (userId: string, getUserRole: (id: string) => Promise<string>) => {
+  const role = await getUserRole(userId);
+  const allowed = ["super_admin", "admin", "logistic", "customer_care", "order_manager", "customer_support"];
+  if (!allowed.includes(role)) {
+    throw new ForbiddenError("Staff or Admin access required");
+  }
+};

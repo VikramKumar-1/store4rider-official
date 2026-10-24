@@ -48,6 +48,7 @@ const orderSchema = new Schema<IOrder>(
     orderNumber: { type: String, required: true, unique: true },
     userId: { type: String, index: true },
     guestEmail: { type: String },
+    failureReason: { type: String },
     status: { type: String, required: true, default: "pending_payment" },
     items: [orderItemSchema],
     pricing: { type: pricingSchema, required: true },
@@ -71,6 +72,13 @@ const orderSchema = new Schema<IOrder>(
   },
   { timestamps: true }
 );
+
+// High-performance operational indexes for Admin Dashboard and Order querying
+orderSchema.index({ createdAt: -1 });
+orderSchema.index({ status: 1, createdAt: -1 });
+orderSchema.index({ paymentMethod: 1 });
+orderSchema.index({ "shippingAddress.phone": 1 });
+orderSchema.index({ "shippingAddress.fullName": 1 });
 
 export const OrderModel = mongoose.models.Order || mongoose.model<IOrder>("Order", orderSchema);
 

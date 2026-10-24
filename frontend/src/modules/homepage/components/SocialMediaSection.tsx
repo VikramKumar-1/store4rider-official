@@ -19,6 +19,10 @@ export interface SocialMediaSectionProps {
   subtitle?: string;
   instagramHandle?: string;
   instagramProfileUrl?: string;
+  followersCount?: string;
+  followingCount?: string;
+  postsCount?: string;
+  profileAvatarUrl?: string;
   reels?: IInstagramReel[];
   reelImages?: string[];
   bannerTop?: ISocialMediaBannerTop;
@@ -125,6 +129,10 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
   title = "INSTA REELS",
   instagramHandle = "store4riders",
   instagramProfileUrl = "https://www.instagram.com/store4riders/",
+  followersCount = "48.5K",
+  followingCount = "142",
+  postsCount = "1,280",
+  profileAvatarUrl,
   reels,
   reelImages,
   bannerTop,
@@ -132,7 +140,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
 }) => {
   const [activeModalReel, setActiveModalReel] = useState<IInstagramReel | null>(null);
 
-  // Compile active reels list (always 6 items for a sleek 2-row x 3-column grid)
+  // Compile active reels list for homepage (always exactly 6 items for a sleek 2-row x 3-column grid)
   const activeReelsList: IInstagramReel[] = useMemo(() => {
     if (reels && reels.length > 0) {
       const filtered = reels.filter((r) => r.isActive !== false);
@@ -172,6 +180,17 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
 
     return DEFAULT_STORE_REELS;
   }, [reels, reelImages, instagramHandle]);
+
+  // Full reels list for the interactive modal (allows user to scroll through all 12-20 synced reels)
+  const allModalReels: IInstagramReel[] = useMemo(() => {
+    if (reels && reels.length > 0) {
+      const filtered = reels.filter((r) => r.isActive !== false);
+      if (filtered.length > 0) {
+        return [...filtered].sort((a, b) => (a.order || 0) - (b.order || 0));
+      }
+    }
+    return activeReelsList;
+  }, [reels, activeReelsList]);
 
   return (
     <section className="w-full bg-white py-5 sm:py-7 md:py-8 overflow-hidden">
@@ -225,7 +244,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                   <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full p-[2px] bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] shrink-0 shadow-xs">
                     <div className="w-full h-full rounded-full overflow-hidden bg-black relative border-[1.5px] border-[#121212]">
                       <Image
-                        src="/favicon.png"
+                        src={profileAvatarUrl || "/favicon.png"}
                         alt="Store4Riders Instagram Profile"
                         fill
                         className="object-cover"
@@ -238,19 +257,19 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                   <div className="flex-1 flex items-center justify-around text-center">
                     <div>
                       <span className="block font-bold text-xs sm:text-[13px] text-white leading-tight">
-                        1,280
+                        {postsCount || "1,280"}
                       </span>
                       <span className="text-[9.5px] text-white/60">posts</span>
                     </div>
                     <div>
                       <span className="block font-bold text-xs sm:text-[13px] text-white leading-tight">
-                        48.5K
+                        {followersCount || "48.5K"}
                       </span>
                       <span className="text-[9.5px] text-white/60">followers</span>
                     </div>
                     <div>
                       <span className="block font-bold text-xs sm:text-[13px] text-white leading-tight">
-                        142
+                        {followingCount || "142"}
                       </span>
                       <span className="text-[9.5px] text-white/60">following</span>
                     </div>
@@ -540,10 +559,11 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
         isOpen={!!activeModalReel}
         onClose={() => setActiveModalReel(null)}
         activeReel={activeModalReel}
-        reels={activeReelsList}
+        reels={allModalReels}
         onSelectReel={(r) => setActiveModalReel(r)}
         instagramHandle={instagramHandle}
         instagramProfileUrl={instagramProfileUrl}
+        profileAvatarUrl={profileAvatarUrl}
       />
     </section>
   );

@@ -25,21 +25,71 @@ export class UserRepository {
   }
 
   static async update(id: string, data: Partial<IUser>): Promise<IUser | null> {
-    return UserModel.findByIdAndUpdate(id, data, { new: true }).lean().exec() as unknown as IUser | null;
+    return UserModel.findByIdAndUpdate(id, { $set: data }, { new: true, strict: false }).lean().exec() as unknown as IUser | null;
   }
 
-  static async findUsers(page: number, limit: number, role?: string): Promise<IUser[]> {
-    const query = role ? { role } : {};
-    return UserModel.find(query)
+  static buildUserQuery(role?: string, search?: string): any {
+    const query: any = {};
+    if (role === "staff") {
+      query.role = { $in: ["super_admin", "admin", "logistic", "customer_care", "product_manager", "order_manager", "customer_support"] };
+    } else if (role) {
+      query.role = role;
+    }
+    if (search && search.trim()) {
+      const clean = search.trim();
+      const escaped = clean.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      const tokens = clean.split(/\s+/).filter(Boolean);
+      const digits = clean.replace(/[^0-9]/g, "");
+
+      const searchOr: any[] = [
+        { firstName: { $regex: escaped, $options: "i" } },
+        { lastName: { $regex: escaped, $options: "i" } },
+        { email: { $regex: escaped, $options: "i" } },
+        { phone: { $regex: escaped, $options: "i" } },
+      ];
+
+      if (digits.length >= 4) {
+        searchOr.push({ phone: { $regex: digits, $options: "i" } });
+      }
+
+      if (tokens.length >= 2) {
+        const token0 = tokens[0].replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+        const token1 = tokens[tokens.length - 1].replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+        searchOr.push({
+          $and: [
+            { firstName: { $regex: token0, $options: "i" } },
+            { lastName: { $regex: token1, $options: "i" } },
+          ],
+        });
+      }
+
+      query.$or = searchOr;
+    }
+    return query;
+  }
+
+  static async findUsers(page: number, limit: number, role?: string, search?: string): Promise<IUser[]> {
+    const query = this.buildUserQuery(role, search);
+    const users = await UserModel.find(query)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .lean()
       .exec() as unknown as IUser[];
+
+    return users.map(u => ({
+      ...u,
+      isActive: u.isActive !== false,
+    }));
   }
 
-  static async countUsers(role?: string): Promise<number> {
-    const query = role ? { role } : {};
+  static async countUsers(role?: string, search?: string): Promise<number> {
+    const query = this.buildUserQuery(role, search);
     return UserModel.countDocuments(query).exec();
+  }
+
+  static async delete(id: string): Promise<boolean> {
+    const res = await UserModel.findByIdAndDelete(id).exec();
+    return !!res;
   }
 }

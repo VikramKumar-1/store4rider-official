@@ -39,6 +39,8 @@ const envSchema = z.object({
   XPRESSBEES_WEBHOOK_TOKEN: z.string().optional(),
   CRON_SECRET: z.string().optional(),
   SERPAPI_KEY: z.string().optional(),
+  INSTAGRAM_ACCESS_TOKEN: z.string().optional(),
+  INSTAGRAM_ACCOUNT_ID: z.string().optional(),
 });
 
 const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
@@ -77,4 +79,7 @@ export const ENV = envSchema.parse({
   XPRESSBEES_WEBHOOK_TOKEN: process.env.XPRESSBEES_WEBHOOK_TOKEN,
   CRON_SECRET: process.env.CRON_SECRET,
   SERPAPI_KEY: process.env.SERPAPI_KEY,
+  INSTAGRAM_ACCESS_TOKEN: process.env.INSTAGRAM_ACCESS_TOKEN,
+  INSTAGRAM_ACCOUNT_ID: process.env.INSTAGRAM_ACCOUNT_ID,
 });
+

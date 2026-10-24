@@ -1162,10 +1162,10 @@ Once PayU + COD are production-solid:
 
 ### Verification
 
-- [ ] Order status transitions follow valid paths
-- [ ] Return request → approval → refund flow works end-to-end
-- [ ] PDF invoices generate with correct GST details
-- [ ] Admin notes persist and display correctly
+- [x] Order status transitions follow valid paths
+- [x] Return request → approval → refund flow works end-to-end
+- [x] PDF invoices generate with correct GST details
+- [x] Admin notes persist and display correctly
 
 ---
 

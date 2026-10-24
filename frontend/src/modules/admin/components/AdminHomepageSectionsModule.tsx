@@ -35,6 +35,7 @@ import {
   Heart,
 } from "lucide-react";
 import { useHomepageConfig, useUpdateHomepageSections } from "@/core/hooks/useHomepage";
+import { useSyncInstagramFeed } from "@/core/hooks/useInstagramSync";
 import { IHomepageSectionsConfig, IBrowseProductItem, IInstagramReel } from "@store4riders/shared-types";
 import { ImageUploadWebP } from "./ImageUploadWebP";
 import { MultiImageUploadWebP } from "./MultiImageUploadWebP";
@@ -49,6 +50,7 @@ export function AdminHomepageSectionsModule() {
 
   const { data: config, isLoading, isError } = useHomepageConfig();
   const updateMutation = useUpdateHomepageSections();
+  const syncInstagramMutation = useSyncInstagramFeed();
 
   const [activeSection, setActiveSection] = useState<string>(tabParam || "featuredCategories");
 
@@ -1599,6 +1601,20 @@ export function AdminHomepageSectionsModule() {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => syncInstagramMutation.mutate({})}
+                      disabled={syncInstagramMutation.isPending}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] hover:opacity-90 text-white font-bold text-xs uppercase tracking-wider shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {syncInstagramMutation.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Instagram className="w-3.5 h-3.5" />
+                      )}
+                      <span>Sync Instagram Live</span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => handlePersistSections(sectionsState, "Instagram reels saved successfully!")}
