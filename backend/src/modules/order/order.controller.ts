@@ -51,8 +51,9 @@ export class OrderController {
   }
 
   static async webhook(req: NextRequest, routePath?: string[]) {
-    // CRITICAL: Must read raw text for HMAC validation. Do not parse JSON yet.
-    const rawBody = await req.text();
+    // CRITICAL: Must read raw text for HMAC validation. Fall back to searchParams for GET redirects.
+    const searchParamsStr = req.nextUrl ? req.nextUrl.searchParams.toString() : "";
+    const rawBody = (await req.text()) || searchParamsStr;
     
     const headers: Record<string, string> = {};
     req.headers.forEach((val, key) => { headers[key.toLowerCase()] = val; });

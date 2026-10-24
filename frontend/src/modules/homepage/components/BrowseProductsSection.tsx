@@ -150,15 +150,32 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
               : "grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6"
           }
         >
-          {products.map((product) => (
-            <Link
-              key={product.id}
-              href={product.productUrl}
-              className={mobileLayout === "scroll" ? "block snap-start shrink-0" : "block w-full"}
-            >
-              <GridProductCard product={product} layout={mobileLayout} />
-            </Link>
-          ))}
+          {products.length === 0 ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={`prod-skeleton-${i}`}
+                className={
+                  mobileLayout === "scroll"
+                    ? "w-[165px] min-[375px]:w-[185px] sm:w-[220px] md:w-[260px] lg:w-[280px] flex-shrink-0"
+                    : "w-full"
+                }
+              >
+                <div className="relative aspect-square w-full bg-neutral-100 rounded-lg animate-pulse mb-2 md:mb-3" />
+                <div className="h-3.5 bg-neutral-200 rounded w-3/4 animate-pulse mb-1.5" />
+                <div className="h-3 bg-neutral-200 rounded w-1/3 animate-pulse" />
+              </div>
+            ))
+          ) : (
+            products.map((product) => (
+              <Link
+                key={product.id}
+                href={product.productUrl}
+                className={mobileLayout === "scroll" ? "block snap-start shrink-0" : "block w-full"}
+              >
+                <GridProductCard product={product} layout={mobileLayout} />
+              </Link>
+            ))
+          )}
         </div>
 
         {/* Right Scroll Arrow */}

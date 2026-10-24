@@ -22,8 +22,18 @@ const INSTAGRAM_AUTO_SYNC_TTL = 15 * 60; // 15 minutes (safely within Meta 200 r
 const INSTAGRAM_LAST_SYNC_KEY = "cache:instagram:last_synced_at";
 
 function formatCompactCount(num: number): string {
-  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, "") + "K";
+  if (num >= 1000000) {
+    const val = Math.floor(num / 100000) / 10;
+    return `${val.toFixed(1).replace(/\.0$/, "")}M`;
+  }
+  if (num >= 10000) {
+    const val = Math.floor(num / 100) / 10;
+    return `${val.toFixed(1)}K`;
+  }
+  if (num >= 1000) {
+    const val = Math.floor(num / 100) / 10;
+    return `${val.toFixed(1).replace(/\.0$/, "")}K`;
+  }
   return num.toLocaleString("en-IN");
 }
 
@@ -286,9 +296,9 @@ export class HomepageService {
       sectionTitle: existingSocial.sectionTitle || "INSTA REELS",
       instagramHandle: username || existingSocial.instagramHandle || "store4riders",
       instagramProfileUrl: `https://www.instagram.com/${username}/`,
-      followersCount: followersCount ?? existingSocial.followersCount ?? "48.5K",
-      followingCount: followingCount ?? existingSocial.followingCount ?? "142",
-      postsCount: postsCount ?? existingSocial.postsCount ?? "1,280",
+      followersCount: followersCount ?? existingSocial.followersCount,
+      followingCount: followingCount ?? existingSocial.followingCount,
+      postsCount: postsCount ?? existingSocial.postsCount,
       profileAvatarUrl: profileAvatarUrl ?? existingSocial.profileAvatarUrl,
       reels: fetchedReels.length > 0 ? fetchedReels : existingSocial.reels,
       reelImages:

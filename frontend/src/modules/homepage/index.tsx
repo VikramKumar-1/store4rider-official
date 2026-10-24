@@ -13,6 +13,7 @@ import { NavLinkItem, HeroProductCardData, CategoryCardData, BrowseProductData, 
 import { IHomepageConfig } from "@store4riders/shared-types";
 import { useStoreReviews } from "@/core/hooks/useStoreReviews";
 import { usePublicHomepageConfig } from "@/core/hooks/useHomepage";
+import { useProducts } from "@/core/hooks/useProducts";
 
 /**
  * HomepageModule Component
@@ -32,6 +33,13 @@ export const HomepageModule: React.FC<{
 }) => {
   const { data: liveConfig } = usePublicHomepageConfig();
   const homepageConfig = liveConfig || initialHomepageConfig;
+
+  // Real client-side products query if SSR products list was empty (e.g. during Vercel cold-start)
+  const { data: clientProductsData } = useProducts({ limit: 40 });
+  const backendProductsList = (backendProducts && backendProducts.length > 0)
+    ? backendProducts
+    : (clientProductsData?.items || []);
+
   // Navigation items matching Figma structure
   const navItems: NavLinkItem[] = [
     { id: "catalog", label: "Catalog", href: "/products", hasDropdown: true },
@@ -41,27 +49,27 @@ export const HomepageModule: React.FC<{
   ];
 
   // Featured product cards matching Figma floating card elements
-  // (Using rider motorcycle gear images & high-resolution product imagery)
   const featuredProducts: HeroProductCardData[] = (homepageConfig?.hero?.featuredCards && homepageConfig.hero.featuredCards.length > 0)
     ? homepageConfig.hero.featuredCards
-    : [
-    {
-      id: "prod-1",
-      title: "Riding Armor Jacket",
-      priceFormatted: "₹ 5,499",
-      imageUrl: "/no-image.svg",
-      ctaText: "SHOP NOW",
-      ctaUrl: "/products/riding-armor-jacket",
-    },
-    {
-      id: "prod-2",
-      title: "Protective Rider Suit",
-      priceFormatted: "₹ 12,999",
-      imageUrl: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=600&q=80",
-      ctaText: "SHOP NOW",
-      ctaUrl: "/products/protective-rider-suit",
-    },
-  ];
+    : backendProductsList.slice(0, 2).map((p: any, idx: number) => {
+        let effectivePrice = p.basePrice || 0;
+        if (effectivePrice === 0 && Array.isArray(p.variants) && p.variants.length > 0) {
+          const vp = p.variants.map((v: any) => v.price).filter((pr: number) => pr > 0);
+          if (vp.length > 0) effectivePrice = Math.min(...vp);
+        }
+        if (effectivePrice === 0 && p.specialPrice && p.specialPrice > 0) effectivePrice = p.specialPrice;
+        const displayPrice = (p.specialPrice && p.specialPrice > 0 && effectivePrice > 0 && p.specialPrice < effectivePrice)
+          ? p.specialPrice : effectivePrice;
+
+        return {
+          id: p._id || `feat-${idx}`,
+          title: p.name,
+          priceFormatted: `₹ ${displayPrice?.toLocaleString('en-IN') || '0'}`,
+          imageUrl: (p.images && p.images.length > 0 && p.images[0].url) ? p.images[0].url : "/no-image.svg",
+          ctaText: "SHOP NOW",
+          ctaUrl: `/${p.slug || p._id}`,
+        };
+      });
 
   // Categories data for the new section
   const categoryData = {
@@ -162,7 +170,7 @@ export const HomepageModule: React.FC<{
     return hasHelmet || hasJacket || hasGloves;
   };
 
-  const eligibleProducts = (backendProducts || []).filter((p: any) => !isExcludedGear(p));
+  const eligibleProducts = (backendProductsList || []).filter((p: any) => !isExcludedGear(p));
 
   // Pick exactly 1 latest product from each category rule for maximum variety
   const diverseProducts: any[] = [];
@@ -216,80 +224,7 @@ export const HomepageModule: React.FC<{
           productUrl: `/${p.slug || p._id}`
         };
       })
-    : [
-    {
-      id: "grid-1",
-      category: "BOOTS",
-      name: "Waterproof Adventure Boots",
-      priceFormatted: "₹ 8,999",
-      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
-      rating: 4.95,
-      productUrl: "/products/boots"
-    },
-    {
-      id: "grid-2",
-      category: "PANTS",
-      name: "Armored Cordura Riding Pants",
-      priceFormatted: "₹ 5,499",
-      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
-      rating: 4.85,
-      productUrl: "/products/pants"
-    },
-    {
-      id: "grid-3",
-      category: "PROTECTION",
-      name: "Bionic Knee & Shin Guards",
-      priceFormatted: "₹ 3,299",
-      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
-      rating: 4.90,
-      productUrl: "/products/protection"
-    },
-    {
-      id: "grid-4",
-      category: "LUGGAGE",
-      name: "Heavy Duty Tail Bag 50L",
-      priceFormatted: "₹ 4,200",
-      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
-      rating: 4.95,
-      productUrl: "/products/luggage"
-    },
-    {
-      id: "grid-5",
-      category: "ACCESSORIES",
-      name: "Anti-Vibration Phone Mount",
-      priceFormatted: "₹ 1,899",
-      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
-      rating: 4.80,
-      productUrl: "/products/accessories"
-    },
-    {
-      id: "grid-6",
-      category: "RAIN GEAR",
-      name: "High-Visibility Rain Suit",
-      priceFormatted: "₹ 2,799",
-      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
-      rating: 4.85,
-      productUrl: "/products/rain-gear"
-    },
-    {
-      id: "grid-7",
-      category: "ARMOR",
-      name: "CE Level 2 Back Protector Insert",
-      priceFormatted: "₹ 2,450",
-      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
-      rating: 4.90,
-      productUrl: "/products/armor"
-    },
-    {
-      id: "grid-8",
-      category: "FOOTWEAR",
-      name: "Urban Motorcycle Riding Sneakers",
-      priceFormatted: "₹ 6,499",
-      imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
-      rating: 4.95,
-      productUrl: "/products/footwear"
-    }
-  ];
+    : [];
 
   // 8 slots 1-to-1 mapped: Slot 1 (idx 0) is always Position 1, Slot 8 (idx 7) is Position 8
   const configuredItems = homepageConfig?.sections?.browseCategories?.items;
@@ -315,7 +250,7 @@ export const HomepageModule: React.FC<{
     : gridProducts;
 
   // Filter backend products for touring and adventure riding gear
-  const matchedTouring = (backendProducts || []).filter((p: any) => {
+  const matchedTouring = (backendProductsList || []).filter((p: any) => {
     const catStr = (p.magentoCategories || "").toLowerCase();
     const nameStr = (p.name || "").toLowerCase();
     return (
@@ -333,7 +268,7 @@ export const HomepageModule: React.FC<{
   // Ensure we always have 4 real products, pulling from the rest of backendProducts if needed
   const finalTouringList = matchedTouring.length >= 4 
     ? matchedTouring.slice(0, 4) 
-    : [...matchedTouring, ...(backendProducts || []).filter((p: any) => !matchedTouring.some((m: any) => m._id === p._id))].slice(0, 4);
+    : [...matchedTouring, ...(backendProductsList || []).filter((p: any) => !matchedTouring.some((m: any) => m._id === p._id))].slice(0, 4);
 
   const touringProducts: BrowseProductData[] = finalTouringList.length > 0 
     ? finalTouringList.map((p: any, idx: number) => {
@@ -354,49 +289,12 @@ export const HomepageModule: React.FC<{
           priceFormatted: `₹ ${displayPrice?.toLocaleString('en-IN') || '0'}`,
           imageUrl: (p.images && p.images.length > 0 && p.images[0].url) 
             ? p.images[0].url 
-            : "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
+            : "/no-image.svg",
           rating: 4.85,
           productUrl: `/${p.slug || p._id}`
         };
       })
-    : [
-        {
-          id: "tour-1",
-          category: "LUGGAGE",
-          name: "Touring Tail Bag 50L",
-          priceFormatted: "₹ 4,500",
-          imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
-          rating: 4.90,
-          productUrl: "/t1"
-        },
-        {
-          id: "tour-2",
-          category: "HELMETS",
-          name: "Adventure Dual Sport Helmet",
-          priceFormatted: "₹ 6,800",
-          imageUrl: "https://images.unsplash.com/photo-1520975954732-57dd22299614?auto=format&fit=crop&w=600&q=80",
-          rating: 4.85,
-          productUrl: "/products/t2"
-        },
-        {
-          id: "tour-3",
-          category: "BOOTS",
-          name: "Waterproof Touring Boots",
-          priceFormatted: "₹ 9,999",
-          imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80",
-          rating: 4.95,
-          productUrl: "/products/t3"
-        },
-        {
-          id: "tour-4",
-          category: "JACKETS",
-          name: "Mesh Touring Jacket",
-          priceFormatted: "₹ 8,200",
-          imageUrl: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=600&q=80",
-          rating: 4.80,
-          productUrl: "/products/t4"
-        }
-      ];
+    : [];
 
   const { data: storeReviewsQuery } = useStoreReviews();
   const queryReviews = storeReviewsQuery?.pages.flatMap((p) => p.data) || [];

@@ -30,94 +30,6 @@ export interface SocialMediaSectionProps {
 }
 
 /**
- * Authentic Store4Riders Instagram Reels
- * Fallback reels if none are configured in the Admin Panel yet.
- */
-const DEFAULT_STORE_REELS: (IInstagramReel & { isPinned?: boolean })[] = [
-  {
-    _id: "default-reel-1",
-    title: "MT Thunder 4 SV Helmet Unboxing & Wind Noise Review",
-    thumbnailUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=400&h=500&q=80",
-    videoType: "embed",
-    videoUrl: "https://www.instagram.com/reel/C8-0xO9pQ2m/",
-    instagramUrl: "https://www.instagram.com/store4riders/",
-    views: "4,234",
-    likes: "1.4K",
-    author: "@store4riders",
-    order: 1,
-    isActive: true,
-    isPinned: true,
-  },
-  {
-    _id: "default-reel-2",
-    title: "Axor Apex Venom Edition - Real Riding Exhaust Audio",
-    thumbnailUrl: "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=400&h=500&q=80",
-    videoType: "embed",
-    videoUrl: "https://www.instagram.com/reel/C7-9qN7yH6o/",
-    instagramUrl: "https://www.instagram.com/store4riders/",
-    views: "6,480",
-    likes: "2.1K",
-    author: "@store4riders",
-    order: 2,
-    isActive: true,
-    isPinned: true,
-  },
-  {
-    _id: "default-reel-3",
-    title: "All-Weather Riding Jackets Armor & Waterproof Check",
-    thumbnailUrl: "https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=400&h=500&q=80",
-    videoType: "embed",
-    videoUrl: "https://www.instagram.com/reel/C6yZa6yB2Nm/",
-    instagramUrl: "https://www.instagram.com/store4riders/",
-    views: "8,721",
-    likes: "1.6K",
-    author: "@store4riders",
-    order: 3,
-    isActive: true,
-    isPinned: false,
-  },
-  {
-    _id: "default-reel-4",
-    title: "Raida Tourer Waterproof Riding Boots Ergonomics & Grip",
-    thumbnailUrl: "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=400&h=500&q=80",
-    videoType: "embed",
-    videoUrl: "https://www.instagram.com/reel/C5xPo4wB1Xz/",
-    instagramUrl: "https://www.instagram.com/store4riders/",
-    views: "9.7K",
-    likes: "890",
-    author: "@store4riders",
-    order: 4,
-    isActive: true,
-  },
-  {
-    _id: "default-reel-5",
-    title: "Carbon Knuckle Touchscreen Gloves Testing at High Speed",
-    thumbnailUrl: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=400&h=500&q=80",
-    videoType: "embed",
-    videoUrl: "https://www.instagram.com/reel/C4xQr8vC4Lm/",
-    instagramUrl: "https://www.instagram.com/store4riders/",
-    views: "12.1K",
-    likes: "1.1K",
-    author: "@store4riders",
-    order: 5,
-    isActive: true,
-  },
-  {
-    _id: "default-reel-6",
-    title: "Rolon Brass Chain Sprocket Kit Setup & Track Dyno Run",
-    thumbnailUrl: "https://images.unsplash.com/photo-1449426468159-d96dbf08f19f?auto=format&fit=crop&w=400&h=500&q=80",
-    videoType: "embed",
-    videoUrl: "https://www.instagram.com/reel/C3bTu7yA9Op/",
-    instagramUrl: "https://www.instagram.com/store4riders/",
-    views: "31.4K",
-    likes: "3.2K",
-    author: "@store4riders",
-    order: 6,
-    isActive: true,
-  },
-];
-
-/**
  * SocialMediaSection:
  * - Left-aligned title ("INSTA REELS") with accent bar. No subtitle tagline.
  * - LEFT: Authentic Instagram mobile profile UI (avatar + story ring, stats, bio, action buttons, tabs, and 3x2 reels grid).
@@ -129,9 +41,9 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
   title = "INSTA REELS",
   instagramHandle = "store4riders",
   instagramProfileUrl = "https://www.instagram.com/store4riders/",
-  followersCount = "48.5K",
-  followingCount = "142",
-  postsCount = "1,280",
+  followersCount,
+  followingCount,
+  postsCount,
   profileAvatarUrl,
   reels,
   reelImages,
@@ -140,45 +52,32 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
 }) => {
   const [activeModalReel, setActiveModalReel] = useState<IInstagramReel | null>(null);
 
-  // Compile active reels list for homepage (always exactly 6 items for a sleek 2-row x 3-column grid)
+  // Compile active reels list for homepage (up to 6 items for a sleek 2-row x 3-column grid)
   const activeReelsList: IInstagramReel[] = useMemo(() => {
     if (reels && reels.length > 0) {
       const filtered = reels.filter((r) => r.isActive !== false);
       if (filtered.length > 0) {
         const sorted = [...filtered].sort((a, b) => (a.order || 0) - (b.order || 0));
-        if (sorted.length < 6) {
-          // Fill remaining slots from DEFAULT_STORE_REELS so the 3x2 grid remains complete
-          const remainingNeeded = 6 - sorted.length;
-          const fallbackSlice = DEFAULT_STORE_REELS.slice(sorted.length, sorted.length + remainingNeeded);
-          return [...sorted, ...fallbackSlice];
-        }
         return sorted.slice(0, 6);
       }
     }
 
     if (reelImages && reelImages.length > 0) {
-      const defaultViews = ["4,234", "6,480", "8,721", "9.7K", "12.1K", "31.4K"];
-      const customLegacy = reelImages.slice(0, 6).map((img, idx) => ({
+      return reelImages.slice(0, 6).map((img, idx) => ({
         _id: `legacy-reel-${idx}`,
         title: `Store4Riders Reel #${idx + 1}`,
         thumbnailUrl: img,
         videoType: "embed" as const,
         videoUrl: "https://www.instagram.com/store4riders/",
         instagramUrl: "https://www.instagram.com/store4riders/",
-        views: defaultViews[idx % defaultViews.length],
+        views: "Live",
         author: `@${instagramHandle}`,
         order: idx + 1,
         isActive: true,
       }));
-      if (customLegacy.length < 6) {
-        const remainingNeeded = 6 - customLegacy.length;
-        const fallbackSlice = DEFAULT_STORE_REELS.slice(customLegacy.length, customLegacy.length + remainingNeeded);
-        return [...customLegacy, ...fallbackSlice];
-      }
-      return customLegacy;
     }
 
-    return DEFAULT_STORE_REELS;
+    return [];
   }, [reels, reelImages, instagramHandle]);
 
   // Full reels list for the interactive modal (allows user to scroll through all 12-20 synced reels)
@@ -249,6 +148,8 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                         fill
                         className="object-cover"
                         sizes="48px"
+                        unoptimized={!!profileAvatarUrl}
+                        priority
                       />
                     </div>
                   </div>
@@ -256,20 +157,20 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                   {/* Profile Stats */}
                   <div className="flex-1 flex items-center justify-around text-center">
                     <div>
-                      <span className="block font-bold text-xs sm:text-[13px] text-white leading-tight">
-                        {postsCount || "1,280"}
+                      <span className="block font-bold text-xs sm:text-[13px] text-white leading-tight min-h-[16px]">
+                        {postsCount ? postsCount : <span className="inline-block w-8 h-3.5 bg-white/20 rounded animate-pulse align-middle" />}
                       </span>
                       <span className="text-[9.5px] text-white/60">posts</span>
                     </div>
                     <div>
-                      <span className="block font-bold text-xs sm:text-[13px] text-white leading-tight">
-                        {followersCount || "48.5K"}
+                      <span className="block font-bold text-xs sm:text-[13px] text-white leading-tight min-h-[16px]">
+                        {followersCount ? followersCount : <span className="inline-block w-8 h-3.5 bg-white/20 rounded animate-pulse align-middle" />}
                       </span>
                       <span className="text-[9.5px] text-white/60">followers</span>
                     </div>
                     <div>
-                      <span className="block font-bold text-xs sm:text-[13px] text-white leading-tight">
-                        {followingCount || "142"}
+                      <span className="block font-bold text-xs sm:text-[13px] text-white leading-tight min-h-[16px]">
+                        {followingCount ? followingCount : <span className="inline-block w-8 h-3.5 bg-white/20 rounded animate-pulse align-middle" />}
                       </span>
                       <span className="text-[9.5px] text-white/60">following</span>
                     </div>
@@ -368,54 +269,75 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                 </div>
 
                 {/* 6. 3-Column Reels Grid */}
-                <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
-                  {activeReelsList.map((reel, idx) => {
-                    const isPinned = idx < 2;
-
-                    return (
+                <div className="grid grid-cols-3 gap-1 sm:gap-1.5 min-h-[220px]">
+                  {activeReelsList.length === 0 ? (
+                    Array.from({ length: 6 }).map((_, skeletonIdx) => (
                       <div
-                        key={reel._id ? `reel-${reel._id}` : `reel-${idx}`}
-                        onClick={() => setActiveModalReel(reel)}
-                        className="group relative aspect-[4/5] rounded-md overflow-hidden bg-neutral-900 border border-white/10 cursor-pointer select-none"
+                        key={`reel-skeleton-${skeletonIdx}`}
+                        className="aspect-[4/5] rounded-md bg-white/5 animate-pulse border border-white/5 relative overflow-hidden flex flex-col justify-end p-1.5"
                       >
-                        {/* Thumbnail Image */}
-                        <Image
-                          src={reel.thumbnailUrl || "/helmetcat.jpg"}
-                          alt={reel.title || `Reel ${idx + 1}`}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          sizes="(max-width: 640px) 30vw, (max-width: 1024px) 15vw, 140px"
-                        />
-
-                        {/* Top Gradient for Pin Icon */}
-                        <div className="absolute top-0 inset-x-0 h-6 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
-
-                        {/* Top-Right: Pin Icon */}
-                        {isPinned && (
-                          <div className="absolute top-1 right-1 z-10 text-white/90 drop-shadow-xs">
-                            <svg className="w-2.5 h-2.5 fill-current transform rotate-45" viewBox="0 0 24 24">
-                              <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
-                            </svg>
-                          </div>
-                        )}
-
-                        {/* Center Hover Play Icon */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-black/30 backdrop-blur-[1px]">
-                          <div className="w-7 h-7 rounded-full bg-[#FF5429] text-white flex items-center justify-center shadow-md transform group-hover:scale-110 transition-transform">
-                            <PlayIcon className="w-3 h-3 ml-0.5 text-white" />
-                          </div>
-                        </div>
-
-                        {/* Bottom Gradient with View Count */}
-                        <div className="absolute inset-x-0 bottom-0 p-1 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none flex items-center gap-1">
-                          <PlayIcon className="w-2 h-2 text-white fill-current shrink-0" />
-                          <span className="text-[8.5px] sm:text-[9.5px] font-bold text-white drop-shadow leading-none">
-                            {reel.views || "4,234"}
-                          </span>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                          <div className="w-8 h-2 bg-white/20 rounded" />
                         </div>
                       </div>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    activeReelsList.map((reel, idx) => {
+                      const isPinned = idx < 2;
+
+                      return (
+                        <div
+                          key={reel._id ? `reel-${reel._id}` : `reel-${idx}`}
+                          onClick={() => setActiveModalReel(reel)}
+                          className="group relative aspect-[4/5] rounded-md overflow-hidden bg-neutral-900 border border-white/10 cursor-pointer select-none"
+                        >
+                          {/* Thumbnail Image - unoptimized loads directly from Meta CDN with 0 serverless proxy latency */}
+                          <Image
+                            src={reel.thumbnailUrl || "/helmetcat.jpg"}
+                            alt={reel.title || `Reel ${idx + 1}`}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            sizes="(max-width: 640px) 30vw, (max-width: 1024px) 15vw, 140px"
+                            unoptimized={
+                              reel.thumbnailUrl?.includes("cdninstagram.com") ||
+                              reel.thumbnailUrl?.includes("fbcdn.net") ||
+                              reel.thumbnailUrl?.startsWith("http")
+                            }
+                            priority={idx < 3}
+                            loading={idx < 3 ? "eager" : "lazy"}
+                          />
+
+                          {/* Top Gradient for Pin Icon */}
+                          <div className="absolute top-0 inset-x-0 h-6 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+
+                          {/* Top-Right: Pin Icon */}
+                          {isPinned && (
+                            <div className="absolute top-1 right-1 z-10 text-white/90 drop-shadow-xs">
+                              <svg className="w-2.5 h-2.5 fill-current transform rotate-45" viewBox="0 0 24 24">
+                                <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+                              </svg>
+                            </div>
+                          )}
+
+                          {/* Center Hover Play Icon */}
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-black/30 backdrop-blur-[1px]">
+                            <div className="w-7 h-7 rounded-full bg-[#FF5429] text-white flex items-center justify-center shadow-md transform group-hover:scale-110 transition-transform">
+                              <PlayIcon className="w-3 h-3 ml-0.5 text-white" />
+                            </div>
+                          </div>
+
+                          {/* Bottom Gradient with View Count */}
+                          <div className="absolute inset-x-0 bottom-0 p-1 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none flex items-center gap-1">
+                            <PlayIcon className="w-2 h-2 text-white fill-current shrink-0" />
+                            <span className="text-[8.5px] sm:text-[9.5px] font-bold text-white drop-shadow leading-none">
+                              {reel.views || "Live"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 

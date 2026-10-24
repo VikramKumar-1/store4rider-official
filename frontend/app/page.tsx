@@ -65,47 +65,46 @@ export default async function Home() {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
     const fetchUrl = baseUrl.includes('/v1') ? `${baseUrl}/products` : `${baseUrl}/v1/products`;
-    
-    const res = await fetch(`${fetchUrl}?limit=200`, { 
-      next: { revalidate: 60 },
-      signal: AbortSignal.timeout(3500),
-    });
-    
-    if (res.ok) {
-      const data = await res.json();
+    const settingsUrl = baseUrl.includes('/v1') ? `${baseUrl}/settings/public` : `${baseUrl}/v1/settings/public`;
+    const homepageUrl = baseUrl.includes('/v1') ? `${baseUrl}/homepage/public` : `${baseUrl}/v1/homepage/public`;
+    const reviewsUrl = baseUrl.includes('/v1') ? `${baseUrl}/reviews/store` : `${baseUrl}/v1/reviews/store`;
+
+    const [prodResult, settingsResult, homepageResult, reviewsResult] = await Promise.allSettled([
+      fetch(`${fetchUrl}?limit=50`, { 
+        next: { revalidate: 60 },
+        signal: AbortSignal.timeout(5000),
+      }),
+      fetch(settingsUrl, {
+        next: { revalidate: 60 },
+        signal: AbortSignal.timeout(5000),
+      }),
+      fetch(homepageUrl, {
+        next: { revalidate: 10 },
+        signal: AbortSignal.timeout(5000),
+      }),
+      fetch(reviewsUrl, {
+        next: { revalidate: 60 },
+        signal: AbortSignal.timeout(5000),
+      }),
+    ]);
+
+    if (prodResult.status === "fulfilled" && prodResult.value.ok) {
+      const data = await prodResult.value.json();
       backendProducts = data?.data?.items || [];
     }
 
-    // Fetch public store contact & SEO settings
-    const settingsUrl = baseUrl.includes('/v1') ? `${baseUrl}/settings/public` : `${baseUrl}/v1/settings/public`;
-    const settingsRes = await fetch(settingsUrl, {
-      next: { revalidate: 60 },
-      signal: AbortSignal.timeout(2500),
-    });
-    if (settingsRes.ok) {
-      const sData = await settingsRes.json();
+    if (settingsResult.status === "fulfilled" && settingsResult.value.ok) {
+      const sData = await settingsResult.value.json();
       storeSettings = sData?.data || null;
     }
 
-    // Fetch public homepage configuration (Hero, SEO, Sections)
-    const homepageUrl = baseUrl.includes('/v1') ? `${baseUrl}/homepage/public` : `${baseUrl}/v1/homepage/public`;
-    const homepageRes = await fetch(homepageUrl, {
-      next: { revalidate: 10 },
-      signal: AbortSignal.timeout(2500),
-    });
-    if (homepageRes.ok) {
-      const hData = await homepageRes.json();
+    if (homepageResult.status === "fulfilled" && homepageResult.value.ok) {
+      const hData = await homepageResult.value.json();
       homepageConfig = hData?.data || null;
     }
 
-    // Fetch verified store reviews from database for instant SSR rendering
-    const reviewsUrl = baseUrl.includes('/v1') ? `${baseUrl}/reviews/store` : `${baseUrl}/v1/reviews/store`;
-    const reviewsRes = await fetch(reviewsUrl, {
-      next: { revalidate: 60 },
-      signal: AbortSignal.timeout(2500),
-    });
-    if (reviewsRes.ok) {
-      const rData = await reviewsRes.json();
+    if (reviewsResult.status === "fulfilled" && reviewsResult.value.ok) {
+      const rData = await reviewsResult.value.json();
       storeReviews = rData?.data || [];
     }
   } catch (error) {

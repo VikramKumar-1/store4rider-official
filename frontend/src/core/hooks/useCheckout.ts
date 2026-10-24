@@ -144,20 +144,20 @@ export function useCheckout() {
         toast.success("Redirecting to Snapmint...");
 
         const isLive = process.env.NEXT_PUBLIC_SNAPMINT_MODE === "live";
-        const snapmintAction = isLive
+        const snapmintAction = gatewayResponse.actionUrl || (isLive
           ? "https://checkout.snapmint.com/pay"
-          : "https://sandbox-checkout.snapmint.com/pay";
+          : "https://qa.snapmint.com/pay");
 
         const form = document.createElement("form");
         form.method = "POST";
         form.action = snapmintAction;
 
         Object.entries(gatewayResponse).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
+          if (value !== undefined && value !== null && key !== "actionUrl") {
             const input = document.createElement("input");
             input.type = "hidden";
             input.name = key;
-            input.value = String(value);
+            input.value = typeof value === "object" ? JSON.stringify(value) : String(value);
             form.appendChild(input);
           }
         });
