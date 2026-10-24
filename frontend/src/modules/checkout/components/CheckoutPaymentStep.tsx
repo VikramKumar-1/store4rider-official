@@ -47,31 +47,31 @@ export const CheckoutPaymentStep = ({
         <div className="flex items-center gap-2 flex-wrap">
           <span>PayU & UPI</span>
           <div className="flex items-center ml-auto gap-1">
-            <Image src="/icons/payment/payu.svg?v=4" alt="PayU" width={40} height={20} className="object-contain h-5 w-auto" unoptimized />
-            <Image src="/icons/payment/upi.svg?v=3" alt="UPI" width={30} height={16} className="object-contain h-4 w-auto" unoptimized />
+            <Image src="/icons/payment/payu.svg" alt="PayU" width={40} height={20} className="object-contain h-5 w-auto" priority loading="eager" unoptimized />
+            <Image src="/icons/payment/upi.svg" alt="UPI" width={30} height={16} className="object-contain h-4 w-auto" priority loading="eager" unoptimized />
           </div>
         </div>
       ),
       desc: "Google Pay, PhonePe, Paytm, Cards & NetBanking",
-            icon: (
+      icon: (
         <div className="flex items-center gap-2 mt-2 flex-wrap opacity-90">
           <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-            <Image src="/icons/payment/gpay.svg?v=3" alt="GPay" width={40} height={24} className="object-contain w-full h-full" unoptimized />
+            <Image src="/icons/payment/gpay.svg" alt="GPay" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
           </div>
           <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-            <Image src="/icons/payment/phonepe.svg?v=3" alt="PhonePe" width={40} height={24} className="object-contain w-full h-full" unoptimized />
+            <Image src="/icons/payment/phonepe.svg" alt="PhonePe" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
           </div>
           <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-            <Image src="/icons/payment/paytm.svg?v=3" alt="Paytm" width={40} height={24} className="object-contain w-full h-full" unoptimized />
+            <Image src="/icons/payment/paytm.svg" alt="Paytm" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
           </div>
           <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-            <Image src="/icons/payment/visa.svg?v=6" alt="VISA" width={40} height={24} className="object-contain w-full h-full" unoptimized />
+            <Image src="/icons/payment/visa.svg" alt="VISA" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
           </div>
           <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-            <Image src="/icons/payment/mastercard.svg?v=5" alt="Mastercard" width={40} height={24} className="object-contain w-full h-full" unoptimized />
+            <Image src="/icons/payment/mastercard.svg" alt="Mastercard" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
           </div>
           <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-            <Image src="/icons/payment/rupay.svg?v=4" alt="RuPay" width={40} height={24} className="object-contain w-full h-full" unoptimized />
+            <Image src="/icons/payment/rupay.svg" alt="RuPay" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
           </div>
         </div>
       )

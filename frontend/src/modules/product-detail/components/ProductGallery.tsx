@@ -207,10 +207,18 @@ export const ProductGallery: React.FC<{
     <div className="flex flex-col gap-4 relative">
       {/* Main Large Image */}
       <div 
-        className="relative aspect-square md:aspect-[10/11] w-full max-h-[500px] md:max-h-[580px] bg-[#f4f4f4] rounded-xl border border-neutral-200/80 cursor-none overflow-hidden"
-        onMouseEnter={() => setIsZoomed(true)}
+        className="relative aspect-square md:aspect-[10/11] w-full max-h-[500px] md:max-h-[580px] bg-[#f4f4f4] rounded-xl border border-neutral-200/80 cursor-default lg:cursor-none overflow-hidden"
+        onMouseEnter={() => {
+          if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+            setIsZoomed(true);
+          }
+        }}
         onMouseLeave={() => setIsZoomed(false)}
-        onMouseMove={handleMouseMove}
+        onMouseMove={(e) => {
+          if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+            handleMouseMove(e);
+          }
+        }}
       >
         {/* Base Image */}
         <Image

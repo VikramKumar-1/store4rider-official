@@ -206,16 +206,17 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                         <span>SELECTED COLOR:</span>
                         <span className="text-neutral-900 font-black">{activeColor}</span>
                       </div>
-                      <div className="flex items-center gap-3 flex-wrap py-1">
+                    <div className="flex items-center gap-3 flex-wrap py-1">
                         {colors.map((colorObj, idx) => {
                           const isSelected = activeColor === colorObj.name;
                           const isDisabled = disabledColors.includes(colorObj.name);
                           return (
                             <button
                               key={`sheet-color-${idx}-${colorObj.name}`}
+                              type="button"
                               onClick={() => handleColorClick(colorObj.name)}
                               disabled={isDisabled}
-                              className={`w-11 h-11 rounded-full border-2 transition-all relative flex items-center justify-center ${
+                              className={`w-11 h-11 rounded-full border-2 transition-transform duration-75 active:scale-90 relative flex items-center justify-center select-none ${
                                 isSelected
                                   ? "border-brand scale-110 ring-3 ring-brand/25 ring-offset-2 z-10 shadow-sm"
                                   : "border-neutral-300 hover:border-neutral-500 opacity-90 hover:opacity-100"
@@ -265,9 +266,10 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                           return (
                             <button
                               key={`sheet-size-${size}`}
+                              type="button"
                               onClick={() => handleSizeClick(size)}
                               disabled={isDisabled}
-                              className={`h-11 px-2 text-xs font-extrabold rounded-xl border transition-all duration-150 flex items-center justify-center ${
+                              className={`h-11 px-2 text-xs font-extrabold rounded-xl border transition-all duration-75 active:scale-95 select-none flex items-center justify-center ${
                                 isDisabled
                                   ? "border-neutral-200 text-neutral-400 bg-neutral-100/50 cursor-not-allowed line-through"
                                   : isSelected
@@ -293,8 +295,9 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                 {/* SIZE BUTTON */}
                 {hasSizes && (
                   <button 
+                    type="button"
                     onClick={() => setOpenDropdown(openDropdown === "size" ? null : "size")}
-                    className={`border rounded-md px-2 flex flex-col flex-1 items-start justify-center shadow-2xs transition-all h-full ${
+                    className={`border rounded-md px-2 flex flex-col flex-1 items-start justify-center shadow-2xs transition-transform active:scale-95 duration-100 h-full select-none ${
                       openDropdown === "size" ? "border-brand bg-orange-50/50 ring-1 ring-brand" : "border-neutral-300 bg-white active:bg-neutral-50"
                     }`}
                   >
@@ -311,8 +314,9 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                 {/* COLOR BUTTON */}
                 {hasColors && (
                   <button 
+                    type="button"
                     onClick={() => setOpenDropdown(openDropdown === "color" ? null : "color")}
-                    className={`border rounded-md px-2 flex flex-col flex-1 items-start justify-center shadow-2xs transition-all h-full ${
+                    className={`border rounded-md px-2 flex flex-col flex-1 items-start justify-center shadow-2xs transition-transform active:scale-95 duration-100 h-full select-none ${
                       openDropdown === "color" ? "border-brand bg-orange-50/50 ring-1 ring-brand" : "border-neutral-300 bg-white active:bg-neutral-50"
                     }`}
                   >
@@ -333,8 +337,9 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
             <div className={`${(hasSizes || hasColors) ? "w-[38%] shrink-0" : "w-full flex-1"} h-[40px] sm:h-[44px]`}>
               {hasAdded ? (
                 <button 
+                  type="button"
                   onClick={() => router.push("/cart")} 
-                  className="w-full h-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-2 rounded-md font-black tracking-wider text-[11px] sm:text-xs flex justify-center items-center gap-1.5 shadow-md transition-all active:scale-95 animate-in zoom-in duration-200"
+                  className="w-full h-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-2 rounded-md font-black tracking-wider text-[11px] sm:text-xs flex justify-center items-center gap-1.5 shadow-md transition-all active:scale-95 animate-in zoom-in duration-100 select-none"
                 >
                   <CheckIcon className="w-4 h-4 stroke-[3]" />
                   <span className="leading-none mt-0.5">VIEW CART</span>
@@ -342,9 +347,10 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                 </button>
               ) : (
                 <button 
+                  type="button"
                   onClick={handleAddToCartClick}
                   disabled={isOutOfStock || priceFormatted === "Contact for Price"}
-                  className={`w-full h-full flex items-center justify-center gap-1 rounded-md font-black uppercase tracking-tighter sm:tracking-wider text-[11px] sm:text-xs shadow-sm active:scale-95 transition-all ${
+                  className={`w-full h-full flex items-center justify-center gap-1 rounded-md font-black uppercase tracking-tighter sm:tracking-wider text-[11px] sm:text-xs shadow-sm active:scale-95 duration-100 transition-all select-none ${
                     (isOutOfStock || priceFormatted === "Contact for Price")
                       ? 'bg-neutral-200 text-neutral-500 cursor-not-allowed border border-neutral-300' 
                       : 'bg-gradient-to-r from-banner to-orange-600 text-white hover:from-orange-600 hover:to-orange-700'
@@ -495,7 +501,7 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="p-4 pb-12 overflow-y-auto min-h-0">
+            <div className="p-4 pb-12 overflow-y-auto overflow-x-auto min-h-0">
               {sizeChart.includes('<') ? (
                 <div 
                   className="w-full text-[10px] sm:text-sm text-neutral-800 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-neutral-300 [&_th]:p-1.5 sm:[&_th]:p-3 [&_th]:bg-neutral-100 [&_th]:whitespace-nowrap [&_td]:border [&_td]:border-neutral-300 [&_td]:p-1.5 sm:[&_td]:p-3 [&_td]:text-center [&_img]:w-full [&_img]:max-h-[60vh] [&_img]:object-contain [&_img]:mx-auto"

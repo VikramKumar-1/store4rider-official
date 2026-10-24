@@ -10,6 +10,7 @@ export class SnapmintGateway implements PaymentGateway {
   private getCredentials() {
     const merchantKey = (ENV.SNAPMINT_MERCHANT_ID || process.env.SNAPMINT_MERCHANT_ID || "").trim();
     const merchantToken = (ENV.SNAPMINT_SECRET || process.env.SNAPMINT_SECRET || "").trim();
+    const mid = (ENV.SNAPMINT_MID || process.env.SNAPMINT_MID || "").trim();
 
     const isPlaceholder = (val: string) => !val || val.startsWith("your_") || val.includes("placeholder");
     if (isPlaceholder(merchantKey) || isPlaceholder(merchantToken)) {
@@ -20,14 +21,14 @@ export class SnapmintGateway implements PaymentGateway {
     const apiBaseUrl = isLive ? "https://api.snapmint.com" : "https://qa.snapmint.com";
     const checkoutUrl = isLive ? "https://checkout.snapmint.com/pay" : "https://qa.snapmint.com/pay";
 
-    return { merchantKey, merchantToken, isLive, apiBaseUrl, checkoutUrl };
+    return { merchantKey, merchantToken, mid, isLive, apiBaseUrl, checkoutUrl };
   }
 
   /**
    * Generates a tamper-proof checkout form payload with mandatory RBI/KYC underwriting fields.
    */
   async createOrder(order: IOrder, amount: number): Promise<GatewayOrderResult> {
-    const { merchantKey, merchantToken, checkoutUrl } = this.getCredentials();
+    const { merchantKey, merchantToken, mid, checkoutUrl } = this.getCredentials();
 
     const orderId = String(order.orderNumber || (order as any)._id || order.id);
     const formattedAmount = Number(amount).toFixed(2);
@@ -67,6 +68,7 @@ export class SnapmintGateway implements PaymentGateway {
 
     const snapmintPayload: Record<string, any> = {
       merchant_key: merchantKey,
+      ...(mid ? { merchant_id: mid, mid } : { merchant_id: merchantKey }),
       order_id: orderId,
       order_value: formattedAmount,
       full_name: fullName,

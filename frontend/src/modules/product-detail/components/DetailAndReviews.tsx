@@ -166,7 +166,7 @@ export const DetailAndReviews: React.FC<{
                       <button
                         type="button"
                         onClick={() => setIsMobileDescExpanded(true)}
-                        className="flex items-center gap-2 text-[13px] font-bold text-white uppercase tracking-wider py-2 px-5 bg-[#FF5429] hover:bg-[#E0441D] rounded-sm transition-colors shadow-sm cursor-pointer"
+                        className="flex items-center gap-2 text-[13px] font-bold text-white uppercase tracking-wider py-2 px-5 bg-[#FF5429] hover:bg-[#E0441D] rounded-sm transition-all duration-100 active:scale-95 select-none shadow-sm cursor-pointer"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
                         View More
@@ -188,7 +188,7 @@ export const DetailAndReviews: React.FC<{
                           });
                         }, 100);
                       }}
-                      className="flex items-center gap-2 text-[13px] font-bold text-white uppercase tracking-wider py-2 px-5 bg-[#FF5429] hover:bg-[#E0441D] rounded-sm transition-colors shadow-sm cursor-pointer"
+                      className="flex items-center gap-2 text-[13px] font-bold text-white uppercase tracking-wider py-2 px-5 bg-[#FF5429] hover:bg-[#E0441D] rounded-sm transition-all duration-100 active:scale-95 select-none shadow-sm cursor-pointer"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/></svg>
                       View Less

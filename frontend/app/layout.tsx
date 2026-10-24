@@ -1,10 +1,17 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { BlinkitFloatingCart } from "@/components/ui/BlinkitFloatingCart";
 import { CartDrawer } from "@/components/ui/CartDrawer";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 // Ultra-fast, SEO-friendly zero-layout-shift font optimization
 const inter = Inter({ 
