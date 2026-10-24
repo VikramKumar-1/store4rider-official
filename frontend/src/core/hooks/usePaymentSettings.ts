@@ -24,6 +24,7 @@ export interface IPublicSettings {
   instagramUrl?: string;
   youtubeUrl?: string;
   returnWindowDays?: number;
+  snapmintMinOrderValue?: number;
 }
 
 export function usePublicSettings() {

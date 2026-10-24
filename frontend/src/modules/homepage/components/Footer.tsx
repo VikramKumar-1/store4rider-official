@@ -85,7 +85,7 @@ export const Footer: React.FC = () => {
           <h3 className="text-[10px] min-[400px]:text-[11px] sm:text-lg font-semibold tracking-wide">Account</h3>
           <ul className="flex flex-col gap-2 sm:gap-4 text-[9px] min-[400px]:text-[10px] sm:text-sm md:text-[15px] text-white/80">
             <li><Link href="/account" className="hover:text-white transition-colors whitespace-nowrap">My Account</Link></li>
-            <li><Link href="/orders" className="hover:text-white transition-colors whitespace-nowrap">My Orders</Link></li>
+            <li><Link href="/account/orders" className="hover:text-white transition-colors whitespace-nowrap">My Orders</Link></li>
             <li><Link href="/vouchers" className="hover:text-white transition-colors whitespace-nowrap">Vouchers & Discounts</Link></li>
           </ul>
         </div>

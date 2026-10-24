@@ -16,9 +16,9 @@ interface ModalProps {
 const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-lg" }: ModalProps) => {
   useEffect(() => {
     if (isOpen) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "unset";
+    else document.body.style.overflow = "";
     return () => {
-      document.body.style.overflow = "unset";
+      document.body.style.overflow = "";
     };
   }, [isOpen]);
 

@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import { PaymentMethodType } from "@store4riders/shared-types";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
+import { toast } from "sonner";
 
 interface CheckoutPaymentStepProps {
   generatedOrderNumber: string;
@@ -40,6 +41,7 @@ export const CheckoutPaymentStep = ({
   total
 }: CheckoutPaymentStepProps) => {
   const { data: settings, isLoading } = usePublicSettings();
+  const snapmintMin = settings?.snapmintMinOrderValue ?? 25000;
 
   const GATEWAY_INFO: Record<string, { label: React.ReactNode; desc: string; icon: React.ReactNode }> = {
     payu: {
@@ -89,7 +91,15 @@ export const CheckoutPaymentStep = ({
       )
     },
     snapmint: {
-      label: "Snapmint (Cardless 0% EMI)",
+      label: (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span>Snapmint (Cardless 0% EMI)</span>
+          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-amber-50 text-amber-900 border border-amber-300 px-2 py-0.5 rounded shadow-2xs tracking-wide uppercase">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+            Min. Order ₹{snapmintMin.toLocaleString("en-IN")}
+          </span>
+        </div>
+      ),
       desc: "Buy now, pay in easy monthly installments without credit card",
       icon: (
         <div className="flex items-center gap-1.5 shrink-0">
@@ -126,12 +136,19 @@ export const CheckoutPaymentStep = ({
     
   const availableGateways = baseGateways.filter(g => g !== "cod" || isCodAvailable);
 
-  // Ensure an available gateway is selected
+  // Ensure an available and eligible gateway is selected
   React.useEffect(() => {
-    if (availableGateways.length > 0 && !availableGateways.includes(paymentOption)) {
-      setPaymentOption(availableGateways[0] as PaymentMethodType);
+    const isSnapmintIneligible = total !== undefined && total < snapmintMin;
+    const eligibleGateways = availableGateways.filter(
+      (g) => g !== "snapmint" || !isSnapmintIneligible
+    );
+    if (
+      eligibleGateways.length > 0 &&
+      (!eligibleGateways.includes(paymentOption) || (paymentOption === "snapmint" && isSnapmintIneligible))
+    ) {
+      setPaymentOption(eligibleGateways[0] as PaymentMethodType);
     }
-  }, [availableGateways, paymentOption, setPaymentOption]);
+  }, [availableGateways, paymentOption, setPaymentOption, total, snapmintMin]);
 
   return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-300">
@@ -182,26 +199,43 @@ export const CheckoutPaymentStep = ({
             const info = GATEWAY_INFO[method];
             if (!info) return null;
             
+            const isSnapmint = method === "snapmint";
+            const isSnapmintIneligible = isSnapmint && total !== undefined && total < snapmintMin;
             const isCodWithAdvance = method === "cod" && Boolean(settings?.codPartialPaymentEnabled) && Boolean(settings?.codPartialPaymentValue) && (settings?.codPartialPaymentValue || 0) > 0;
             const isSelected = paymentOption === method;
+
+            const handleSelectMethod = () => {
+              if (isSnapmintIneligible) {
+                toast.error(
+                  `Snapmint Cardless EMI requires a minimum order of ₹${snapmintMin.toLocaleString("en-IN")} (Current total: ₹{Number(total).toLocaleString('en-IN')})`
+                );
+                return;
+              }
+              setPaymentOption(method as PaymentMethodType);
+            };
 
             return (
               <label
                 key={method}
-                onClick={() => setPaymentOption(method as PaymentMethodType)}
-                className={`relative flex flex-col p-3.5 border rounded-none cursor-pointer transition-all overflow-hidden ${
-                  isSelected
-                    ? "border-banner bg-orange-50/20 ring-1 ring-banner"
-                    : "border-neutral-300 hover:border-neutral-400 bg-white"
+                onClick={handleSelectMethod}
+                className={`relative flex flex-col p-3.5 border rounded-none transition-all overflow-hidden ${
+                  isSnapmintIneligible
+                    ? "border-neutral-200 bg-neutral-50/70 opacity-80 cursor-not-allowed"
+                    : isSelected
+                    ? "border-banner bg-orange-50/20 ring-1 ring-banner cursor-pointer"
+                    : "border-neutral-300 hover:border-neutral-400 bg-white cursor-pointer"
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <input
                     type="radio"
                     name="paymentOption"
+                    disabled={isSnapmintIneligible}
                     checked={isSelected}
-                    onChange={() => setPaymentOption(method as PaymentMethodType)}
-                    className="accent-orange-600 w-4 h-4 cursor-pointer mt-0.5 shrink-0"
+                    onChange={handleSelectMethod}
+                    className={`accent-orange-600 w-4 h-4 mt-0.5 shrink-0 ${
+                      isSnapmintIneligible ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                    }`}
                   />
                   <div className="flex flex-col w-full">
                     <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
@@ -213,6 +247,22 @@ export const CheckoutPaymentStep = ({
                         ? `${info.desc} (Requires ${settings?.codPartialPaymentType === 'fixed' ? '₹' + settings?.codPartialPaymentValue : settings?.codPartialPaymentValue + '%'} advance)` 
                         : info.desc}
                     </span>
+
+                    {/* Snapmint Ineligible notice */}
+                    {isSnapmintIneligible && (
+                      <div className="mt-2.5 flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 text-amber-900 rounded text-xs leading-relaxed">
+                        <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div>
+                          <span className="font-bold">Order value ₹{Number(total).toLocaleString("en-IN")} is below Snapmint's minimum limit (₹{snapmintMin.toLocaleString("en-IN")}).</span>{" "}
+                          <span className="text-neutral-700">Add <strong>₹{(snapmintMin - total).toLocaleString('en-IN')}</strong> more to your cart to unlock 0% Cardless EMI with Snapmint.</span>
+                        </div>
+                      </div>
+                    )}
+
+                    
+
                     {method === "payu" && info.icon}
                   </div>
                 </div>

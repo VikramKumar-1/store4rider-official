@@ -9,8 +9,6 @@ import { CartDrawer } from "@/components/ui/CartDrawer";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 };
 
 // Ultra-fast, SEO-friendly zero-layout-shift font optimization
@@ -160,9 +158,9 @@ export default function RootLayout({
       <body className="antialiased bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans">
         <Providers>
           <NavigationProgress />
-          <main className="flex-1">
+          <div className="flex-1 w-full">
             {children}
-          </main>
+          </div>
           <BlinkitFloatingCart />
           <CartDrawer />
         </Providers>

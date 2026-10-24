@@ -5,42 +5,68 @@ import { ENV } from "../config/env";
 import { AppError } from "../errors/AppError";
 import { logger } from "../utils/logger";
 
+/**
+ * Snapmint Checkout 3.0 — Server-to-Server Integration
+ *
+ * Flow:
+ *   1. Backend POSTs JSON to `apis.snapmint.com/api/pub/carts` (prod)
+ *      or `sandboxapi.snapmint.com/api/pub/carts` (sandbox).
+ *   2. Snapmint returns `{ url, status, redirect_url }`.
+ *   3. Frontend redirects the user to `url` (pay.snapmint.com checkout page).
+ *   4. After payment, Snapmint redirects user to merchantConfirmationUrl / merchantFailureUrl.
+ *
+ * Auth: `merchantPassword` field (= Merchant Token). No checksum_hash needed.
+ * Min order value: ₹10,000 (Snapmint minimum for cardless EMI).
+ */
 export class SnapmintGateway implements PaymentGateway {
-  
+
   private getCredentials() {
+    // SNAPMINT_MERCHANT_ID = Merchant Key (e.g. nLRGPKDo) — used as merchantId in the old naming
     const merchantKey = (ENV.SNAPMINT_MERCHANT_ID || process.env.SNAPMINT_MERCHANT_ID || "").trim();
+    // SNAPMINT_SECRET = Merchant Token (e.g. WiG-6A3P) — used as merchantPassword in V3
     const merchantToken = (ENV.SNAPMINT_SECRET || process.env.SNAPMINT_SECRET || "").trim();
+    // SNAPMINT_MID = Numeric MID (e.g. 2025) — the actual merchantId for V3 S2S API
     const mid = (ENV.SNAPMINT_MID || process.env.SNAPMINT_MID || "").trim();
 
     const isPlaceholder = (val: string) => !val || val.startsWith("your_") || val.includes("placeholder");
-    if (isPlaceholder(merchantKey) || isPlaceholder(merchantToken)) {
-      throw new AppError("Snapmint credentials in backend/.env are missing or unconfigured.", 400);
+    if (isPlaceholder(mid) || isPlaceholder(merchantToken)) {
+      throw new AppError("Snapmint credentials (SNAPMINT_MID, SNAPMINT_SECRET) in backend/.env are missing or unconfigured.", 400);
     }
 
     const isLive = (ENV.SNAPMINT_MODE || process.env.SNAPMINT_MODE || "test").trim().toLowerCase() === "live";
-    const apiBaseUrl = isLive ? "https://api.snapmint.com" : "https://qa.snapmint.com";
-    const checkoutUrl = isLive ? "https://checkout.snapmint.com/pay" : "https://qa.snapmint.com/pay";
 
-    return { merchantKey, merchantToken, mid, isLive, apiBaseUrl, checkoutUrl };
+    // Checkout 3.0 S2S endpoints
+    const s2sApiUrl = isLive
+      ? "https://apis.snapmint.com/api/pub/carts"
+      : "https://apis.snapmint.com/api/pub/carts"; // Sandbox (sandboxapi) is currently offline, use prod for test MID
+
+    return { merchantKey, merchantToken, mid, isLive, s2sApiUrl };
   }
 
   /**
-   * Generates a tamper-proof checkout form payload with mandatory RBI/KYC underwriting fields.
+   * Creates a Snapmint Checkout 3.0 session via S2S API.
+   * Returns the checkout redirect URL for the frontend.
    */
   async createOrder(order: IOrder, amount: number): Promise<GatewayOrderResult> {
-    const { merchantKey, merchantToken, mid, checkoutUrl } = this.getCredentials();
+    const { merchantToken, mid, s2sApiUrl } = this.getCredentials();
+
+    // Proactive minimum order value check for Snapmint merchant tier (dynamic from ENV/Settings, default ₹25,000)
+    const configuredMin = Number(ENV.SNAPMINT_MIN_ORDER_VALUE || process.env.SNAPMINT_MIN_ORDER_VALUE) || 25000;
+    if (amount < configuredMin) {
+      throw new AppError(
+        `Snapmint Cardless EMI is applicable on orders above ₹${configuredMin.toLocaleString("en-IN")} (Current order: ₹${Math.round(amount)}). Please choose another payment method or add more items to your cart.`,
+        400
+      );
+    }
 
     const orderId = String(order.orderNumber || (order as any)._id || order.id);
-    const formattedAmount = Number(amount).toFixed(2);
 
     const shipping = order.shippingAddress;
-    const billing = (order as any).billingAddress || shipping;
 
     const firstName = (shipping?.fullName?.split(" ")[0] || "Valued").trim();
     const lastName = (shipping?.fullName?.split(" ").slice(1).join(" ") || "Customer").trim();
-    const fullName = `${firstName} ${lastName}`.trim();
-    const email = ((order as any).userEmail || order.guestEmail || `${firstName.toLowerCase()}@store4riders.com`).trim();
-    
+    const email = ((order as any).userEmail || order.guestEmail || "").trim();
+
     // Mobile number is mandatory for Snapmint credit scoring & OTP verification
     const rawPhone = (shipping?.phone || (order as any).phone || "").replace(/\D/g, "");
     const phoneNumber = rawPhone.slice(-10);
@@ -48,126 +74,132 @@ export class SnapmintGateway implements PaymentGateway {
       throw new AppError("A valid 10-digit Indian mobile number is mandatory for Snapmint Cardless EMI verification.", 400);
     }
 
-    // SHA-512 Checksum Formula: merchant_key | order_id | order_value | full_name | email | merchant_token
-    const hashString = `${merchantKey}|${orderId}|${formattedAmount}|${fullName}|${email}|${merchantToken}`;
-    const checksumHash = crypto.createHash("sha512").update(hashString).digest("hex");
-
     const rawApiUrl = (ENV.API_URL || ENV.NEXT_PUBLIC_API_URL || ENV.FRONTEND_URL || "").trim();
     if (!rawApiUrl) {
       throw new AppError("API_URL or FRONTEND_URL is not configured for Snapmint callbacks.", 500);
     }
     const cleanApiBase = rawApiUrl.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
 
-    // Prepare line items for risk underwriting and subvention evaluation
+    // Prepare line items for Snapmint risk underwriting
     const products = (order.items || []).map((item) => ({
-      sku: item.sku,
+      sku: item.sku || "SKU",
       name: (item.name || "Product").slice(0, 100),
-      quantity: item.quantity,
-      unit_price: Number(item.unitPrice || (item as any).price || 0).toFixed(2),
+      quantity: String(item.quantity),
+      unitPrice: String(Number(item.unitPrice || (item as any).price || 0)),
+      itemUrl: `${cleanApiBase}/products/${(item as any).slug || item.sku || "product"}`,
+      imageUrl: (item as any).image || "",
     }));
 
-    const snapmintPayload: Record<string, any> = {
-      merchant_key: merchantKey,
-      ...(mid ? { merchant_id: mid, mid } : { merchant_id: merchantKey }),
-      order_id: orderId,
-      order_value: formattedAmount,
-      full_name: fullName,
-      email: email,
-      phone_number: phoneNumber,
-      
-      // Billing KYC Details
-      billing_first_name: firstName,
-      billing_last_name: lastName,
-      billing_address_line1: (billing?.street || billing?.addressLine1 || "Billing Address").slice(0, 120),
-      billing_city: (billing?.city || "City").slice(0, 50),
-      billing_state: (billing?.state || "State").slice(0, 50),
-      billing_zipcode: (billing?.pincode || "000000").slice(0, 10),
-      
-      // Shipping Details
-      shipping_first_name: firstName,
-      shipping_last_name: lastName,
-      shipping_address_line1: (shipping?.street || shipping?.addressLine1 || "Shipping Address").slice(0, 120),
-      shipping_city: (shipping?.city || "City").slice(0, 50),
-      shipping_state: (shipping?.state || "State").slice(0, 50),
-      shipping_zipcode: (shipping?.pincode || "000000").slice(0, 10),
-      
-      products: JSON.stringify(products),
-      checksum_hash: checksumHash,
-      success_url: `${cleanApiBase}/api/v1/orders/webhook/snapmint/success`,
-      failed_url: `${cleanApiBase}/api/v1/orders/webhook/snapmint/failure`,
-      actionUrl: checkoutUrl,
+    // Checkout 3.0 S2S payload (camelCase JSON, merchantPassword auth, NO checksum)
+    const snapmintPayload = {
+      merchantId: mid,
+      merchantPassword: merchantToken,
+      merchantOrderId: orderId,
+      orderValue: String(Math.round(amount)),
+      mobile: phoneNumber,
+      first_name: firstName,
+      last_name: lastName,
+      full_name: `${firstName} ${lastName}`.trim(),
+      email: email || undefined,
+      ip: "0.0.0.0",
+      deviceType: "online",
+      merchantConfirmationUrl: `${cleanApiBase}/api/v1/orders/webhook/snapmint/success`,
+      merchantFailureUrl: `${cleanApiBase}/api/v1/orders/webhook/snapmint/failure`,
+      products,
     };
 
-    return {
-      gatewayOrderId: orderId,
-      gatewayResponse: snapmintPayload,
-    };
+    logger.info("Snapmint V3 S2S createOrder request", {
+      orderId,
+      amount,
+      mid,
+      s2sApiUrl,
+    });
+
+    try {
+      const response = await fetch(s2sApiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify(snapmintPayload),
+        signal: AbortSignal.timeout(15000),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.status === "Success" && result.url) {
+        logger.info("Snapmint V3 S2S session created", {
+          orderId,
+          checkoutUrl: result.url,
+        });
+
+        return {
+          gatewayOrderId: orderId,
+          gatewayResponse: {
+            redirectUrl: result.url,
+            snapmintOrderUrl: result.redirect_url || result.url,
+          },
+        };
+      }
+
+      // Handle known error codes
+      const errorCode = result.code || "";
+      const errorMsg = result.message || "Snapmint checkout creation failed";
+
+      if (errorCode === "ORDER_VALUE_LT_MIN") {
+        throw new AppError(
+          `Order value ₹${amount} is below Snapmint's minimum. EMI purchases are applicable on orders above ₹${configuredMin.toLocaleString("en-IN")}.`,
+          400
+        );
+      }
+
+      if (errorCode === "DUPLICATE_MERCHANT_OID") {
+        throw new AppError(
+          "This order has already been submitted to Snapmint. Please use a unique order ID.",
+          409
+        );
+      }
+
+      logger.error("Snapmint V3 S2S createOrder rejected", { result, orderId });
+      throw new AppError(`Snapmint: ${errorMsg}`, response.status >= 500 ? 502 : 400);
+
+    } catch (error: any) {
+      if (error instanceof AppError) throw error;
+      logger.error("Snapmint V3 S2S createOrder network error", { error: error.message, orderId });
+      throw new AppError(`Snapmint service unavailable: ${error.message}`, 502);
+    }
   }
 
   /**
-   * Cryptographically verifies payment callback data using constant-time comparison.
+   * Verifies payment callback from Snapmint redirect (merchantConfirmationUrl / merchantFailureUrl).
+   * Checkout 3.0 redirects include query params: id, message, status, token.
    */
   async verifyPayment(payment: IPayment, verificationData: any): Promise<VerifyPaymentResult> {
-    const { merchantKey, merchantToken } = this.getCredentials();
+    const { status, id, message, order_id, token } = verificationData;
 
-    const {
-      status,
-      order_id,
-      order_value,
-      amount,
-      full_name,
-      email,
-      checksum_hash,
-      id,
-    } = verificationData;
-
-    if (!checksum_hash || !order_id || !status) {
-      return { success: false, message: "Missing required Snapmint verification parameters" };
+    if (!status) {
+      return { success: false, message: "Missing Snapmint payment status" };
     }
 
-    // Check for amount tampering
-    const reportedAmount = parseFloat(order_value || amount || "0");
-    if (reportedAmount > 0 && Math.abs(reportedAmount - payment.amount) > 0.01) {
-      logger.error("Snapmint amount mismatch detected", {
-        orderId: order_id,
-        reportedAmount,
-        expectedAmount: payment.amount,
-      });
-      return { success: false, message: "Amount mismatch detected" };
-    }
-
-    // Response Hash Formula: merchant_token | status | order_id | order_value | full_name | email | merchant_key
-    const formattedAmount = Number(order_value || amount || payment.amount).toFixed(2);
-    const hashString = `${merchantToken}|${status}|${order_id}|${formattedAmount}|${full_name || ""}|${email || ""}|${merchantKey}`;
-    const expectedHash = crypto.createHash("sha512").update(hashString).digest("hex");
-
-    // Timing-safe comparison to prevent timing attacks
-    const expectedBuf = Buffer.from(expectedHash, "utf8");
-    const receivedBuf = Buffer.from(String(checksum_hash), "utf8");
-
-    if (expectedBuf.length !== receivedBuf.length || !crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
-      logger.error("Snapmint signature mismatch", {
-        orderId: order_id,
-        receivedChecksum: checksum_hash,
-      });
-      return { success: false, message: "Invalid Snapmint signature" };
-    }
-
-    const isSuccess = String(status).toLowerCase() === "success" || String(status).toLowerCase() === "completed";
+    const isSuccess = String(status).toLowerCase() === "success" ||
+                      String(status).toLowerCase() === "completed" ||
+                      String(message).toLowerCase() === "success";
 
     return {
       success: isSuccess,
-      gatewayPaymentId: id ? String(id) : undefined,
-      message: isSuccess ? "Payment verified successfully" : `Payment rejected with status: ${status}`,
+      gatewayPaymentId: id ? String(id) : token ? String(token) : undefined,
+      message: isSuccess
+        ? "Payment verified successfully"
+        : `Payment rejected with status: ${status} — ${message || ""}`,
     };
   }
 
   /**
-   * Handles asynchronous webhooks sent directly from Snapmint servers.
+   * Handles asynchronous webhooks from Snapmint.
+   * Checkout 3.0 callbacks are form-urlencoded POST or query params on redirect.
    */
   async handleWebhook(headers: any, body: any): Promise<any> {
-    const { merchantKey, merchantToken } = this.getCredentials();
-
     let parsed: any = {};
     if (typeof body === "string") {
       try {
@@ -184,54 +216,54 @@ export class SnapmintGateway implements PaymentGateway {
       parsed = body;
     }
 
-    const { status, order_id, order_value, full_name, email, checksum_hash, id } = parsed;
+    const { status, id, message, amount } = parsed;
+    const resolvedOrderId =
+      parsed.merchantOrderId ||
+      parsed.merchant_order_id ||
+      parsed.merchant_oid ||
+      parsed.order_id ||
+      parsed.orderId ||
+      parsed.orderNumber ||
+      "";
 
-    if (!order_id || !status || !checksum_hash) {
-      throw new AppError("Invalid Snapmint webhook payload structure", 400);
+    const resolvedPaymentId = id ? String(id) : parsed.token ? String(parsed.token) : undefined;
+
+    if (!resolvedOrderId && !resolvedPaymentId) {
+      throw new AppError("Invalid Snapmint webhook payload: missing order_id or id", 400);
     }
 
-    // Validate Checksum
-    const formattedAmount = Number(order_value || 0).toFixed(2);
-    const hashString = `${merchantToken}|${status}|${order_id}|${formattedAmount}|${full_name || ""}|${email || ""}|${merchantKey}`;
-    const expectedHash = crypto.createHash("sha512").update(hashString).digest("hex");
-
-    const expectedBuf = Buffer.from(expectedHash, "utf8");
-    const receivedBuf = Buffer.from(String(checksum_hash), "utf8");
-
-    if (expectedBuf.length !== receivedBuf.length || !crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
-      throw new AppError("Invalid Snapmint signature", 400);
-    }
-
-    const isSuccessful = String(status).toLowerCase() === "success" || String(status).toLowerCase() === "completed";
+    const isSuccessful =
+      String(status).toLowerCase() === "success" ||
+      String(status).toLowerCase() === "completed" ||
+      String(message).toLowerCase() === "success";
 
     return {
       event: isSuccessful ? "payment.captured" : "payment.failed",
-      gatewayOrderId: String(order_id),
-      id: id ? String(id) : `snap_${Date.now()}`,
+      gatewayOrderId: resolvedOrderId ? String(resolvedOrderId) : `snap_${resolvedPaymentId}`,
+      id: resolvedPaymentId || `snap_${Date.now()}`,
       payload: {
-        id: id ? String(id) : undefined,
-        amount: parseFloat(order_value || "0"),
+        id: resolvedPaymentId,
+        amount: parsed.orderValue || parsed.order_value || amount ? Number(parsed.orderValue || parsed.order_value || amount) : 0,
         status: status,
+        message: message,
       },
     };
   }
 
   /**
    * Queries Snapmint Server-to-Server API for live transaction status.
-   * Crucial for fallback reconciliation when the user closes their browser prematurely.
    */
   async getPaymentStatus(gatewayOrderId: string): Promise<any> {
-    const { merchantKey, merchantToken, apiBaseUrl } = this.getCredentials();
+    const { merchantToken, mid } = this.getCredentials();
 
     try {
-      const response = await fetch(`${apiBaseUrl}/v1/public/online_orders/${encodeURIComponent(gatewayOrderId)}`, {
+      const response = await fetch(`https://apis.snapmint.com/api/pub/carts/${encodeURIComponent(gatewayOrderId)}`, {
         method: "GET",
         headers: {
           "Accept": "application/json",
-          "X-Merchant-Key": merchantKey,
           "Authorization": `Bearer ${merchantToken}`,
         },
-        signal: AbortSignal.timeout(10000), // 10s strict timeout
+        signal: AbortSignal.timeout(10000),
       });
 
       if (!response.ok) {
@@ -249,10 +281,10 @@ export class SnapmintGateway implements PaymentGateway {
   }
 
   /**
-   * Initiates full or partial refunds directly via Snapmint S2S Refund API.
+   * Initiates full or partial refunds via Snapmint S2S Refund API.
    */
   async initiateRefund(payment: IPayment, amount?: number): Promise<RefundResult> {
-    const { merchantKey, merchantToken, apiBaseUrl } = this.getCredentials();
+    const { merchantToken, mid } = this.getCredentials();
 
     const refundAmount = amount !== undefined ? amount : payment.amount;
     const orderId = payment.gatewayOrderId;
@@ -264,15 +296,15 @@ export class SnapmintGateway implements PaymentGateway {
     const merchantRefundId = `ref_${orderId}_${Date.now()}`;
 
     try {
-      const response = await fetch(`${apiBaseUrl}/v1/public/online_orders/${encodeURIComponent(orderId)}/refund`, {
+      const response = await fetch(`https://apis.snapmint.com/api/pub/carts/${encodeURIComponent(orderId)}/refund`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
-          "X-Merchant-Key": merchantKey,
           "Authorization": `Bearer ${merchantToken}`,
         },
         body: JSON.stringify({
+          merchantId: mid,
           refund_amount: Number(refundAmount).toFixed(2),
           refund_reference_id: merchantRefundId,
           reason: "Customer cancellation / Order return",

@@ -55,11 +55,11 @@ export function PostCheckoutRegisterForm({ email, name }: { email: string; name:
   useEffect(() => {
     if (registerMutation.isSuccess || loginMutation.isSuccess) {
       const timer = setTimeout(() => {
-        window.location.href = "/account/orders";
+        router.push("/account/orders");
       }, 800);
       return () => clearTimeout(timer);
     }
-  }, [registerMutation.isSuccess, loginMutation.isSuccess]);
+  }, [registerMutation.isSuccess, loginMutation.isSuccess, router]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

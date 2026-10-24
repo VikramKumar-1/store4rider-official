@@ -10,6 +10,11 @@ import {
   MagnifyingGlassIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  UserCircleIcon,
+  ShoppingBagIcon as OrdersIcon,
+  HeartIcon,
+  MapPinIcon,
+  ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 import { NavItem } from "../../types/homepage.types";
 
@@ -190,38 +195,101 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
             </nav>
 
             {/* Auth CTA */}
-            <div className="px-5 py-4 border-t border-neutral-100 bg-neutral-50">
+            {/* User Account / Auth Section */}
+            <div className="px-4 py-4 border-t border-neutral-200 bg-neutral-50 shrink-0">
               {mounted && isAuthenticated && user ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-banner flex items-center justify-center text-white font-bold text-sm shrink-0">
-                    {user.name?.[0]?.toUpperCase() || "R"}
+                <div className="flex flex-col gap-3">
+                  {/* User Profile Card */}
+                  <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white border border-neutral-200 shadow-xs">
+                    <div className="w-10 h-10 rounded-full bg-brand text-white font-extrabold text-sm flex items-center justify-center shrink-0 shadow-sm">
+                      {((user as any).firstName || user.name || user.email || "R").charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-neutral-900 truncate">
+                        {(user as any).firstName
+                          ? `${(user as any).firstName} ${(user as any).lastName || ""}`.trim()
+                          : (user.name || "Rider Member")}
+                      </p>
+                      <p className="text-[11px] text-neutral-500 truncate">{user.email}</p>
+                    </div>
+                    <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Active
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-neutral-900 truncate">{user.name}</p>
-                    <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+
+                  {/* Profile & Orders Navigation Grid */}
+                  <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+                    <Link
+                      href="/account"
+                      onClick={onClose}
+                      className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-neutral-200 text-neutral-800 hover:text-brand hover:border-brand/40 transition-colors shadow-2xs"
+                    >
+                      <UserCircleIcon className="w-4 h-4 text-brand shrink-0" />
+                      <span className="truncate">My Profile</span>
+                    </Link>
+                    <Link
+                      href="/account/orders"
+                      onClick={onClose}
+                      className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-neutral-200 text-neutral-800 hover:text-brand hover:border-brand/40 transition-colors shadow-2xs"
+                    >
+                      <OrdersIcon className="w-4 h-4 text-brand shrink-0" />
+                      <span className="truncate">My Orders</span>
+                    </Link>
+                    <Link
+                      href="/account/addresses"
+                      onClick={onClose}
+                      className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-neutral-200 text-neutral-800 hover:text-brand hover:border-brand/40 transition-colors shadow-2xs"
+                    >
+                      <MapPinIcon className="w-4 h-4 text-neutral-500 shrink-0" />
+                      <span className="truncate">Addresses</span>
+                    </Link>
+                    <Link
+                      href="/account/wishlist"
+                      onClick={onClose}
+                      className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-neutral-200 text-neutral-800 hover:text-brand hover:border-brand/40 transition-colors shadow-2xs"
+                    >
+                      <HeartIcon className="w-4 h-4 text-neutral-500 shrink-0" />
+                      <span className="truncate">Wishlist</span>
+                    </Link>
                   </div>
+
+                  {/* Logout Button */}
                   <button
-                    onClick={() => { onLogout(); onClose(); }}
-                    className="text-xs text-red-500 font-semibold"
+                    onClick={() => {
+                      onLogout();
+                      onClose();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-100 bg-white"
                   >
-                    Logout
+                    <ArrowRightOnRectangleIcon className="w-4 h-4" />
+                    <span>Sign Out</span>
                   </button>
                 </div>
               ) : (
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <Link
+                      href="/login"
+                      onClick={onClose}
+                      className="flex-1 text-center py-2.5 bg-banner text-white text-sm font-bold rounded-xl hover:bg-orange-600 transition-colors shadow-sm"
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      href="/register"
+                      onClick={onClose}
+                      className="flex-1 text-center py-2.5 border border-neutral-300 bg-white text-neutral-700 text-sm font-bold rounded-xl hover:bg-neutral-100 transition-colors"
+                    >
+                      Register
+                    </Link>
+                  </div>
                   <Link
-                    href="/login"
+                    href="/account/orders"
                     onClick={onClose}
-                    className="flex-1 text-center py-2.5 bg-banner text-white text-sm font-bold rounded-xl hover:bg-orange-600 transition-colors"
+                    className="flex items-center justify-center gap-2 py-2 text-xs font-bold text-neutral-700 hover:text-brand transition-colors bg-white border border-neutral-200 rounded-xl"
                   >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/register"
-                    onClick={onClose}
-                    className="flex-1 text-center py-2.5 border border-neutral-300 text-neutral-700 text-sm font-bold rounded-xl hover:bg-neutral-100 transition-colors"
-                  >
-                    Register
+                    <OrdersIcon className="w-4 h-4 text-neutral-400" />
+                    <span>Track Your Order</span>
                   </Link>
                 </div>
               )}

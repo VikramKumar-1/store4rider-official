@@ -1,8 +1,27 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { preload } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
+
+// Permanent payment gateway vector icons - preloaded into browser memory cache on checkout entry
+const PAYMENT_GATEWAY_ICONS = [
+  "/icons/payment/payu.svg",
+  "/icons/payment/upi.svg",
+  "/icons/payment/gpay.svg",
+  "/icons/payment/phonepe.svg",
+  "/icons/payment/paytm.svg",
+  "/icons/payment/visa.svg",
+  "/icons/payment/mastercard.svg",
+  "/icons/payment/rupay.svg",
+];
+
+if (typeof window !== "undefined") {
+  PAYMENT_GATEWAY_ICONS.forEach((src) => {
+    preload(src, { as: "image", type: "image/svg+xml" });
+  });
+}
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useCartStore } from "@/stores/useCartStore";

@@ -1,6 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,  // Disable double-render in dev — makes everything 2x faster
+  async headers() {
+    return [
+      {
+        source: '/icons/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
+  },
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',

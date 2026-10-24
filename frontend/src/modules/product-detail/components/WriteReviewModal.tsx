@@ -67,7 +67,7 @@ export const WriteReviewModal: React.FC<WriteReviewModalProps> = ({
     }
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "unset";
+      document.body.style.overflow = "";
     };
   }, [isOpen, onClose]);
 

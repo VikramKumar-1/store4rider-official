@@ -139,21 +139,23 @@ export function useCheckout() {
         return;
       }
 
-      // Handle Snapmint — form POST to Snapmint checkout
+      // Handle Snapmint — Checkout 3.0 S2S redirect
       if (method === "snapmint" && gatewayResponse) {
         toast.success("Redirecting to Snapmint...");
 
-        const isLive = process.env.NEXT_PUBLIC_SNAPMINT_MODE === "live";
-        const snapmintAction = gatewayResponse.actionUrl || (isLive
-          ? "https://checkout.snapmint.com/pay"
-          : "https://qa.snapmint.com/pay");
+        if (gatewayResponse.redirectUrl) {
+          window.location.href = gatewayResponse.redirectUrl;
+          return;
+        }
+
+        const snapmintAction = gatewayResponse.actionUrl || "https://checkout.snapmint.com/pay";
 
         const form = document.createElement("form");
         form.method = "POST";
         form.action = snapmintAction;
 
         Object.entries(gatewayResponse).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && key !== "actionUrl") {
+          if (value !== undefined && value !== null && key !== "actionUrl" && key !== "redirectUrl") {
             const input = document.createElement("input");
             input.type = "hidden";
             input.name = key;

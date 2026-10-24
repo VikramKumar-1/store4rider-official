@@ -36,6 +36,7 @@ export class SettingController {
       instagramUrl: settings.instagramUrl,
       youtubeUrl: settings.youtubeUrl,
       returnWindowDays: settings.returnWindowDays || 7,
+      snapmintMinOrderValue: settings.snapmintMinOrderValue ?? (Number(process.env.SNAPMINT_MIN_ORDER_VALUE) || 25000),
     };
     return ApiResponse.success(publicData, "Public settings retrieved successfully");
   }

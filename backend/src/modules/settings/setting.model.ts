@@ -32,6 +32,7 @@ export interface ISetting extends Document {
   youtubeUrl?: string;
   returnWindowDays?: number;
   popularSearches?: string[];
+  snapmintMinOrderValue?: number;
 }
 
 const settingSchema = new Schema<ISetting>(
@@ -43,6 +44,7 @@ const settingSchema = new Schema<ISetting>(
     codPartialPaymentEnabled: { type: Boolean, default: false },
     codPartialPaymentType: { type: String, enum: ["percentage", "fixed"], default: "percentage" },
     codPartialPaymentValue: { type: Number, default: 20 },
+    snapmintMinOrderValue: { type: Number, default: 25000 },
     storeOriginPincode: { type: String, default: "411001" },
     storeOriginCity: { type: String, default: "Pune" },
     storeOriginState: { type: String, default: "Maharashtra" },

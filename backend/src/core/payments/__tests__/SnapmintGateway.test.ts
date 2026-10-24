@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import crypto from "crypto";
 import { SnapmintGateway } from "../SnapmintGateway";
 import { AppError } from "../../errors/AppError";
 
 vi.mock("../../config/env", () => ({
   ENV: {
-    SNAPMINT_MERCHANT_ID: "snap_merchant_123",
-    SNAPMINT_SECRET: "snap_secret_token_456",
+    SNAPMINT_MERCHANT_ID: "nLRGPKDo",
+    SNAPMINT_SECRET: "WiG-6A3P",
+    SNAPMINT_MID: "2025",
     SNAPMINT_MODE: "test",
     NEXT_PUBLIC_API_URL: "http://localhost:4000",
     API_URL: "http://localhost:4000",
@@ -14,7 +14,7 @@ vi.mock("../../config/env", () => ({
   },
 }));
 
-describe("SnapmintGateway - Enterprise Edge Cases & Security", () => {
+describe("SnapmintGateway — Checkout 3.0 S2S Integration", () => {
   let gateway: SnapmintGateway;
 
   beforeEach(() => {
@@ -39,37 +39,48 @@ describe("SnapmintGateway - Enterprise Edge Cases & Security", () => {
         sku: "HLMT-AGV-K6",
         name: "AGV K6 S Helmet",
         quantity: 1,
-        price: 45000,
+        unitPrice: 45000,
       },
     ],
   };
 
-  describe("createOrder & Underwriting Payload", () => {
-    it("should compute correct SHA-512 checksum and include mandatory underwriting KYC fields", async () => {
+  describe("createOrder — S2S Session Creation", () => {
+    it("should POST to Snapmint carts API and return checkout redirect URL", async () => {
+      const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: "Success",
+          url: "https://pay.snapmint.com?id=153842263&token=testToken&merchantId=2025",
+          redirect_url: "https://pay.snapmint.com?id=153842263&token=testToken&merchantId=2025",
+        }),
+      } as any);
+
       const result = await gateway.createOrder(mockOrder, 45000);
 
       expect(result.gatewayOrderId).toBe("ORD-2026-0001");
-      const resp = result.gatewayResponse;
+      expect(result.gatewayResponse.redirectUrl).toBe(
+        "https://pay.snapmint.com?id=153842263&token=testToken&merchantId=2025"
+      );
 
-      expect(resp.merchant_key).toBe("snap_merchant_123");
-      expect(resp.order_id).toBe("ORD-2026-0001");
-      expect(resp.order_value).toBe("45000.00");
-      expect(resp.full_name).toBe("Vikram Kumar");
-      expect(resp.email).toBe("rider@store4riders.com");
-      expect(resp.phone_number).toBe("9876543210");
-      expect(resp.billing_city).toBe("Bengaluru");
-      expect(resp.shipping_zipcode).toBe("560001");
+      // Verify S2S request format
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      const [url, options] = fetchSpy.mock.calls[0]!;
+      expect(url).toBe("https://apis.snapmint.com/api/pub/carts");
+      expect(options!.method).toBe("POST");
 
-      // Verify SHA-512 calculation: merchant_key | order_id | order_value | full_name | email | merchant_token
-      const expectedHashString = "snap_merchant_123|ORD-2026-0001|45000.00|Vikram Kumar|rider@store4riders.com|snap_secret_token_456";
-      const expectedChecksum = crypto.createHash("sha512").update(expectedHashString).digest("hex");
-      expect(resp.checksum_hash).toBe(expectedChecksum);
+      const body = JSON.parse(options!.body as string);
+      expect(body.merchantId).toBe("2025");
+      expect(body.merchantPassword).toBe("WiG-6A3P");
+      expect(body.merchantOrderId).toBe("ORD-2026-0001");
+      expect(body.orderValue).toBe("45000");
+      expect(body.mobile).toBe("9876543210");
+      expect(body.full_name).toBe("Vikram Kumar");
+      expect(body.products).toHaveLength(1);
+      expect(body.products[0].sku).toBe("HLMT-AGV-K6");
+      expect(body.merchantConfirmationUrl).toContain("/webhook/snapmint/success");
+      expect(body.merchantFailureUrl).toContain("/webhook/snapmint/failure");
 
-      // Verify line items
-      const products = JSON.parse(resp.products);
-      expect(products).toHaveLength(1);
-      expect(products[0].sku).toBe("HLMT-AGV-K6");
-      expect(products[0].unit_price).toBe("45000.00");
+      fetchSpy.mockRestore();
     });
 
     it("should reject checkout if customer phone number is invalid / missing", async () => {
@@ -85,119 +96,142 @@ describe("SnapmintGateway - Enterprise Edge Cases & Security", () => {
         "A valid 10-digit Indian mobile number is mandatory"
       );
     });
+
+    it("should handle ORDER_VALUE_LT_MIN error gracefully", async () => {
+      const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          status: "Failed",
+          code: "ORDER_VALUE_LT_MIN",
+          message: "Order value is less than minimum eligible amount",
+        }),
+      } as any);
+
+      await expect(gateway.createOrder(mockOrder, 3000)).rejects.toThrow(
+        /orders above ₹25,000/
+      );
+
+      fetchSpy.mockRestore();
+    });
+
+    it("should handle DUPLICATE_MERCHANT_OID conflict", async () => {
+      const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+        ok: false,
+        status: 409,
+        json: async () => ({
+          status: "Failed",
+          code: "DUPLICATE_MERCHANT_OID",
+          message: "Order with this merchant order id already exists",
+        }),
+      } as any);
+
+      await expect(gateway.createOrder(mockOrder, 45000)).rejects.toThrow(
+        /already been submitted to Snapmint/
+      );
+
+      fetchSpy.mockRestore();
+    });
+
+    it("should handle network exception gracefully", async () => {
+      const fetchSpy = vi.spyOn(global, "fetch").mockRejectedValue(new Error("Connection refused"));
+
+      await expect(gateway.createOrder(mockOrder, 45000)).rejects.toThrow(
+        /Snapmint service unavailable/
+      );
+
+      fetchSpy.mockRestore();
+    });
   });
 
-  describe("verifyPayment - Signature Verification & Tampering Defense", () => {
-    it("should reject verification if signature hash is tampered/invalid", async () => {
+  describe("verifyPayment — Callback Verification", () => {
+    it("should succeed when status is Success", async () => {
       const mockPayment: any = { amount: 45000 };
       const verificationData = {
-        status: "success",
-        order_id: "ORD-2026-0001",
-        order_value: "45000.00",
-        full_name: "Vikram Kumar",
-        email: "rider@store4riders.com",
-        checksum_hash: "invalid_spoofed_signature_12345",
-        id: "snap_txn_999",
-      };
-
-      const result = await gateway.verifyPayment(mockPayment, verificationData);
-      expect(result.success).toBe(false);
-      expect(result.message).toContain("Invalid Snapmint signature");
-    });
-
-    it("should reject verification if amount is tampered", async () => {
-      const mockPayment: any = { amount: 45000 };
-      const verificationData = {
-        status: "success",
-        order_id: "ORD-2026-0001",
-        order_value: "10.00", // Tampered amount
-        full_name: "Vikram Kumar",
-        email: "rider@store4riders.com",
-        checksum_hash: "any_hash",
-        id: "snap_txn_999",
-      };
-
-      const result = await gateway.verifyPayment(mockPayment, verificationData);
-      expect(result.success).toBe(false);
-      expect(result.message).toBe("Amount mismatch detected");
-    });
-
-    it("should successfully verify when reverse SHA-512 signature and amount match exactly", async () => {
-      const mockPayment: any = { amount: 45000 };
-      const status = "success";
-      const orderId = "ORD-2026-0001";
-      const orderValue = "45000.00";
-      const fullName = "Vikram Kumar";
-      const email = "rider@store4riders.com";
-
-      // Reverse SHA-512: merchant_token | status | order_id | order_value | full_name | email | merchant_key
-      const rawString = `snap_secret_token_456|${status}|${orderId}|${orderValue}|${fullName}|${email}|snap_merchant_123`;
-      const validHash = crypto.createHash("sha512").update(rawString).digest("hex");
-
-      const verificationData = {
-        status,
-        order_id: orderId,
-        order_value: orderValue,
-        full_name: fullName,
-        email,
-        checksum_hash: validHash,
-        id: "snap_txn_999",
+        status: "Success",
+        id: "153842263",
+        token: "snap_token_123",
+        message: "Success",
       };
 
       const result = await gateway.verifyPayment(mockPayment, verificationData);
       expect(result.success).toBe(true);
-      expect(result.gatewayPaymentId).toBe("snap_txn_999");
+      expect(result.gatewayPaymentId).toBe("153842263");
+      expect(result.message).toBe("Payment verified successfully");
+    });
+
+    it("should fail when status is Failed", async () => {
+      const mockPayment: any = { amount: 45000 };
+      const verificationData = {
+        status: "Failed",
+        id: "153842263",
+        message: "Customer rejected EMI terms",
+      };
+
+      const result = await gateway.verifyPayment(mockPayment, verificationData);
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Payment rejected with status: Failed");
+    });
+
+    it("should fail when status is missing", async () => {
+      const mockPayment: any = { amount: 45000 };
+      const result = await gateway.verifyPayment(mockPayment, {});
+      expect(result.success).toBe(false);
+      expect(result.message).toBe("Missing Snapmint payment status");
     });
   });
 
-  describe("handleWebhook - Asynchronous Callback Processing", () => {
-    it("should process valid success webhook and emit payment.captured event", async () => {
-      const status = "success";
-      const orderId = "ORD-2026-0001";
-      const orderValue = "45000.00";
-      const fullName = "Vikram Kumar";
-      const email = "rider@store4riders.com";
-
-      const rawString = `snap_secret_token_456|${status}|${orderId}|${orderValue}|${fullName}|${email}|snap_merchant_123`;
-      const validHash = crypto.createHash("sha512").update(rawString).digest("hex");
-
+  describe("handleWebhook — Callback & Webhook Processing", () => {
+    it("should emit payment.captured on successful JSON payload", async () => {
       const webhookBody = {
-        status,
-        order_id: orderId,
-        order_value: orderValue,
-        full_name: fullName,
-        email,
-        checksum_hash: validHash,
-        id: "snap_event_888",
+        status: "Success",
+        merchantOrderId: "ORD-2026-0001",
+        id: "153842263",
+        token: "tok_xyz",
+        orderValue: "45000",
+        message: "Success",
       };
 
       const result = await gateway.handleWebhook({}, JSON.stringify(webhookBody));
       expect(result.event).toBe("payment.captured");
       expect(result.gatewayOrderId).toBe("ORD-2026-0001");
-      expect(result.id).toBe("snap_event_888");
+      expect(result.id).toBe("153842263");
       expect(result.payload.amount).toBe(45000);
     });
 
-    it("should reject webhook with 401 when signature verification fails", async () => {
+    it("should handle URL-encoded query parameters from redirect callback", async () => {
+      const queryParams = "status=Success&merchant_order_id=ORD-2026-0001&id=153842263&order_value=45000&message=Success";
+
+      const result = await gateway.handleWebhook({}, queryParams);
+      expect(result.event).toBe("payment.captured");
+      expect(result.gatewayOrderId).toBe("ORD-2026-0001");
+      expect(result.id).toBe("153842263");
+      expect(result.payload.amount).toBe(45000);
+    });
+
+    it("should emit payment.failed when transaction status is not successful", async () => {
       const webhookBody = {
-        status: "success",
-        order_id: "ORD-2026-0001",
-        order_value: "45000.00",
-        full_name: "Vikram Kumar",
-        email: "rider@store4riders.com",
-        checksum_hash: "corrupted_hash",
-        id: "snap_event_888",
+        status: "Failed",
+        merchantOrderId: "ORD-2026-0001",
+        id: "153842263",
+        message: "Cardless EMI declined",
       };
 
-      await expect(gateway.handleWebhook({}, JSON.stringify(webhookBody))).rejects.toThrow(
-        "Invalid Snapmint signature"
+      const result = await gateway.handleWebhook({}, JSON.stringify(webhookBody));
+      expect(result.event).toBe("payment.failed");
+      expect(result.gatewayOrderId).toBe("ORD-2026-0001");
+    });
+
+    it("should throw AppError when payload is missing order ID and transaction ID", async () => {
+      const emptyPayload = { status: "Success" };
+      await expect(gateway.handleWebhook({}, JSON.stringify(emptyPayload))).rejects.toThrow(
+        "Invalid Snapmint webhook payload"
       );
     });
   });
 
-  describe("S2S Order Status Query & Refunds", () => {
-    it("should gracefully handle network failure during getPaymentStatus", async () => {
-      // Mock global fetch to simulate a network drop
+  describe("getPaymentStatus & initiateRefund", () => {
+    it("should handle network exception during getPaymentStatus gracefully", async () => {
       const fetchSpy = vi.spyOn(global, "fetch").mockRejectedValue(new Error("Network timeout"));
 
       const result = await gateway.getPaymentStatus("ORD-2026-0001");
@@ -207,7 +241,7 @@ describe("SnapmintGateway - Enterprise Edge Cases & Security", () => {
       fetchSpy.mockRestore();
     });
 
-    it("should execute refund and return gateway refund ID", async () => {
+    it("should execute refund via S2S API and return refund ID", async () => {
       const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -226,6 +260,35 @@ describe("SnapmintGateway - Enterprise Edge Cases & Security", () => {
       const result = await gateway.initiateRefund(mockPayment, 15000);
       expect(result.success).toBe(true);
       expect(result.refundId).toBe("snap_ref_777");
+
+      // Verify refund request
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      const [url, options] = fetchSpy.mock.calls[0]!;
+      expect(url).toContain("/refund");
+      const body = JSON.parse(options!.body as string);
+      expect(body.merchantId).toBe("2025");
+      expect(body.refund_amount).toBe("15000.00");
+
+      fetchSpy.mockRestore();
+    });
+
+    it("should handle refund rejection from gateway", async () => {
+      const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+        ok: false,
+        json: async () => ({
+          success: false,
+          message: "Transaction already refunded",
+        }),
+      } as any);
+
+      const mockPayment: any = {
+        amount: 45000,
+        gatewayOrderId: "ORD-2026-0001",
+      };
+
+      const result = await gateway.initiateRefund(mockPayment);
+      expect(result.success).toBe(false);
+      expect(result.message).toBe("Transaction already refunded");
 
       fetchSpy.mockRestore();
     });

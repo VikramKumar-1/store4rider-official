@@ -66,10 +66,28 @@ export class OrderController {
       try {
         if (rawBody.trim().startsWith("{")) {
           const parsed = JSON.parse(rawBody);
-          return parsed.txnid || parsed.order_id || parsed.orderId || parsed.orderNo || "";
+          return (
+            parsed.merchantOrderId ||
+            parsed.merchant_order_id ||
+            parsed.merchant_oid ||
+            parsed.txnid ||
+            parsed.order_id ||
+            parsed.orderId ||
+            parsed.orderNo ||
+            ""
+          );
         }
         const params = new URLSearchParams(rawBody);
-        return params.get("txnid") || params.get("order_id") || params.get("orderId") || params.get("orderNo") || "";
+        return (
+          params.get("merchantOrderId") ||
+          params.get("merchant_order_id") ||
+          params.get("merchant_oid") ||
+          params.get("txnid") ||
+          params.get("order_id") ||
+          params.get("orderId") ||
+          params.get("orderNo") ||
+          ""
+        );
       } catch {
         return "";
       }

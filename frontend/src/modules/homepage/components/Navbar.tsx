@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Bars3Icon, ShoppingBagIcon, MagnifyingGlassIcon, XMarkIcon, HeartIcon } from "@heroicons/react/24/outline";
+import { Bars3Icon, ShoppingBagIcon, MagnifyingGlassIcon, XMarkIcon, HeartIcon, UserIcon } from "@heroicons/react/24/outline";
 import { NavbarProps } from "../types/homepage.types";
 import { useCartStore } from "@/stores/useCartStore";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -168,6 +168,21 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="absolute -top-0.5 -right-0.5 bg-banner text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
                   {totalItemCount > 99 ? "99+" : totalItemCount}
                 </span>
+              )}
+            </Link>
+
+            {/* User Account Link (mobile only) */}
+            <Link
+              href={mounted && isAuthenticated ? "/account" : "/login"}
+              aria-label="User Account"
+              className={`lg:hidden relative p-2 rounded-full transition-all duration-200 cursor-pointer active:scale-95 ${isLight
+                  ? "text-neutral-700 hover:text-neutral-950 hover:bg-neutral-900/[0.06]"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+                }`}
+            >
+              <UserIcon className="w-5 h-5 stroke-[1.75]" />
+              {mounted && isAuthenticated && user && (
+                <span className="w-2 h-2 rounded-full bg-emerald-500 absolute top-1.5 right-1.5 ring-2 ring-white" />
               )}
             </Link>
 
