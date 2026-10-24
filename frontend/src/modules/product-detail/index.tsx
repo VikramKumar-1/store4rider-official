@@ -358,9 +358,6 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
             productId={product.id}
             productName={product.name}
           />
-          <div className="mt-6">
-            <StoreReviews reviews={product.storeReviews} />
-          </div>
         </div>
 
       </main>
