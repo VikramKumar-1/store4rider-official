@@ -287,7 +287,7 @@ export const CartPageModule = () => {
                       {/* Delete Button */}
                       <div className="flex sm:flex-col items-end sm:items-center justify-end pl-2 sm:pl-4">
                         <button
-                          onClick={() => removeItem(item.productId, item.variantId, item.id)}
+                          onClick={() => removeItem(item.productId, item.variantId, item.id || (item as any)._id)}
                           aria-label="Remove item"
                           className="text-neutral-400 hover:text-red-600 transition-colors flex items-center gap-1 text-xs md:text-sm font-medium underline underline-offset-4 group"
                         >

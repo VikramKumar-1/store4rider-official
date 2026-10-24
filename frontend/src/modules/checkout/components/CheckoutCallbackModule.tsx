@@ -30,7 +30,8 @@ export const CheckoutCallbackModule = () => {
       if (status === "success") {
         router.push("/account/orders");
       } else {
-        router.push("/checkout");
+        const failedUrl = orderId ? `/checkout?failed=true&orderId=${encodeURIComponent(orderId)}` : "/checkout?failed=true";
+        router.push(failedUrl);
       }
     }
   }, [countdown, router, status]);
@@ -61,7 +62,7 @@ export const CheckoutCallbackModule = () => {
         </p>
 
         <Button 
-          onClick={() => isSuccess ? router.push("/account/orders") : router.push("/checkout")}
+          onClick={() => isSuccess ? router.push("/account/orders") : router.push(orderId ? `/checkout?failed=true&orderId=${encodeURIComponent(orderId)}` : "/checkout?failed=true")}
           className="w-full"
         >
           {isSuccess ? "View Orders Now" : "Try Again Now"}

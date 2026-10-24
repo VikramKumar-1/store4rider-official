@@ -90,48 +90,46 @@ export const useCartStore = create<CartState>((set, get) => ({
     syncToServer(async (apiClient) => {
       if (guestItems && guestItems.length > 0) {
         // Merge guest items with cloud cart
-        const res = await apiClient.post("/cart/sync", {
-          items: guestItems.map((i) => ({
-            id: i.id,
-            productId: i.productId,
-            variantId: i.variantId,
-            quantity: i.quantity,
-            product: i.product,
-          })),
-        });
-        const serverCart = res.data?.data;
-        if (serverCart && Array.isArray(serverCart.items)) {
-          set({ items: serverCart.items });
-          saveItemsToStorage(userId, serverCart.items);
-          if (typeof window !== "undefined") {
-            localStorage.removeItem(getCartStorageKey(null));
-          }
-        }
-      } else {
-        // Fetch user's existing cloud cart from MongoDB
-        const res = await apiClient.get("/cart");
-        const serverCart = res.data?.data;
-        if (serverCart && Array.isArray(serverCart.items)) {
-          if (serverCart.items.length > 0 || cachedItems.length === 0) {
+        try {
+          const res = await apiClient.post("/cart/sync", {
+            items: guestItems.map((i) => ({
+              id: i.id,
+              productId: i.productId,
+              variantId: i.variantId || undefined,
+              quantity: i.quantity,
+              product: i.product,
+            })),
+          });
+          const serverCart = res?.data?.data;
+          if (serverCart && Array.isArray(serverCart.items)) {
             set({ items: serverCart.items });
             saveItemsToStorage(userId, serverCart.items);
-          } else if (cachedItems.length > 0) {
-            // Push local cached items to cloud if cloud was empty
-            const syncRes = await apiClient.post("/cart/sync", {
-              items: cachedItems.map((i) => ({
-                id: i.id,
-                productId: i.productId,
-                variantId: i.variantId,
-                quantity: i.quantity,
-                product: i.product,
-              })),
-            });
-            const updated = syncRes.data?.data;
-            if (updated && Array.isArray(updated.items)) {
-              set({ items: updated.items });
-              saveItemsToStorage(userId, updated.items);
+            if (typeof window !== "undefined") {
+              localStorage.removeItem(getCartStorageKey(null));
             }
           }
+        } catch (err) {
+          // If sync failed, fetch server cart as fallback
+          try {
+            const res = await apiClient.get("/cart");
+            const serverCart = res?.data?.data;
+            if (serverCart && Array.isArray(serverCart.items)) {
+              set({ items: serverCart.items });
+              saveItemsToStorage(userId, serverCart.items);
+            }
+          } catch (e) {}
+        }
+      } else {
+        // Fetch user's canonical cloud cart from MongoDB
+        try {
+          const res = await apiClient.get("/cart");
+          const serverCart = res?.data?.data;
+          if (serverCart && Array.isArray(serverCart.items)) {
+            set({ items: serverCart.items });
+            saveItemsToStorage(userId, serverCart.items);
+          }
+        } catch (err) {
+          // Keep cached items if offline
         }
       }
     });
@@ -139,10 +137,11 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   addItem: (item) => {
     const { items, currentUserId } = get();
+    const normVariantId = item.variantId || "";
     const existingIndex = items.findIndex(
       (i) =>
         (i.id && item.id && i.id === item.id) ||
-        (i.productId === item.productId && (i.variantId || "") === (item.variantId || ""))
+        (i.productId === item.productId && (i.variantId || "") === normVariantId)
     );
 
     let updated: LocalCartItem[];
@@ -151,78 +150,115 @@ export const useCartStore = create<CartState>((set, get) => ({
         idx === existingIndex ? { ...i, quantity: i.quantity + item.quantity } : i
       );
     } else {
-      updated = [...items, item];
+      updated = [...items, { ...item, id: item.id || crypto.randomUUID() }];
     }
 
     saveItemsToStorage(currentUserId, updated);
     set({ items: updated });
 
     if (currentUserId) {
-      syncToServer((apiClient) =>
-        apiClient.post("/cart/items", {
+      syncToServer(async (apiClient) => {
+        const res = await apiClient.post("/cart/items", {
           id: item.id,
           productId: item.productId,
-          variantId: item.variantId,
+          variantId: item.variantId || undefined,
           quantity: item.quantity,
           product: item.product,
-        })
-      );
+        });
+        const serverCart = res?.data?.data;
+        if (serverCart && Array.isArray(serverCart.items)) {
+          set({ items: serverCart.items });
+          saveItemsToStorage(currentUserId, serverCart.items);
+        }
+      });
     }
   },
 
   updateQuantity: (productId, quantity, variantId) => {
-    const { items, currentUserId } = get();
-    let updated: LocalCartItem[];
-
+    const { items, currentUserId, removeItem } = get();
     if (quantity <= 0) {
-      updated = items.filter(
-        (i) => !(i.productId === productId && (i.variantId || "") === (variantId || ""))
-      );
-    } else {
-      updated = items.map((i) =>
-        i.productId === productId && (i.variantId || "") === (variantId || "")
-          ? { ...i, quantity }
-          : i
-      );
+      removeItem(productId, variantId);
+      return;
     }
+    const normVariantId = variantId || "";
+    const updated = items.map((i) =>
+      i.productId === productId && (i.variantId || "") === normVariantId
+        ? { ...i, quantity }
+        : i
+    );
 
     saveItemsToStorage(currentUserId, updated);
     set({ items: updated });
 
     if (currentUserId) {
-      syncToServer((apiClient) =>
-        apiClient.put("/cart/items", {
+      syncToServer(async (apiClient) => {
+        const payload: { productId: string; quantity: number; variantId?: string } = {
           productId,
-          variantId,
           quantity,
-        })
-      );
+        };
+        if (variantId) payload.variantId = variantId;
+        const res = await apiClient.put("/cart/items", payload);
+        const serverCart = res?.data?.data;
+        if (serverCart && Array.isArray(serverCart.items)) {
+          set({ items: serverCart.items });
+          saveItemsToStorage(currentUserId, serverCart.items);
+        }
+      });
     }
   },
 
   removeItem: (productId, variantId, itemId) => {
     const { items, currentUserId } = get();
-    const updated = items.filter((i) => {
-      if (itemId && i.id === itemId) return false;
-      if (i.id === productId) return false;
+    const normVariantId = variantId || "";
+
+    const filterItem = (i: LocalCartItem) => {
+      // 1. If itemId provided, match by item.id or MongoDB _id
+      if (itemId) {
+        if (i.id && String(i.id) === String(itemId)) return false;
+        if ((i as any)._id && String((i as any)._id) === String(itemId)) return false;
+      }
+      // 2. Direct match on item.id or _id being productId
+      if (i.id && String(i.id) === String(productId)) return false;
+      if ((i as any)._id && String((i as any)._id) === String(productId)) return false;
+
+      // 3. Match on productId
       if (i.productId === productId) {
-        if (variantId !== undefined && i.variantId !== undefined) {
-          return i.variantId !== variantId;
+        if (variantId !== undefined && variantId !== null && variantId !== "") {
+          return (i.variantId || "") !== normVariantId;
         }
         return false;
       }
       return true;
-    });
+    };
 
+    const updated = items.filter(filterItem);
+
+    // Save to current user's storage
     saveItemsToStorage(currentUserId, updated);
+
+    // Scrub guest storage so guest storage can never restore this item!
+    const guestItems = loadItemsFromStorage(null);
+    if (guestItems.length > 0) {
+      const updatedGuest = guestItems.filter(filterItem);
+      saveItemsToStorage(null, updatedGuest);
+    }
+
     set({ items: updated });
 
     if (currentUserId) {
-      syncToServer((apiClient) =>
-        apiClient.delete("/cart/items", {
-          data: { productId, variantId, itemId },
-        })
-      );
+      syncToServer(async (apiClient) => {
+        const payload: { productId?: string; variantId?: string; itemId?: string } = {};
+        if (productId) payload.productId = productId;
+        if (variantId) payload.variantId = variantId;
+        if (itemId) payload.itemId = itemId;
+
+        const res = await apiClient.delete("/cart/items", { data: payload });
+        const serverCart = res?.data?.data;
+        if (serverCart && Array.isArray(serverCart.items)) {
+          set({ items: serverCart.items });
+          saveItemsToStorage(currentUserId, serverCart.items);
+        }
+      });
     }
   },
 
@@ -239,7 +275,9 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({ items: [] });
 
     if (currentUserId) {
-      syncToServer((apiClient) => apiClient.delete("/cart"));
+      syncToServer(async (apiClient) => {
+        await apiClient.delete("/cart");
+      });
     }
   },
 
@@ -248,7 +286,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     if (!currentUserId) return;
     await syncToServer(async (apiClient) => {
       const res = await apiClient.get("/cart");
-      const serverCart = res.data?.data;
+      const serverCart = res?.data?.data;
       if (serverCart && Array.isArray(serverCart.items)) {
         set({ items: serverCart.items });
         saveItemsToStorage(currentUserId, serverCart.items);

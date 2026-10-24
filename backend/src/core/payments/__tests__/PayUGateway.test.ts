@@ -8,6 +8,7 @@ vi.mock('../../config/env', () => ({
   ENV: {
     PAYU_MERCHANT_KEY: 'test_key',
     PAYU_SALT: 'test_salt',
+    PAYU_MODE: 'live',
     NEXT_PUBLIC_API_URL: 'http://localhost:3000'
   }
 }));
@@ -90,6 +91,27 @@ describe('PayUGateway - Edge Cases & Security (Step 12)', () => {
       
       expect(result.success).toBe(true);
       expect(result.gatewayPaymentId).toBe('payu_999');
+    });
+
+    it('should verify valid webhook signature and emit payment.captured event', async () => {
+      const salt = 'test_salt';
+      const key = 'test_key';
+      const hashString = `${salt}|success|||||||||||test@example.com|Test|Helmet|5000|txn_123|${key}`;
+      const validHash = crypto.createHash("sha512").update(hashString).digest("hex");
+
+      const rawBody = `status=success&txnid=txn_123&amount=5000&productinfo=Helmet&firstname=Test&email=test@example.com&hash=${validHash}&mihpayid=mih_999&key=test_key`;
+      
+      const result = await gateway.handleWebhook({}, rawBody);
+      expect(result.event).toBe('payment.captured');
+      expect(result.gatewayOrderId).toBe('txn_123');
+      expect(result.payload.id).toBe('mih_999');
+      expect(result.payload.amount).toBe(5000);
+    });
+
+    it('should throw AppError on invalid webhook signature in live mode', async () => {
+      const rawBody = `status=success&txnid=txn_123&amount=5000&productinfo=Helmet&firstname=Test&email=test@example.com&hash=fake_invalid_hash&mihpayid=mih_999&key=test_key`;
+      
+      await expect(gateway.handleWebhook({}, rawBody)).rejects.toThrow('Invalid PayU webhook signature');
     });
   });
 });

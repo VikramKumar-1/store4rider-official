@@ -33,7 +33,7 @@ export class CartValidator {
    */
   static async validateAddItem(req: NextRequest) {
     const userId = extractUserFromAuth(req);
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const data = cartItemSchema.parse(body);
     return { userId, data };
   }
@@ -43,7 +43,7 @@ export class CartValidator {
    */
   static async validateUpdateQuantity(req: NextRequest) {
     const userId = extractUserFromAuth(req);
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const data = updateCartItemSchema.parse(body);
     return { userId, data };
   }
@@ -53,7 +53,7 @@ export class CartValidator {
    */
   static async validateRemoveItem(req: NextRequest) {
     const userId = extractUserFromAuth(req);
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const data = removeCartItemSchema.parse(body);
     return { userId, data };
   }
@@ -63,9 +63,8 @@ export class CartValidator {
    */
   static async validateSyncCart(req: NextRequest) {
     const userId = extractUserFromAuth(req);
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const data = syncCartSchema.parse(body);
     return { userId, data };
   }
 }
-

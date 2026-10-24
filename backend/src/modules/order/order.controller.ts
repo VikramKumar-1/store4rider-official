@@ -24,6 +24,20 @@ export class OrderController {
     return ApiResponse.success(result, "Order created", 201);
   }
 
+
+  static async syncPaymentStatus(req: NextRequest) {
+    let userId: string | undefined = undefined;
+    try {
+      userId = OrderValidator.extractUserId(req);
+    } catch {}
+    const body = await req.json().catch(() => ({}));
+    const orderId = body.orderId || req.nextUrl.searchParams.get("orderId");
+    if (!orderId) {
+      return ApiResponse.error("Order ID or Order Number is required", 400);
+    }
+    const result = await OrderService.syncPaymentStatus(orderId, userId);
+    return ApiResponse.success(result, "Payment status checked");
+  }
   static async verify(req: NextRequest) {
     const { userId, data } = await OrderValidator.validateVerify(req);
     await OrderService.verifyPayment(
@@ -104,11 +118,9 @@ export class OrderController {
         const orderId = webhookResult?.orderNumber || webhookResult?.orderId || getOrderId();
         const orderParam = orderId ? `&orderId=${encodeURIComponent(orderId)}` : "";
 
-        // PayU/Snapmint: explicit /success or /failure path
-        // CCAvenue: single callback URL — use webhookResult.success
-        const isSuccess = gatewayType === "ccavenue" 
-          ? Boolean(webhookResult?.success) 
-          : (routePath && routePath[2] === "success");
+        // True success requires both verification success and non-failure route
+        const isFailureRoute = routePath && routePath[2] === "failure";
+        const isSuccess = Boolean(webhookResult?.success) && !isFailureRoute;
 
         if (isSuccess) {
           return NextResponse.redirect(`${frontendUrl}/checkout?success=true${orderParam}`, 303);
@@ -122,9 +134,6 @@ export class OrderController {
       if (isRedirect) {
         const orderId = getOrderId();
         const orderParam = orderId ? `&orderId=${encodeURIComponent(orderId)}` : "";
-        if (routePath && routePath[2] === "success" && gatewayType !== "ccavenue") {
-          return NextResponse.redirect(`${frontendUrl}/checkout?success=true${orderParam}`, 303);
-        }
         return NextResponse.redirect(`${frontendUrl}/checkout?failed=true${orderParam}`, 303);
       }
       return ApiResponse.error(err.message, err.statusCode || 500);

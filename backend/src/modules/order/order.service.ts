@@ -523,6 +523,28 @@ export class OrderService {
 
         if (eventName === "payment.captured") {
           if (order.status === "confirmed") return;
+
+          // CRITICAL SECURITY: Verify payment amount matches order payment record amount
+          if (paymentEntity?.amount !== undefined && paymentEntity.amount !== null) {
+            const receivedAmountPaise = Math.round(Number(paymentEntity.amount) * 100);
+            const expectedAmountPaise = Math.round(Number(payment.amount) * 100);
+            if (receivedAmountPaise < expectedAmountPaise) {
+              logger.error(
+                `CRITICAL SECURITY ALERT: Payment amount tampering detected for order ${orderIdStr}! Expected ₹${payment.amount}, received ₹${paymentEntity.amount}`
+              );
+              await OrderRepository.updateStatus(orderIdStr, "failed", {
+                failureReason: `Amount tampering detected: expected ₹${payment.amount}, received ₹${paymentEntity.amount}`
+              }, session);
+              await PaymentRepository.atomicStatusTransition(
+                paymentIdStr,
+                ["created", "pending"],
+                "failed",
+                {},
+                session
+              );
+              return;
+            }
+          }
           
           let allStockDecremented = true;
           const decrementedItems = [];
@@ -594,13 +616,14 @@ export class OrderService {
           if (order.status === "refunded") return;
           await OrderRepository.updateStatus(orderIdStr, "refunded", null, session);
           await PaymentRepository.atomicStatusTransition(paymentIdStr, "captured", "refunded", {}, session);
+          const refundAmount = paymentEntity?.amount ? paymentEntity.amount : (payment.amount || 0);
           if (order.userId) {
             const user = await UserRepository.findById(order.userId);
             if (user) {
-              addEmailJob(user.email, "Refund Processed", `Your refund of INR ${paymentEntity.amount / 100} has been processed.`);
+              addEmailJob(user.email, "Refund Processed", `Your refund of INR ${refundAmount} has been processed.`);
             }
           } else if (order.guestEmail) {
-            addEmailJob(order.guestEmail, "Refund Processed", `Your refund of INR ${paymentEntity.amount / 100} has been processed.`);
+            addEmailJob(order.guestEmail, "Refund Processed", `Your refund of INR ${refundAmount} has been processed.`);
           }
           logger.info(`Webhook processed refund for order ${orderIdStr}`);
         }
@@ -628,6 +651,106 @@ export class OrderService {
     };
   }
 
+
+  static async syncPaymentStatus(orderIdOrNumber: string, userId?: string) {
+    const isObjectId = mongoose.Types.ObjectId.isValid(orderIdOrNumber);
+    const order = await OrderRepository.findByGatewayOrderId(orderIdOrNumber) 
+      || (isObjectId ? await OrderRepository.findById(orderIdOrNumber) : null);
+
+    if (!order) {
+      throw new NotFoundError("Order");
+    }
+
+    if (userId && order.userId && String(order.userId) !== String(userId)) {
+      throw new AppError("Unauthorized access to this order", 403);
+    }
+
+    const orderIdStr = String((order as any)._id || order.id);
+
+    // If order is already confirmed, processing, shipped, etc.
+    if (order.status !== "pending_payment" && order.status !== "failed") {
+      return {
+        status: order.status,
+        orderNumber: order.orderNumber,
+        isConfirmed: true,
+        message: "Order is already confirmed and active.",
+      };
+    }
+
+    const payment = await PaymentRepository.findByGatewayOrderId(order.gatewayOrderId || "") 
+      || await PaymentRepository.findByOrderId(orderIdStr);
+
+    if (!payment || !payment.gateway || !payment.gatewayOrderId) {
+      return {
+        status: order.status,
+        orderNumber: order.orderNumber,
+        isConfirmed: false,
+        failureReason: order.failureReason,
+        message: "No online payment transaction found for this order.",
+      };
+    }
+
+    try {
+      const gateway = PaymentGatewayFactory.create(payment.gateway);
+      const liveStatus = await gateway.getPaymentStatus(payment.gatewayOrderId);
+
+      let isSuccess = false;
+      let gatewayPaymentId = "";
+
+      if (payment.gateway === "payu") {
+        const transObj = liveStatus?.transaction_details?.[payment.gatewayOrderId];
+        isSuccess = transObj?.status === "success";
+        gatewayPaymentId = transObj?.mihpayid;
+      } else if (payment.gateway === "ccavenue") {
+        isSuccess = liveStatus?.order_status === "Success" || liveStatus?.status === "Success";
+        gatewayPaymentId = liveStatus?.tracking_id;
+      } else if (payment.gateway === "snapmint") {
+        const snapStatus = String(liveStatus?.status || liveStatus?.order_status || "").toLowerCase();
+        isSuccess = snapStatus === "success" || snapStatus === "completed" || snapStatus === "authorized";
+        gatewayPaymentId = liveStatus?.id || liveStatus?.token;
+      }
+
+      if (isSuccess) {
+        const session = await mongoose.startSession();
+        try {
+          await session.withTransaction(async () => {
+            await OrderRepository.updateStatus(orderIdStr, "confirmed", { paymentId: gatewayPaymentId }, session);
+            await PaymentRepository.atomicStatusTransition(String((payment as any)._id || payment.id), ["created", "pending", "failed"], "captured", { gatewayPaymentId }, session);
+            for (const itm of order.items || []) {
+              await ProductRepository.decrementStock(itm.productId, itm.variantId, itm.quantity, session);
+              await ProductRepository.incrementSalesCount(itm.productId, itm.quantity, session);
+            }
+          });
+        } finally {
+          await session.endSession();
+        }
+
+        return {
+          status: "confirmed",
+          orderNumber: order.orderNumber,
+          isConfirmed: true,
+          reconciled: true,
+          message: "Payment successfully verified with bank! Your order is now confirmed.",
+        };
+      } else {
+        return {
+          status: order.status,
+          orderNumber: order.orderNumber,
+          isConfirmed: false,
+          failureReason: order.failureReason || "Transaction not confirmed or was cancelled at gateway.",
+          message: "Payment has not been completed or was declined.",
+        };
+      }
+    } catch (err: any) {
+      return {
+        status: order.status,
+        orderNumber: order.orderNumber,
+        isConfirmed: false,
+        failureReason: order.failureReason,
+        message: "Unable to reach gateway for status update at this moment.",
+      };
+    }
+  }
   static async requestRefund(orderId: string, amount?: number, reason?: string) {
     const session = await mongoose.startSession();
     let result: any = null;

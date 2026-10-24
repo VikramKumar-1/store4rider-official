@@ -18,6 +18,27 @@ export function OrderDetails({ orderId }: { orderId: string }) {
   });
 
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+  const handleSyncPayment = async () => {
+    try {
+      setIsCheckingStatus(true);
+      const res = await apiClient.post("/orders/sync-payment", { orderId: order.orderNumber || order._id || order.id });
+      const result = res.data?.data;
+      if (result?.isConfirmed) {
+        toast.success(result.message || "Payment verified with bank! Order confirmed.");
+        window.location.reload();
+      } else {
+        setSyncMessage(result?.message || "Payment has not been captured yet by the gateway.");
+        toast.info(result?.message || "Transaction not confirmed yet.");
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Could not check payment status.");
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -65,6 +86,8 @@ export function OrderDetails({ orderId }: { orderId: string }) {
   };
   const currentStatusIndex = getStatusStepIndex(order.status);
   const isCancelled = order.status?.toLowerCase() === "cancelled";
+  const isFailed = order.status?.toLowerCase() === "failed";
+  const isPendingPayment = order.status?.toLowerCase() === "pending_payment";
 
   const handleDownloadInvoice = async () => {
     try {
@@ -117,8 +140,81 @@ export function OrderDetails({ orderId }: { orderId: string }) {
         </div>
       </div>
 
-      {/* Status Timeline (Stepper) */}
-      {!isCancelled ? (
+      {/* Status Timeline or Failed/Pending Alert */}
+      {isFailed || isPendingPayment ? (
+        <div className="bg-amber-50/90 border border-amber-300 rounded-lg p-5 md:p-6 mb-8 shadow-xs flex flex-col gap-4">
+          <div className="flex items-start justify-between flex-wrap gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 font-bold shrink-0 text-lg">
+                ⚠️
+              </div>
+              <div className="flex flex-col">
+                <h3 className="font-bold text-sm md:text-base text-amber-950 uppercase tracking-tight">
+                  {isPendingPayment ? "Payment Awaiting Confirmation / Processing" : "Payment Incomplete or Unsuccessful"}
+                </h3>
+                <p className="text-xs text-amber-900 font-medium mt-0.5">
+                  {order.failureReason || (isPendingPayment ? "We have not received payment confirmation from the bank yet." : "Transaction was declined or cancelled at the gateway.")}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSyncPayment}
+                disabled={isCheckingStatus}
+                className="bg-white hover:bg-neutral-50 text-neutral-800 border border-amber-300 font-bold text-xs px-3.5 py-2 rounded shadow-2xs transition-all flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
+              >
+                <span className={isCheckingStatus ? "animate-spin inline-block" : ""}>🔄</span>
+                <span>{isCheckingStatus ? "Checking with Bank..." : "Refresh Payment Status"}</span>
+              </button>
+              <a
+                href={`https://wa.me/918789494263?text=${encodeURIComponent(`Hi Store4Riders, my payment status is pending/failed for Order #${order.orderNumber}. Can you please verify?`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 rounded transition-colors flex items-center gap-1 shadow-2xs"
+              >
+                <span>💬 WhatsApp Support</span>
+              </a>
+            </div>
+          </div>
+
+          {syncMessage && (
+            <div className="p-3 bg-white border border-amber-200 rounded text-xs text-neutral-800 font-medium">
+              {syncMessage}
+            </div>
+          )}
+
+          {/* RBI Mandated Auto-Reversal Guidelines */}
+          <div className="bg-white/80 border border-amber-200 rounded p-3 text-[11px] text-neutral-700 flex flex-col gap-1.5">
+            <span className="font-bold text-neutral-900 flex items-center gap-1">
+              <span>🏛️</span> If money was deducted from your bank account:
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-[11px]">
+              <div className="bg-amber-50/50 p-2 rounded border border-amber-100 flex flex-col">
+                <span className="font-bold text-neutral-900">⚡ UPI / GPay / PhonePe</span>
+                <span className="text-neutral-600">Auto-refund in <strong>24 to 48 Hours</strong></span>
+              </div>
+              <div className="bg-amber-50/50 p-2 rounded border border-amber-100 flex flex-col">
+                <span className="font-bold text-neutral-900">💳 Debit / Credit Cards</span>
+                <span className="text-neutral-600">Auto-refund in <strong>3 to 5 Working Days</strong></span>
+              </div>
+              <div className="bg-amber-50/50 p-2 rounded border border-amber-100 flex flex-col">
+                <span className="font-bold text-neutral-900">🏦 NetBanking</span>
+                <span className="text-neutral-600">Auto-refund in <strong>2 to 4 Working Days</strong></span>
+              </div>
+            </div>
+            <span className="text-[10px] text-neutral-500 italic mt-0.5">
+              *As per RBI Circular DPSS.CO.PD No.629/02.01.014/2019-20, banks automatically reverse failed transaction debits without manual claims.
+            </span>
+          </div>
+        </div>
+      ) : isCancelled ? (
+        <div className="bg-red-50 border border-red-200 text-red-700 p-6 mb-8 text-sm font-bold flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+            <span className="text-xl">✕</span>
+          </div>
+          This order has been cancelled.
+        </div>
+      ) : (
         <div className="bg-white border border-neutral-200 p-6 md:p-8 mb-8 shadow-sm">
           <div className="relative">
             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-neutral-100 rounded-full z-0"></div>
@@ -151,13 +247,6 @@ export function OrderDetails({ orderId }: { orderId: string }) {
               style={{ width: `${(Math.max(0, currentStatusIndex) / 3) * 100}%` }}
             ></div>
           </div>
-        </div>
-      ) : (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-6 mb-8 text-sm font-bold flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-            <span className="text-xl">✕</span>
-          </div>
-          This order has been cancelled.
         </div>
       )}
 

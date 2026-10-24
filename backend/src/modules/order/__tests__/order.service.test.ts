@@ -391,4 +391,82 @@ describe('OrderService', () => {
       expect(calledQuery.status).toEqual({ $nin: ['failed', 'pending_payment'] });
     });
   });
+  describe('syncPaymentStatus (Active S2S Reconciliation)', () => {
+    it('should reconcile and confirm pending_payment order if gateway reports success', async () => {
+      const mockOrder = {
+        _id: 'order_sync_1',
+        id: 'order_sync_1',
+        orderNumber: 'OD-S4R-SYNC-1',
+        status: 'pending_payment',
+        gatewayOrderId: 'txn_sync_1',
+        items: [{ productId: 'prod_1', quantity: 1, unitPrice: 1500 }]
+      };
+      const mockPayment = {
+        _id: 'pay_sync_1',
+        gateway: 'payu',
+        gatewayOrderId: 'txn_sync_1',
+        amount: 1500,
+        status: 'created'
+      };
+
+      vi.mocked(OrderRepository.findByGatewayOrderId).mockResolvedValue(mockOrder as any);
+      vi.mocked(PaymentRepository.findByGatewayOrderId).mockResolvedValue(mockPayment as any);
+      vi.mocked(OrderRepository.updateStatus).mockResolvedValue(true as any);
+      vi.mocked(PaymentRepository.atomicStatusTransition).mockResolvedValue(true as any);
+      vi.mocked(ProductRepository.decrementStock).mockResolvedValue(true as any);
+      vi.mocked(ProductRepository.incrementSalesCount).mockResolvedValue(true as any);
+
+      const mockGateway = {
+        getPaymentStatus: vi.fn().mockResolvedValue({
+          transaction_details: {
+            txn_sync_1: { status: 'success', mihpayid: 'mih_sync_999' }
+          }
+        })
+      };
+      vi.mocked(PaymentGatewayFactory.create).mockReturnValue(mockGateway as any);
+
+      const result = await OrderService.syncPaymentStatus('txn_sync_1');
+      expect(result.status).toBe('confirmed');
+      expect(result.isConfirmed).toBe(true);
+      expect(result.reconciled).toBe(true);
+      expect(vi.mocked(OrderRepository.updateStatus)).toHaveBeenCalledWith(
+        'order_sync_1',
+        'confirmed',
+        { paymentId: 'mih_sync_999' },
+        expect.anything()
+      );
+    });
+
+    it('should report unconfirmed status if gateway payment was not completed', async () => {
+      const mockOrder = {
+        _id: 'order_sync_2',
+        orderNumber: 'OD-S4R-SYNC-2',
+        status: 'failed',
+        failureReason: 'User cancelled',
+        gatewayOrderId: 'txn_sync_2',
+      };
+      const mockPayment = {
+        _id: 'pay_sync_2',
+        gateway: 'payu',
+        gatewayOrderId: 'txn_sync_2',
+      };
+
+      vi.mocked(OrderRepository.findByGatewayOrderId).mockResolvedValue(mockOrder as any);
+      vi.mocked(PaymentRepository.findByGatewayOrderId).mockResolvedValue(mockPayment as any);
+
+      const mockGateway = {
+        getPaymentStatus: vi.fn().mockResolvedValue({
+          transaction_details: {
+            txn_sync_2: { status: 'failure' }
+          }
+        })
+      };
+      vi.mocked(PaymentGatewayFactory.create).mockReturnValue(mockGateway as any);
+
+      const result = await OrderService.syncPaymentStatus('txn_sync_2');
+      expect(result.status).toBe('failed');
+      expect(result.isConfirmed).toBe(false);
+      expect(result.failureReason).toBe('User cancelled');
+    });
+  });
 });

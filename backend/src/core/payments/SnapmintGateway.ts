@@ -178,13 +178,28 @@ export class SnapmintGateway implements PaymentGateway {
   async verifyPayment(payment: IPayment, verificationData: any): Promise<VerifyPaymentResult> {
     const { status, id, message, order_id, token } = verificationData;
 
-    if (!status) {
+    const statusVal = status || verificationData.order_status || "";
+    if (!statusVal) {
       return { success: false, message: "Missing Snapmint payment status" };
     }
 
-    const isSuccess = String(status).toLowerCase() === "success" ||
-                      String(status).toLowerCase() === "completed" ||
-                      String(message).toLowerCase() === "success";
+    const rawStatus = String(statusVal).toLowerCase();
+    const rawMessage = String(message || "").toLowerCase();
+
+    const isSuccess = rawStatus === "success" ||
+                      rawStatus === "completed" ||
+                      rawStatus === "authorized" ||
+                      rawMessage === "success" ||
+                      rawMessage === "authorized";
+
+    const reportedAmount = verificationData.orderValue || verificationData.order_value || verificationData.amount;
+    if (reportedAmount !== undefined && reportedAmount !== null && reportedAmount !== "") {
+      const parsedAmount = Number(reportedAmount);
+      if (!isNaN(parsedAmount) && Math.round(parsedAmount * 100) < Math.round(payment.amount * 100)) {
+        logger.error(`Snapmint amount mismatch: expected ${payment.amount}, got ${parsedAmount}`);
+        return { success: false, message: "Amount mismatch detected" };
+      }
+    }
 
     return {
       success: isSuccess,
@@ -232,10 +247,16 @@ export class SnapmintGateway implements PaymentGateway {
       throw new AppError("Invalid Snapmint webhook payload: missing order_id or id", 400);
     }
 
+    const statusVal = parsed.order_status || parsed.status || parsed.payment_status || "";
+    const rawStatus = String(statusVal).toLowerCase();
+    const rawMessage = String(message || "").toLowerCase();
+
     const isSuccessful =
-      String(status).toLowerCase() === "success" ||
-      String(status).toLowerCase() === "completed" ||
-      String(message).toLowerCase() === "success";
+      rawStatus === "success" ||
+      rawStatus === "completed" ||
+      rawStatus === "authorized" ||
+      rawMessage === "success" ||
+      rawMessage === "authorized";
 
     return {
       event: isSuccessful ? "payment.captured" : "payment.failed",

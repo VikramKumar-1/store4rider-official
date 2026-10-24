@@ -10,7 +10,7 @@ import { calculateTax, calculateInclusiveTax, getTaxRateFromClass } from "@store
  * Highlights:
  * - Upserts carts automatically for new users.
  * - Auto-merges items if the same variant is added twice.
- * - Dynamically recalculates totals, 18% GST tax, and shipping on every action.
+ * - Dynamically recalculates totals, GST tax, and shipping on every action.
  */
 export class CartService {
   
@@ -25,9 +25,11 @@ export class CartService {
   static async addItem(userId: string, item: ICartItem): Promise<ICart> {
     const cart = await this.getCart(userId);
     
+    const normVariantId = item.variantId || "";
+
     // Check if item exists in cart
     const existingIndex = cart.items.findIndex(
-      (i) => i.productId === item.productId && (i.variantId || "") === (item.variantId || "")
+      (i) => i.productId === item.productId && (i.variantId || "") === normVariantId
     );
     if (existingIndex > -1) {
       cart.items[existingIndex].quantity += item.quantity;
@@ -46,16 +48,17 @@ export class CartService {
     return await CartRepository.upsert(userId, updatedCart);
   }
 
-  static async updateQuantity(userId: string, productId: string, quantity: number, variantId?: string): Promise<ICart> {
+  static async updateQuantity(userId: string, productId: string, quantity: number, variantId?: string | null): Promise<ICart> {
     const cart = await this.getCart(userId);
+    const normVariantId = variantId || "";
 
     if (quantity <= 0) {
       cart.items = cart.items.filter(
-        (i) => !(i.productId === productId && (i.variantId || "") === (variantId || ""))
+        (i) => !(i.productId === productId && (i.variantId || "") === normVariantId)
       );
     } else {
       const item = cart.items.find(
-        (i) => i.productId === productId && (i.variantId || "") === (variantId || "")
+        (i) => i.productId === productId && (i.variantId || "") === normVariantId
       );
       if (item) {
         item.quantity = quantity;
@@ -66,16 +69,29 @@ export class CartService {
     return await CartRepository.upsert(userId, updatedCart);
   }
 
-  static async removeItem(userId: string, productId: string, variantId?: string, itemId?: string): Promise<ICart> {
+  static async removeItem(userId: string, productId?: string, variantId?: string | null, itemId?: string | null): Promise<ICart> {
     const cart = await this.getCart(userId);
+    const normVariantId = variantId || "";
 
     cart.items = cart.items.filter((i) => {
-      if (itemId && i.id === itemId) return false;
-      if (i.productId === productId) {
-        if (variantId !== undefined) {
-          return (i.variantId || "") !== (variantId || "");
+      // 1. If itemId is provided, match by item.id OR item._id
+      if (itemId) {
+        if (i.id && String(i.id) === String(itemId)) return false;
+        if ((i as any)._id && String((i as any)._id) === String(itemId)) return false;
+      }
+
+      // 2. If productId is provided, match by productId or product._id/id
+      if (productId) {
+        const matchesProductId =
+          i.productId === productId ||
+          (i.product && (String(i.product.id) === String(productId) || String(i.product._id) === String(productId)));
+
+        if (matchesProductId) {
+          if (variantId !== undefined && variantId !== null && variantId !== "") {
+            return (i.variantId || "") !== normVariantId;
+          }
+          return false;
         }
-        return false;
       }
       return true;
     });
@@ -88,8 +104,9 @@ export class CartService {
     const cart = await this.getCart(userId);
 
     for (const localItem of localItems) {
+      const normVariantId = localItem.variantId || "";
       const existingIndex = cart.items.findIndex(
-        (i) => i.productId === localItem.productId && (i.variantId || "") === (localItem.variantId || "")
+        (i) => i.productId === localItem.productId && (i.variantId || "") === normVariantId
       );
       if (existingIndex > -1) {
         cart.items[existingIndex].quantity += localItem.quantity;

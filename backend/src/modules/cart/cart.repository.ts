@@ -7,9 +7,10 @@ export class CartRepository {
   }
 
   static async upsert(userId: string, data: Partial<ICart>): Promise<ICart> {
+    const { _id, createdAt, updatedAt, __v, ...cleanData } = data as any;
     return CartModel.findOneAndUpdate(
       { userId },
-      { $set: data },
+      { $set: cleanData },
       { new: true, upsert: true }
     ).lean().exec() as unknown as ICart;
   }

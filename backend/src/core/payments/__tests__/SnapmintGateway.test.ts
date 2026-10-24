@@ -179,9 +179,36 @@ describe("SnapmintGateway — Checkout 3.0 S2S Integration", () => {
       expect(result.success).toBe(false);
       expect(result.message).toBe("Missing Snapmint payment status");
     });
+
+    it("should verify successfully when status is AUTHORIZED", async () => {
+      const mockPayment: any = { amount: 45000 };
+      const result = await gateway.verifyPayment(mockPayment, { order_status: "AUTHORIZED", id: "snap_auth_123" });
+      expect(result.success).toBe(true);
+      expect(result.gatewayPaymentId).toBe("snap_auth_123");
+    });
+
+    it("should reject verification if amount is tampered", async () => {
+      const mockPayment: any = { amount: 45000 };
+      const result = await gateway.verifyPayment(mockPayment, { status: "Success", id: "snap_123", orderValue: "100" });
+      expect(result.success).toBe(false);
+      expect(result.message).toBe("Amount mismatch detected");
+    });
   });
 
   describe("handleWebhook — Callback & Webhook Processing", () => {
+    it("should emit payment.captured when webhook status is AUTHORIZED", async () => {
+      const webhookBody = {
+        order_status: "AUTHORIZED",
+        merchantOrderId: "ORD-2026-0001",
+        id: "153842263",
+        orderValue: "45000",
+      };
+
+      const result = await gateway.handleWebhook({}, JSON.stringify(webhookBody));
+      expect(result.event).toBe("payment.captured");
+      expect(result.gatewayOrderId).toBe("ORD-2026-0001");
+    });
+
     it("should emit payment.captured on successful JSON payload", async () => {
       const webhookBody = {
         status: "Success",

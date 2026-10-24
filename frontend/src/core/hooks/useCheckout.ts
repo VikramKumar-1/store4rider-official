@@ -120,6 +120,7 @@ export function useCheckout() {
         const form = document.createElement("form");
         form.method = "POST";
         form.action = ccavAction;
+        form.setAttribute("referrerpolicy", "no-referrer");
 
         // CCAvenue officially requires ONLY encRequest and access_code as POST form inputs
         const encInput = document.createElement("input");

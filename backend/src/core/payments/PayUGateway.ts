@@ -5,6 +5,14 @@ import { ENV } from "../config/env";
 import { AppError } from "../errors/AppError";
 import { logger } from "../utils/logger";
 
+function timingSafeCompare(a?: string, b?: string): boolean {
+  if (!a || !b) return false;
+  const bufA = Buffer.from(a.toLowerCase());
+  const bufB = Buffer.from(b.toLowerCase());
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
 export class PayUGateway implements PaymentGateway {
   
   async createOrder(order: IOrder, amount: number): Promise<GatewayOrderResult> {
@@ -103,12 +111,12 @@ export class PayUGateway implements PaymentGateway {
     const hashString = baseElements.join("|");
     const generatedHash = crypto.createHash("sha512").update(hashString).digest("hex").toLowerCase();
     
-    let isValid = (generatedHash === (hash || "").toLowerCase());
+    let isValid = timingSafeCompare(generatedHash, hash);
     
     if (!isValid && additionalCharges) {
       const hashWithCharges = [additionalCharges, ...baseElements].join("|");
       const generatedWithCharges = crypto.createHash("sha512").update(hashWithCharges).digest("hex").toLowerCase();
-      isValid = (generatedWithCharges === (hash || "").toLowerCase());
+      isValid = timingSafeCompare(generatedWithCharges, hash);
     }
 
     if (!isValid) {
@@ -118,7 +126,7 @@ export class PayUGateway implements PaymentGateway {
 
     // CRITICAL SECURITY: Verify the amount paid matches the amount in our database!
     const paidAmount = parseFloat(amount);
-    if (paidAmount < payment.amount) {
+    if (isNaN(paidAmount) || Math.round(paidAmount * 100) < Math.round(payment.amount * 100)) {
       logger.error(`Amount tampering detected! Expected ${payment.amount}, got ${paidAmount}`);
       return { success: false, message: "Amount mismatch detected" };
     }
@@ -178,12 +186,12 @@ export class PayUGateway implements PaymentGateway {
     const hashString = baseElements.join("|");
     const generatedHash = crypto.createHash("sha512").update(hashString).digest("hex").toLowerCase();
     
-    let isValid = (generatedHash === hash.toLowerCase());
+    let isValid = timingSafeCompare(generatedHash, hash);
 
     if (!isValid && additionalCharges) {
       const hashWithCharges = [additionalCharges, ...baseElements].join("|");
       const generatedWithCharges = crypto.createHash("sha512").update(hashWithCharges).digest("hex").toLowerCase();
-      isValid = (generatedWithCharges === hash.toLowerCase());
+      isValid = timingSafeCompare(generatedWithCharges, hash);
     }
 
     if (!isValid) {

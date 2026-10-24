@@ -35,7 +35,12 @@ export class OrderValidator {
    * @returns {Promise<{userId: string, data: any}>} The user ID and validated payment data.
    */
   static async validateVerify(req: NextRequest) {
-    const userId = extractUserFromAuth(req);
+    let userId: string | undefined = undefined;
+    try {
+      userId = extractUserFromAuth(req);
+    } catch {
+      // Allow guest users without tokens
+    }
     const body = await req.json();
     const data = verifyPaymentSchema.parse(body);
     return { userId, data };

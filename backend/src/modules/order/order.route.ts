@@ -81,6 +81,10 @@ export async function orderRouter(req: NextRequest, routePath: string[]): Promis
     return await OrderController.webhook(req, routePath);
   }
 
+  if (method === "POST" && pathLen === 1 && routePath[0] === "sync-payment") {
+    return await OrderController.syncPaymentStatus(req);
+  }
+
   if (method === "POST" && pathLen === 1 && routePath[0] === "verify") {
     return await OrderController.verify(req);
   }

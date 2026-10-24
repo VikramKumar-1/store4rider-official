@@ -6,13 +6,15 @@ export async function POST(
 ) {
   const { status } = await params;
   const isSuccess = status === "success";
+  const origin = req.nextUrl.origin || "http://localhost:3000";
 
   try {
     const rawBody = await req.text();
     const parsedParams = new URLSearchParams(rawBody);
     const txnid = parsedParams.get("txnid") || "";
+    const orderParam = txnid ? `&orderId=${encodeURIComponent(txnid)}` : "";
 
-    // Forward the webhook to the backend API server (port 4000) so the DB order status updates
+    // Forward the webhook to the backend API server so DB order status updates
     const backendApiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
     const cleanBackend = backendApiUrl.replace(/\/api\/v1\/?$/, "");
 
@@ -28,16 +30,12 @@ export async function POST(
       // Backend might already have received it or is processing
     }
 
-    const origin = req.nextUrl.origin || "http://localhost:3000";
-    const orderParam = txnid ? `&orderId=${encodeURIComponent(txnid)}` : "";
-
     if (isSuccess) {
       return NextResponse.redirect(`${origin}/checkout?success=true${orderParam}`, 303);
     } else {
-      return NextResponse.redirect(`${origin}/checkout?failed=true`, 303);
+      return NextResponse.redirect(`${origin}/checkout?failed=true${orderParam}`, 303);
     }
   } catch (err) {
-    const origin = req.nextUrl.origin || "http://localhost:3000";
     return NextResponse.redirect(`${origin}/checkout?failed=true`, 303);
   }
 }
@@ -48,9 +46,11 @@ export async function GET(
 ) {
   const { status } = await params;
   const origin = req.nextUrl.origin || "http://localhost:3000";
+  const txnid = req.nextUrl.searchParams.get("txnid") || req.nextUrl.searchParams.get("orderId") || "";
+  const orderParam = txnid ? `&orderId=${encodeURIComponent(txnid)}` : "";
   if (status === "success") {
-    return NextResponse.redirect(`${origin}/checkout?success=true`, 303);
+    return NextResponse.redirect(`${origin}/checkout?success=true${orderParam}`, 303);
   } else {
-    return NextResponse.redirect(`${origin}/checkout?failed=true`, 303);
+    return NextResponse.redirect(`${origin}/checkout?failed=true${orderParam}`, 303);
   }
 }

@@ -46,25 +46,48 @@ export class CCavenueGateway implements PaymentGateway {
       throw new AppError("API_URL or FRONTEND_URL is not configured. CCAvenue redirect URLs cannot be generated.", 500);
     }
     const cleanApiBase = rawApiUrl.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
-    
-    const redirectUrl = (ENV.CCAVENUE_REDIRECT_URL || process.env.CCAVENUE_REDIRECT_URL || `${cleanApiBase}/api/v1/orders/webhook/ccavenue`).trim();
-    const cancelUrl = (ENV.CCAVENUE_CANCEL_URL || process.env.CCAVENUE_CANCEL_URL || redirectUrl).trim();
+
+    const mode = (ENV.CCAVENUE_MODE || process.env.CCAVENUE_MODE || "test").trim().toLowerCase();
+    const isLive = mode === "live";
+
+    let redirectUrl = (ENV.CCAVENUE_REDIRECT_URL || process.env.CCAVENUE_REDIRECT_URL || "").trim();
+    if (!redirectUrl) {
+      if (isLive && cleanApiBase.includes("localhost")) {
+        redirectUrl = "https://store4riders.com/api/v1/orders/webhook/ccavenue";
+      } else {
+        redirectUrl = `${cleanApiBase}/api/v1/orders/webhook/ccavenue`;
+      }
+    }
+
+    let cancelUrl = (ENV.CCAVENUE_CANCEL_URL || process.env.CCAVENUE_CANCEL_URL || "").trim();
+    if (!cancelUrl) {
+      if (isLive && cleanApiBase.includes("localhost")) {
+        cancelUrl = "https://store4riders.com/checkout";
+      } else {
+        cancelUrl = `${cleanApiBase}/checkout`;
+      }
+    }
     
     const formattedAmount = Number(amount).toFixed(2);
 
+    // Sanitizer for text fields to prevent parameter splitting corruption
+    const sanitizeText = (val: string, maxLen: number) =>
+      val.replace(/[&=#]/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLen);
+
     // Extract customer billing details from shippingAddress / order
     const shipping = order.shippingAddress;
-    const billingName = (shipping?.fullName || (order as any).fullName || "Valued Customer").trim().slice(0, 60);
-    const billingAddress = (shipping?.street || shipping?.addressLine1 || "Address").trim().slice(0, 150);
-    const billingCity = (shipping?.city || "City").trim().slice(0, 30);
-    const billingState = (shipping?.state || "State").trim().slice(0, 30);
-    const billingZip = (shipping?.pincode || "000000").trim().slice(0, 10);
-    const billingCountry = (shipping?.country || "India").trim().slice(0, 50);
+    const billingName = sanitizeText(shipping?.fullName || (order as any).fullName || "Valued Customer", 60);
+    const billingAddress = sanitizeText(shipping?.street || shipping?.addressLine1 || "Address", 150);
+    const billingCity = sanitizeText(shipping?.city || "City", 30);
+    const billingState = sanitizeText(shipping?.state || "State", 30);
+    const billingZip = sanitizeText(shipping?.pincode || "000000", 10);
+    const billingCountry = sanitizeText(shipping?.country || "India", 50);
     const rawPhone = (shipping?.phone || (order as any).phone || "").replace(/\D/g, "");
     const billingTel = rawPhone.slice(-10);
-    const billingEmail = ((order as any).userEmail || order.guestEmail || "").trim().slice(0, 60);
+    const billingEmail = sanitizeText((order as any).userEmail || order.guestEmail || "", 60);
 
     const payload: Record<string, string> = {
+      tid: String(Date.now()),
       merchant_id: merchantId,
       order_id: orderId,
       currency: "INR",
@@ -91,15 +114,15 @@ export class CCavenueGateway implements PaymentGateway {
     if (billingCountry) payload.delivery_country = billingCountry;
     if (billingTel) payload.delivery_tel = billingTel;
 
+    // CCAvenue standard: query string concatenation (param=value&param=value) without URL-encoding URLs
     const merchantData = Object.entries(payload)
       .filter(([_, v]) => v !== undefined && v !== null && String(v).trim() !== "")
-      .map(([k, v]) => `${k}=${encodeURIComponent(String(v).trim())}`)
+      .map(([k, v]) => `${k}=${String(v).trim()}`)
       .join("&");
 
     const encryptedData = this.encrypt(merchantData, workingKey);
 
-    const mode = (ENV.CCAVENUE_MODE || process.env.CCAVENUE_MODE || "test").trim().toLowerCase();
-    const actionUrl = mode === "live"
+    const actionUrl = isLive
       ? "https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction"
       : "https://test.ccavenue.com/transaction/transaction.do?command=initiateTransaction";
 
@@ -133,8 +156,14 @@ export class CCavenueGateway implements PaymentGateway {
         throw new AppError("Invalid CCavenue response data", 400);
       }
       
+      const currency = params.get("currency") || "INR";
+      if (currency.toUpperCase() !== "INR") {
+        logger.error(`CCAvenue Currency tampering detected! Expected INR, got ${currency}`);
+        return { success: false, message: "Currency mismatch detected" };
+      }
+
       const paidAmount = parseFloat(paidAmountStr);
-      if (paidAmount < payment.amount) {
+      if (isNaN(paidAmount) || Math.round(paidAmount * 100) < Math.round(payment.amount * 100)) {
         logger.error(`CCAvenue Amount tampering detected! Expected ${payment.amount}, got ${paidAmount}`);
         return { success: false, message: "Amount mismatch detected" };
       }
