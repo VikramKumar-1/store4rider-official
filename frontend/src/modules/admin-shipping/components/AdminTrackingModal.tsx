@@ -36,13 +36,13 @@ export const AdminTrackingModal: React.FC<AdminTrackingModalProps> = ({ order, o
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  if (!mounted || typeof document === "undefined" || !order) return null;
+  const orderId = order?.id || order?._id || order?.orderNumber || "";
+  const orderNum = order?.orderNumber || orderId;
 
-  const orderId = order.id || order._id || order.orderNumber;
-  const orderNum = order.orderNumber || orderId;
-
-  // Fetch live shipment events from backend
+  // Fetch live shipment events from backend unconditionally
   const { data: shipments, isLoading, isFetching, refetch } = useOrderShipments(orderId);
+
+  if (!mounted || typeof document === "undefined" || !order) return null;
 
   // Active shipment (prefer API data, fallback to order embedded shipment)
   const activeShipment = shipments?.[0] || order.shipment || {};

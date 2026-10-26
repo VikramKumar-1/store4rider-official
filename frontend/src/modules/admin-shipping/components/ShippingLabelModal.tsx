@@ -30,10 +30,8 @@ export const ShippingLabelModal: React.FC<ShippingLabelModalProps> = ({ order, o
   // Real store settings from MongoDB
   const { data: publicSettings } = usePublicSettings();
 
-  if (!order) return null;
-
-  const orderNum = order.orderNumber || order.id || order._id;
-  const shipment = order.shipment || {};
+  const orderNum = order?.orderNumber || order?.id || order?._id || "";
+  const shipment = order?.shipment || {};
   const awb = shipment.awb || "AWB-PENDING";
   const courierName = shipment.courierName || shipment.provider || "Carrier Assigned";
   const isCod = String(order.paymentMethod || "").toLowerCase() === "cod";

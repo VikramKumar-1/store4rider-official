@@ -616,6 +616,7 @@ async function processProducts(): Promise<void> {
           // ─── VARIANTS (for configurable products) ───
           const variants: any[] = [];
           const childSkuList: string[] = [];
+          const colorImagesMap: Record<string, string> = {};
 
           if (isConfigurable && row.configurable_variations) {
             const variationEntries = row.configurable_variations.split('|');
@@ -668,12 +669,18 @@ async function processProducts(): Promise<void> {
               totalChildQty += childStock;
               if (childInStock) anyChildInStock = true;
 
+              // Populate colorImagesMap from child variant color & baseImage
+              const vColor = attributes.get('color') || attributes.get('colour');
+              if (vColor && childInfo?.baseImage && !colorImagesMap[vColor]) {
+                colorImagesMap[vColor] = buildImageUrl(childInfo.baseImage);
+              }
+
                             // Process Child Images
               const childImages: any[] = [];
               if (childInfo?.baseImage) {
                 childImages.push({
                   id: new mongoose.Types.ObjectId().toString(),
-                  url: `https://store4riders.com/media/catalog/product${childInfo.baseImage}`,
+                  url: buildImageUrl(childInfo.baseImage),
                   altText: childInfo.baseImageLabel || ''
                 });
               }
@@ -684,7 +691,7 @@ async function processProducts(): Promise<void> {
                   if (img.trim()) {
                     childImages.push({
                       id: new mongoose.Types.ObjectId().toString(),
-                      url: `https://store4riders.com/media/catalog/product${img.trim()}`,
+                      url: buildImageUrl(img.trim()),
                       altText: addLbls[i]?.trim() || ''
                     });
                   }
@@ -698,7 +705,7 @@ async function processProducts(): Promise<void> {
                 specialPrice: validChildSP,
                 stock: childStock,
                 attributes,
-                imageUrl: childInfo?.baseImage ? `https://store4riders.com/media/catalog/product${childInfo.baseImage}` : undefined,
+                imageUrl: childInfo?.baseImage ? buildImageUrl(childInfo.baseImage) : undefined,
                 weight: childInfo?.weight,
                 status: (childInfo?.status === "1" || childInfo?.status?.toLowerCase() === "enabled") ? "enabled" : "disabled",
                 visibility: childInfo?.visibility || "Not Visible Individually",
@@ -837,6 +844,7 @@ async function processProducts(): Promise<void> {
             isFreeShipping: freeShipping,
             images,
             variants,
+            colorImages: Object.keys(colorImagesMap).length > 0 ? colorImagesMap : undefined,
             status: 'published', // All imported products are published
             isFeatured: false,
             tags: [],
