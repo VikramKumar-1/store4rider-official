@@ -1351,16 +1351,16 @@ Once PayU + COD are production-solid:
 
 ### Backend Tasks
 
-- [ ] **10.1** Build `blog` module (6-file DDD pattern)
+- [x] **10.1** Build `blog` module (6-file DDD pattern)
   - `blog-post.model.ts` — title, slug, content (JSON from TipTap), excerpt, featuredImage, videoUrl, categoryId, tags[], author, status (draft/published), publishedAt, metaTitle, metaDescription
   - `blog-category.model.ts` — name, slug, description
   - Add to shared types: `IBlogPost`, `IBlogCategory`
-- [ ] **10.2** Build blog CRUD endpoints
+- [x] **10.2** Build blog CRUD endpoints
   - `GET /blog/posts` — public paginated list (published only)
   - `GET /blog/posts/:slug` — public single post
   - `GET /blog/categories` — public list
   - Admin CRUD for posts and categories
-- [ ] **10.3** Build related posts logic
+- [x] **10.3** Build related posts logic
   - Based on shared tags or category
   - `GET /blog/posts/:slug/related` — returns 3-4 related posts
 
@@ -1375,7 +1375,7 @@ Once PayU + COD are production-solid:
   - Social sharing buttons
   - Related posts section
   - SEO metadata
-- [ ] **10.6** Build admin blog editor page
+- [x] **10.6** Build admin blog editor page
   - TipTap editor with toolbar: bold, italic, headings, lists, links, images (S3 upload), video embed (YouTube URL), blockquote
   - Featured image upload
   - Category and tags selection

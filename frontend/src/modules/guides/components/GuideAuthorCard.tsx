@@ -3,7 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { IGuideAuthor } from "@store4riders/shared-types";
-import { Instagram, Facebook, Youtube, ExternalLink, ShieldCheck } from "lucide-react";
+import { Instagram, Facebook, Youtube, ExternalLink, PenTool, Award, Shield } from "lucide-react";
 
 interface GuideAuthorCardProps {
   author: IGuideAuthor;
@@ -24,80 +24,122 @@ export const GuideAuthorCard: React.FC<GuideAuthorCardProps> = ({
       })
     : null;
 
+  // Compute initials dynamically (max 2 characters, e.g. "VM", "RK", "ST")
+  const initials =
+    author?.name
+      ?.trim()
+      .split(/\s+/)
+      .map((part) => part[0]?.toUpperCase())
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("") || "SR";
+
+  const isTeam =
+    !author?.name ||
+    author.name.toLowerCase().includes("team") ||
+    author.name.toLowerCase().includes("store4riders");
+
+  const bioText =
+    author?.bio ||
+    (isTeam
+      ? "The Store4Riders Editorial Team brings together veteran motorcyclists, gear technicians, and long-distance touring specialists dedicated to verified rider safety, unbiased gear reviews, and authentic riding advice across India."
+      : `${author?.name || "This contributor"} is a dedicated motorcycle gear specialist and rider for Store4Riders, providing hands-on insights on protective equipment, track standards, and maintenance.`);
+
+  const jobTitle = author?.jobTitle || (isTeam ? "Editorial & Technical Gear Desk" : "Motorcycle Gear Specialist");
+  const socialLinks = Array.isArray(author?.sameAs) ? author.sameAs.filter(Boolean) : [];
+
   return (
-    <div className="bg-neutral-50 rounded-2xl p-6 sm:p-8 border border-neutral-200/80 shadow-sm transition-all hover:shadow-md">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-        {/* Author Avatar / Badge */}
-        <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-brand to-banner flex items-center justify-center text-white shadow-lg shadow-brand/20 shrink-0">
-          <span className="font-sans font-black text-2xl tracking-wider">
-            {author.name
-              .split(" ")
-              .map((n) => n[0]?.toUpperCase())
-              .join("") || "VM"}
-          </span>
-          <span className="absolute -bottom-1.5 -right-1.5 bg-emerald-500 text-white p-1 rounded-full border-2 border-white shadow">
-            <ShieldCheck className="w-3.5 h-3.5" />
-          </span>
+    <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-2xs transition-all hover:shadow-xs">
+      <div className="flex flex-col sm:flex-row items-start gap-5">
+        {/* Author Avatar / Editorial Monogram */}
+        <div className="relative shrink-0">
+          {(author as any)?.avatar ? (
+            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-2xs">
+              <Image
+                src={(author as any).avatar}
+                alt={author.name}
+                fill
+                sizes="80px"
+                className="object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-900 text-white flex flex-col items-center justify-center font-sans font-bold shadow-sm border border-slate-800">
+              <span className="text-xl sm:text-2xl tracking-wider">{initials}</span>
+              <span className="text-[9px] uppercase tracking-widest text-slate-400 font-medium">Writer</span>
+            </div>
+          )}
         </div>
 
         {/* Author Details */}
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-brand bg-brand/10 px-2.5 py-0.5 rounded-full">
-              Verified Expert Author
+          {/* Editorial Badge & Metadata */}
+          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-slate-700 bg-slate-100 border border-slate-200/80 px-2.5 py-0.5 rounded-full">
+              <Award size={12} className="text-brand" />
+              <span>{isTeam ? "Editorial Team" : "Verified Gear Expert"}</span>
             </span>
+
             {readingTimeMinutes && (
-              <span className="text-xs text-neutral-500 font-medium">
+              <span className="text-xs text-slate-500 font-medium">
                 • {readingTimeMinutes} min read
               </span>
             )}
             {formattedDate && (
-              <span className="text-xs text-neutral-500 font-medium">
+              <span className="text-xs text-slate-500 font-medium">
                 • Published {formattedDate}
               </span>
             )}
           </div>
 
-          <h3 className="text-xl font-bold text-neutral-900 tracking-tight">
-            {author.name}
+          {/* Author Name */}
+          <h3 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+            {author?.name || "Store4Riders Editorial Team"}
           </h3>
-          <p className="text-xs font-semibold text-neutral-600 mb-2">
-            {author.jobTitle || "Founder & Motorcycle Gear Specialist"}
+
+          {/* Author Job Title */}
+          <p className="text-xs font-semibold text-brand mb-2">
+            {jobTitle}
           </p>
 
-          <p className="text-sm text-neutral-600 leading-relaxed max-w-2xl">
-            {author.bio ||
-              "Vishwas is the founder of Store4Riders with over 15 years of motorcycling expertise across India. He is passionate about rider safety, helmet certifications, and helping every rider choose the best gear."}
+          {/* Author Bio */}
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl">
+            {bioText}
           </p>
 
-          {/* Social Profiles */}
-          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-neutral-200/60">
-            <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
-              Follow & Connect:
-            </span>
+          {/* Dynamic Social Profiles — Only rendered if author actually has profiles */}
+          {socialLinks.length > 0 && (
+            <div className="flex items-center gap-2.5 mt-4 pt-3.5 border-t border-slate-100 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Follow &amp; Connect:
+              </span>
 
-            {author.sameAs.map((url, idx) => {
-              const isInsta = url.includes("instagram");
-              const isFb = url.includes("facebook");
-              const isYt = url.includes("youtube");
+              {socialLinks.map((url, idx) => {
+                const isInsta = url.includes("instagram");
+                const isFb = url.includes("facebook");
+                const isYt = url.includes("youtube");
 
-              return (
-                <a
-                  key={idx}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-full bg-white border border-neutral-200 hover:border-brand hover:bg-brand hover:text-white text-neutral-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:scale-105"
-                  title={isInsta ? "Instagram" : isFb ? "Facebook" : isYt ? "YouTube" : "Profile"}
-                >
-                  {isInsta && <Instagram className="w-4 h-4" />}
-                  {isFb && <Facebook className="w-4 h-4" />}
-                  {isYt && <Youtube className="w-4 h-4" />}
-                  {!isInsta && !isFb && !isYt && <ExternalLink className="w-3.5 h-3.5" />}
-                </a>
-              );
-            })}
-          </div>
+                return (
+                  <a
+                    key={idx}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="h-7 px-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200/80 flex items-center gap-1.5 text-xs font-medium transition-all"
+                    title={isInsta ? "Instagram" : isFb ? "Facebook" : isYt ? "YouTube" : "Website"}
+                  >
+                    {isInsta && <Instagram className="w-3.5 h-3.5 text-pink-600" />}
+                    {isFb && <Facebook className="w-3.5 h-3.5 text-blue-600" />}
+                    {isYt && <Youtube className="w-3.5 h-3.5 text-red-600" />}
+                    {!isInsta && !isFb && !isYt && <ExternalLink className="w-3 h-3 text-slate-500" />}
+                    <span className="text-[11px] font-semibold">
+                      {isInsta ? "Instagram" : isFb ? "Facebook" : isYt ? "YouTube" : "Profile"}
+                    </span>
+                  </a>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

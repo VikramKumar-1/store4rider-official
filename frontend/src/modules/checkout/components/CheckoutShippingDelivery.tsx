@@ -339,6 +339,30 @@ export const CheckoutShippingDelivery = ({
                         <p className="text-xs text-neutral-600 leading-relaxed font-sans">
                           {addr.street}, {addr.city}, {addr.state} - <span className="font-bold text-neutral-800">{addr.pincode}</span>
                         </p>
+                        {isSelected && (
+                          <div className="mt-1.5 flex items-center gap-2">
+                            {isCheckingServiceability ? (
+                              <span className="inline-flex items-center gap-1.5 text-[11px] text-neutral-500 font-medium">
+                                <span className="w-2.5 h-2.5 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin" />
+                                Checking courier coverage...
+                              </span>
+                            ) : serviceabilityData?.serviceable ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 border border-emerald-200">
+                                <svg className="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                </svg>
+                                Deliverable to {addr.pincode} {serviceabilityData.estimatedDays ? `(~${serviceabilityData.estimatedDays} days)` : ""}
+                              </span>
+                            ) : isNotServiceable ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-700 bg-red-50 px-2 py-0.5 border border-red-200">
+                                <svg className="w-3.5 h-3.5 text-red-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Delivery Not Available to {addr.pincode}
+                              </span>
+                            ) : null}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -554,11 +578,50 @@ export const CheckoutShippingDelivery = ({
           </p>
         </div>
 
+        {/* Live Serviceability Status Banner */}
+        {activePincode && activePincode.length === 6 && (
+          <div>
+            {isCheckingServiceability ? (
+              <div className="flex items-center gap-2.5 p-3 bg-neutral-50 border border-neutral-200 text-xs text-neutral-600">
+                <div className="w-3.5 h-3.5 border-2 border-banner border-t-transparent rounded-full animate-spin shrink-0" />
+                <span>Checking courier network (Shiprocket, Delhivery, Xpressbees) for PIN code <strong>{activePincode}</strong>...</span>
+              </div>
+            ) : serviceabilityData?.serviceable ? (
+              <div className="flex items-center justify-between p-3 bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-800">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span>
+                    ✓ PIN code <strong>{activePincode}</strong> is serviceable for delivery. 
+                    {serviceabilityData.estimatedDays ? ` Estimated in ${serviceabilityData.estimatedDays} business days.` : " Fast delivery across India."}
+                  </span>
+                </div>
+                {serviceabilityData.codAvailable && (
+                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-300">
+                    COD Available
+                  </span>
+                )}
+              </div>
+            ) : isNotServiceable ? (
+              <div className="p-3.5 bg-red-50 border border-red-200 text-xs text-red-800 space-y-1">
+                <div className="flex items-center gap-2 font-bold text-red-900">
+                  <svg className="w-4 h-4 text-red-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>Delivery Unavailable to PIN Code {activePincode}</span>
+                </div>
+                <p className="text-[11px] text-red-700 pl-6 leading-relaxed">
+                  Our courier partners (Shiprocket, Delhivery, Xpressbees) do not currently service this pincode. Please select an alternate saved address or enter a different pincode to continue.
+                </p>
+              </div>
+            ) : null}
+          </div>
+        )}
+
         <div className="flex flex-col gap-3">
-          <div className="border border-banner bg-orange-50/20 ring-1 ring-banner rounded-none p-4 transition-all flex items-center justify-between">
+          <div className={`border ${isNotServiceable ? 'border-red-300 bg-red-50/20' : 'border-banner bg-orange-50/20 ring-1 ring-banner'} rounded-none p-4 transition-all flex items-center justify-between`}>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-banner/10 flex items-center justify-center shrink-0">
-                <TruckIcon className="w-4 h-4 text-banner" />
+              <div className={`w-8 h-8 rounded-full ${isNotServiceable ? 'bg-red-100 text-red-600' : 'bg-banner/10 text-banner'} flex items-center justify-center shrink-0`}>
+                <TruckIcon className="w-4 h-4" />
               </div>
 
               <div className="flex flex-col">
@@ -567,7 +630,11 @@ export const CheckoutShippingDelivery = ({
                 </span>
                 <span className="text-xs text-neutral-500">
                   {cartWeightKg > 0 && <span>Total weight: {cartWeightKg.toFixed(2)} kg • </span>}
-                  Estimated delivery in 3-5 business days
+                  {isNotServiceable
+                    ? "Service unavailable to selected pincode"
+                    : serviceabilityData?.estimatedDays
+                      ? `Estimated delivery in ${serviceabilityData.estimatedDays} business days`
+                      : "Estimated delivery in 3-5 business days"}
                 </span>
               </div>
             </div>
@@ -622,12 +689,24 @@ export const CheckoutShippingDelivery = ({
           type="button"
           onClick={handleContinueToPayment}
           disabled={isAddingAddress || isNotServiceable || isCheckingServiceability}
-          className="flex-1 lg:flex-none lg:w-auto bg-banner hover:bg-orange-600 text-white font-bold tracking-wider text-xs uppercase py-3.5 lg:py-4 px-4 md:px-8 rounded-none shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed whitespace-nowrap"
+          className={`flex-1 lg:flex-none lg:w-auto ${
+            isNotServiceable 
+              ? 'bg-neutral-300 hover:bg-neutral-300 text-neutral-600 cursor-not-allowed shadow-none' 
+              : 'bg-banner hover:bg-orange-600 text-white shadow-md'
+          } font-bold tracking-wider text-xs uppercase py-3.5 lg:py-4 px-4 md:px-8 rounded-none transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-not-allowed whitespace-nowrap`}
         >
           <span>
-            {isAddingAddress ? "SAVING..." : (isCheckingServiceability ? "CHECKING..." : "CONTINUE TO PAYMENT")}
+            {isAddingAddress 
+              ? "SAVING..." 
+              : isCheckingServiceability 
+                ? "CHECKING SERVICEABILITY..." 
+                : isNotServiceable 
+                  ? "DELIVERY UNAVAILABLE TO THIS PINCODE" 
+                  : "CONTINUE TO PAYMENT"}
           </span>
-          {!isAddingAddress && !isCheckingServiceability && <span className="text-base leading-none">→</span>}
+          {!isAddingAddress && !isCheckingServiceability && !isNotServiceable && (
+            <span className="text-base leading-none">→</span>
+          )}
         </button>
       </div>
 

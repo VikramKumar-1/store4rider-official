@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const productImageSchema = z.object({
+  id: z.string().optional(),
   url: z.string().url(),
   altText: z.string().min(1, "Alt text is required for SEO & accessibility"),
 });
@@ -13,6 +14,7 @@ export const productVariantSchema = z.object({
   stock: z.number().int().min(0).default(0),
   attributes: z.record(z.string()).default({}),
   imageUrl: z.string().optional(),
+  altText: z.string().optional(),
   weight: z.number().min(0).optional(),
   status: z.enum(["enabled", "disabled"]).optional().default("enabled"),
   visibility: z.string().optional(),
@@ -60,6 +62,7 @@ export const createProductSchema = z.object({
   isFeatured: z.boolean().default(false),
   isFreeShipping: z.boolean().default(false),
   images: z.array(productImageSchema).default([]),
+  colorImages: z.record(z.string()).optional(),
   variants: z.array(productVariantSchema).default([]),
   attributes: z.record(z.string()).optional().default({}),
   metaTitle: z.string().optional(),

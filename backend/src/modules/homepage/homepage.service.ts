@@ -54,29 +54,16 @@ export class HomepageService {
     const config = await HomepageRepository.getConfig();
     let normalized = this.normalizeConfig(config);
 
-    // Auto-sync Instagram: if empty or if 6 hours elapsed, sync in background
+    // Auto-sync Instagram: only if reels collection is completely empty (first-time boot)
     if (process.env.INSTAGRAM_ACCESS_TOKEN) {
       const reelsCount = normalized.sections?.socialMedia?.reels?.length || 0;
       if (reelsCount === 0) {
         try {
-          logger.info("Instagram reels collection is empty. Auto-syncing from Instagram Graph API...");
+          logger.info("Instagram reels collection is empty. Initializing first-time sync from Instagram Graph API...");
           normalized = await this.syncInstagramFeed();
         } catch (err: any) {
           logger.warn("Auto-syncing Instagram feed on empty state failed:", { error: err.message });
         }
-      } else {
-        // Periodic background check: auto-sync every 6 hours without blocking the user
-        getCache(INSTAGRAM_LAST_SYNC_KEY)
-          .then((lastSync) => {
-            if (!lastSync) {
-              setCache(INSTAGRAM_LAST_SYNC_KEY, Date.now(), INSTAGRAM_AUTO_SYNC_TTL);
-              logger.info("Auto-syncing Instagram feed in background (6h periodic interval)...");
-              this.syncInstagramFeed().catch((err) =>
-                logger.warn("Background Instagram auto-sync failed:", { error: err.message })
-              );
-            }
-          })
-          .catch(() => {});
       }
     }
 
@@ -238,10 +225,14 @@ export class HomepageService {
       }
     }
 
-    // 2. Fetch Media (Scan up to 100 items to prioritize genuine VIDEO reels)
+    // 2. Fetch Media (Both Owned Media /media AND Co-Authored / Collaborator Reels /tags)
     const mediaEndpoint = accountId
-      ? `https://graph.facebook.com/v19.0/${accountId}/media?fields=id,caption,media_type,media_url,permalink,thumbnail_url,timestamp,like_count,comments_count&access_token=${token}&limit=100`
+      ? `https://graph.facebook.com/v19.0/${accountId}/media?fields=id,caption,media_type,media_product_type,media_url,permalink,thumbnail_url,timestamp,like_count,comments_count,insights.metric(views)&access_token=${token}&limit=100`
       : `https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,permalink,thumbnail_url,timestamp&access_token=${token}&limit=100`;
+
+    const tagsEndpoint = accountId
+      ? `https://graph.facebook.com/v19.0/${accountId}/tags?fields=id,caption,media_type,media_product_type,media_url,permalink,thumbnail_url,timestamp,like_count,comments_count&access_token=${token}&limit=50`
+      : null;
 
     try {
       const mediaRes = await fetch(mediaEndpoint, { headers: { Accept: "application/json" } });
@@ -250,46 +241,221 @@ export class HomepageService {
         throw new AppError(errJson?.error?.message || "Failed to fetch media from Instagram API", 400);
       }
       const mediaData = await mediaRes.json();
-      const items = Array.isArray(mediaData.data) ? mediaData.data : [];
+      const items = Array.isArray(mediaData.data) ? [...mediaData.data] : [];
 
-      // Prioritize actual VIDEO media (Reels with direct mp4 stream)
-      const videoItems = items.filter((item: any) => item.media_type === "VIDEO" && item.media_url);
-      const otherItems = items.filter((item: any) => item.media_type !== "VIDEO");
+      // Fetch Co-authored / Collaborator Reels from /tags if available
+      if (tagsEndpoint) {
+        try {
+          const tagsRes = await fetch(tagsEndpoint, { headers: { Accept: "application/json" } });
+          if (tagsRes.ok) {
+            const tagsData = await tagsRes.json();
+            const tagsItems = Array.isArray(tagsData.data) ? tagsData.data : [];
+            const existingIds = new Set(items.map((i) => i.id));
+            tagsItems.forEach((ti: any) => {
+              if (!existingIds.has(ti.id)) {
+                items.push(ti);
+              }
+            });
+            logger.info(`Fetched ${tagsItems.length} collaborator/tagged items from Meta Graph API`);
+          } else {
+            const tagsErr = await tagsRes.json().catch(() => ({}));
+            logger.warn("Tags edge check for collaborations returned non-ok status:", {
+              code: tagsErr?.error?.code,
+              message: tagsErr?.error?.message,
+            });
+          }
+        } catch (tagsErr: any) {
+          logger.warn("Could not query Instagram /tags endpoint for collaborator reels", {
+            error: tagsErr.message,
+          });
+        }
+      }
 
-      // Take all real video reels first, fill up to 20 with recent items
-      const combinedItems = [...videoItems, ...otherItems].slice(0, 20);
+      // Filter strictly for GENUINE VIDEO REELS (Never import static graphic posters/photos into the Reels section)
+      const genuineVideoReels = items.filter(
+        (item: any) =>
+          item.media_type === "VIDEO" ||
+          item.media_product_type === "REELS" ||
+          (item.permalink && item.permalink.includes("/reel/"))
+      );
 
-      fetchedReels = combinedItems.map((item: any, idx: number) => {
+      // If genuine video reels exist, use only them. If none exist (rare fallback), use latest items.
+      const candidateItems = genuineVideoReels.length > 0 ? genuineVideoReels : items;
+
+      // Sort genuine video reels strictly by timestamp descending so the newest/latest reel ALWAYS comes first
+      const sortedReels = [...candidateItems].sort((a: any, b: any) => {
+        const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return timeB - timeA;
+      });
+
+      // Take top 20 latest genuine video reels
+      const topItems = sortedReels.slice(0, 20);
+
+      fetchedReels = topItems.map((item: any, idx: number) => {
         const caption = item.caption ? item.caption.split("\n")[0].slice(0, 100) : `Store4Riders Reel #${idx + 1}`;
         const thumbnail = item.thumbnail_url || item.media_url || "/helmetcat.jpg";
-        const likesFormatted = item.like_count !== undefined ? formatCompactCount(Number(item.like_count)) : undefined;
-        const isVideo = item.media_type === "VIDEO" || (item.media_url && /\.(mp4|webm)(\?.*)?$/i.test(item.media_url));
+        const isVideo =
+          item.media_type === "VIDEO" ||
+          item.media_product_type === "REELS" ||
+          (item.media_url && /\.(mp4|webm)(\?.*)?$/i.test(item.media_url)) ||
+          (item.permalink && item.permalink.includes("/reel/"));
+
+        // Extract actual real view count from Instagram insights
+        let realViewsCount: number | null = null;
+        if (item.insights && Array.isArray(item.insights.data)) {
+          const viewsMetric = item.insights.data.find((m: any) => m.name === "views");
+          if (
+            viewsMetric &&
+            Array.isArray(viewsMetric.values) &&
+            viewsMetric.values[0] &&
+            viewsMetric.values[0].value !== undefined &&
+            viewsMetric.values[0].value !== null
+          ) {
+            realViewsCount = Number(viewsMetric.values[0].value);
+          }
+        }
+
+        const viewsFormatted =
+          realViewsCount !== null && !isNaN(realViewsCount)
+            ? formatCompactCount(realViewsCount)
+            : item.like_count !== undefined
+            ? formatCompactCount(Number(item.like_count))
+            : "Live";
+
+        const likesFormatted =
+          item.like_count !== undefined ? formatCompactCount(Number(item.like_count)) : "0";
 
         return {
           id: item.id || `ig-${idx}`,
           title: caption,
           thumbnailUrl: thumbnail,
-          videoType: (isVideo ? "upload" : "embed") as "upload" | "embed",
-          videoUrl: (isVideo && item.media_url) ? item.media_url : (item.permalink || `https://www.instagram.com/p/${item.id}/`),
+          videoType: (isVideo && item.media_url ? "upload" : "embed") as "upload" | "embed",
+          videoUrl:
+            isVideo && item.media_url
+              ? item.media_url
+              : item.permalink || `https://www.instagram.com/reel/${item.id}/`,
           instagramUrl: item.permalink || `https://www.instagram.com/${username}/`,
-          views: likesFormatted || "Live",
-          likes: likesFormatted || "0",
+          views: viewsFormatted,
+          likes: likesFormatted,
           author: `@${username}`,
-          order: idx,
+          order: idx + 1,
           isActive: true,
+          timestamp: item.timestamp,
         };
       });
 
-      logger.info(`Successfully mapped ${fetchedReels.length} Instagram Reels (${videoItems.length} genuine video reels)`);
+      const videoCount = fetchedReels.filter((r) => r.videoType === "upload").length;
+      logger.info(
+        `Successfully mapped ${fetchedReels.length} genuine Instagram Video Reels (${videoCount} playable video streams, sorted newest first)`
+      );
     } catch (err: any) {
       logger.error("Error fetching Instagram media", { error: err.message });
       throw new AppError(`Instagram Media Sync failed: ${err.message}`, 400);
     }
 
-    // 3. Update Homepage Sections in Database
+    // 3. Update Homepage Sections in Database (Smart Merge preserving Admin sequence & custom overrides)
     const currentConfig = await HomepageRepository.getConfig();
     const currentSections = currentConfig.sections || ({} as any);
     const existingSocial = currentSections.socialMedia || {};
+    const rawExistingReels: IInstagramReel[] = Array.isArray(existingSocial.reels) ? existingSocial.reels : [];
+
+    // Filter out previously auto-imported static feed photos (which don't have video stream or /reel/ link)
+    // while keeping genuine video reels and custom admin uploads
+    const existingReels = rawExistingReels.filter((r) => {
+      const isCustomUpload = r.videoType === "upload" && !r.id?.startsWith("17") && !r.id?.startsWith("18");
+      const isVideoReel =
+        r.videoType === "upload" ||
+        r.instagramUrl?.includes("/reel/") ||
+        (r.videoUrl && /\.(mp4|webm)(\?.*)?$/i.test(r.videoUrl));
+      return isCustomUpload || isVideoReel;
+    });
+
+    let finalReels: IInstagramReel[] = [];
+
+    if (existingReels.length === 0) {
+      // First-time or cleaned sync: use fresh genuine video reels directly
+      finalReels = fetchedReels;
+    } else {
+      // Lookup maps for existing reels to match by Instagram ID or permalink URL
+      const existingById = new Map<string, IInstagramReel>();
+      const existingByUrl = new Map<string, IInstagramReel>();
+      existingReels.forEach((r) => {
+        if (r.id) existingById.set(r.id, r);
+        if (r.instagramUrl) {
+          existingByUrl.set(r.instagramUrl, r);
+          existingByUrl.set(r.instagramUrl.replace(/\/$/, ""), r);
+        }
+      });
+
+      const fetchedById = new Map<string, IInstagramReel>();
+      fetchedReels.forEach((r) => {
+        if (r.id) fetchedById.set(r.id, r);
+      });
+
+      // 1. Update existing reels in place: refresh views/likes from Instagram while strictly preserving
+      //    the admin's custom sequence (order), manual title overrides, and isActive toggle!
+      const updatedExisting = existingReels.map((ex) => {
+        const fresh =
+          (ex.id && fetchedById.get(ex.id)) ||
+          (ex.instagramUrl &&
+            fetchedReels.find(
+              (f) =>
+                f.instagramUrl === ex.instagramUrl ||
+                f.instagramUrl?.replace(/\/$/, "") === ex.instagramUrl?.replace(/\/$/, "")
+            ));
+
+        if (fresh) {
+          return {
+            ...ex,
+            id: fresh.id || ex.id,
+            views: fresh.views,
+            likes: fresh.likes,
+            thumbnailUrl: ex.thumbnailUrl || fresh.thumbnailUrl,
+            // If admin wrote a custom title, keep it; otherwise update with latest caption
+            title: ex.title || fresh.title,
+            // Admin sequence & active state are 100% PRESERVED
+            order: ex.order,
+            isActive: ex.isActive !== undefined ? ex.isActive : true,
+            timestamp: ex.timestamp || fresh.timestamp,
+          };
+        }
+        // Custom admin uploaded reels (not in Instagram API) are preserved completely
+        return ex;
+      });
+
+      // 2. Detect genuinely new reels posted on Instagram since last sync
+      const brandNewReels = fetchedReels.filter(
+        (fresh) =>
+          !existingById.has(fresh.id || "") &&
+          !existingByUrl.has(fresh.instagramUrl || "") &&
+          !existingByUrl.has(fresh.instagramUrl?.replace(/\/$/, "") || "")
+      );
+
+      // 3. Separate genuinely newer reels (published after latest existing) from backfilled older reels
+      const newestExistingTimestamp = updatedExisting.reduce((max, r) => {
+        const t = r.timestamp ? new Date(r.timestamp).getTime() : 0;
+        return t > max ? t : max;
+      }, 0);
+
+      const newerReels: IInstagramReel[] = [];
+      const olderReels: IInstagramReel[] = [];
+
+      brandNewReels.forEach((fresh) => {
+        const t = fresh.timestamp ? new Date(fresh.timestamp).getTime() : 0;
+        if (t > newestExistingTimestamp) {
+          newerReels.push(fresh);
+        } else {
+          olderReels.push(fresh);
+        }
+      });
+
+      // Newer at top, followed by existing (preserving sequence), followed by older backfilled reels (capped at 20)
+      finalReels = [...newerReels, ...updatedExisting, ...olderReels].slice(0, 20);
+      finalReels.forEach((r, idx) => {
+        r.order = idx + 1;
+      });
+    }
 
     const updatedSocial: ISocialMediaSectionConfig = {
       ...existingSocial,
@@ -300,13 +466,14 @@ export class HomepageService {
       followingCount: followingCount ?? existingSocial.followingCount,
       postsCount: postsCount ?? existingSocial.postsCount,
       profileAvatarUrl: profileAvatarUrl ?? existingSocial.profileAvatarUrl,
-      reels: fetchedReels.length > 0 ? fetchedReels : existingSocial.reels,
+      reels: finalReels.length > 0 ? finalReels : existingSocial.reels,
       reelImages:
-        fetchedReels.length > 0
-          ? fetchedReels.map((r) => r.thumbnailUrl).slice(0, 6)
+        finalReels.length > 0
+          ? finalReels.map((r) => r.thumbnailUrl).slice(0, 6)
           : existingSocial.reelImages,
       bannerTop: existingSocial.bannerTop || { imageUrl: "", linkUrl: "" },
       bannerBottom: existingSocial.bannerBottom || { imageUrl: "", linkUrl: "" },
+      lastSyncedAt: new Date().toISOString(),
     };
 
     const updatedConfig = await HomepageRepository.updateSections({
@@ -320,9 +487,9 @@ export class HomepageService {
   }
 
   /**
-   * Invalidate Redis cache.
+   * Invalidate Redis and in-memory cache.
    */
-  private static async invalidateCache(): Promise<void> {
+  static async invalidateCache(): Promise<void> {
     try {
       await deleteCache(HOMEPAGE_CACHE_KEY);
     } catch (err) {

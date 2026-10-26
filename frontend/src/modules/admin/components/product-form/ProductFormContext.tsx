@@ -41,6 +41,10 @@ export interface ProductFormContextType {
   createBrand: any;
   categoryId: string;
   setCategoryId: (v: string) => void;
+  categorySlugs: string[];
+  setCategorySlugs: Dispatch<SetStateAction<string[]>>;
+  applyCategoryBlueprint: (catIdOrSlug: string) => void;
+  activeBlueprint?: any;
   categoryTree: any[];
   productType: "simple" | "configurable";
   setProductType: (v: "simple" | "configurable") => void;
@@ -127,6 +131,8 @@ export interface ProductFormContextType {
   setAttributeSetCode: (v: string) => void;
   activeTemplate: string;
   currentSpecDefinition: any;
+  categoryCustomSpecDef?: any;
+  selectedCategoryNode?: any;
   gender: string;
   setGender: (v: string) => void;
   customAttributes: CustomAttribute[];
@@ -170,6 +176,13 @@ export interface ProductFormContextType {
   setMetaKeywords: (v: string) => void;
   faqs: ProductFaq[];
   setFaqs: Dispatch<SetStateAction<ProductFaq[]>>;
+
+  // Step Wizard & Validation status
+  isFormValid: boolean;
+  missingFields: string[];
+  handleNextTab: () => void;
+  handlePrevTab: () => void;
+  handleTabChange: (targetTab: ProductFormTab) => void;
 
   // Actions
   handleSubmit: (e: React.FormEvent) => void;

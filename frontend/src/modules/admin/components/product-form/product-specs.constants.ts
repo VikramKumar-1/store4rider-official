@@ -503,23 +503,28 @@ export const CATEGORY_SPEC_DEFINITIONS: Record<
   },
 };
 
-export function detectAttributeSetFromCategory(catIdOrSlug: string, categories: any[]): string {
+export function findCategoryNodeInTree(nodes: any[], catIdOrSlug: string): any {
+  if (!catIdOrSlug || !nodes || !nodes.length) return null;
+  for (const node of nodes) {
+    if (node._id === catIdOrSlug || node.slug === catIdOrSlug) return node;
+    if (node.children?.length) {
+      const found = findCategoryNodeInTree(node.children, catIdOrSlug);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+export function detectAttributeSetFromCategory(catIdOrSlug: string, categories: any[] = []): string {
   if (!catIdOrSlug) return "Default";
 
-  const findInTree = (nodes: any[]): string => {
-    for (const node of nodes) {
-      if (node._id === catIdOrSlug || node.slug === catIdOrSlug) {
-        return node.name || node.slug;
-      }
-      if (node.children?.length) {
-        const found = findInTree(node.children);
-        if (found) return found;
-      }
-    }
-    return "";
-  };
+  // 1. Explicit admin assignment takes highest priority
+  const explicitNode = findCategoryNodeInTree(categories, catIdOrSlug);
+  if (explicitNode?.attributeSetCode && explicitNode.attributeSetCode !== "Default") {
+    return explicitNode.attributeSetCode;
+  }
 
-  const categoryName = findInTree(categories) || catIdOrSlug;
+  const categoryName = explicitNode?.name || catIdOrSlug;
   const target = (categoryName + " " + catIdOrSlug).toLowerCase();
 
   if (target.includes("helmet") || target.includes("visor")) return "Helmets";
@@ -577,6 +582,121 @@ export function detectAttributeSetFromCategory(catIdOrSlug: string, categories: 
   }
 
   return "Default";
+}
+
+export interface CategoryBlueprint {
+  attributeSet: string;
+  defaultHsn: string;
+  defaultTaxClass: string;
+  defaultWeightUnit: "kg" | "g" | "ml" | "L";
+  suggestedSizes: string[];
+  description: string;
+}
+
+export function getCategoryBlueprint(catIdOrSlug: string, categories: any[] = []): CategoryBlueprint {
+  const node = findCategoryNodeInTree(categories, catIdOrSlug);
+  const attrSet = node?.attributeSetCode || detectAttributeSetFromCategory(catIdOrSlug, categories);
+  let blueprint: CategoryBlueprint;
+
+  switch (attrSet) {
+    case "Helmets":
+      blueprint = {
+        attributeSet: "Helmets",
+        defaultHsn: "6506",
+        defaultTaxClass: "Taxable Goods (GST 18%)",
+        defaultWeightUnit: "kg",
+        suggestedSizes: ["XS", "S", "M", "L", "XL", "2XL"],
+        description: "Helmets & Safety Headgear (18% GST · HSN 6506)",
+      };
+      break;
+    case "Jackets":
+      blueprint = {
+        attributeSet: "Jackets",
+        defaultHsn: "6203",
+        defaultTaxClass: "Taxable Goods (GST 18%)",
+        defaultWeightUnit: "g",
+        suggestedSizes: ["S", "M", "L", "XL", "2XL", "3XL", "4XL"],
+        description: "Riding Jackets, Pants & Protective Suits (18% GST · HSN 6203)",
+      };
+      break;
+    case "Gloves":
+      blueprint = {
+        attributeSet: "Gloves",
+        defaultHsn: "6116",
+        defaultTaxClass: "Taxable Goods (GST 18%)",
+        defaultWeightUnit: "g",
+        suggestedSizes: ["S", "M", "L", "XL", "2XL"],
+        description: "Motorcycle Riding Gloves (18% GST · HSN 6116)",
+      };
+      break;
+    case "Boots":
+      blueprint = {
+        attributeSet: "Boots",
+        defaultHsn: "6403",
+        defaultTaxClass: "Taxable Goods (GST 18%)",
+        defaultWeightUnit: "kg",
+        suggestedSizes: ["EU 39", "EU 40", "EU 41", "EU 42", "EU 43", "EU 44", "EU 45", "EU 46"],
+        description: "Riding Boots & Footwear (18% GST · HSN 6403)",
+      };
+      break;
+    case "Saddle Bag":
+      blueprint = {
+        attributeSet: "Saddle Bag",
+        defaultHsn: "4202",
+        defaultTaxClass: "Taxable Goods (GST 18%)",
+        defaultWeightUnit: "kg",
+        suggestedSizes: ["Standard", "21L", "30L", "40L", "60L"],
+        description: "Motorcycle Luggage, Saddle & Tank Bags (18% GST · HSN 4202)",
+      };
+      break;
+    case "Chain Lubes / Liquids":
+      blueprint = {
+        attributeSet: "Chain Lubes / Liquids",
+        defaultHsn: "2710",
+        defaultTaxClass: "Taxable Goods (GST 18%)",
+        defaultWeightUnit: "ml",
+        suggestedSizes: ["100ml", "150ml", "250ml", "400ml", "500ml", "1L"],
+        description: "Chain Lubes, Cleaners & Care Liquids (18% GST · HSN 2710)",
+      };
+      break;
+    case "Spares, Accessories, Exhausts":
+      blueprint = {
+        attributeSet: "Spares, Accessories, Exhausts",
+        defaultHsn: "8708",
+        defaultTaxClass: "Auto Spares & Parts (GST 28%)",
+        defaultWeightUnit: "kg",
+        suggestedSizes: ["Standard"],
+        description: "Motorcycle Spares, Exhausts & Guards (28% GST · HSN 8708)",
+      };
+      break;
+    case "Communicator":
+      blueprint = {
+        attributeSet: "Communicator",
+        defaultHsn: "8517",
+        defaultTaxClass: "Taxable Goods (GST 18%)",
+        defaultWeightUnit: "g",
+        suggestedSizes: ["Single Pack", "Dual Pack"],
+        description: "Bluetooth Communicators & Electronics (18% GST · HSN 8517)",
+      };
+      break;
+    default:
+      blueprint = {
+        attributeSet: "Default",
+        defaultHsn: "6506",
+        defaultTaxClass: "Taxable Goods (GST 18%)",
+        defaultWeightUnit: "kg",
+        suggestedSizes: ["Standard"],
+        description: "General Merchandise (18% GST)",
+      };
+      break;
+  }
+
+  // Explicit category overrides defined by client in Admin Categories
+  if (node?.hsnCode) blueprint.defaultHsn = node.hsnCode;
+  if (node?.taxClassName) blueprint.defaultTaxClass = node.taxClassName;
+  if (node?.weightUnit) blueprint.defaultWeightUnit = node.weightUnit;
+
+  return blueprint;
 }
 
 export const COLOR_OPTIONS = [

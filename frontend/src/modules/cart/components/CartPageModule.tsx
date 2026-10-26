@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { useProductsBySkus } from "@/core/hooks/useProducts";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -57,7 +58,16 @@ const AVAILABLE_PROMOS: PromoCodeItem[] = [
 export const CartPageModule = () => {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
-  const { items, removeItem, updateQuantity, isLoaded } = useCartStore();
+  const { items, removeItem, updateQuantity, addItem, isLoaded } = useCartStore();
+
+  // Extract Cross-Sell SKUs configured on products currently in the cart
+  const crosssellSkus = useMemo(() => {
+    const rawSkus = items.flatMap((i) => i.product?.crosssellSkus || []);
+    const inCartSkus = new Set(items.map((i) => i.product?.sku || (i as any).sku));
+    return Array.from(new Set(rawSkus)).filter((sku) => Boolean(sku) && !inCartSkus.has(sku)).slice(0, 4);
+  }, [items]);
+
+  const { data: crosssellProducts } = useProductsBySkus(crosssellSkus);
   const [mounted, setMounted] = useState(false);
   const [showPromoBanner, setShowPromoBanner] = useState(true);
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
@@ -327,6 +337,55 @@ export const CartPageModule = () => {
                 );
               })}
             </div>
+
+            {/* Cross-Sell Recommendations ("Frequently Added Together") */}
+            {crosssellProducts && crosssellProducts.length > 0 && (
+              <div className="mt-8 pt-6 border-t border-neutral-200">
+                <h3 className="font-sans font-bold text-sm md:text-base text-neutral-900 uppercase tracking-wider mb-3">
+                  Frequently Added Together
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {crosssellProducts.map((rec) => {
+                    const price = rec.specialPrice || rec.basePrice || 0;
+                    const img = rec.images?.[0]?.url || FALLBACK_IMAGE;
+                    return (
+                      <div
+                        key={rec._id}
+                        className="flex items-center gap-3 p-3 bg-neutral-50 border border-neutral-200 rounded-sm hover:border-neutral-300 transition-colors"
+                      >
+                        <div className="relative w-14 h-14 bg-white rounded-xs border border-neutral-100 flex-shrink-0 overflow-hidden">
+                          <Image src={img} alt={rec.name} fill sizes="56px" className="object-contain" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <Link
+                            href={`/${rec.slug}`}
+                            className="font-bold text-xs text-neutral-900 line-clamp-1 hover:text-banner transition-colors"
+                          >
+                            {rec.name}
+                          </Link>
+                          <p className="text-xs font-bold text-neutral-900 mt-0.5">{formatPrice(price)}</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              addItem({
+                                id: rec._id,
+                                productId: rec._id,
+                                quantity: 1,
+                                product: rec,
+                              });
+                              toast.success(`Added ${rec.name} to cart`);
+                            }}
+                            className="mt-1 text-[11px] font-bold text-banner hover:underline cursor-pointer"
+                          >
+                            + Add to Cart
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Right Column: Shopping Info Summary (Sticky on desktop scroll) */}
             <div className="w-full lg:w-[38%] lg:sticky lg:top-24 bg-white z-20">

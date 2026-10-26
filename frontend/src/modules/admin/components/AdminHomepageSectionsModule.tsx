@@ -33,6 +33,9 @@ import {
   Play,
   Video,
   Heart,
+  Clock,
+  AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { useHomepageConfig, useUpdateHomepageSections } from "@/core/hooks/useHomepage";
 import { useSyncInstagramFeed } from "@/core/hooks/useInstagramSync";
@@ -109,6 +112,7 @@ export function AdminHomepageSectionsModule() {
       instagramHandle: "store4riders",
       instagramProfileUrl: "https://www.instagram.com/store4riders/",
       reels: [],
+      lastSyncedAt: "",
       reelImages: [
         "/reel-1.jpg",
         "/reel-2.jpg",
@@ -190,6 +194,7 @@ export function AdminHomepageSectionsModule() {
           socialMedia: {
             ...prev.socialMedia,
             ...config.sections?.socialMedia,
+            lastSyncedAt: config.sections?.socialMedia?.lastSyncedAt ?? prev.socialMedia?.lastSyncedAt ?? "",
             bannerTop: {
               imageUrl: config.sections?.socialMedia?.bannerTop?.imageUrl ?? prev.socialMedia?.bannerTop?.imageUrl ?? "",
               linkUrl: config.sections?.socialMedia?.bannerTop?.linkUrl ?? prev.socialMedia?.bannerTop?.linkUrl ?? "",
@@ -1498,6 +1503,26 @@ export function AdminHomepageSectionsModule() {
                 </p>
               </div>
 
+              {/* Dedicated Workspace Link Banner */}
+              <div className="bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 border border-pink-200/80 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#f09433] via-[#dc2743] to-[#bc1888] flex items-center justify-center text-white shrink-0 shadow-xs">
+                    <Instagram className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">Dedicated Full-Screen Workspace</h4>
+                    <p className="text-[11px] text-slate-500">Manage reels, views analytics, and auto-sync in the dedicated full-screen page.</p>
+                  </div>
+                </div>
+                <Link
+                  href="/admin/homepage/reels"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-pink-300 hover:border-pink-400 text-slate-800 font-bold text-xs shadow-2xs transition-all hover:shadow-xs shrink-0 self-start sm:self-auto cursor-pointer"
+                >
+                  <span>Open Dedicated Page</span>
+                  <ExternalLink className="w-3 h-3 text-brand" />
+                </Link>
+              </div>
+
               {/* Section Meta Inputs */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
@@ -1603,7 +1628,27 @@ export function AdminHomepageSectionsModule() {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => syncInstagramMutation.mutate({})}
+                      onClick={() =>
+                        syncInstagramMutation.mutate(
+                          {},
+                          {
+                            onSuccess: (data) => {
+                              if (data?.sections?.socialMedia) {
+                                setSectionsState((prev) => ({
+                                  ...prev,
+                                  socialMedia: {
+                                    ...prev.socialMedia,
+                                    ...data.sections.socialMedia,
+                                    reels: Array.isArray(data.sections.socialMedia.reels)
+                                      ? data.sections.socialMedia.reels
+                                      : [],
+                                  },
+                                }));
+                              }
+                            },
+                          }
+                        )
+                      }
                       disabled={syncInstagramMutation.isPending}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] hover:opacity-90 text-white font-bold text-xs uppercase tracking-wider shadow-2xs transition-all cursor-pointer disabled:opacity-50"
                     >
@@ -1637,6 +1682,83 @@ export function AdminHomepageSectionsModule() {
                       <Plus className="w-3.5 h-3.5" />
                       <span>Add New Reel</span>
                     </button>
+                  </div>
+                </div>
+
+                {/* Instagram API Sync Schedule & Rate Limit Guidelines Banner */}
+                <div className="rounded-xl border border-amber-200/80 bg-gradient-to-r from-amber-50/70 via-orange-50/40 to-slate-50 p-3 sm:p-3.5 text-xs text-slate-700 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/60 pb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-md bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0">
+                        <Clock className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="font-bold text-slate-800 text-xs">
+                        Instagram Live Sync Schedule & Rate-Limit Rules
+                      </span>
+                    </div>
+
+                    {/* Last Synced Badge */}
+                    <div className="flex items-center gap-1.5 text-[11px] font-mono">
+                      <span className="text-slate-500">Last Synced:</span>
+                      {sectionsState.socialMedia.lastSyncedAt ? (
+                        <span className="font-semibold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">
+                          {new Date(sectionsState.socialMedia.lastSyncedAt).toLocaleString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md">
+                          Not synced yet
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 pt-0.5 text-[11px]">
+                    <div className="space-y-1">
+                      <div className="font-bold text-slate-800 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span>Recommended Frequency</span>
+                      </div>
+                      <p className="text-slate-600 leading-relaxed">
+                        Fetch <strong>once every 12 to 24 hours</strong> (daily), or immediately after publishing a new Reel/Post on Instagram.
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="font-bold text-slate-800 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        <span>Background Auto-Sync</span>
+                      </div>
+                      <p className="text-slate-600 leading-relaxed">
+                        The backend automatically checks for new reels in the background <strong>every 15 to 30 minutes</strong>. Manual syncing is only needed for instant updates.
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="font-bold text-slate-800 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                        <span>Meta API Rate Limits</span>
+                      </div>
+                      <p className="text-slate-600 leading-relaxed">
+                        Meta caps Graph API calls at <strong>200 calls/hr</strong>. Rapid continuous clicks can trigger an API lockout (Error #32).
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="font-bold text-slate-800 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                        <span>Admin Sequence & Overrides</span>
+                      </div>
+                      <p className="text-slate-600 leading-relaxed">
+                        Your manual sequence (<strong>◀ / ▶</strong>), custom titles, and active/hidden states are <strong>never overwritten</strong>. Sync only refreshes views/likes and pulls brand-new posts.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -1677,6 +1799,7 @@ export function AdminHomepageSectionsModule() {
                               fill
                               className="object-cover"
                               sizes="160px"
+                              unoptimized={true}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-slate-500">
@@ -1713,18 +1836,37 @@ export function AdminHomepageSectionsModule() {
                             <span className={`w-2 h-2 rounded-full ${reel.isActive === false ? "bg-slate-400" : "bg-emerald-400"}`} />
                           </button>
 
-                          {/* Views Badge */}
-                          <div className="absolute bottom-1.5 left-2 z-10 flex items-center gap-1 text-white text-[10px] font-bold drop-shadow-md">
-                            <Play className="w-2.5 h-2.5 fill-current text-banner" />
-                            <span>{reel.views || "10K"}</span>
+                          {/* Views & Likes Badges */}
+                          <div className="absolute bottom-1.5 inset-x-2 z-10 flex items-center justify-between text-white text-[10px] font-bold drop-shadow-md">
+                            <div className="flex items-center gap-1">
+                              <Play className="w-2.5 h-2.5 fill-current text-banner" />
+                              <span>{reel.views || "0"}</span>
+                            </div>
+                            {reel.likes && (
+                              <div className="flex items-center gap-0.5 text-white/90">
+                                <Heart className="w-2.5 h-2.5 fill-current text-rose-400" />
+                                <span>{reel.likes}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
 
                         {/* Card Info & Actions */}
                         <div className="p-2 flex flex-col justify-between flex-1 bg-white">
-                          <p className="text-[11px] font-bold text-slate-800 line-clamp-2 leading-tight mb-2" title={reel.title}>
-                            {reel.title || "Untitled Reel"}
-                          </p>
+                          <div>
+                            {reel.timestamp && (
+                              <span className="text-[9.5px] font-mono text-slate-400 block mb-0.5">
+                                {new Date(reel.timestamp).toLocaleDateString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </span>
+                            )}
+                            <p className="text-[11px] font-bold text-slate-800 line-clamp-2 leading-tight mb-2" title={reel.title}>
+                              {reel.title || "Untitled Reel"}
+                            </p>
+                          </div>
 
                           <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px]">
                             {/* Reorder arrows */}

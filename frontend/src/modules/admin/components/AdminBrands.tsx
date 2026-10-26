@@ -350,7 +350,7 @@ export function AdminBrands() {
               />
               <div>
                 <label htmlFor="showInMenu" className="text-sm font-semibold text-slate-800 cursor-pointer block">
-                  Show in Navigation Submenu / Megamenu
+                  Show in Top Menu (&apos;Shop By Brand&apos;)
                 </label>
                 <p className="text-xs text-slate-500 mt-0.5">
                   When enabled, this brand will be shown in the storefront dropdown under "Shop By Brand".
@@ -361,7 +361,7 @@ export function AdminBrands() {
             {showInMenuValue && (
               <div className="pt-2 border-t border-slate-200">
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Submenu Column / Group
+                  Brand Section in Menu (Column)
                 </label>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {PRESET_MENU_GROUPS.map((group) => (

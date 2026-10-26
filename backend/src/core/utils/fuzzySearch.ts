@@ -38,7 +38,7 @@ export const MOTORCYCLE_VOCABULARY = [
   "luggage", "tankbag", "saddlebag", "tailbag", "backpack", "pouch",
   "pant", "pants", "trouser", "trousers", "suit", "onepiece",
   "armour", "armor", "protector", "guard", "chest", "back", "knee", "elbow",
-  "balaclava", "mask", "buff", "neckwarmer",
+  "balaclava", "balaclavas", "bandana", "bandanas", "mask", "buff", "neckwarmer",
   "rainwear", "raincoat", "waterproof", "raincover", "sock", "socks",
   "intercom", "bluetooth", "communicator", "headset",
   "mount", "holder", "mobile", "charger",
@@ -53,6 +53,54 @@ export const MOTORCYCLE_VOCABULARY = [
   "mothe", "motul", "putoline", "wd40", "carbonado",
   "shoerella", "rynoxgears", "senabluetooth", "cardo"
 ];
+
+export interface GearAccessoryRule {
+  core: RegExp;
+  allowedAccessories: RegExp;
+  excludedNames: RegExp;
+}
+
+export const GEAR_ACCESSORY_RULES: GearAccessoryRule[] = [
+  {
+    core: /\b(helmet|helmets)\b/i,
+    allowedAccessories: /\b(visor|visors|pinlock|cleaner|spray|balaclava|balaclavas|bandana|bandanas|intercom|communicator|spoiler|pad|pads|screw|lock|deflector|shield|lens|chin\s*curtain)\b/i,
+    excludedNames: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement|cleaner|spray|mask|balaclava|balaclavas|bandana|bandanas|lens|shield|anti-fog)\b/i,
+  },
+  {
+    core: /\b(jacket|jackets)\b/i,
+    allowedAccessories: /\b(armor|armour|protector|insert|pad|pads|liner|layer)\b/i,
+    excludedNames: /\b((hip|knee|elbow|back|shoulder|chest)\s*(protector|armor|armour|insert|pad|pads)|armour\s*insert|armor\s*insert|base\s*layer|liner)\b/i,
+  },
+  {
+    core: /\b(boot|boots|shoe|shoes)\b/i,
+    allowedAccessories: /\b(sock|socks|lace|laces|insole|insoles|slider|sliders|cover|covers)\b/i,
+    excludedNames: /\b(socks?|laces?|insole|insoles|covers?|toe\s*slider|sliders?)\b/i,
+  },
+  {
+    core: /\b(glove|gloves)\b/i,
+    allowedAccessories: /\b(liner|liners|inner|inners)\b/i,
+    excludedNames: /\b(inner\s*glove|glove\s*liner|rain\s*cover)\b/i,
+  },
+  {
+    core: /\b(pant|pants|trouser|trousers)\b/i,
+    allowedAccessories: /\b(armor|armour|protector|insert|pad|pads|liner)\b/i,
+    excludedNames: /\b((hip|knee)\s*(protector|armor|armour|insert|pad|pads)|base\s*layer|liner)\b/i,
+  },
+];
+
+/**
+ * Returns regex of accessories to exclude if query is targeting a core gear type
+ * without explicitly asking for accessories (e.g. searching "helmet" excludes bandanas & visors).
+ */
+export function getGearAccessoryExclusion(queryTerms: string[]): RegExp | null {
+  const queryStr = queryTerms.join(" ");
+  for (const rule of GEAR_ACCESSORY_RULES) {
+    if (rule.core.test(queryStr) && !rule.allowedAccessories.test(queryStr)) {
+      return rule.excludedNames;
+    }
+  }
+  return null;
+}
 
 /**
  * Corrects a single token against the vocabulary if it has a typo.

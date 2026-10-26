@@ -105,14 +105,15 @@ export class ShipmentService {
         shipmentType: "forward",
         status: result.awb ? "AWB_ASSIGNED" : "SHIPMENT_CREATED",
         providerShipmentId: result.shipmentId,
+        shipmentId: result.shipmentId,
         awb: result.awb,
         courierName: result.courierName,
         labelUrl: result.labelUrl,
-        providerStatus: "Order pushed to Shiprocket Dashboard",
+        providerStatus: result.awb ? "AWB Generated" : "Dispatched via Shiprocket",
         totalWeight: totalWeight,
-        customerShippingCharge: order.pricing.shipping,
-        codFee: order.paymentMethod === "cod" ? order.pricing.codAmountToCollect : 0,
-        idempotencyKey: `sr_${order._id}`,
+        customerShippingCharge: order.pricing?.shipping || 0,
+        codFee: order.paymentMethod === "cod" ? (order.pricing?.codAmountToCollect || 0) : 0,
+        idempotencyKey: `sr_${order._id}_${Date.now()}`,
       });
     } else {
       shipment.provider = "shiprocket";
@@ -121,10 +122,11 @@ export class ShipmentService {
       }
       shipment.status = result.awb ? "AWB_ASSIGNED" : "SHIPMENT_CREATED";
       shipment.providerShipmentId = result.shipmentId;
+      shipment.shipmentId = result.shipmentId;
       shipment.awb = result.awb;
       shipment.courierName = result.courierName;
       shipment.labelUrl = result.labelUrl;
-      shipment.providerStatus = "Order pushed to Shiprocket Dashboard";
+      shipment.providerStatus = result.awb ? "AWB Generated" : "Dispatched via Shiprocket";
     }
     await shipment.save();
 
@@ -133,12 +135,17 @@ export class ShipmentService {
     }
 
     // Update Order with note
+    if (!order.notes) {
+      order.notes = [];
+    }
     order.notes.push({
-      text: `Pushed to Shiprocket Dashboard (Shipment ID: ${result.shipmentId}). Admin can fulfill and assign warehouse in Shiprocket.`,
+      text: result.awb
+        ? `Dispatched via Shiprocket (${result.courierName || "Shiprocket"}). AWB: ${result.awb}`
+        : `Dispatched via Shiprocket (Shipment ID: ${result.shipmentId})`,
       author: "admin",
       timestamp: new Date(),
     });
-    if (order.status === "confirmed") {
+    if (order.status === "confirmed" || order.status === "processing" || order.status === "pending_payment") {
       order.status = "packed";
     }
     await order.save();
@@ -148,7 +155,9 @@ export class ShipmentService {
     return {
       success: true,
       shipment,
-      message: "Order successfully sent to Shiprocket Dashboard",
+      message: result.awb
+        ? `Order dispatched and AWB ${result.awb} assigned via Shiprocket`
+        : "Order successfully dispatched via Shiprocket",
     };
   }
 

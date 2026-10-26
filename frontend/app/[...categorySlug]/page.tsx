@@ -384,6 +384,28 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     itemListElement: breadcrumbElements,
   };
 
+  // Schema: FAQPage (Google Rich Snippets for Category/Submenu FAQs)
+  const faqSchema = initialCategoryNode?.faqs && initialCategoryNode.faqs.length > 0
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: initialCategoryNode.faqs
+          .filter((f: any) => f.question && f.answer)
+          .map((f: any) => ({
+            "@type": "Question",
+            name: f.question.trim(),
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: (f.answer || "")
+                .replace(/<[^>]*>/g, " ")
+                .replace(/&nbsp;/g, " ")
+                .replace(/\s+/g, " ")
+                .trim(),
+            },
+          })),
+      }
+    : null;
+
   return (
     <>
       <script
@@ -394,6 +416,12 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
       <Suspense fallback={<ProductsLoading />}>
         <ProductsPageModule initialCategoryNode={initialCategoryNode} />
       </Suspense>

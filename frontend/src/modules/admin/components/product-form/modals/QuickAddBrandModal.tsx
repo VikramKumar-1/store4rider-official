@@ -127,22 +127,30 @@ export function QuickAddBrandModal() {
 
         {/* Submenu Display Controls */}
         <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-start gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={newBrandShowInMenu}
               onChange={(e) => setNewBrandShowInMenu(e.target.checked)}
-              className="w-4 h-4 text-brand rounded border-slate-300 focus:ring-brand cursor-pointer"
+              className="w-4 h-4 mt-0.5 text-brand rounded border-slate-300 focus:ring-brand cursor-pointer"
             />
-            <span className="text-xs font-semibold text-slate-800">
-              Show in Navigation Submenu (&apos;Shop By Brand&apos;)
-            </span>
+            <div>
+              <span className="text-xs font-semibold text-slate-800 block">
+                Show in Top Menu (&apos;Shop By Brand&apos;)
+              </span>
+              <p className="text-[10px] text-slate-500">
+                Turn on to display this brand in the website header dropdown
+              </p>
+            </div>
           </label>
           {newBrandShowInMenu && (
-            <div>
-              <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                Submenu Column / Group
+            <div className="pt-1">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                Brand Section in Menu
               </label>
+              <p className="text-[10px] text-slate-400 mb-1.5">
+                Select which column this brand belongs to:
+              </p>
               <div className="flex flex-wrap gap-1 mb-1.5">
                 {[
                   "Helmet Brands",

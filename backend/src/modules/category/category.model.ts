@@ -23,6 +23,19 @@ const categorySchema = new Schema<ICategory>(
     heroCategoryIds: [{ type: String }],
     badge: { type: String },
     badgeColor: { type: String },
+    attributeSetCode: { type: String },
+    hsnCode: { type: String },
+    taxClassName: { type: String },
+    weightUnit: { type: String, enum: ["kg", "g", "ml", "L"] },
+    sizeChart: { type: String },
+    specDefinitions: [
+      {
+        key: { type: String, required: true },
+        label: { type: String, required: true },
+        placeholder: { type: String, default: "" },
+        presets: [{ type: String }],
+      },
+    ],
     filterConfig: [{
       code: { type: String, required: true },
       label: { type: String, required: true },

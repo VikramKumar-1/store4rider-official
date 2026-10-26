@@ -11,6 +11,7 @@ export interface ShipmentDocument extends Document {
   // Provider specific IDs
   providerOrderId?: string;
   providerShipmentId?: string;
+  shipmentId?: string;
   awb?: string;
   courierName?: string;
   
@@ -105,6 +106,7 @@ const shipmentSchema = new Schema<ShipmentDocument>(
     
     providerOrderId: { type: String },
     providerShipmentId: { type: String },
+    shipmentId: { type: String, sparse: true },
     awb: { type: String, index: true },
     courierName: { type: String },
     

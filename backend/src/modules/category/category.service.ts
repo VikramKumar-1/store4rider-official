@@ -1,5 +1,6 @@
 import { CategoryRepository } from "./category.repository";
 import { ICategory } from "@store4riders/shared-types";
+import { ValidationError, NotFoundError } from "../../core/errors/AppError";
 import { getCache, setCache, deleteCache } from "../../core/cache/redis";
 import { CATEGORY_ALIAS_MAP } from "../product/product.category-constants";
 
@@ -27,25 +28,60 @@ export class CategoryService {
   }
 
   static async createCategory(data: Partial<ICategory>): Promise<ICategory> {
-    const slug = data.slug || data.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    let slug = (data.slug || data.name || "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    if (slug) {
+      const existing = await CategoryRepository.findBySlug(slug);
+      if (existing) {
+        slug = `${slug}-${Date.now().toString().slice(-4)}`;
+      }
+    }
+
     const category = await CategoryRepository.create({ ...data, slug });
     await this.invalidateCache();
     return category;
   }
 
   static async updateCategory(id: string, data: Partial<ICategory>): Promise<ICategory> {
+    if (data.parentId === "" || data.parentId === "null") {
+      data.parentId = undefined;
+    }
+    if (data.parentId && String(data.parentId) === String(id)) {
+      throw new ValidationError("A category cannot be its own parent");
+    }
+    if (data.parentId) {
+      const allCategories = await CategoryRepository.findAll();
+      const isDescendant = (parentId: string, targetChildId: string): boolean => {
+        const parent = allCategories.find(c => String(c._id) === String(parentId));
+        if (!parent || !parent.parentId) return false;
+        if (String(parent.parentId) === String(targetChildId)) return true;
+        return isDescendant(String(parent.parentId), targetChildId);
+      };
+      if (isDescendant(String(data.parentId), String(id))) {
+        throw new ValidationError("Cannot set a descendant category as parent (circular hierarchy)");
+      }
+    }
     if (data.name && !data.slug) {
       data.slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     }
     const category = await CategoryRepository.update(id, data);
-    if (!category) throw new Error("Category not found");
+    if (!category) throw new NotFoundError("Category not found");
     await this.invalidateCache();
     return category;
   }
 
   static async deleteCategory(id: string): Promise<void> {
     const category = await CategoryRepository.findById(id);
-    if (!category) throw new Error("Category not found");
+    if (!category) throw new NotFoundError("Category not found");
+    
+    // Promote direct children to this category's parent (or root) to prevent orphan categories
+    const newParentId = category.parentId || undefined;
+    await CategoryRepository.updateMany({ parentId: id }, { parentId: newParentId });
+
     await CategoryRepository.delete(id);
     await this.invalidateCache();
   }

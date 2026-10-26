@@ -144,8 +144,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Mobile/Tablet Search Toggle Icon */}
             <button
+              type="button"
               onClick={() => setIsMobileSearchOpen(true)}
               aria-label="Search"
+              suppressHydrationWarning
               className={`sm:hidden p-2 rounded-full transition-all duration-200 cursor-pointer active:scale-90 ${isLight
                   ? "text-neutral-700 hover:text-neutral-950 hover:bg-neutral-900/[0.06]"
                   : "text-white/80 hover:text-white hover:bg-white/10"
@@ -175,6 +177,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Link
               href={mounted && isAuthenticated ? "/account" : "/login"}
               aria-label="User Account"
+              suppressHydrationWarning
               className={`lg:hidden relative p-2 rounded-full transition-all duration-200 cursor-pointer active:scale-95 ${isLight
                   ? "text-neutral-700 hover:text-neutral-950 hover:bg-neutral-900/[0.06]"
                   : "text-white/80 hover:text-white hover:bg-white/10"
@@ -204,8 +207,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Hamburger (mobile only) */}
             <button
+              type="button"
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Open menu"
+              suppressHydrationWarning
               className={`lg:hidden p-2.5 rounded-full transition-all active:scale-95 ${isLight
                   ? "text-neutral-700 hover:bg-neutral-900/[0.06]"
                   : "text-white/90 hover:bg-white/10"

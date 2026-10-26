@@ -6,6 +6,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { getGuideBySlug, getRelatedGuides } from "../data/guides-data";
+import { getVideoEmbedInfo } from "../utils/video";
 import { GuideAuthorCard } from "./GuideAuthorCard";
 import { GuideCard } from "./GuideCard";
 import {
@@ -19,10 +20,12 @@ import {
 
 interface GuideDetailModuleProps {
   slug: string;
+  initialPost?: any;
 }
 
-export const GuideDetailModule: React.FC<GuideDetailModuleProps> = ({ slug }) => {
-  const post = getGuideBySlug(slug);
+export const GuideDetailModule: React.FC<GuideDetailModuleProps> = ({ slug, initialPost }) => {
+  const post = initialPost || getGuideBySlug(slug);
+  const videoEmbed = getVideoEmbedInfo(post?.videoUrl);
   const [copied, setCopied] = useState(false);
 
   if (!post) {
@@ -31,13 +34,21 @@ export const GuideDetailModule: React.FC<GuideDetailModuleProps> = ({ slug }) =>
 
   const relatedPosts = getRelatedGuides(post.slug, 3);
 
-  const formattedDate = post.publishedDate
-    ? new Date(post.publishedDate).toLocaleDateString("en-IN", {
+  const formattedDate = (post?.publishedDate || post?.publishedAt) ? new Date(post.publishedDate || post.publishedAt).toLocaleDateString("en-IN", {
         year: "numeric",
         month: "long",
         day: "numeric",
       })
     : "";
+
+  const authorInitials =
+    post?.author?.name
+      ?.trim()
+      .split(/\s+/)
+      .map((part: string) => part[0]?.toUpperCase())
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("") || "SR";
 
   const handleCopyLink = () => {
     if (typeof window !== "undefined") {
@@ -102,15 +113,27 @@ export const GuideDetailModule: React.FC<GuideDetailModuleProps> = ({ slug }) =>
           <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-neutral-100 text-xs sm:text-sm text-neutral-600">
             {/* Author info */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-banner text-white flex items-center justify-center font-black text-xs shadow-sm">
-                VM
-              </div>
+              {post.author?.avatar ? (
+                <div className="relative w-10 h-10 rounded-full overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
+                  <Image
+                    src={post.author.avatar}
+                    alt={post.author.name || "Author"}
+                    fill
+                    sizes="40px"
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs tracking-wider shadow-2xs border border-slate-800 shrink-0">
+                  {authorInitials}
+                </div>
+              )}
               <div>
                 <p className="font-bold text-neutral-900 leading-tight">
-                  {post.author.name}
+                  {post.author?.name || "Store4Riders Editorial"}
                 </p>
-                <p className="text-xs text-neutral-500">
-                  {post.author.jobTitle || "Founder & Gear Specialist"}
+                <p className="text-xs text-brand font-medium">
+                  {post.author?.jobTitle || "Motorcycle Gear Specialist"}
                 </p>
               </div>
             </div>
@@ -118,9 +141,9 @@ export const GuideDetailModule: React.FC<GuideDetailModuleProps> = ({ slug }) =>
             {/* Date and Reading Time */}
             <div className="flex items-center gap-4 text-xs font-medium text-neutral-500">
               {formattedDate && (
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5" suppressHydrationWarning>
                   <Calendar className="w-4 h-4 text-neutral-400" />
-                  <span>{formattedDate}</span>
+                  <span suppressHydrationWarning>{formattedDate}</span>
                 </span>
               )}
               {post.readingTimeMinutes && (
@@ -142,8 +165,36 @@ export const GuideDetailModule: React.FC<GuideDetailModuleProps> = ({ slug }) =>
 
       {/* Main Content Area */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
-        {/* Featured Image */}
-        {post.featuredImage && (
+        {/* Featured Video Embed (if provided) */}
+        {videoEmbed ? (
+          <div className="mb-10">
+            <div className="relative aspect-video w-full rounded-2xl overflow-hidden shadow-2xl border border-neutral-200/90 bg-neutral-950">
+              {videoEmbed.type === "youtube" || videoEmbed.type === "vimeo" ? (
+                <iframe
+                  src={videoEmbed.embedUrl}
+                  title={`${post.title} - Video Review`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="w-full h-full border-0"
+                />
+              ) : (
+                <video
+                  src={videoEmbed.embedUrl}
+                  controls
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-3 px-1 text-xs text-neutral-600">
+              <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
+              <span className="font-bold text-neutral-900">Featured Video Walkthrough / Review</span>
+              <span className="text-neutral-400">•</span>
+              <span className="text-neutral-500">Official Store4Riders Channel</span>
+            </div>
+          </div>
+        ) : post.featuredImage ? (
+          /* Featured Cover Image */
           <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden shadow-lg border border-neutral-200/80 mb-10 bg-neutral-100">
             <Image
               src={post.featuredImage}
@@ -154,7 +205,7 @@ export const GuideDetailModule: React.FC<GuideDetailModuleProps> = ({ slug }) =>
               className="object-cover"
             />
           </div>
-        )}
+        ) : null}
 
         {/* Article Body - CSS Selector matched in speakable spec */}
         <div className="bg-white rounded-2xl p-6 sm:p-10 lg:p-12 border border-neutral-200/80 shadow-sm mb-12">
@@ -221,7 +272,7 @@ export const GuideDetailModule: React.FC<GuideDetailModuleProps> = ({ slug }) =>
         <div className="mb-14">
           <GuideAuthorCard
             author={post.author}
-            publishedDate={post.publishedDate}
+            publishedDate={post?.publishedDate || post?.publishedAt}
             readingTimeMinutes={post.readingTimeMinutes}
           />
         </div>

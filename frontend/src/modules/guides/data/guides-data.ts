@@ -47,6 +47,99 @@ export const GUIDE_CATEGORIES: IGuideCategory[] = [
 
 export const GUIDE_POSTS: IGuidePost[] = [
   {
+    "slug": "10-steps-for-cleaning-riding-gloves",
+    "title": "10 Steps for Cleaning Motorcycle Riding Gloves: Leather & Mesh",
+    "description": "Essential 10-step guide to cleaning, washing and conditioning leather, textile and waterproof motorcycle riding gloves for maximum longevity.",
+    "content": "<div class=\"_post-description clearfix\"><div class=\"post-description\"><article><h1>10 Steps for Cleaning Motorcycle Riding Gloves</h1><p><em>Published: October 2026 | By Store4Riders Gear Specialists</em></p><h2><strong>Why Glove Hygiene Matters</strong></h2><p>Your hands are your direct connection to the throttle, clutch, and front brake. Sweat, grime, and road dust build up quickly inside riding gloves, making the lining stiff, smelly, and prone to tearing. Cleaning your gloves regularly preserves leather flexibility and grip sensitivity.</p><h2><strong>The 10-Step Glove Cleaning Process</strong></h2><ol><li><strong>Dry Dusting:</strong> Shake out any loose dirt from inside and brush the outer shell with a soft horsehair brush.</li><li><strong>Never Soak Leather:</strong> For full leather gloves, never submerge in a tub. Use a damp cloth with specialized leather cleaner.</li><li><strong>Hand Wash for Textile / Mesh:</strong> For synthetic mesh gloves, use lukewarm water and mild baby shampoo or technical wash.</li><li><strong>Gently Clean Palm &amp; Grips:</strong> Use light pressure on leather palms and carbon knuckle areas.</li><li><strong>Rinse Thoroughly:</strong> Wipe away all soap residue with a clean, damp cloth.</li><li><strong>Stuff with Newspaper:</strong> Insert loosely crumpled paper to absorb moisture from the fingertips and maintain hand shape.</li><li><strong>Never Use Direct Heat:</strong> Keep gloves away from hairdryers, exhaust pipes, or direct sun. Air dry naturally.</li><li><strong>Condition the Leather:</strong> While slightly damp, apply a small dab of motorcycle leather conditioner to nourish the hide.</li><li><strong>Flex the Fingers:</strong> Put the dry gloves on and make a fist several times to break in the conditioned leather.</li><li><strong>Store in a Ventilated Spot:</strong> Keep in a dry, shaded place with good airflow.</li></ol><h2><strong>Related Guides</strong></h2><ul><li><a class=\"text-brand hover:underline font-semibold\" href=\"/guides/post/how-to-store-motorcycle-riding-gear\">How to Store Motorcycle Riding Gear Correctly</a></li><li><a class=\"text-brand hover:underline font-semibold\" href=\"/guides/post/how-to-clean-motorcycle-jacket\">How to Clean Motorcycle Jacket: Complete Guide</a></li></ul></article></div></div>",
+    "featuredImage": "https://www.store4riders.com/media/blog/cache/364x/magefan_blog/How-get-a-great-deal-on-used-superbike.jpg",
+    "categorySlug": "riding-gear-care",
+    "categoryName": "Riding Gear care",
+    "publishedDate": "2026-09-16T00:00:00+00:00",
+    "modifiedDate": "2026-09-16T00:00:00+00:00",
+    "wordCount": 920,
+    "readingTimeMinutes": 5,
+    "tags": ["Riding Gloves", "Riding Gear care", "Maintenance", "Store4Riders"],
+    "author": {
+      "name": "Vishwas Mokashi",
+      "url": "https://www.store4riders.com/guides/author/vishwas-mokashi",
+      "jobTitle": "Founder & Motorcycle Gear Specialist",
+      "bio": "Vishwas is the founder of Store4Riders with over 15 years of motorcycle riding and gear expertise.",
+      "sameAs": ["https://www.instagram.com/store4riders/"]
+    }
+  },
+  {
+    "slug": "helmet-maintenance-guide",
+    "title": "Motorcycle Helmet Cleaning & Maintenance Guide: Liner, Visor & Shell",
+    "description": "How to properly wash helmet comfort liners, clean Pinlock anti-fog visors without scratching, and maintain outer shell and EPS foam.",
+    "content": "<div class=\"_post-description clearfix\"><div class=\"post-description\"><article><h1>Motorcycle Helmet Cleaning &amp; Maintenance Guide</h1><p><em>Published: October 2026 | By Store4Riders Gear Specialists</em></p><h2><strong>Caring for Your Most Critical Life-Saving Gear</strong></h2><p>Your helmet protects your most valuable asset. Sweat, scalp oils, road bugs, and exhaust fumes degrade the comfort padding and dirty the visor, reducing visibility and comfort.</p><h2><strong>Liner &amp; Cheek Pad Cleaning</strong></h2><p>Remove cheek pads and crown liner gently from snap pins. Hand wash in cool water with mild baby shampoo. Rinse thoroughly until no soap bubbles remain, and let dry on a towel in a breezy room.</p><h2><strong>Visor &amp; Pinlock Care</strong></h2><p>Never use harsh chemical glass cleaners (like Colin or Windex) as they strip anti-scratch and UV coatings. Use warm water and a clean microfibre cloth. For Pinlock lenses, clean only with lukewarm water and let air dry to preserve the silicone moisture bead.</p><h2><strong>Outer Shell &amp; Vents</strong></h2><p>Use a soft damp microfibre cloth to soak bug splatter before wiping. Use a soft toothbrush or compressed air to clear road dust from chin and forehead ventilation channels.</p></article></div></div>",
+    "featuredImage": "https://www.store4riders.com/media/blog/cache/364x/magefan_blog/How_to_Choose_a_Helmet.jpg",
+    "categorySlug": "riding-gear-care",
+    "categoryName": "Riding Gear care",
+    "publishedDate": "2026-09-17T00:00:00+00:00",
+    "modifiedDate": "2026-09-17T00:00:00+00:00",
+    "wordCount": 850,
+    "readingTimeMinutes": 5,
+    "tags": ["Helmets", "Helmet Care", "Safety", "Store4Riders"],
+    "author": {
+      "name": "Vishwas Mokashi",
+      "url": "https://www.store4riders.com/guides/author/vishwas-mokashi",
+      "jobTitle": "Founder & Motorcycle Gear Specialist",
+      "bio": "Vishwas is the founder of Store4Riders with over 15 years of motorcycle riding and gear expertise.",
+      "sameAs": ["https://www.instagram.com/store4riders/"]
+    }
+  },
+  {
+    "slug": "waterproof-riding-gear",
+    "title": "Waterproof Motorcycle Riding Gear Guide: Membranes, DWR & Monsoon Tips",
+    "description": "Everything you need to know about waterproof breathable membranes (Gore-Tex, Reissa, Solto-TEX), rain suits, and staying dry on highway tours.",
+    "content": "<div class=\"_post-description clearfix\"><div class=\"post-description\"><article><h1>Waterproof Motorcycle Riding Gear Guide</h1><p><em>Published: October 2026 | By Store4Riders Gear Specialists</em></p><h2><strong>Riding in Indian Monsoons</strong></h2><p>Indian monsoons present extreme riding conditions. Understanding how external rain liners, internal membranes, and laminated outer shells work will keep you comfortable and focused on the road.</p><h2><strong>Membrane Technology Explained</strong></h2><p>Porous membranes like Gore-Tex and hydrophilic membranes like Reissa keep rain droplets out while allowing microscopic sweat vapour molecules to escape.</p><h2><strong>Maintaining Durable Water Repellency (DWR)</strong></h2><p>When rain stops beading on your jacket or pants and the outer fabric begins to look soaked (known as 'wet-out'), it is time to wash with a technical detergent and apply a fresh DWR water-repellent spray like Nikwax TX.Direct.</p></article></div></div>",
+    "featuredImage": "https://www.store4riders.com/media/blog/cache/364x/magefan_blog/How_to_Clean_Motorcycle_Jacket.jpg",
+    "categorySlug": "riding-gear-care",
+    "categoryName": "Riding Gear care",
+    "publishedDate": "2026-09-18T00:00:00+00:00",
+    "modifiedDate": "2026-09-18T00:00:00+00:00",
+    "wordCount": 980,
+    "readingTimeMinutes": 5,
+    "tags": ["Waterproof Gear", "Monsoon Touring", "Riding Gear care", "Store4Riders"],
+    "author": {
+      "name": "Vishwas Mokashi",
+      "url": "https://www.store4riders.com/guides/author/vishwas-mokashi",
+      "jobTitle": "Founder & Motorcycle Gear Specialist",
+      "bio": "Vishwas is the founder of Store4Riders with over 15 years of motorcycle riding and gear expertise.",
+      "sameAs": ["https://www.instagram.com/store4riders/"]
+    }
+  },
+  {
+    "slug": "how-to-clean-your-motorcycle-riding-pants",
+    "title": "How to Clean & Wash Motorcycle Riding Pants: Step-by-Step Guide",
+    "description": "Complete guide on how to wash and maintain textile, mesh, Kevlar riding jeans and leather motorcycle pants. Includes armour removal, chain lube stain removal, and waterproofing care.",
+    "content": "<div class=\"_post-description clearfix\"><div class=\"post-description\"><article><h1>How to Clean &amp; Wash Motorcycle Riding Pants</h1><p><em>Published: October 2026 | By Store4Riders Gear Specialists</em></p><h2><strong>Why Proper Riding Pants Care Matters</strong></h2><p>Riding pants endure more abuse than almost any other piece of riding gear. Between road grime, chain lube fling, exhaust heat, rain, mud, and hours of perspiration on long highway tours, your riding trousers take a beating. Failing to clean them regularly doesn't just make them look dirty—dirt and road grit actually grind into the high-tenacity Cordura and textile fibres, wearing down the abrasion resistance over time.</p><p>Moreover, sweat build-up creates bacteria and mildew that deteriorates waterproof breathable membranes (such as Reissa or Gore-Tex) and causes foul odours. This comprehensive guide covers step-by-step instructions for cleaning textile, mesh, Kevlar jeans, and leather riding pants.</p><h2><strong>Pre-Wash Checklist: 4 Crucial Steps</strong></h2><ol><li><strong>Remove All CE Armour:</strong> Always take out the knee and hip protectors from their internal pockets before washing. Impact absorbing foams (CE Level 1 and Level 2 armour) are not designed for water soaking and will lose their protective shape.</li><li><strong>Empty All Pockets:</strong> Check cargo, thigh, and hip pockets for keys, money, toll receipts, or tools. Leave pocket zippers and fly open.</li><li><strong>Brush Off Dry Grime:</strong> Use a soft-bristle brush to dust off dry road dirt, mud cakes, and dead bugs before getting the pants wet.</li><li><strong>Close Fasteners:</strong> Close Velcro cuffs, ankle adjusters, and waist straps so they don’t catch or fray the fabric during washing.</li></ol><h2><strong>Method 1: Hand Washing Textile &amp; Mesh Riding Pants (Recommended)</strong></h2><p>Hand washing is the gentlest and safest method for technical riding gear:</p><ol><li>Fill a bucket or tub with lukewarm water (under 30°C).</li><li>Add a mild liquid detergent or technical wash (e.g. Nikwax Tech Wash). <em>Never use bleach, fabric softeners, or harsh biological powders as they destroy water-repellent DWR coatings.</em></li><li>Submerge the riding pants and allow them to soak for 30 to 45 minutes to loosen stubborn road grime.</li><li>Gently scrub high-wear areas (knees, seat, and lower leg hems) with a soft sponge or microfibre cloth. For chain lube splatters, apply a drop of mild dish soap directly to the spot before soaking.</li><li>Rinse thoroughly with clean water multiple times until all traces of soap are completely gone. Soap residue attracts moisture and reduces breathability.</li><li>Do not wring or twist technical fabrics. Gently press out excess water.</li></ol><h2><strong>Method 2: Machine Washing Textile Pants</strong></h2><p>If your riding pants care label allows machine washing:</p><ul><li>Use the gentle / delicates cycle with cool water (30°C max).</li><li>Use mild technical detergent; skip the spin cycle or set it to minimum RPM.</li><li>Place the pants inside a mesh laundry wash bag to protect straps and buckles.</li><li><strong>DO NOT</strong> use the tumble dryer unless specifically required on low heat for DWR membrane reactivation.</li></ul><h2><strong>Special Care for Leather Riding Pants &amp; Track Trousers</strong></h2><p>Leather requires an entirely different approach:</p><ul><li><strong>Never soak or submerge leather trousers in water.</strong></li><li>Wipe the surface with a damp microfibre cloth using a dedicated leather cleaner.</li><li>Never scrub vigorously; let the cleaner lift the dirt.</li><li>Allow to air dry naturally away from direct sunlight, radiators, or heat guns.</li><li>Always apply a quality leather conditioner after cleaning to restore natural oils and prevent cracking.</li></ul><h2><strong>Drying and Storage Guidelines</strong></h2><ul><li>Hang your riding pants on a sturdy, wide hanger in a well-ventilated, shaded area.</li><li>Avoid direct harsh Indian sunlight, which causes UV degradation and colour fading.</li><li>Ensure the pants are 100% dry inside and out before storing in your wardrobe to prevent mildew growth.</li></ul><h2><strong>Related Guides</strong></h2><ul><li><a class=\"text-brand hover:underline font-semibold\" href=\"/guides/post/how-to-store-motorcycle-riding-gear\">How to Store Motorcycle Riding Gear Correctly</a></li><li><a class=\"text-brand hover:underline font-semibold\" href=\"/guides/post/how-to-clean-motorcycle-jacket\">How to Clean Motorcycle Jacket: Complete Guide</a></li><li><a class=\"text-brand hover:underline font-semibold\" href=\"/guides/post/ce-armour-standards-explained\">CE Armour Standards &amp; Ratings Explained</a></li></ul><h2><strong>Frequently Asked Questions</strong></h2><p><strong>Q1: How often should I wash my riding pants?</strong><br>A: A quick damp wipe-down after weekend rides is ideal. A thorough deep wash is recommended once every 1–2 months for daily commuters, or immediately after a wet, muddy monsoon tour.</p><p><strong>Q2: Can I wash riding pants with armour inside?</strong><br>A: No. Always remove hip and knee armour first. Armour absorbs moisture, takes days to dry, and can degrade or deform under washing agitation.</p><p><strong>Q3: How do I remove chain lube stains from riding pants?</strong><br>A: Apply a tiny dab of gentle liquid dish soap directly to the lube stain, let it sit for 10 minutes, then gently work it with a soft brush before washing.</p></article></div></div>",
+    "featuredImage": "https://www.store4riders.com/media/blog/cache/364x/magefan_blog/How_to_Clean_Motorcycle_Jacket.jpg",
+    "categorySlug": "riding-gear-care",
+    "categoryName": "Riding Gear care",
+    "publishedDate": "2026-09-15T00:00:00+00:00",
+    "modifiedDate": "2026-09-15T00:00:00+00:00",
+    "wordCount": 1150,
+    "readingTimeMinutes": 6,
+    "tags": [
+      "Riding Gear care",
+      "Riding Pants",
+      "Motorcycle Maintenance",
+      "Store4Riders"
+    ],
+    "author": {
+      "name": "Vishwas Mokashi",
+      "url": "https://www.store4riders.com/guides/author/vishwas-mokashi",
+      "jobTitle": "Founder & Motorcycle Gear Specialist",
+      "bio": "Vishwas is the founder of Store4Riders with over 15 years of motorcycle riding and gear expertise. He is dedicated to helping Indian motorcyclists choose certified protective gear, ride safely, and explore further.",
+      "sameAs": [
+        "https://www.instagram.com/store4riders/",
+        "https://www.facebook.com/store4riders/",
+        "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg"
+      ]
+    }
+  },
+  {
     "slug": "how-to-store-motorcycle-riding-gear",
     "title": "How to Store Motorcycle Riding Gear Correctly",
     "description": "How to store helmets, jackets, gloves and boots so they last, including monsoon and off-season storage for India&#039;s humidity and heat.",

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Eye, Save } from "lucide-react";
+import { Eye, Save, AlertCircle } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { StorefrontCardPreview } from "@/modules/admin/components/StorefrontCardPreview";
@@ -11,6 +11,8 @@ export function ProductReviewModal() {
   const {
     isReviewModalOpen,
     setIsReviewModalOpen,
+    isFormValid,
+    missingFields,
     mode,
     name,
     sku,
@@ -97,6 +99,16 @@ export function ProductReviewModal() {
           </div>
         </div>
 
+        {!isFormValid && (
+          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+            <AlertCircle size={16} className="text-amber-600 shrink-0" />
+            <span>
+              Cannot save yet. Please fill in the following required fields:{" "}
+              <strong>{missingFields.join(", ")}</strong>
+            </span>
+          </div>
+        )}
+
         <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
           <Button
             type="button"
@@ -108,9 +120,18 @@ export function ProductReviewModal() {
           </Button>
           <Button
             type="button"
-            disabled={createProduct.isPending || updateProduct.isPending}
+            disabled={!isFormValid || createProduct.isPending || updateProduct.isPending}
             onClick={executeSave}
-            className="bg-brand hover:bg-brand/90 text-white font-semibold px-6 text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
+            title={
+              !isFormValid
+                ? `Required fields missing: ${missingFields.join(", ")}`
+                : "Confirm and save product"
+            }
+            className={`font-semibold px-6 text-xs flex items-center gap-1.5 shadow-md transition-all ${
+              isFormValid && !createProduct.isPending && !updateProduct.isPending
+                ? "bg-brand hover:bg-brand/90 text-white cursor-pointer"
+                : "bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none"
+            }`}
           >
             <Save size={14} />
             <span>

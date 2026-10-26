@@ -11,8 +11,6 @@ import {
 } from "../data/guides-data";
 import { GuideCard } from "./GuideCard";
 import { GuideAuthorCard } from "./GuideAuthorCard";
-import { buildBlogCollectionSchema, buildBreadcrumbSchema } from "../utils/schema";
-import { SparklesIcon } from "@heroicons/react/24/outline";
 
 interface GuidesCategoryModuleProps {
   categorySlug: string;
@@ -27,39 +25,8 @@ export const GuidesCategoryModule: React.FC<GuidesCategoryModuleProps> = ({
   if (!category) {
     notFound();
   }
-
-  const collectionSchema = useMemo(() => {
-    return buildBlogCollectionSchema(
-      `${category.name} Guides | Store4Riders`,
-      category.description || `Expert motorcycle guides for ${category.name}`,
-      posts,
-      `https://www.store4riders.com/guides/category/${category.slug}`
-    );
-  }, [category, posts]);
-
-  const breadcrumbSchema = useMemo(() => {
-    return buildBreadcrumbSchema([
-      { name: "Home", url: "/" },
-      { name: "Guides", url: "/guides" },
-      { name: category.name, url: `/guides/category/${category.slug}` },
-    ]);
-  }, [category]);
-
   return (
     <div className="min-h-screen bg-neutral-50/60 pb-20">
-      {/* Blog Collection Schema */}
-      <script
-        type="application/ld+json"
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
-      />
-
-      {/* Breadcrumb Schema */}
-      <script
-        type="application/ld+json"
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
 
       {/* Breadcrumb */}
       <Breadcrumb
@@ -74,9 +41,15 @@ export const GuidesCategoryModule: React.FC<GuidesCategoryModuleProps> = ({
       <header className="bg-gradient-to-b from-neutral-100/70 via-white to-neutral-50/50 border-b border-neutral-200/80 py-10 sm:py-14">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand/10 border border-brand/20 text-brand text-xs font-bold uppercase tracking-widest mb-4">
-              <SparklesIcon className="w-4 h-4" />
-              <span>Category Knowledge Base</span>
+            <div className="flex items-center gap-2.5 mb-4">
+              <span className="w-2 h-2 rounded-full bg-brand shadow-xs" />
+              <span className="text-xs font-black uppercase tracking-widest text-brand">
+                {category.name} Guides & Manuals
+              </span>
+              <span className="text-neutral-300">•</span>
+              <span className="text-xs font-medium text-neutral-500">
+                Store4Riders Editorial
+              </span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl font-sans font-black tracking-tight text-neutral-900 mb-3">

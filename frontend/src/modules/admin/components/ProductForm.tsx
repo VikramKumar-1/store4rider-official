@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   ArrowLeft, Save, Eye, Layers, DollarSign, Image as ImageIcon, 
-  Sliders, GitBranch, Share2, Search 
+  Sliders, GitBranch, Share2, Search, ChevronLeft, ChevronRight,
+  AlertCircle, CheckCircle2 
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
@@ -23,7 +24,7 @@ import {
   CustomAttribute, ProductFaq 
 } from "./product-form/product-form.types";
 import { 
-  CATEGORY_SPEC_DEFINITIONS, detectAttributeSetFromCategory 
+  CATEGORY_SPEC_DEFINITIONS, detectAttributeSetFromCategory, getCategoryBlueprint 
 } from "./product-form/product-specs.constants";
 import { 
   ProductFormProvider, ProductFormContextType 
@@ -70,6 +71,7 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
   const brandLogoInputRef = useRef<HTMLInputElement | null>(null);
 
   const [categoryId, setCategoryId] = useState("");
+  const [categorySlugs, setCategorySlugs] = useState<string[]>([]);
   const [productType, setProductType] = useState<"simple" | "configurable">("simple");
   const [status, setStatus] = useState<"draft" | "published" | "archived">("published");
   const [visibility, setVisibility] = useState("Catalog, Search");
@@ -143,6 +145,10 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
     if (type === "waist") sizes = ["30", "32", "34", "36", "38", "40"];
 
     const currentColor = variants[0]?.color || "Standard";
+    const existingVariantPhoto = variants.find(
+      (v) => (v.color || "").trim().toLowerCase() === currentColor.trim().toLowerCase() && v.imageUrl
+    );
+
     const newVariants = sizes.map((s) => ({
       id: crypto.randomUUID(),
       sku: `${sku || "SKU"}-${s.replace(/\s+/g, "")}`,
@@ -150,6 +156,9 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
       size: s,
       price: basePrice || 0,
       stock: 10,
+      imageUrl: existingVariantPhoto?.imageUrl,
+      altText: existingVariantPhoto?.altText,
+      images: existingVariantPhoto?.images,
     }));
     setVariants((prev) => [...prev, ...newVariants]);
   };
@@ -174,8 +183,33 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
     });
   };
 
+  const selectedCategoryNode = useMemo(() => {
+    if (!categoryId) return null;
+    const findNode = (nodes: any[]): any => {
+      for (const n of nodes) {
+        if (n._id === categoryId || n.id === categoryId || n.slug === categoryId) return n;
+        if (n.children && n.children.length > 0) {
+          const found = findNode(n.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    return findNode(categoryTree);
+  }, [categoryId, categoryTree]);
+
+  const categoryCustomSpecDef = useMemo(() => {
+    if (!selectedCategoryNode?.specDefinitions || selectedCategoryNode.specDefinitions.length === 0) return null;
+    return {
+      title: `${selectedCategoryNode.name} Specifications & Attributes`,
+      subtitle: `Custom category specifications defined in Categories Manager`,
+      icon: "sliders" as const,
+      fields: selectedCategoryNode.specDefinitions,
+    };
+  }, [selectedCategoryNode]);
+
   const activeTemplate = useMemo(() => {
-    if (attributeSetCode && attributeSetCode !== "Default") {
+    if (attributeSetCode && attributeSetCode !== "Default" && attributeSetCode !== "CategoryCustom") {
       const lower = attributeSetCode.toLowerCase();
       if (lower.includes("helmet")) return "Helmets";
       if (lower.includes("jacket") || lower.includes("pant") || lower.includes("suit") || lower.includes("racing")) return "Jackets";
@@ -187,10 +221,35 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
       if (lower.includes("communicator") || lower.includes("gadget")) return "Communicator";
       return attributeSetCode;
     }
+    if (categoryCustomSpecDef) {
+      return "CategoryCustom";
+    }
     return detectAttributeSetFromCategory(categoryId, categoryTree);
-  }, [attributeSetCode, categoryId, categoryTree]);
+  }, [attributeSetCode, categoryId, categoryTree, categoryCustomSpecDef]);
 
-  const currentSpecDefinition = CATEGORY_SPEC_DEFINITIONS[activeTemplate] || CATEGORY_SPEC_DEFINITIONS.Default;
+  const activeBlueprint = useMemo(() => {
+    return getCategoryBlueprint(categoryId, categoryTree);
+  }, [categoryId, categoryTree]);
+
+  const applyCategoryBlueprint = (catIdOrSlug: string) => {
+    if (!catIdOrSlug) return;
+    const blueprint = getCategoryBlueprint(catIdOrSlug, categoryTree);
+    if (blueprint) {
+      setAttributeSetCode(blueprint.attributeSet);
+      setHsnCode(blueprint.defaultHsn);
+      setTaxClassName(blueprint.defaultTaxClass);
+      setIsCustomTaxRate(false);
+      setWeightUnit(blueprint.defaultWeightUnit);
+      toast.success(`⚡ Blueprint Applied: ${blueprint.description}`);
+    }
+  };
+
+  const currentSpecDefinition = useMemo(() => {
+    if ((attributeSetCode === "CategoryCustom" || !attributeSetCode) && categoryCustomSpecDef) {
+      return categoryCustomSpecDef;
+    }
+    return CATEGORY_SPEC_DEFINITIONS[activeTemplate] || categoryCustomSpecDef || CATEGORY_SPEC_DEFINITIONS.Default;
+  }, [attributeSetCode, categoryCustomSpecDef, activeTemplate]);
 
   const activeCategoryFieldKeys = useMemo(() => {
     if (!currentSpecDefinition) return [];
@@ -211,6 +270,10 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
       setSlug(existingProduct.slug || "");
       setBrand(existingProduct.brand || "");
       setCategoryId(existingProduct.categoryId || "");
+      const slugs = Array.isArray(existingProduct.categorySlugs) && existingProduct.categorySlugs.length > 0
+        ? existingProduct.categorySlugs
+        : (existingProduct.categoryId ? [existingProduct.categoryId] : []);
+      setCategorySlugs(slugs);
       setProductType((existingProduct.productType as any) || "simple");
       setStatus(existingProduct.status || "published");
       setVisibility(existingProduct.visibility || "Catalog, Search");
@@ -294,20 +357,46 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
       // Variants
       if (existingProduct.variants && existingProduct.variants.length > 0) {
         setVariants(
-          existingProduct.variants.map((v: any) => ({
-            id: v.id || crypto.randomUUID(),
-            sku: v.sku,
-            color: v.attributes?.color || "",
-            size: v.attributes?.size || "",
-            price: v.price ?? existingProduct.basePrice,
-            specialPrice: v.specialPrice ?? "",
-            stock: v.stock ?? 0,
-            imageUrl: v.imageUrl || "",
-            weight: v.weight ?? "",
-            status: v.status || "enabled",
-            visibility: v.visibility || "Catalog, Search",
-            images: v.images || [],
-          }))
+          existingProduct.variants.map((v: any) => {
+            const attrs = v.attributes instanceof Map ? Object.fromEntries(v.attributes) : (v.attributes || {});
+            const colorVal = attrs.color || attrs.colour || "";
+            const sizeVal = attrs.size || attrs.eu_size || attrs.eu_size_for_boots || "";
+            let primaryVariantImg = v.imageUrl || v.images?.[0]?.url || "";
+
+            // Check colorImages fallback if variant has no direct imageUrl
+            if (!primaryVariantImg && colorVal && existingProduct.colorImages) {
+              const cMap = existingProduct.colorImages instanceof Map
+                ? Object.fromEntries(existingProduct.colorImages)
+                : existingProduct.colorImages;
+              const matchKey = Object.keys(cMap).find((k) => k.trim().toLowerCase() === colorVal.trim().toLowerCase());
+              if (matchKey && cMap[matchKey]) {
+                primaryVariantImg = cMap[matchKey];
+              }
+            }
+
+            const primaryVariantAlt =
+              v.altText ||
+              v.images?.[0]?.altText ||
+              (primaryVariantImg && colorVal ? `${existingProduct.name} - ${colorVal}` : "");
+
+            return {
+              id: v.id || crypto.randomUUID(),
+              sku: v.sku,
+              color: colorVal,
+              size: sizeVal,
+              price: v.price ?? existingProduct.basePrice,
+              specialPrice: v.specialPrice ?? "",
+              stock: v.stock ?? 0,
+              imageUrl: primaryVariantImg,
+              altText: primaryVariantAlt,
+              weight: v.weight ?? "",
+              status: v.status || "enabled",
+              visibility: v.visibility || "Catalog, Search",
+              images: (v.images && v.images.length > 0)
+                ? v.images
+                : (primaryVariantImg ? [{ id: crypto.randomUUID(), url: primaryVariantImg, altText: primaryVariantAlt }] : []),
+            };
+          })
         );
       }
 
@@ -457,25 +546,132 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
     }
   };
 
+  // Validation of mandatory fields required for saving to DB
+  const missingFields = useMemo(() => {
+    const missing: string[] = [];
+    if (!name.trim()) missing.push("Product Name");
+    if (!sku.trim()) missing.push("SKU");
+    if (!categoryId.trim()) missing.push("Primary Category");
+    if (basePrice === "" || Number(basePrice) <= 0) missing.push("Base Price (> ₹0)");
+    return missing;
+  }, [name, sku, categoryId, basePrice]);
+
+  const isFormValid = missingFields.length === 0;
+
+  // 7-Step Navigation Definitions
+  const tabItems: Array<{
+    id: ProductFormTab;
+    label: string;
+    shortLabel: string;
+    icon: any;
+    badge?: string;
+    isCompleted: boolean;
+    isRequired?: boolean;
+  }> = [
+    {
+      id: "basic",
+      label: "Basic Info",
+      shortLabel: "Basic",
+      icon: Layers,
+      isCompleted: Boolean(name.trim().length >= 2 && sku.trim().length >= 3 && categoryId.trim()),
+      isRequired: true,
+    },
+    {
+      id: "pricing",
+      label: "Pricing & Stock",
+      shortLabel: "Pricing",
+      icon: DollarSign,
+      isCompleted: Boolean(basePrice !== "" && Number(basePrice) > 0),
+      isRequired: true,
+    },
+    {
+      id: "media",
+      label: "Images & Media",
+      shortLabel: "Media",
+      icon: ImageIcon,
+      badge: images.length ? String(images.length) : undefined,
+      isCompleted: images.length > 0,
+    },
+    {
+      id: "specs",
+      label: "Technical Specs",
+      shortLabel: "Specs",
+      icon: Sliders,
+      badge: customAttributes.length ? String(customAttributes.length) : undefined,
+      isCompleted: customAttributes.length > 0,
+    },
+    {
+      id: "variants",
+      label: "Variants Matrix",
+      shortLabel: "Variants",
+      icon: GitBranch,
+      badge: variants.length ? String(variants.length) : undefined,
+      isCompleted: variants.length > 0,
+    },
+    {
+      id: "relations",
+      label: "Kit & Cross-Sell",
+      shortLabel: "Relations",
+      icon: Share2,
+      isCompleted: Boolean(relatedSkusInput.trim() || upsellSkusInput.trim() || crosssellSkusInput.trim()),
+    },
+    {
+      id: "seo",
+      label: "SEO & Content",
+      shortLabel: "SEO",
+      icon: Search,
+      isCompleted: Boolean(metaTitle.trim() || metaDescription.trim() || description.trim() || shortDescription.trim()),
+    },
+  ];
+
+  const currentTabIndex = tabItems.findIndex((t) => t.id === activeTab);
+  const prevTab = currentTabIndex > 0 ? tabItems[currentTabIndex - 1] : null;
+  const nextTab = currentTabIndex < tabItems.length - 1 ? tabItems[currentTabIndex + 1] : null;
+
+  const handleTabChange = (targetTab: ProductFormTab) => {
+    setActiveTab(targetTab);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleNextTab = () => {
+    if (nextTab) {
+      handleTabChange(nextTab.id);
+    }
+  };
+
+  const handlePrevTab = () => {
+    if (prevTab) {
+      handleTabChange(prevTab.id);
+    }
+  };
+
   // Submit Handler: Validates and opens Final Review Modal
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!name.trim()) {
-      toast.error("Product name is required");
-      setActiveTab("basic");
+      toast.error("Product name is required (Step 1: Basic Info)");
+      handleTabChange("basic");
       return;
     }
 
     if (!sku.trim()) {
-      toast.error("Product SKU is required");
-      setActiveTab("basic");
+      toast.error("Product SKU is required (Step 1: Basic Info)");
+      handleTabChange("basic");
       return;
     }
 
-    if (basePrice === "" || Number(basePrice) < 0) {
-      toast.error("Valid base price is required");
-      setActiveTab("pricing");
+    if (!categoryId.trim()) {
+      toast.error("Primary category is required (Step 1: Basic Info)");
+      handleTabChange("basic");
+      return;
+    }
+
+    if (basePrice === "" || Number(basePrice) <= 0) {
+      toast.error("Valid base price (> ₹0) is required (Step 2: Pricing & Stock)");
+      handleTabChange("pricing");
       return;
     }
 
@@ -484,8 +680,8 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
 
   // Final Execution: Called when Admin clicks "Confirm & Save Product" in Review Modal
   const executeSave = async () => {
-    if (!name.trim() || !sku.trim() || basePrice === "" || Number(basePrice) < 0) {
-      toast.error("Please fill in all required fields (Name, SKU, Base Price)");
+    if (!name.trim() || !sku.trim() || !categoryId.trim() || basePrice === "" || Number(basePrice) <= 0) {
+      toast.error(`Please fill in all required fields: ${missingFields.join(", ")}`);
       setIsReviewModalOpen(false);
       return;
     }
@@ -515,12 +711,44 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
 
     const sortedImages = [...images].sort((a, b) => (b.isBase ? 1 : 0) - (a.isBase ? 1 : 0));
 
+    // 1. Build colorImages map for storefront color swatches & gallery navigation
+    const colorImagesMap: Record<string, string> = {};
+    variants.forEach((v) => {
+      const vImg = v.imageUrl || v.images?.[0]?.url;
+      if (v.color && vImg) {
+        colorImagesMap[v.color.trim()] = vImg;
+      }
+    });
+
+    // 2. Synchronize variant images into the parent gallery with their Alt Text
+    const parentImageUrls = new Set(sortedImages.map((img) => img.url));
+    const mergedParentImages = [...sortedImages];
+
+    variants.forEach((v) => {
+      const vUrl = v.imageUrl || v.images?.[0]?.url;
+      const vAlt =
+        v.images?.[0]?.altText ||
+        v.altText ||
+        (v.color ? `${name.trim()} - ${v.color.trim()}` : `${name.trim()} Variant`);
+
+      if (vUrl && !parentImageUrls.has(vUrl)) {
+        parentImageUrls.add(vUrl);
+        mergedParentImages.push({
+          id: crypto.randomUUID(),
+          url: vUrl,
+          altText: vAlt,
+          isBase: false,
+        });
+      }
+    });
+
     const payload: any = {
       name: name.trim(),
       sku: sku.trim(),
       slug: slug.trim() || undefined,
       brand: brand.trim() || undefined,
       categoryId: categoryId || undefined,
+      categorySlugs: categorySlugs.length > 0 ? categorySlugs : (categoryId ? [categoryId] : undefined),
       attributeSetCode,
       productType,
       status,
@@ -547,32 +775,50 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
       notifyOnStockBelow: notifyOnStockBelow !== "" ? Number(notifyOnStockBelow) : undefined,
       allowBackorders,
 
-      images: sortedImages.map((img) => ({
+      images: mergedParentImages.map((img) => ({
         id: img.id,
         url: img.url,
-        altText: img.altText || name,
+        altText: img.altText || name.trim(),
       })),
+      colorImages: Object.keys(colorImagesMap).length > 0 ? colorImagesMap : undefined,
       videoUrl: videoUrl.trim() || undefined,
 
       attributes: attributesMap,
       gender: gender.trim() || undefined,
 
-      variants: variants.map((v) => ({
-        id: v.id || crypto.randomUUID(),
-        sku: v.sku.trim(),
-        price: v.price !== "" ? Number(v.price) : Number(basePrice),
-        specialPrice: v.specialPrice !== "" && v.specialPrice !== undefined ? Number(v.specialPrice) : undefined,
-        stock: v.stock !== "" ? Number(v.stock) : 0,
-        imageUrl: v.imageUrl,
-        weight: v.weight !== "" && v.weight !== undefined ? Number(v.weight) : undefined,
-        status: v.status || "enabled",
-        visibility: v.visibility || "Catalog, Search",
-        images: v.images || [],
-        attributes: {
-          ...(v.color ? { color: v.color } : {}),
-          ...(v.size ? { size: v.size } : {}),
-        },
-      })),
+      variants: variants.map((v) => {
+        const vUrl = v.imageUrl || v.images?.[0]?.url;
+        const vAlt =
+          v.images?.[0]?.altText ||
+          v.altText ||
+          (v.color ? `${name.trim()} - ${v.color.trim()}` : `${name.trim()} Variant`);
+
+        const vImages = (v.images && v.images.length > 0)
+          ? v.images.map((img: any) => ({
+              id: img.id || crypto.randomUUID(),
+              url: img.url,
+              altText: img.altText || vAlt,
+            }))
+          : (vUrl ? [{ id: crypto.randomUUID(), url: vUrl, altText: vAlt }] : []);
+
+        return {
+          id: v.id || crypto.randomUUID(),
+          sku: v.sku.trim(),
+          price: v.price !== "" ? Number(v.price) : Number(basePrice),
+          specialPrice: v.specialPrice !== "" && v.specialPrice !== undefined ? Number(v.specialPrice) : undefined,
+          stock: v.stock !== "" ? Number(v.stock) : 0,
+          imageUrl: vUrl,
+          altText: vAlt,
+          weight: v.weight !== "" && v.weight !== undefined ? Number(v.weight) : undefined,
+          status: v.status || "enabled",
+          visibility: v.visibility || "Catalog, Search",
+          images: vImages,
+          attributes: {
+            ...(v.color ? { color: v.color.trim() } : {}),
+            ...(v.size ? { size: v.size.trim() } : {}),
+          },
+        };
+      }),
 
       relatedSkus: relatedSkusInput.split(",").map((s) => s.trim()).filter(Boolean),
       upsellSkus: upsellSkusInput.split(",").map((s) => s.trim()).filter(Boolean),
@@ -645,6 +891,10 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
     createBrand,
     categoryId,
     setCategoryId,
+    categorySlugs,
+    setCategorySlugs,
+    applyCategoryBlueprint,
+    activeBlueprint,
     categoryTree,
     productType,
     setProductType,
@@ -731,6 +981,8 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
     setAttributeSetCode,
     activeTemplate,
     currentSpecDefinition,
+    categoryCustomSpecDef,
+    selectedCategoryNode,
     gender,
     setGender,
     customAttributes,
@@ -775,6 +1027,13 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
     faqs,
     setFaqs,
 
+    // Step Wizard & Validation status
+    isFormValid,
+    missingFields,
+    handleNextTab,
+    handlePrevTab,
+    handleTabChange,
+
     // Actions
     handleSubmit,
     executeSave,
@@ -791,24 +1050,9 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
     );
   }
 
-  const tabItems: Array<{
-    id: ProductFormTab;
-    label: string;
-    icon: any;
-    badge?: string;
-  }> = [
-    { id: "basic", label: "Basic Info", icon: Layers },
-    { id: "pricing", label: "Pricing & Stock", icon: DollarSign },
-    { id: "media", label: "Images & Media", icon: ImageIcon, badge: images.length ? String(images.length) : undefined },
-    { id: "specs", label: "Technical Specs", icon: Sliders, badge: customAttributes.length ? String(customAttributes.length) : undefined },
-    { id: "variants", label: "Variants Matrix", icon: GitBranch, badge: variants.length ? String(variants.length) : undefined },
-    { id: "relations", label: "Kit & Cross-Sell", icon: Share2 },
-    { id: "seo", label: "SEO & Content", icon: Search },
-  ];
-
   return (
     <ProductFormProvider value={contextValue}>
-      <form onSubmit={handleSubmit} className="space-y-6 max-w-6xl mx-auto pb-24">
+      <form onSubmit={handleSubmit} className="space-y-6 max-w-6xl mx-auto pb-28">
         {/* Top Header */}
         <div className="flex items-center justify-between flex-wrap gap-4 border-b border-slate-200 pb-5">
           <div className="flex items-center space-x-3">
@@ -819,57 +1063,118 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
               <ArrowLeft size={20} />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">
-                {mode === "create" ? "Add New Product" : `Edit Product: ${existingProduct?.name || ""}`}
-              </h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl font-bold text-slate-900">
+                  {mode === "create" ? "Add New Product" : `Edit Product: ${existingProduct?.name || ""}`}
+                </h1>
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                  Step {currentTabIndex + 1} of 7: {tabItems[currentTabIndex]?.label}
+                </span>
+              </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Enterprise Catalog Manager — Complete product specifications & multi-category gear attributes
+                Enterprise Catalog Manager — Step-by-step product specifications & gear attributes
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
+            {prevTab && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePrevTab}
+                className="text-xs flex items-center gap-1 cursor-pointer"
+              >
+                <ChevronLeft size={14} />
+                <span>Back</span>
+              </Button>
+            )}
+            {nextTab && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleNextTab}
+                className="bg-slate-900 hover:bg-slate-800 text-white text-xs flex items-center gap-1 cursor-pointer"
+              >
+                <span>Next Step</span>
+                <ChevronRight size={14} />
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
+              size="sm"
               onClick={() => setIsReviewModalOpen(true)}
               className="flex items-center space-x-1.5 text-xs font-semibold cursor-pointer"
             >
               <Eye size={14} />
-              <span>Preview Card & Review</span>
+              <span className="hidden sm:inline">Preview Card & Review</span>
+              <span className="sm:hidden">Preview</span>
             </Button>
             <Button
               type="submit"
-              disabled={createProduct.isPending || updateProduct.isPending}
-              className="bg-brand hover:bg-brand/90 text-white font-semibold px-5 text-xs flex items-center space-x-1.5 shadow-sm cursor-pointer"
+              disabled={!isFormValid || createProduct.isPending || updateProduct.isPending}
+              title={
+                !isFormValid
+                  ? `Please fill in required fields to save: ${missingFields.join(", ")}`
+                  : mode === "create" ? "Save & publish product" : "Update product"
+              }
+              className={`font-semibold px-4 text-xs flex items-center space-x-1.5 shadow-sm transition-all ${
+                isFormValid && !createProduct.isPending && !updateProduct.isPending
+                  ? "bg-brand hover:bg-brand/90 text-white cursor-pointer"
+                  : "bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none"
+              }`}
             >
               <Save size={14} />
-              <span>{createProduct.isPending || updateProduct.isPending ? "Saving..." : "Save Product"}</span>
+              <span>
+                {createProduct.isPending || updateProduct.isPending
+                  ? "Saving..."
+                  : mode === "create"
+                  ? "Save Product"
+                  : "Update Product"}
+              </span>
             </Button>
           </div>
         </div>
 
-        {/* 7-Tab Navigation Bar */}
+        {/* 7-Tab Navigation Bar with Step Numbers & Completion Indicators */}
         <div className="flex items-center space-x-1 border-b border-slate-200 overflow-x-auto pb-px">
-          {tabItems.map((tab) => {
+          {tabItems.map((tab, idx) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
+            const isCompleted = tab.isCompleted;
+
             return (
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id as ProductFormTab)}
-                className={`flex items-center space-x-2 py-3 px-4 border-b-2 font-medium text-xs whitespace-nowrap transition-colors cursor-pointer ${
+                onClick={() => handleTabChange(tab.id)}
+                className={`flex items-center space-x-2 py-3 px-3.5 border-b-2 font-medium text-xs whitespace-nowrap transition-all cursor-pointer ${
                   isActive
-                    ? "border-brand text-brand bg-brand/5 rounded-t-lg"
+                    ? "border-brand text-brand bg-brand/5 rounded-t-lg font-semibold"
                     : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
                 }`}
               >
-                <Icon size={15} />
+                <span
+                  className={`w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold transition-colors ${
+                    isActive
+                      ? "bg-brand text-white shadow-sm"
+                      : isCompleted
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                      : "bg-slate-100 text-slate-500 border border-slate-200"
+                  }`}
+                >
+                  {isCompleted && !isActive ? "✓" : idx + 1}
+                </span>
+                <Icon size={14} className={isActive ? "text-brand" : "text-slate-400"} />
                 <span>{tab.label}</span>
+                {tab.isRequired && !isCompleted && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand inline-block" title="Required step" />
+                )}
                 {tab.badge && (
                   <span
-                    className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                    className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
                       isActive ? "bg-brand text-white" : "bg-slate-100 text-slate-600"
                     }`}
                   >
@@ -890,16 +1195,91 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
         {activeTab === "relations" && <ProductRelationsTab />}
         {activeTab === "seo" && <ProductSeoTab />}
 
-        {/* Floating Save Bar */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 py-3.5 px-8 z-30 flex items-center justify-between shadow-lg">
-          <div className="flex items-center space-x-2 text-xs text-slate-500">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
-            <span>
-              Editing: <strong className="text-slate-800">{name || "Untitled Product"}</strong>
-            </span>
+        {/* In-page Step Navigation Controls */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div>
+            {prevTab ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePrevTab}
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 cursor-pointer"
+              >
+                <ChevronLeft size={16} />
+                <span>Back: {prevTab.label}</span>
+              </Button>
+            ) : (
+              <span className="text-xs text-slate-400 italic">Step 1 of 7: Start with basic info</span>
+            )}
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center">
+            {!isFormValid ? (
+              <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
+                <AlertCircle size={14} className="text-amber-600 shrink-0" />
+                <span>
+                  Required to Save: <strong className="font-semibold">{missingFields.join(", ")}</strong>
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg">
+                <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                <span className="font-medium">All required details complete! Ready to save.</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {nextTab ? (
+              <Button
+                type="button"
+                onClick={handleNextTab}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-5 text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <span>Next: {nextTab.label}</span>
+                <ChevronRight size={16} />
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                disabled={!isFormValid || createProduct.isPending || updateProduct.isPending}
+                className={`font-semibold px-5 text-xs flex items-center gap-1.5 shadow-sm ${
+                  isFormValid && !createProduct.isPending && !updateProduct.isPending
+                    ? "bg-brand hover:bg-brand/90 text-white cursor-pointer"
+                    : "bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none"
+                }`}
+              >
+                <Save size={15} />
+                <span>Review & Save Product</span>
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Floating Save & Wizard Bar */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 py-3 px-4 sm:px-8 z-30 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center space-x-2 text-xs text-slate-500">
+              <span className={`w-2.5 h-2.5 rounded-full inline-block ${isFormValid ? "bg-emerald-500 animate-pulse" : "bg-amber-400"}`} />
+              <span className="truncate max-w-[180px] sm:max-w-xs">
+                Editing: <strong className="text-slate-800">{name || "Untitled Product"}</strong>
+              </span>
+            </div>
+
+            {!isFormValid ? (
+              <div className="hidden md:flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                <AlertCircle size={13} className="text-amber-600 shrink-0" />
+                <span>Missing: <strong className="font-semibold">{missingFields.join(", ")}</strong></span>
+              </div>
+            ) : (
+              <div className="hidden md:flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                <span className="font-medium">Ready to save</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-2 sm:space-x-3">
             <Button
               type="button"
               variant="outline"
@@ -908,13 +1288,53 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
             >
               Cancel
             </Button>
+
+            {prevTab && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePrevTab}
+                className="text-xs flex items-center gap-1 text-slate-700 cursor-pointer"
+              >
+                <ChevronLeft size={14} />
+                <span className="hidden sm:inline">Back: {prevTab.shortLabel}</span>
+                <span className="sm:hidden">Back</span>
+              </Button>
+            )}
+
+            {nextTab && (
+              <Button
+                type="button"
+                onClick={handleNextTab}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 text-xs flex items-center gap-1 shadow-sm cursor-pointer"
+              >
+                <span>Next: {nextTab.shortLabel}</span>
+                <ChevronRight size={14} />
+              </Button>
+            )}
+
             <Button
               type="submit"
-              disabled={createProduct.isPending || updateProduct.isPending}
-              className="bg-brand hover:bg-brand/90 text-white font-semibold px-6 text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
+              disabled={!isFormValid || createProduct.isPending || updateProduct.isPending}
+              title={
+                !isFormValid
+                  ? `Please fill in required fields to save: ${missingFields.join(", ")}`
+                  : mode === "create" ? "Save & publish product" : "Update product"
+              }
+              className={`font-semibold px-5 text-xs flex items-center gap-1.5 shadow-md transition-all ${
+                isFormValid && !createProduct.isPending && !updateProduct.isPending
+                  ? "bg-brand hover:bg-brand/90 text-white cursor-pointer"
+                  : "bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none"
+              }`}
             >
               <Save size={14} />
-              <span>{createProduct.isPending || updateProduct.isPending ? "Saving..." : "Save Product"}</span>
+              <span>
+                {createProduct.isPending || updateProduct.isPending
+                  ? "Saving..."
+                  : mode === "create"
+                  ? "Save Product"
+                  : "Update Product"}
+              </span>
             </Button>
           </div>
         </div>

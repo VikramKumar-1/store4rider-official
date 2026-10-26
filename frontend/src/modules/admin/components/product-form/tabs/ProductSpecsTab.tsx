@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { Sliders, Plus, Trash2, Shield, Package, Wrench } from "lucide-react";
-import { SearchableSelect } from "@/components/ui/SearchableSelect";
+import { SearchableSelect, Option } from "@/components/ui/SearchableSelect";
 import Button from "@/components/ui/Button";
 import { useProductFormContext } from "../ProductFormContext";
 
@@ -27,6 +27,8 @@ export function ProductSpecsTab() {
     setAttributeSetCode,
     activeTemplate,
     currentSpecDefinition,
+    categoryCustomSpecDef,
+    selectedCategoryNode,
     getAttr,
     setAttr,
     additionalCustomAttributes,
@@ -40,6 +42,22 @@ export function ProductSpecsTab() {
     setNewBrandMenuGroup("Featured Brands");
     setIsAddBrandOpen(true);
   };
+
+  const brandOptions: Option[] = useMemo(() => {
+    const list: Option[] = [
+      { label: "-- Select Brand --", value: "", description: "Choose manufacturer" },
+      ...brands.map((b) => ({
+        label: b.name,
+        value: b.name,
+        badge: b.menuGroup || undefined,
+        description: b.slug ? `/${b.slug}` : undefined,
+      })),
+    ];
+    if (brand && !brands.some((b) => b.name.toLowerCase() === brand.toLowerCase())) {
+      list.push({ label: `${brand} (Custom)`, value: brand, badge: "Custom" });
+    }
+    return list;
+  }, [brands, brand]);
 
   return (
     <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-6 space-y-6">
@@ -80,21 +98,14 @@ export function ProductSpecsTab() {
                 + New Brand
               </button>
             </div>
-            <select
+            <SearchableSelect
+              options={brandOptions}
               value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand"
-            >
-              <option value="">-- Select Brand --</option>
-              {brands.map((b) => (
-                <option key={b._id} value={b.name}>
-                  {b.name}
-                </option>
-              ))}
-              {brand && !brands.some((b) => b.name.toLowerCase() === brand.toLowerCase()) && (
-                <option value={brand}>{brand} (Custom)</option>
-              )}
-            </select>
+              onChange={(val: string) => setBrand(val)}
+              allowCustom
+              placeholder="Search or Select Brand..."
+              className="w-full text-xs"
+            />
             <p className="text-[10px] text-slate-400 mt-1">Synced with Tab 1. Select from database brands.</p>
           </div>
 
@@ -136,12 +147,24 @@ export function ProductSpecsTab() {
 
           {/* Specification Category Template Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Category Template</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-slate-700">Category Template</label>
+              {categoryCustomSpecDef && (
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                  Custom Template
+                </span>
+              )}
+            </div>
             <select
               value={attributeSetCode || activeTemplate}
               onChange={(e) => setAttributeSetCode(e.target.value)}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand"
             >
+              {categoryCustomSpecDef && (
+                <option value="CategoryCustom">
+                  ⭐ {selectedCategoryNode?.name || "Category"} (Custom Category Template)
+                </option>
+              )}
               <option value="Helmets">Helmets (Full Face, Modular, Visors)</option>
               <option value="Jackets">Riding Jackets, Pants, Suits & Armor</option>
               <option value="Gloves">Riding Gloves (Full Gauntlet, Short Cuff)</option>
@@ -152,7 +175,13 @@ export function ProductSpecsTab() {
               <option value="Communicator">Bluetooth Communicators & Gadgets</option>
               <option value="Default">General / Other Specifications</option>
             </select>
-            <p className="text-[10px] text-slate-400 mt-1">Auto-detected from store category</p>
+            {categoryCustomSpecDef && (attributeSetCode === "CategoryCustom" || !attributeSetCode) ? (
+              <p className="text-[10px] text-emerald-600 font-medium mt-1">
+                ✓ Using custom template defined in Categories Manager ({categoryCustomSpecDef.fields?.length || 0} specs)
+              </p>
+            ) : (
+              <p className="text-[10px] text-slate-400 mt-1">Auto-detected from store category or choose preset</p>
+            )}
           </div>
         </div>
       </div>

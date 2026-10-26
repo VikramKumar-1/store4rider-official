@@ -95,6 +95,7 @@ export const instagramReelSchema = z.object({
   author: z.string().max(100).optional().default("@store4riders"),
   order: z.number().optional().default(0),
   isActive: z.boolean().optional().default(true),
+  timestamp: z.string().optional().default(""),
 });
 
 export const socialMediaSectionSchema = z.object({
@@ -110,6 +111,7 @@ export const socialMediaSectionSchema = z.object({
   reelImages: z.array(z.string()).default([]),
   bannerTop: socialMediaBannerTopSchema.optional().default({ imageUrl: "", linkUrl: "" }),
   bannerBottom: socialMediaBannerBottomSchema.optional().default({ imageUrl: "", linkUrl: "", title: "", subtitle: "", description: "" }),
+  lastSyncedAt: z.string().optional().default(""),
 });
 
 export const testimonialsSectionSchema = z.object({

@@ -69,6 +69,7 @@ const productSchema = new Schema<IProduct>(
         stock: { type: Number, default: 0 },
         attributes: { type: Map, of: String },
         imageUrl: { type: String }, // Legacy compatibility
+        altText: { type: String },
         weight: { type: Number },
         hsnCode: { type: String },
         status: { type: String, enum: ["enabled", "disabled"], default: "enabled" },

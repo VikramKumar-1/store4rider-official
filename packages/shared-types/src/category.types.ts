@@ -1,5 +1,12 @@
 import { IFaq } from "./product.types";
 
+export interface ISpecFieldDefinition {
+  key: string;
+  label: string;
+  placeholder?: string;
+  presets?: string[];
+}
+
 export interface ICategory {
   _id: string;
   name: string;
@@ -20,6 +27,12 @@ export interface ICategory {
   heroCategories?: any[];
   badge?: string;
   badgeColor?: string;
+  attributeSetCode?: string;
+  hsnCode?: string;
+  taxClassName?: string;
+  weightUnit?: "kg" | "g" | "ml" | "L";
+  sizeChart?: string;
+  specDefinitions?: ISpecFieldDefinition[];
 }
 
 export interface ICategoryFilterConfig {

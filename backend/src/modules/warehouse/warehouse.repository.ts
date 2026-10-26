@@ -19,7 +19,9 @@ export class WarehouseRepository {
   }
 
   static async findDefault(): Promise<LeanWarehouse | null> {
-    return WarehouseModel.findOne({ isDefault: true }).lean<LeanWarehouse>().exec();
+    const wh = await WarehouseModel.findOne({ isDefault: true }).lean<LeanWarehouse>().exec();
+    if (wh) return wh;
+    return WarehouseModel.findOne({ isActive: true }).lean<LeanWarehouse>().exec();
   }
 
   static async findAll(): Promise<LeanWarehouse[]> {

@@ -69,15 +69,16 @@ export class ProductRepository {
     return ProductModel.findOne({ $or: [{ sku: id }, { slug: id }] }).lean().exec() as unknown as IProduct | null;
   }
 
-  static async findBySkus(skus: string[]): Promise<IProduct[]> {
+  static async findBySkus(skus: string[], inStockOnly = false): Promise<IProduct[]> {
     if (!skus || skus.length === 0) return [];
-    return ProductModel.find({ 
-      sku: { $in: skus },
-      $or: [
+    const query: Record<string, any> = { sku: { $in: skus } };
+    if (inStockOnly) {
+      query.$or = [
         { stockStatus: { $ne: 0 } },
         { allowBackorders: true }
-      ]
-    }).lean().exec() as unknown as IProduct[];
+      ];
+    }
+    return ProductModel.find(query).lean().exec() as unknown as IProduct[];
   }
 
   /**
@@ -128,10 +129,63 @@ export class ProductRepository {
     return ProductModel.findByIdAndUpdate(id, data, { new: true }).lean().exec() as unknown as IProduct | null;
   }
 
-  static async updateBySku(sku: string, data: Partial<IProduct>, session?: any): Promise<IProduct | null> {
-    const query = ProductModel.findOneAndUpdate({ sku }, data, { new: true });
+  static async updateBySku(sku: string, data: any, session?: any): Promise<IProduct | null> {
+    const cleanSku = sku.trim();
+    if (!cleanSku) return null;
+
+    // 1. Try finding and updating as a parent product
+    let query = ProductModel.findOneAndUpdate({ sku: cleanSku }, data, { new: true });
     if (session) query.session(session);
-    return query.lean().exec() as unknown as IProduct | null;
+    let product = await query.lean().exec() as unknown as IProduct | null;
+    if (product) return product;
+
+    // 2. Try case-insensitive parent match
+    const escapedSku = cleanSku.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+    query = ProductModel.findOneAndUpdate({ sku: new RegExp(`^${escapedSku}$`, "i") }, data, { new: true });
+    if (session) query.session(session);
+    product = await query.lean().exec() as unknown as IProduct | null;
+    if (product) return product;
+
+    // 3. Try finding by child variant SKU
+    const parentQuery = ProductModel.findOne({
+      "variants.sku": new RegExp(`^${escapedSku}$`, "i"),
+    });
+    if (session) parentQuery.session(session);
+    const parent = await parentQuery.exec();
+
+    if (parent && parent.variants && Array.isArray(parent.variants)) {
+      const variantIdx = parent.variants.findIndex(
+        (v: any) => v.sku?.toLowerCase() === cleanSku.toLowerCase()
+      );
+
+      if (variantIdx >= 0) {
+        const v = parent.variants[variantIdx];
+        const newPrice = data.basePrice ?? data.price;
+        const newSpecialPrice = data.specialPrice ?? data.special_price;
+        const newStock = data.qty ?? data.stock;
+
+        if (newPrice !== undefined && newPrice !== "") {
+          v.price = Number(newPrice);
+        }
+        if (newSpecialPrice !== undefined) {
+          v.specialPrice = newSpecialPrice === "" || newSpecialPrice === null ? undefined : Number(newSpecialPrice);
+        }
+        if (newStock !== undefined && newStock !== "") {
+          v.stock = Number(newStock);
+        } else if (data.stockStatus !== undefined && Number(data.stockStatus) === 0) {
+          v.stock = 0;
+        }
+
+        // Recalculate parent's overall stockStatus based on all child variants
+        const hasAnyStock = parent.variants.some((item: any) => (item.stock || 0) > 0);
+        parent.stockStatus = hasAnyStock ? 1 : 0;
+
+        await parent.save({ session: session || undefined });
+        return parent.toObject() as unknown as IProduct;
+      }
+    }
+
+    return null;
   }
 
   /**

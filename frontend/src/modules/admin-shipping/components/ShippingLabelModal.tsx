@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { XMarkIcon, PrinterIcon } from "@heroicons/react/24/outline";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 
@@ -10,6 +11,11 @@ interface ShippingLabelModalProps {
 }
 
 export const ShippingLabelModal: React.FC<ShippingLabelModalProps> = ({ order, onClose }) => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const printRef = useRef<HTMLDivElement>(null);
 
   // Close on Escape key
@@ -62,9 +68,11 @@ export const ShippingLabelModal: React.FC<ShippingLabelModalProps> = ({ order, o
     window.print();
   };
 
-  return (
+  if (!mounted || typeof document === "undefined" || !order) return null;
+
+  return createPortal(
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/75 backdrop-blur-sm print:p-0 print:bg-white print:static"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 bg-slate-900/75 backdrop-blur-sm print:p-0 print:bg-white print:static"
       onClick={onClose}
     >
       {/* Thermal Printer Specific CSS: Exact 4x6 inch standard label */}
@@ -314,6 +322,7 @@ export const ShippingLabelModal: React.FC<ShippingLabelModalProps> = ({ order, o
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

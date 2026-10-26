@@ -109,9 +109,12 @@ export function ProductPricingTab() {
               if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") e.preventDefault();
             }}
             onChange={(e) => setMapPrice(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
-            placeholder="Optional"
+            placeholder="Optional (e.g. 34999)"
             className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
           />
+          <p className="text-[11px] text-slate-500 mt-1">
+            Brand ki legal minimum advertising price (e.g. Cardo/Sena). Is price se niche public website par discount advertise nahi kar sakte.
+          </p>
         </div>
 
         <div>
@@ -126,9 +129,12 @@ export function ProductPricingTab() {
               if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") e.preventDefault();
             }}
             onChange={(e) => setMsrpPrice(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
-            placeholder="Optional"
+            placeholder="Optional (e.g. 38999)"
             className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
           />
+          <p className="text-[11px] text-slate-500 mt-1">
+            Brand ka recommended retail price / official benchmark. Customer ko strikethrough (~~MRP~~) discount compare karne ke liye use hota hai.
+          </p>
         </div>
 
         <div className="md:col-span-2 border-t border-slate-100 pt-4">

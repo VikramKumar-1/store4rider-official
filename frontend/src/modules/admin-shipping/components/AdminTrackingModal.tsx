@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { 
@@ -21,6 +22,11 @@ interface AdminTrackingModalProps {
 }
 
 export const AdminTrackingModal: React.FC<AdminTrackingModalProps> = ({ order, onClose }) => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Close on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -30,7 +36,7 @@ export const AdminTrackingModal: React.FC<AdminTrackingModalProps> = ({ order, o
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  if (!order) return null;
+  if (!mounted || typeof document === "undefined" || !order) return null;
 
   const orderId = order.id || order._id || order.orderNumber;
   const orderNum = order.orderNumber || orderId;
@@ -85,9 +91,9 @@ export const AdminTrackingModal: React.FC<AdminTrackingModalProps> = ({ order, o
     { title: "Delivered", subtitle: currentStep === 5 ? "Delivered to customer" : "Final destination" },
   ];
 
-  return (
+  return createPortal(
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/75 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 bg-slate-900/75 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div 
@@ -319,6 +325,7 @@ export const AdminTrackingModal: React.FC<AdminTrackingModalProps> = ({ order, o
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

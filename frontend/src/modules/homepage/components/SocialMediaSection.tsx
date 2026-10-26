@@ -51,19 +51,19 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
   bannerBottom,
 }) => {
   const [activeModalReel, setActiveModalReel] = useState<IInstagramReel | null>(null);
+  const [activeTab, setActiveTab] = useState<"all" | "reels">("all");
 
-  // Compile active reels list for homepage (up to 6 items for a sleek 2-row x 3-column grid)
-  const activeReelsList: IInstagramReel[] = useMemo(() => {
+  // Compile full active reels list from props (sorted by order, which is newest first)
+  const allActiveReels: IInstagramReel[] = useMemo(() => {
     if (reels && reels.length > 0) {
       const filtered = reels.filter((r) => r.isActive !== false);
       if (filtered.length > 0) {
-        const sorted = [...filtered].sort((a, b) => (a.order || 0) - (b.order || 0));
-        return sorted.slice(0, 6);
+        return [...filtered].sort((a, b) => (a.order || 0) - (b.order || 0));
       }
     }
 
     if (reelImages && reelImages.length > 0) {
-      return reelImages.slice(0, 6).map((img, idx) => ({
+      return reelImages.map((img, idx) => ({
         _id: `legacy-reel-${idx}`,
         title: `Store4Riders Reel #${idx + 1}`,
         thumbnailUrl: img,
@@ -80,16 +80,29 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
     return [];
   }, [reels, reelImages, instagramHandle]);
 
+  // Tab filtering: 'all' shows all latest posts & reels; 'reels' filters to genuine video reels
+  const currentTabReels: IInstagramReel[] = useMemo(() => {
+    if (activeTab === "reels") {
+      const videoOnly = allActiveReels.filter(
+        (r) =>
+          r.videoType === "upload" ||
+          (r.videoUrl && /\.(mp4|webm)(\?.*)?$/i.test(r.videoUrl)) ||
+          r.instagramUrl?.includes("/reel/")
+      );
+      return videoOnly.length > 0 ? videoOnly : allActiveReels;
+    }
+    return allActiveReels;
+  }, [allActiveReels, activeTab]);
+
+  // Displayed reels: shows 6 items by default for balanced proportions, or all when expanded
+  const displayedReels: IInstagramReel[] = useMemo(() => {
+    return currentTabReels.slice(0, 6);
+  }, [currentTabReels]);
+
   // Full reels list for the interactive modal (allows user to scroll through all 12-20 synced reels)
   const allModalReels: IInstagramReel[] = useMemo(() => {
-    if (reels && reels.length > 0) {
-      const filtered = reels.filter((r) => r.isActive !== false);
-      if (filtered.length > 0) {
-        return [...filtered].sort((a, b) => (a.order || 0) - (b.order || 0));
-      }
-    }
-    return activeReelsList;
-  }, [reels, activeReelsList]);
+    return allActiveReels;
+  }, [allActiveReels]);
 
   return (
     <section className="w-full bg-white py-5 sm:py-7 md:py-8 overflow-hidden">
@@ -220,57 +233,50 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
 
                 {/* 5. Instagram Navigation Tabs */}
                 <div className="flex items-center justify-around border-t border-b border-white/10 py-1 mb-2">
-                  {/* Grid Tab */}
-                  <button
-                    type="button"
-                    aria-label="Instagram Grid View"
-                    className="p-1 text-white/50 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <svg className="w-3.5 h-3.5 stroke-[1.75]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-                    </svg>
-                  </button>
-
-                  {/* Reels Tab (Active with line indicator) */}
-                  <div className="relative pb-0.5">
+                  {/* Grid Tab (All Posts & Reels) */}
+                  <div className="relative pb-0.5 flex-1 flex justify-center">
                     <button
                       type="button"
-                      aria-label="Instagram Reels Active"
-                      className="p-1 text-white flex items-center gap-1 cursor-default"
+                      onClick={() => setActiveTab("all")}
+                      aria-label="Instagram Grid View - All Posts"
+                      className={`p-1 flex items-center gap-1 transition-colors cursor-pointer ${
+                        activeTab === "all" ? "text-white" : "text-white/50 hover:text-white"
+                      }`}
                     >
-                      <svg className="w-3.5 h-3.5 fill-current text-white" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z" />
+                      <svg className="w-3.5 h-3.5 stroke-[1.75]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
                       </svg>
+                      <span className="text-[10px] font-semibold">Posts</span>
                     </button>
-                    <div className="absolute -bottom-1 inset-x-0 h-0.5 bg-white rounded-full shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                    {activeTab === "all" && (
+                      <div className="absolute -bottom-1 inset-x-3 h-0.5 bg-white rounded-full shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                    )}
                   </div>
 
-                  {/* Guides / Bookmark Tab */}
-                  <button
-                    type="button"
-                    aria-label="Instagram Guides"
-                    className="p-1 text-white/50 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <svg className="w-3.5 h-3.5 stroke-[1.75]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
-                    </svg>
-                  </button>
-
-                  {/* Tagged Profile Tab */}
-                  <button
-                    type="button"
-                    aria-label="Instagram Tagged"
-                    className="p-1 text-white/50 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <svg className="w-3.5 h-3.5 stroke-[1.75]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                    </svg>
-                  </button>
+                  {/* Reels Tab (Video Reels) */}
+                  <div className="relative pb-0.5 flex-1 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("reels")}
+                      aria-label="Instagram Reels View - Videos Only"
+                      className={`p-1 flex items-center gap-1 transition-colors cursor-pointer ${
+                        activeTab === "reels" ? "text-white" : "text-white/50 hover:text-white"
+                      }`}
+                    >
+                      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z" />
+                      </svg>
+                      <span className="text-[10px] font-semibold">Reels</span>
+                    </button>
+                    {activeTab === "reels" && (
+                      <div className="absolute -bottom-1 inset-x-3 h-0.5 bg-white rounded-full shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                    )}
+                  </div>
                 </div>
 
                 {/* 6. 3-Column Reels Grid */}
                 <div className="grid grid-cols-3 gap-1 sm:gap-1.5 min-h-[220px]">
-                  {activeReelsList.length === 0 ? (
+                  {displayedReels.length === 0 ? (
                     Array.from({ length: 6 }).map((_, skeletonIdx) => (
                       <div
                         key={`reel-skeleton-${skeletonIdx}`}
@@ -283,7 +289,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                       </div>
                     ))
                   ) : (
-                    activeReelsList.map((reel, idx) => {
+                    displayedReels.map((reel, idx) => {
                       const isPinned = idx < 2;
 
                       return (
@@ -327,7 +333,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                             </div>
                           </div>
 
-                          {/* Bottom Gradient with View Count */}
+                          {/* Bottom Gradient with Actual Real View Count */}
                           <div className="absolute inset-x-0 bottom-0 p-1 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none flex items-center gap-1">
                             <PlayIcon className="w-2 h-2 text-white fill-current shrink-0" />
                             <span className="text-[8.5px] sm:text-[9.5px] font-bold text-white drop-shadow leading-none">
@@ -339,12 +345,30 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                     })
                   )}
                 </div>
+
+                {/* See More Reels Button -> Opens Instagram-like Vertical Reels Modal */}
+                {currentTabReels.length > 6 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveModalReel(currentTabReels[0])}
+                    className="w-full py-2 px-3 mt-2 rounded-lg bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] hover:opacity-95 text-white text-[11px] font-bold text-center transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm group"
+                  >
+                    <svg className="w-3.5 h-3.5 fill-current transform group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z" />
+                    </svg>
+                    <span>See More ({currentTabReels.length} Reels)</span>
+                  </button>
+                )}
               </div>
 
               {/* Bottom Footer Hint */}
               <div className="pt-2 mt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-white/50 px-0.5">
                 <span>@{instagramHandle}</span>
-                <span>Click any reel to play</span>
+                <span>
+                  {currentTabReels.length > 6
+                    ? `Showing ${displayedReels.length} of ${currentTabReels.length} • Click to play`
+                    : "Click any reel to play"}
+                </span>
               </div>
 
             </div>

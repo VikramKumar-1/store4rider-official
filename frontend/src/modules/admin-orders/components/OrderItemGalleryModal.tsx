@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -42,6 +43,10 @@ export const OrderItemGalleryModal: React.FC<OrderItemGalleryModalProps> = ({
   onClose, 
   hideFinancials = false 
 }) => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   // Try fetching live product details from backend by SKU or Slug/ID
   const { data: product, isLoading } = useQuery({
     queryKey: ["order-item-product", item.sku, item.slug, item.productId],
@@ -128,8 +133,10 @@ export const OrderItemGalleryModal: React.FC<OrderItemGalleryModalProps> = ({
   const productSlug = product?.slug || item.slug;
   const productId = product?._id || product?.id || item.productId;
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 animate-in fade-in duration-150">
+  if (!mounted || typeof document === "undefined" || !item) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 animate-in fade-in duration-150">
       <div 
         className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
@@ -436,6 +443,7 @@ export const OrderItemGalleryModal: React.FC<OrderItemGalleryModalProps> = ({
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

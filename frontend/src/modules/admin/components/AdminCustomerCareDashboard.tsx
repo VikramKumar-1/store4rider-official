@@ -23,7 +23,6 @@ import {
   UserIcon,
   InboxStackIcon,
   ExclamationTriangleIcon,
-  SparklesIcon,
   ArrowTopRightOnSquareIcon,
   CreditCardIcon,
   BanknotesIcon,

@@ -43,15 +43,24 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
     brandParam = slugArr[slugArr.length - 1];
   }
   
-  let pageTitle = categoryParam 
-    ? categoryParam.replace(/-/g, " ").toUpperCase() 
-    : (brandParam ? brandParam.replace(/-/g, " ").toUpperCase() : "ALL PRODUCTS");
+  const searchQuery = (searchParams.get("search") || searchParams.get("q") || "").trim();
+
+  let pageTitle = searchQuery
+    ? `RESULTS FOR "${searchQuery.toUpperCase()}"`
+    : (categoryParam ? categoryParam.replace(/-/g, " ").toUpperCase() 
+    
+        : (brandParam ? brandParam.replace(/-/g, " ").toUpperCase() : "ALL PRODUCTS")); 
+
+
 
   const breadcrumbItems: { label: string; href?: string }[] = [
     { label: "HOME", href: "/" }
   ];
 
-  if (params?.categorySlug && Array.isArray(params.categorySlug)) {
+  if (searchQuery) {
+    breadcrumbItems.push({ label: "SEARCH" });
+    breadcrumbItems.push({ label: `"${searchQuery.toUpperCase()}"` });
+  } else if (params?.categorySlug && Array.isArray(params.categorySlug)) {
     const slugArr = params.categorySlug as string[];
     let currentPath = "";
     slugArr.forEach((slug, idx) => {
@@ -111,6 +120,11 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
           <h1 className="font-sans text-lg min-[375px]:text-xl sm:text-2xl md:text-3xl font-extrabold uppercase tracking-wide text-neutral-900 leading-tight">
             {pageTitle}
           </h1>
+          {searchQuery && (
+            <p className="text-xs sm:text-sm text-neutral-500 font-medium mt-1">
+              Found <strong className="text-neutral-900 font-bold">{totalCount || products.length}</strong> {totalCount === 1 ? "product" : "products"} for &ldquo;<span className="text-neutral-900 font-semibold">{searchQuery}</span>&rdquo;
+            </p>
+          )}
         </div>
 
         
@@ -130,7 +144,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
               categoryName="Category Top Info" 
               items={categoryNode.topAccordions.map((a: any, i: number) => ({ id: 'acc-'+i, title: a.title, content: a.content }))}
             />
-          </div>
+        </div>
         )}
 
         {/* Category Description & Google Reviews Accordions */}
@@ -186,8 +200,8 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
                   <option value="price-desc">Price: High to Low</option>
                   <option value="rating">Top Rated</option>
                 </select>
-              </div>
-            </div>
+        </div>
+        </div>
 
             <CatalogGrid 
               products={products} 
@@ -196,7 +210,6 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
               isFetching={isFetching}
             />
           </section>
-
         </div>
 
         
@@ -209,10 +222,11 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
               </h2>
               <CategorySEOAccordion 
                 categoryName={pageTitle} 
+                enableFaqSchema={true}
                 items={categoryNode.faqs.map((f: any, i: number) => ({ id: 'faq-'+i, title: f.question, content: f.answer }))}
               />
-            </div>
-          </div>
+        </div>
+        </div>
         )}
 
 

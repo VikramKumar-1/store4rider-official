@@ -12,3 +12,4 @@ export * from "./return.schema";
 export * from "./setting.schema";
 export * from "./homepage.schema";
 export * from "./contact.schema";
+export * from "./blog.schema";

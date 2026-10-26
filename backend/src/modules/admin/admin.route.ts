@@ -150,5 +150,10 @@ export async function adminRouter(req: NextRequest, routePath: string[]): Promis
     }
   }
 
+  if (routePath[0] === "categories") {
+    const { categoryRouter } = await import("../category/category.route");
+    return await categoryRouter(req, routePath.slice(1));
+  }
+
   return null;
 }

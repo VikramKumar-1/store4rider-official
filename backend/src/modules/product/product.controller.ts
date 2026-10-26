@@ -40,6 +40,32 @@ export class ProductController {
     return ApiResponse.success(product, "Product fetched successfully");
   }
 
+  static async checkSku(req: NextRequest) {
+    const searchParams = req.nextUrl.searchParams;
+    const sku = searchParams.get("sku")?.trim();
+    const excludeId = searchParams.get("excludeId")?.trim();
+
+    if (!sku) {
+      return ApiResponse.error("SKU parameter is required", 400);
+    }
+
+    const result = await ProductService.checkSkuAvailability(sku, excludeId);
+    return ApiResponse.success(result, "SKU check completed");
+  }
+
+  static async checkSlug(req: NextRequest) {
+    const searchParams = req.nextUrl.searchParams;
+    const slug = searchParams.get("slug")?.trim();
+    const excludeId = searchParams.get("excludeId")?.trim();
+
+    if (!slug) {
+      return ApiResponse.error("Slug parameter is required", 400);
+    }
+
+    const result = await ProductService.checkSlugAvailability(slug, excludeId);
+    return ApiResponse.success(result, "Slug check completed");
+  }
+
   static async getBySkus(req: NextRequest) {
     const url = new URL(req.url);
     const skusParam = url.searchParams.get('skus') || '';

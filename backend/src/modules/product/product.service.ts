@@ -1,6 +1,6 @@
 import { ProductRepository } from "./product.repository";
 import { IProduct } from "@store4riders/shared-types";
-import { NotFoundError } from "../../core/errors/AppError";
+import { NotFoundError, ConflictError } from "../../core/errors/AppError";
 import { indexProduct, removeProductFromIndex } from "../../core/search/meilisearch";
 import { slugify } from "@store4riders/shared-utils";
 import { getCache, setCache, deleteCache } from "../../core/cache/redis";
@@ -830,8 +830,91 @@ export class ProductService {
     return result;
   }
 
+  static async checkSkuAvailability(
+    sku: string,
+    excludeId?: string
+  ): Promise<{ available: boolean; existingProduct?: { name: string; sku: string } }> {
+    const cleanSku = sku.trim();
+    if (!cleanSku) return { available: true };
+
+    const escaped = cleanSku.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+    const query: any = {
+      $or: [
+        { sku: new RegExp(`^${escaped}$`, "i") },
+        { "variants.sku": new RegExp(`^${escaped}$`, "i") },
+      ],
+    };
+
+    if (excludeId) {
+      query._id = { $ne: excludeId };
+    }
+
+    const { ProductModel } = await import("./product.model");
+    const existing = await ProductModel.findOne(query).select("name sku").lean().exec();
+
+    if (existing) {
+      return {
+        available: false,
+        existingProduct: {
+          name: (existing as any).name,
+          sku: (existing as any).sku,
+        },
+      };
+    }
+
+    return { available: true };
+  }
+
+  static async checkSlugAvailability(
+    slug: string,
+    excludeId?: string
+  ): Promise<{ available: boolean; existingProduct?: { name: string; slug: string } }> {
+    const cleanSlug = slug.toLowerCase().trim();
+    if (!cleanSlug) return { available: true };
+
+    const escaped = cleanSlug.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+    const query: any = {
+      slug: new RegExp(`^${escaped}$`, "i"),
+    };
+
+    if (excludeId) {
+      query._id = { $ne: excludeId };
+    }
+
+    const { ProductModel } = await import("./product.model");
+    const existing = await ProductModel.findOne(query).select("name slug").lean().exec();
+
+    if (existing) {
+      return {
+        available: false,
+        existingProduct: {
+          name: (existing as any).name,
+          slug: (existing as any).slug,
+        },
+      };
+    }
+
+    return { available: true };
+  }
+
   static async createProduct(data: Partial<IProduct>): Promise<IProduct> {
+    if (data.sku) {
+      const check = await this.checkSkuAvailability(data.sku);
+      if (!check.available && check.existingProduct) {
+        throw new ConflictError(
+          `A product with SKU "${data.sku}" already exists ("${check.existingProduct.name}"). SKU must be unique across the catalog.`
+        );
+      }
+    }
     const slug = data.slug ? slugify(data.slug) : slugify(data.name || "");
+    if (slug) {
+      const slugCheck = await this.checkSlugAvailability(slug);
+      if (!slugCheck.available && slugCheck.existingProduct) {
+        throw new ConflictError(
+          `A product with URL Slug "${slug}" already exists ("${slugCheck.existingProduct.name}"). URL slug must be unique.`
+        );
+      }
+    }
     const canonicalSlugs = resolveCanonicalCategorySlugs({
       name: data.name,
       magentoCategories: data.magentoCategories,
@@ -853,7 +936,20 @@ export class ProductService {
     }
 
     const productData = { ...data, slug, categorySlugs, ...(categoryId ? { categoryId } : {}) };
-    const product = await ProductRepository.create(productData);
+    let product;
+    try {
+      product = await ProductRepository.create(productData);
+    } catch (err: any) {
+      if (err.code === 11000) {
+        if (err.keyPattern?.sku) {
+          throw new ConflictError(`A product with SKU "${data.sku}" already exists. SKU must be unique.`);
+        }
+        if (err.keyPattern?.slug) {
+          throw new ConflictError(`Slug "${slug}" already exists. Please choose a unique URL slug.`);
+        }
+      }
+      throw err;
+    }
     
     // Sync to search index & invalidate cache
     await indexProduct(product);
@@ -863,9 +959,24 @@ export class ProductService {
   }
 
   static async updateProduct(id: string, data: Partial<IProduct>): Promise<IProduct> {
+    if (data.sku) {
+      const check = await this.checkSkuAvailability(data.sku, id);
+      if (!check.available && check.existingProduct) {
+        throw new ConflictError(
+          `A product with SKU "${data.sku}" already exists ("${check.existingProduct.name}"). SKU must be unique across the catalog.`
+        );
+      }
+    }
     if (data.slug) {
       data.slug = slugify(data.slug);
-    } else if (data.name) {
+      const slugCheck = await this.checkSlugAvailability(data.slug, id);
+      if (!slugCheck.available && slugCheck.existingProduct) {
+        throw new ConflictError(
+          `A product with URL Slug "${data.slug}" already exists ("${slugCheck.existingProduct.name}"). URL slug must be unique.`
+        );
+      }
+    }
+    if (!data.slug && data.name) {
       data.slug = slugify(data.name);
     }
 
@@ -892,7 +1003,20 @@ export class ProductService {
       }
     }
 
-    const product = await ProductRepository.update(id, data);
+    let product;
+    try {
+      product = await ProductRepository.update(id, data);
+    } catch (err: any) {
+      if (err.code === 11000) {
+        if (err.keyPattern?.sku) {
+          throw new ConflictError(`A product with SKU "${data.sku}" already exists. SKU must be unique.`);
+        }
+        if (err.keyPattern?.slug) {
+          throw new ConflictError(`Slug "${data.slug}" already exists. Please choose a unique URL slug.`);
+        }
+      }
+      throw err;
+    }
     if (!product) throw new NotFoundError("Product");
     
     // Sync to search index & invalidate cache
@@ -919,7 +1043,7 @@ export class ProductService {
   static async bulkUpdateFromCsv(csvContent: string): Promise<{ successCount: number; errorRows: any[] }> {
     const Papa = (await import("papaparse")).default;
     const mongoose = (await import("mongoose")).default;
-    
+
     return new Promise((resolve, reject) => {
       Papa.parse(csvContent, {
         header: true,
@@ -928,49 +1052,93 @@ export class ProductService {
           const rows = results.data as any[];
           let successCount = 0;
           const errorRows: any[] = [];
-          
-          const session = await mongoose.startSession();
-          session.startTransaction();
+
+          let session: any = null;
+          try {
+            session = await mongoose.startSession();
+            session.startTransaction();
+          } catch {
+            session = null; // graceful fallback for standalone MongoDB instances
+          }
 
           try {
             for (let i = 0; i < rows.length; i++) {
               const row = rows[i];
-              const { sku, basePrice, specialPrice, stockStatus } = row;
-              
-              if (!sku) {
-                errorRows.push({ row: i + 2, reason: "SKU is required" });
+              if (!row || typeof row !== "object") continue;
+
+              // Helper for case-insensitive column extraction across Magento & custom CSVs
+              const getCol = (aliases: string[]) => {
+                for (const alias of aliases) {
+                  if (row[alias] !== undefined && row[alias] !== "") return row[alias];
+                  const lower = alias.toLowerCase();
+                  const foundKey = Object.keys(row).find((k) => k.trim().toLowerCase() === lower);
+                  if (foundKey && row[foundKey] !== undefined && row[foundKey] !== "") {
+                    return row[foundKey];
+                  }
+                }
+                return undefined;
+              };
+
+              const rawSku = getCol(["sku", "SKU", "Sku", "variant_sku", "variantSku"]);
+              if (!rawSku) {
+                errorRows.push({ row: i + 2, reason: "SKU is missing in CSV row" });
                 continue;
               }
 
-              const updateData: Partial<IProduct> = {};
-              if (basePrice !== undefined && basePrice !== "") updateData.basePrice = Number(basePrice);
-              if (specialPrice !== undefined && specialPrice !== "") updateData.specialPrice = Number(specialPrice);
-              if (stockStatus !== undefined && stockStatus !== "") updateData.stockStatus = Number(stockStatus);
+              const rawPrice = getCol(["price", "basePrice", "base_price", "Price"]);
+              const rawSpecialPrice = getCol(["special_price", "specialPrice", "SpecialPrice", "specialprice"]);
+              const rawQty = getCol(["qty", "stock", "quantity", "Qty", "Stock"]);
+              const rawStockStatus = getCol(["is_in_stock", "stockStatus", "stock_status", "isInStock"]);
+              const rawStatus = getCol(["status", "product_online"]);
 
-              const product = await ProductRepository.updateBySku(sku, updateData, session);
-              
-              if (!product) {
-                errorRows.push({ row: i + 2, reason: `Product with SKU ${sku} not found` });
-              } else {
-                successCount++;
-                // Sync search index asynchronously
-                indexProduct(product).catch(console.error);
-                await this.invalidateProductCache(product.slug);
+              const updateData: any = {};
+              if (rawPrice !== undefined) updateData.basePrice = Number(rawPrice);
+              if (rawSpecialPrice !== undefined) {
+                updateData.specialPrice = rawSpecialPrice === "" || rawSpecialPrice === null ? undefined : Number(rawSpecialPrice);
+              }
+              if (rawQty !== undefined) {
+                updateData.qty = Number(rawQty);
+              }
+              if (rawStockStatus !== undefined) {
+                updateData.stockStatus = Number(rawStockStatus) === 0 ? 0 : 1;
+              } else if (rawQty !== undefined) {
+                updateData.stockStatus = Number(rawQty) > 0 ? 1 : 0;
+              }
+              if (rawStatus !== undefined) {
+                updateData.status = (rawStatus === "1" || String(rawStatus).toLowerCase() === "published") ? "published" : "draft";
+              }
+
+              try {
+                const product = await ProductRepository.updateBySku(String(rawSku).trim(), updateData, session);
+
+                if (!product) {
+                  errorRows.push({ row: i + 2, reason: `Product or Variant with SKU "${rawSku}" not found` });
+                } else {
+                  successCount++;
+                  indexProduct(product).catch(console.error);
+                  await this.invalidateProductCache(product.slug);
+                }
+              } catch (rowErr: any) {
+                errorRows.push({ row: i + 2, reason: rowErr.message || `Failed to update SKU "${rawSku}"` });
               }
             }
-            
-            await session.commitTransaction();
-            session.endSession();
+
+            if (session) {
+              await session.commitTransaction();
+              session.endSession();
+            }
             resolve({ successCount, errorRows });
           } catch (error: any) {
-            await session.abortTransaction();
-            session.endSession();
+            if (session) {
+              await session.abortTransaction();
+              session.endSession();
+            }
             reject(error);
           }
         },
         error: (error: any) => {
           reject(error);
-        }
+        },
       });
     });
   }
@@ -980,11 +1148,14 @@ export class ProductService {
     // Fetch all products
     const products = await ProductModel.find({}).lean().exec();
 
-    // Map to Magento CSV Headers
+    // Map to Magento CSV Headers with image labels and swatches
     const baseHeaders = [
       "sku", "name", "description", "short_description", "url_key", "price", "special_price",
       "special_from_date", "special_to_date", "weight", "is_in_stock", "qty", "product_type",
-      "categories", "brand", "tax_class_name", "status", "visibility", "base_image", "additional_images",
+      "categories", "brand", "tax_class_name", "status", "visibility",
+      "base_image", "base_image_label",
+      "additional_images", "additional_image_labels",
+      "swatch_image", "swatch_image_label",
       "configurable_variations", "related_skus", "upsell_skus", "crosssell_skus", "size_chart", "gender",
       "country_of_manufacture", "attribute_set_code", "configurable_variation_labels", "free_shipping",
       "backorders", "meta_title", "meta_keyword", "meta_description"
@@ -993,9 +1164,9 @@ export class ProductService {
     // Collect all unique dynamic attribute keys across all products
     const dynamicAttrKeys = new Set<string>();
     products.forEach((p: any) => {
-      if (p.attributes && typeof p.attributes === 'object') {
-        Object.keys(p.attributes).forEach(k => {
-          if (!baseHeaders.includes(k) && k !== 'size_chart') {
+      if (p.attributes && typeof p.attributes === "object") {
+        Object.keys(p.attributes).forEach((k) => {
+          if (!baseHeaders.includes(k) && k !== "size_chart") {
             dynamicAttrKeys.add(k);
           }
         });
@@ -1008,22 +1179,42 @@ export class ProductService {
     const escapeCsv = (str: any) => {
       if (str === null || str === undefined) return "";
       const s = String(str);
-      if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+      if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
         return `"${s.replace(/"/g, '""')}"`;
       }
       return s;
     };
 
-    const rows = products.map((p: any) => {
-      // De-format image URL back to Magento short form or keep full URL
+    const rows: string[] = [];
+
+    products.forEach((p: any) => {
       const baseImg = p.images?.[0]?.url || "";
+      const baseImgAlt = p.images?.[0]?.altText || p.name || "";
       const additionalImgs = p.images?.slice(1).map((i: any) => i.url).join(",") || "";
+      const additionalImgAlts = p.images?.slice(1).map((i: any) => i.altText || p.name || "").join(",") || "";
+
+      // Extract swatch image from colorImages or first variant
+      let swatchImg = "";
+      let swatchAlt = "";
+      if (p.colorImages) {
+        const cMap = p.colorImages instanceof Map ? Object.fromEntries(p.colorImages) : p.colorImages;
+        const firstVal = Object.values(cMap)[0];
+        if (typeof firstVal === "string") swatchImg = firstVal;
+      }
+      if (!swatchImg && p.variants?.[0]?.imageUrl) {
+        swatchImg = p.variants[0].imageUrl;
+        swatchAlt = p.variants[0].altText || p.variants[0].images?.[0]?.altText || "";
+      }
+
       const configurableVars = p.variants?.map((v: any) => {
         const attrs = Object.entries(v.attributes || {}).map(([k, val]) => `${k}=${val}`).join(",");
-        return `sku=${v.sku},price=${v.price},qty=${v.stock}${attrs ? ',' + attrs : ''}`;
+        const imgPart = v.imageUrl ? `,image=${v.imageUrl}` : "";
+        const altPart = (v.altText || v.images?.[0]?.altText) ? `,altText=${v.altText || v.images?.[0]?.altText}` : "";
+        return `sku=${v.sku},price=${v.price},qty=${v.stock}${attrs ? ',' + attrs : ''}${imgPart}${altPart}`;
       }).join("|") || p.configurableVariations || "";
 
-      const baseRow = [
+      // 1. Parent product row
+      const parentBaseRow = [
         p.sku,
         p.name,
         p.description,
@@ -1031,8 +1222,8 @@ export class ProductService {
         p.slug,
         p.basePrice,
         p.specialPrice || "",
-        p.specialPriceFromDate ? new Date(p.specialPriceFromDate).toISOString().split('T')[0] : "",
-        p.specialPriceToDate ? new Date(p.specialPriceToDate).toISOString().split('T')[0] : "",
+        p.specialPriceFromDate ? new Date(p.specialPriceFromDate).toISOString().split("T")[0] : "",
+        p.specialPriceToDate ? new Date(p.specialPriceToDate).toISOString().split("T")[0] : "",
         p.weight || "",
         p.stockStatus,
         p.qty,
@@ -1043,7 +1234,11 @@ export class ProductService {
         p.status === "published" ? "1" : "0",
         p.visibility || "",
         baseImg,
+        baseImgAlt,
         additionalImgs,
+        additionalImgAlts,
+        swatchImg,
+        swatchAlt,
         configurableVars,
         p.relatedSkus?.join(",") || "",
         p.upsellSkus?.join(",") || "",
@@ -1057,12 +1252,75 @@ export class ProductService {
         p.allowBackorders ? "1" : "0",
         p.metaTitle || "",
         p.metaKeywords || "",
-        p.metaDescription || ""
+        p.metaDescription || "",
       ];
 
-      const dynamicRow = dynamicHeaders.map(k => (p.attributes && p.attributes[k]) || "");
+      const parentDynamicRow = dynamicHeaders.map((k) => (p.attributes && p.attributes[k]) || "");
+      rows.push([...parentBaseRow, ...parentDynamicRow].map(escapeCsv).join(","));
 
-      return [...baseRow, ...dynamicRow].map(escapeCsv).join(",");
+      // 2. Export individual child variant rows for complete visibility & bulk editing
+      if (p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
+        p.variants.forEach((v: any) => {
+          const vColor = v.attributes instanceof Map
+            ? (v.attributes.get("color") || v.attributes.get("colour") || "")
+            : (v.attributes?.color || v.attributes?.colour || v.color || "");
+          const vSize = v.attributes instanceof Map
+            ? (v.attributes.get("size") || v.attributes.get("eu_size") || "")
+            : (v.attributes?.size || v.attributes?.eu_size || v.size || "");
+          const vName = `${p.name} - ${[vColor, vSize].filter(Boolean).join(" ")}`.trim();
+          const vImg = v.imageUrl || v.images?.[0]?.url || "";
+          const vAlt = v.altText || v.images?.[0]?.altText || vName;
+
+          const childBaseRow = [
+            v.sku,
+            vName,
+            p.description,
+            p.shortDescription,
+            `${p.slug}-${slugify(v.sku)}`,
+            v.price ?? p.basePrice,
+            v.specialPrice || "",
+            "", // special_from_date
+            "", // special_to_date
+            v.weight || p.weight || "",
+            (v.stock > 0 || p.allowBackorders) ? "1" : "0",
+            v.stock ?? 0,
+            "simple", // child product type
+            p.magentoCategories || p.categorySlugs?.join(","),
+            p.brand || "",
+            p.taxClassName || "",
+            v.status === "disabled" ? "0" : "1",
+            "Not Visible Individually", // standard Magento child visibility
+            vImg,
+            vAlt,
+            "", // additional_images
+            "", // additional_image_labels
+            vImg,
+            vAlt,
+            "", // configurable_variations
+            "", // related_skus
+            "", // upsell_skus
+            "", // crosssell_skus
+            p.sizeChart || "",
+            p.gender || "",
+            p.countryOfManufacture || "",
+            p.attributeSetCode || "",
+            "", // configurable_variation_labels
+            p.isFreeShipping ? "1" : "0",
+            p.allowBackorders ? "1" : "0",
+            vName,
+            p.metaKeywords || "",
+            p.metaDescription || "",
+          ];
+
+          const childDynamicRow = dynamicHeaders.map((k) => {
+            if (k === "color") return vColor;
+            if (k === "size") return vSize;
+            return (p.attributes && p.attributes[k]) || "";
+          });
+
+          rows.push([...childBaseRow, ...childDynamicRow].map(escapeCsv).join(","));
+        });
+      }
     });
 
     return [allHeaders.join(","), ...rows].join("\n");

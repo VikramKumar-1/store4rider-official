@@ -74,18 +74,30 @@ export interface IBackendProduct {
   attributes?: Record<string, string>;
 }
 
-export function useProducts(params?: { 
-  category?: string; 
-  brand?: string; 
-  search?: string; 
-  page?: number; 
+export interface UseProductsParams {
+  category?: string;
+  brand?: string;
+  search?: string;
+  page?: number;
   limit?: number;
   minPrice?: number;
   maxPrice?: number;
+  priceFrom?: number;
+  priceTo?: number;
   sort?: string;
+  scope?: string;
+  status?: string;
+  attributeSet?: string;
+  attributeSetCode?: string;
+  productType?: string;
+  sku?: string;
+  name?: string;
+  id?: string;
   // Dynamic attribute filters
   [key: string]: string | number | undefined;
-}) {
+}
+
+export function useProducts(params?: UseProductsParams) {
   return useQuery({
     queryKey: ["products", params],
     queryFn: async () => {
@@ -97,7 +109,17 @@ export function useProducts(params?: {
       if (params?.limit) queryParams.append("limit", params.limit.toString());
       if (params?.minPrice !== undefined) queryParams.append("minPrice", params.minPrice.toString());
       if (params?.maxPrice !== undefined) queryParams.append("maxPrice", params.maxPrice.toString());
+      if (params?.priceFrom !== undefined) queryParams.append("priceFrom", params.priceFrom.toString());
+      if (params?.priceTo !== undefined) queryParams.append("priceTo", params.priceTo.toString());
       if (params?.sort) queryParams.append("sort", params.sort);
+      if (params?.scope) queryParams.append("scope", params.scope);
+      if (params?.status) queryParams.append("status", params.status);
+      if (params?.attributeSet) queryParams.append("attributeSet", params.attributeSet);
+      if (params?.attributeSetCode) queryParams.append("attributeSetCode", params.attributeSetCode);
+      if (params?.productType) queryParams.append("productType", params.productType);
+      if (params?.sku) queryParams.append("sku", params.sku);
+      if (params?.name) queryParams.append("name", params.name);
+      if (params?.id) queryParams.append("id", params.id);
       
       const DYNAMIC_PARAMS = ['helmet_type', 'material', 'riding_style', 'certification', 'gender', 'size', 'colour', 'inStock', 'onSale'];
       for (const key of DYNAMIC_PARAMS) {
@@ -126,6 +148,13 @@ export function useProducts(params?: {
     staleTime: 1000 * 60 * 3, // 3 minutes instant cache
     gcTime: 1000 * 60 * 10,    // 10 minutes memory
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useAdminProducts(params?: UseProductsParams) {
+  return useProducts({
+    ...params,
+    scope: "admin",
   });
 }
 

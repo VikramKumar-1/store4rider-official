@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { 
@@ -17,7 +18,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { formatPrice } from "@store4riders/shared-utils";
 import { useAdminOrderById } from "@/core/hooks/useOrderById";
-import { useCreateManualShipment } from "@/core/hooks/useAdminShipments";
+import { useCreateManualShipment, usePushToShiprocket } from "@/core/hooks/useAdminShipments";
 import { ShippingLabelModal } from "./ShippingLabelModal";
 import { AdminTrackingModal } from "./AdminTrackingModal";
 
@@ -59,8 +60,14 @@ const COURIER_PARTNERS: CourierOption[] = [
 ];
 
 export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ orderId, onClose }) => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { data: order, isLoading: isOrderLoading } = useAdminOrderById(orderId);
   const createManualMutation = useCreateManualShipment();
+  const pushToShiprocketMutation = usePushToShiprocket();
 
   const [selectedCourierId, setSelectedCourierId] = useState<string>("shiprocket");
   const [awbNumber, setAwbNumber] = useState<string>("");
@@ -70,6 +77,26 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
   const [showTrackingModal, setShowTrackingModal] = useState<boolean>(false);
 
   const selectedCourier = COURIER_PARTNERS.find((c) => c.id === selectedCourierId) || COURIER_PARTNERS[0];
+
+  const handlePushToShiprocket = () => {
+    setErrorMessage(null);
+    pushToShiprocketMutation.mutate(orderId, {
+      onSuccess: (data: any) => {
+        setCreatedShipment({
+          ...data,
+          courierName: data?.courierName || "Shiprocket",
+          provider: "shiprocket",
+          awb: data?.awb || null,
+          labelUrl: data?.labelUrl || null,
+          packedAt: new Date().toISOString(),
+        });
+        toast.success(data?.awb ? `AWB ${data.awb} generated and order dispatched via Shiprocket!` : "Order dispatched via Shiprocket!");
+      },
+      onError: (err: any) => {
+        setErrorMessage(err.response?.data?.message || err.message || "Failed to dispatch via Shiprocket");
+      }
+    });
+  };
 
   const handleConfirmPacked = () => {
     setErrorMessage(null);
@@ -121,8 +148,10 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
   const isCancelled = order?.status === "cancelled";
   const isUnsettled = isPaymentFailed || isPendingPayment || isCancelled;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+  if (!mounted || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
       <div 
         className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col my-auto animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
@@ -167,52 +196,64 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-900">
-                  Order Packed &amp; Ready for Dispatch!
+                  {createdShipment.awb
+                    ? "Order Dispatched & AWB Assigned!"
+                    : "Order Packed & Dispatched via Shiprocket!"}
                 </h3>
                 <p className="text-slate-500 mt-1 text-xs max-w-sm mx-auto">
-                  Package registered at {format(new Date(createdShipment.packedAt || Date.now()), "dd MMM, hh:mm a")}. Handover scheduled via <strong>{createdShipment.courierName}</strong>.
+                  Package registered at {format(new Date(createdShipment.packedAt || Date.now()), "dd MMM, hh:mm a")}. Handover scheduled via {createdShipment.courierName || "Courier Partner"}.
                 </p>
               </div>
 
               <div className="bg-slate-50 border border-slate-200 p-4 w-full text-left rounded-xl space-y-2">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assigned Courier</span>
-                    <p className="text-sm font-bold text-slate-900 mt-0.5">{createdShipment.courierName}</p>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Courier Partner</span>
+                    <p className="text-sm font-bold text-slate-900 mt-0.5">{createdShipment.courierName || "Shiprocket"}</p>
                   </div>
                   <div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tracking AWB</span>
-                    <p className="font-mono text-sm font-bold text-brand mt-0.5">{createdShipment.awb}</p>
+                    <p className="font-mono text-sm font-bold text-brand mt-0.5">
+                      {createdShipment.awb || "Generated via API"}
+                    </p>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-200 flex items-center justify-start">
-                  <button
-                    type="button"
-                    onClick={() => setShowTrackingModal(true)}
-                    className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5"
-                  >
-                    <TruckIcon className="w-4 h-4 text-blue-600" />
-                    <span>View Live Status in Modal</span>
-                  </button>
-                </div>
+                {createdShipment.awb && (
+                  <div className="pt-2 border-t border-slate-200 flex items-center justify-start">
+                    <button
+                      type="button"
+                      onClick={() => setShowTrackingModal(true)}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5"
+                    >
+                      <TruckIcon className="w-4 h-4 text-blue-600" />
+                      <span>View Live Status in Modal</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowLabelModal(true)}
+                  onClick={() => {
+                    if (createdShipment.labelUrl) {
+                      window.open(createdShipment.labelUrl, "_blank");
+                    } else {
+                      setShowLabelModal(true);
+                    }
+                  }}
                   className="w-full py-2.5 bg-neutral-900 hover:bg-brand text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
                 >
                   <PrinterIcon className="w-4 h-4" />
-                  <span>Print 4×6″ Thermal Label</span>
+                  <span>Print 4×6″ Shipping Label</span>
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
                   className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors border border-slate-200"
                 >
-                  Done &amp; Return
+                  Done &amp; Close
                 </button>
               </div>
             </div>
@@ -396,24 +437,26 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                 </div>
               </div>
 
-              {/* Step 2: AWB Tracking Number */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
-                  2. AWB Tracking Barcode <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={awbNumber}
-                    onChange={(e) => setAwbNumber(e.target.value)}
-                    placeholder="Enter or scan courier waybill barcode from label..."
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-brand bg-white"
-                  />
+              {/* Step 2: AWB Tracking Barcode (Manual Couriers only) */}
+              {selectedCourierId !== "shiprocket" && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
+                    2. AWB Tracking Barcode <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={awbNumber}
+                      onChange={(e) => setAwbNumber(e.target.value)}
+                      placeholder="Enter or scan courier waybill barcode from label..."
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-brand bg-white"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Scan the physical package barcode or paste the AWB assigned by {selectedCourier.name}.
+                  </p>
                 </div>
-                <p className="text-[11px] text-slate-500">
-                  Scan the physical package barcode or paste the AWB assigned by {selectedCourier.name}.
-                </p>
-              </div>
+              )}
 
               {/* Error Banner */}
               {errorMessage && (
@@ -424,19 +467,35 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
 
               {/* Primary Action Button */}
               <div className="pt-2 border-t border-slate-100 flex flex-col gap-2.5">
-                <button
-                  type="button"
-                  disabled={createManualMutation.isPending || isUnsettled}
-                  onClick={handleConfirmPacked}
-                  className="w-full py-3 bg-brand hover:bg-brand/90 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <CheckCircleIcon className="w-4 h-4" />
-                  <span>
-                    {createManualMutation.isPending
-                      ? "Confirming Packaging..."
-                      : `Confirm Packed & Dispatch with ${selectedCourier.name}`}
-                  </span>
-                </button>
+                {selectedCourierId === "shiprocket" ? (
+                  <button
+                    type="button"
+                    disabled={pushToShiprocketMutation.isPending || isUnsettled}
+                    onClick={handlePushToShiprocket}
+                    className="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <TruckIcon className="w-4 h-4" />
+                    <span>
+                      {pushToShiprocketMutation.isPending
+                        ? "Generating AWB via Shiprocket..."
+                        : "Dispatch & Generate AWB via Shiprocket"}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={createManualMutation.isPending || isUnsettled}
+                    onClick={handleConfirmPacked}
+                    className="w-full py-3 bg-brand hover:bg-brand/90 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <CheckCircleIcon className="w-4 h-4" />
+                    <span>
+                      {createManualMutation.isPending
+                        ? "Confirming Packaging..."
+                        : `Confirm Packed & Dispatch with ${selectedCourier.name}`}
+                    </span>
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -474,6 +533,7 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
           onClose={() => setShowTrackingModal(false)}
         />
       )}
-    </div>
+    </div>,
+    document.body
   );
 };

@@ -8,7 +8,6 @@ import {
   ShoppingBagIcon as OrdersIcon,
   HeartIcon,
   UserCircleIcon,
-  SparklesIcon,
 } from "@heroicons/react/24/outline";
 
 interface NavUserMenuProps {
@@ -41,8 +40,10 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = ({
   return (
     <div className="hidden lg:block relative" ref={menuRef}>
       <button
+        type="button"
         onClick={onToggle}
         aria-label="User Account"
+        suppressHydrationWarning
         className={`p-2.5 rounded-full transition-all duration-200 cursor-pointer flex items-center gap-1 active:scale-95 ${
           isLight
             ? "text-neutral-700 hover:text-neutral-950 hover:bg-neutral-900/[0.06]"
@@ -90,7 +91,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = ({
                   <span>Wishlist</span>
                 </Link>
                 <div className="border-t border-neutral-100 my-1" />
-                <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors text-left">
+                <button type="button" onClick={onLogout} suppressHydrationWarning className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors text-left">
                   <ArrowRightOnRectangleIcon className="w-4 h-4" />
                   <span>Log Out</span>
                 </button>
@@ -99,7 +100,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = ({
               <>
                 <Link href="/login" onClick={onClose} className="flex items-center justify-between px-4 py-2.5 bg-banner text-white font-bold hover:bg-orange-600 transition-colors mx-3 my-1 rounded-sm">
                   <span>SIGN IN / LOGIN</span>
-                  <SparklesIcon className="w-4 h-4" />
+                  <ArrowRightOnRectangleIcon className="w-4 h-4" />
                 </Link>
                 <Link href="/register" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 hover:text-banner transition-colors">
                   <UserCircleIcon className="w-4 h-4 text-neutral-500" />

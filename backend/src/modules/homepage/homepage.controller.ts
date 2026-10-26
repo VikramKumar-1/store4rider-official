@@ -13,6 +13,14 @@ export class HomepageController {
    * Public endpoint to fetch active homepage settings (cached).
    */
   static async getPublic(req: any) {
+    try {
+      const url = new URL(req.url);
+      if (url.searchParams.get("refresh") === "true") {
+        await HomepageService.invalidateCache();
+      }
+    } catch {
+      // Ignore URL parse error
+    }
     const config = await HomepageService.getPublicConfig();
     return ApiResponse.success(config, "Homepage configuration fetched successfully");
   }

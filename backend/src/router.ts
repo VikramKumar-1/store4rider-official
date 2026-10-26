@@ -24,6 +24,7 @@ import { cronRouter } from "./modules/cron/cron.route";
 import { migrationRouter } from "./modules/migration/migration.route";
 import { homepageRouter } from "./modules/homepage/homepage.route";
 import { contactRouter } from "./modules/contact/contact.route";
+import { blogRouter } from "./modules/blog/blog.route";
 
 export async function centralRouter(req: NextRequest, routePath: string[]) {
   if (routePath.join("/") === "debug-images") {
@@ -75,6 +76,8 @@ export async function centralRouter(req: NextRequest, routePath: string[]) {
     case "migration": return migrationRouter(req, rest);
     case "contact":
     case "support": return contactRouter(req, rest);
+    case "blog":
+    case "blogs": return blogRouter(req, rest);
     default: return null;
   }
 }

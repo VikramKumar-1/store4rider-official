@@ -160,6 +160,7 @@ const touringGearSectionSchema = new Schema(
 
 const instagramReelSchema = new Schema(
   {
+    id: { type: String, default: "" },
     title: { type: String, default: "" },
     thumbnailUrl: { type: String, default: "" },
     videoType: { type: String, enum: ["upload", "embed"], default: "embed" },
@@ -170,6 +171,7 @@ const instagramReelSchema = new Schema(
     author: { type: String, default: "@store4riders" },
     order: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    timestamp: { type: String, default: "" },
   },
   { _id: true }
 );
@@ -232,6 +234,7 @@ const socialMediaSectionSchema = new Schema(
       buttonText: { type: String, default: "" },
       imagePosition: { type: String, enum: ["top", "center", "bottom"], default: "top" },
     },
+    lastSyncedAt: { type: String, default: "" },
   },
   { _id: false }
 );

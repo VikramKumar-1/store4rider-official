@@ -6,8 +6,7 @@ import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { GUIDE_CATEGORIES, GUIDE_POSTS } from "../data/guides-data";
 import { GuideCard } from "./GuideCard";
 import { GuideAuthorCard } from "./GuideAuthorCard";
-import { buildBlogCollectionSchema, buildBreadcrumbSchema } from "../utils/schema";
-import { MagnifyingGlassIcon, BookOpenIcon, SparklesIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, BookOpenIcon } from "@heroicons/react/24/outline";
 
 export const GuidesHubModule: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -25,38 +24,8 @@ export const GuidesHubModule: React.FC = () => {
       return matchesCat && matchesSearch;
     });
   }, [selectedCategory, searchQuery]);
-
-  const collectionSchema = useMemo(() => {
-    return buildBlogCollectionSchema(
-      "Motorcycle Guides & Advice | Store4Riders",
-      "Comprehensive motorcycle riding gear guides, maintenance checklists, superbike buying tips, and touring advice.",
-      GUIDE_POSTS,
-      "https://www.store4riders.com/guides"
-    );
-  }, []);
-
-  const breadcrumbSchema = useMemo(() => {
-    return buildBreadcrumbSchema([
-      { name: "Home", url: "/" },
-      { name: "Guides", url: "/guides" },
-    ]);
-  }, []);
-
   return (
     <div className="min-h-screen bg-neutral-50/60 pb-20">
-      {/* Blog Schema */}
-      <script
-        type="application/ld+json"
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
-      />
-
-      {/* Breadcrumb Schema */}
-      <script
-        type="application/ld+json"
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
 
       {/* Breadcrumb */}
       <Breadcrumb
@@ -70,9 +39,15 @@ export const GuidesHubModule: React.FC = () => {
       <section className="bg-gradient-to-b from-neutral-100/70 via-white to-neutral-50/50 border-b border-neutral-200/80 py-12 sm:py-16">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand/10 border border-brand/20 text-brand text-xs font-bold uppercase tracking-widest mb-4">
-              <SparklesIcon className="w-4 h-4" />
-              <span>Official Store4Riders Knowledge Base</span>
+            <div className="flex items-center gap-2.5 mb-4">
+              <span className="w-2 h-2 rounded-full bg-brand shadow-xs" />
+              <span className="text-xs font-black uppercase tracking-widest text-brand">
+                Store4Riders Editorial & Field Guides
+              </span>
+              <span className="text-neutral-300">•</span>
+              <span className="text-xs font-medium text-neutral-500">
+                Gear Manuals & Rider Advice
+              </span>
             </div>
             
             <h1 className="text-3xl sm:text-5xl font-sans font-black tracking-tight text-neutral-900 mb-4 leading-tight">
@@ -90,12 +65,15 @@ export const GuidesHubModule: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search guides (e.g. helmets, chain care, touring, CE armour)..."
+                suppressHydrationWarning
                 className="w-full bg-white border border-neutral-300 text-neutral-900 placeholder-neutral-400 pl-11 pr-4 py-3.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all shadow-sm"
               />
               <MagnifyingGlassIcon className="w-5 h-5 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               {searchQuery && (
                 <button
+                  type="button"
                   onClick={() => setSearchQuery("")}
+                  suppressHydrationWarning
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-neutral-400 hover:text-neutral-700"
                 >
                   Clear
@@ -111,7 +89,9 @@ export const GuidesHubModule: React.FC = () => {
         {/* Category Filter Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-4 pt-1 scrollbar-none">
           <button
+            type="button"
             onClick={() => setSelectedCategory("all")}
+            suppressHydrationWarning
             className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
               selectedCategory === "all"
                 ? "bg-brand text-white shadow-sm"
@@ -124,7 +104,9 @@ export const GuidesHubModule: React.FC = () => {
           {GUIDE_CATEGORIES.map((cat) => (
             <button
               key={cat.id}
+              type="button"
               onClick={() => setSelectedCategory(cat.slug)}
+              suppressHydrationWarning
               className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                 selectedCategory === cat.slug
                   ? "bg-brand text-white shadow-sm"

@@ -547,22 +547,28 @@ const mapProductToPDP = (
     });
   }
 
-  // 2. Add Variant Specific Images (Trust the DB Swatch/Variant Image!)
+  // 2. Add Variant Specific Images (Trust the DB Swatch/Variant Image & Alt Text!)
   if (rawVariants && rawVariants.length > 0) {
     rawVariants.forEach((v: any) => {
-      if (v.imageUrl && v.imageUrl !== "/no-image.svg") {
-        const norm = normalizeUrlForMap(v.imageUrl);
-        if (!galleryMap.has(norm)) {
-          let vColor = "";
-          const colorKey = Object.keys(v.attributes).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
-          if (colorKey) vColor = v.attributes[colorKey];
-          
-          galleryMap.set(norm, {
-            url: v.imageUrl,
-            altText: vColor ? `${product.name} - ${vColor}` : product.name,
-          });
+      const vImgs = (v.images && v.images.length > 0)
+        ? v.images
+        : (v.imageUrl ? [{ url: v.imageUrl, altText: v.altText }] : []);
+
+      vImgs.forEach((vImg: any) => {
+        if (vImg?.url && vImg.url !== "/no-image.svg") {
+          const norm = normalizeUrlForMap(vImg.url);
+          if (!galleryMap.has(norm)) {
+            let vColor = "";
+            const colorKey = Object.keys(v.attributes || {}).find((k) => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
+            if (colorKey) vColor = v.attributes[colorKey];
+            
+            galleryMap.set(norm, {
+              url: vImg.url,
+              altText: vImg.altText || (vColor ? `${product.name} - ${vColor}` : product.name),
+            });
+          }
         }
-      }
+      });
     });
   }
 

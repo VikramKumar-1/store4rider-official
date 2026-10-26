@@ -14,6 +14,8 @@ export function useSyncInstagramFeed() {
       return res.data.data;
     },
     onSuccess: (data) => {
+      queryClient.setQueryData(["homepage", "config"], data);
+      queryClient.setQueryData(["homepage", "public"], data);
       queryClient.invalidateQueries({ queryKey: ["homepage"] });
       const count = data?.sections?.socialMedia?.reels?.length || 0;
       toast.success(`Successfully synced ${count} Instagram reels & live profile stats!`);

@@ -93,6 +93,7 @@ export interface IInstagramReel {
   author?: string;
   order?: number;
   isActive?: boolean;
+  timestamp?: string;
 }
 
 export interface ISocialMediaSectionConfig {
@@ -108,6 +109,7 @@ export interface ISocialMediaSectionConfig {
   reelImages: string[];
   bannerTop: ISocialMediaBannerTop;
   bannerBottom: ISocialMediaBannerBottom;
+  lastSyncedAt?: string;
 }
 
 export interface ITestimonialsSectionConfig {

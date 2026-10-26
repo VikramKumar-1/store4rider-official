@@ -15,11 +15,13 @@ export interface AccordionItem {
 interface CategorySEOAccordionProps {
   categoryName?: string;
   items?: AccordionItem[];
+  enableFaqSchema?: boolean;
 }
 
 export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
   categoryName = "Riding Gloves",
   items,
+  enableFaqSchema = false,
 }) => {
   const router = useRouter();
   // Store open state per panel; default first panel closed
@@ -70,10 +72,12 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
   return (
     <section className="w-full my-3" aria-label={`${categoryName} Information`}>
       {/* 1. Googlebot JSON-LD Structured Data Schema */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
+      {enableFaqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
 
       {/* 2. SEO-Friendly Accordion Panels */}
       <div className="flex flex-col gap-2">

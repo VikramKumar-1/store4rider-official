@@ -8,7 +8,7 @@
     "build": "next build --webpack",
     "start": "next start -p 3000",
     "lint": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --api false",
     "test:watch": "vitest"
   },
   "dependencies": {

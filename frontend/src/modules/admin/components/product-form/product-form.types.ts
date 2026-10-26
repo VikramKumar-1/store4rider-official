@@ -28,6 +28,7 @@ export interface ProductVariant {
   specialPrice?: number | "";
   stock: number | "";
   imageUrl?: string;
+  altText?: string;
   weight?: number | "";
   status?: "enabled" | "disabled";
   visibility?: string;

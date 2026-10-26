@@ -28,6 +28,10 @@ export class CategoryRepository {
     return CategoryModel.findByIdAndUpdate(id, data, { new: true }).lean().exec() as unknown as ICategory | null;
   }
 
+  static async updateMany(filter: Record<string, any>, data: Record<string, any>): Promise<void> {
+    await CategoryModel.updateMany(filter, data).exec();
+  }
+
   static async delete(id: string): Promise<void> {
     await CategoryModel.findByIdAndDelete(id).exec();
   }

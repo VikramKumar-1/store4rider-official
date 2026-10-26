@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
@@ -17,6 +18,8 @@ import {
 import { useWarehouses } from "@/core/hooks/useWarehouses";
 import { useGenerateInvoice } from "@/core/hooks/useOrderActions";
 import { useOrderShipments } from "@/core/hooks/useShipments";
+import { usePushToShiprocket } from "@/core/hooks/useAdminShipments";
+import { toast } from "sonner";
 import { 
   ArrowLeftIcon, 
   DocumentArrowDownIcon, 
@@ -35,7 +38,9 @@ import {
   LockClosedIcon,
   PhoneIcon,
   XMarkIcon,
-  ClipboardDocumentIcon
+  ClipboardDocumentIcon,
+  TruckIcon,
+  PrinterIcon
 } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -85,6 +90,11 @@ export interface AdminOrderDetailModuleProps {
 }
 
 export const AdminOrderDetailModule = ({ orderId, isModal = false, onClose }: AdminOrderDetailModuleProps) => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { user } = useAuthStore();
   const userRole = user?.role;
   const isCustomerCare = userRole === "customer_care";
@@ -102,6 +112,7 @@ export const AdminOrderDetailModule = ({ orderId, isModal = false, onClose }: Ad
   const resendInvoiceMutation = useAdminResendInvoiceEmail();
   const assignWarehouseMutation = useAdminAssignWarehouse();
   const deleteOrderMutation = useAdminDeleteOrder();
+  const pushToShiprocketMutation = usePushToShiprocket();
   const router = useRouter();
 
   const [noteText, setNoteText] = useState("");
@@ -121,13 +132,15 @@ export const AdminOrderDetailModule = ({ orderId, isModal = false, onClose }: Ad
 
   if (isLoading) {
     if (isModal) {
-      return (
-        <div className="fixed inset-0 z-[70] bg-slate-900/80 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150">
+      if (!mounted || typeof document === "undefined") return null;
+      return createPortal(
+        <div className="fixed inset-0 z-[100] bg-slate-900/80 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl p-10 max-w-sm w-full text-center space-y-3 shadow-2xl border border-slate-200">
             <div className="w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin mx-auto" />
             <p className="text-slate-800 font-bold text-xs uppercase tracking-wider">Loading Full Order File...</p>
           </div>
-        </div>
+        </div>,
+        document.body
       );
     }
     return <div className="p-12 text-center animate-pulse text-neutral-500 font-bold uppercase">Loading Order...</div>;
@@ -135,8 +148,9 @@ export const AdminOrderDetailModule = ({ orderId, isModal = false, onClose }: Ad
 
   if (!order) {
     if (isModal) {
-      return (
-        <div className="fixed inset-0 z-[70] bg-slate-900/80 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150">
+      if (!mounted || typeof document === "undefined") return null;
+      return createPortal(
+        <div className="fixed inset-0 z-[100] bg-slate-900/80 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center space-y-3 shadow-2xl border border-slate-200">
             <p className="text-red-600 font-bold text-sm">Order file could not be found.</p>
             {onClose && (
@@ -145,7 +159,8 @@ export const AdminOrderDetailModule = ({ orderId, isModal = false, onClose }: Ad
               </button>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       );
     }
     return <div className="p-12 text-center text-red-500 font-bold">Order not found.</div>;
@@ -723,38 +738,67 @@ export const AdminOrderDetailModule = ({ orderId, isModal = false, onClose }: Ad
             <div className="space-y-3">
               {latestShipment?.provider ? (
                 /* Auto-synced from Courier Dashboard */
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3.5">
-                  <div className="flex items-center justify-between mb-1.5">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      Auto-Synced from {latestShipment.provider.toUpperCase()} Dashboard
+                      Synced with {latestShipment.provider.toUpperCase()}
                     </span>
-                    {latestShipment.awb && (
+                    {latestShipment.awb ? (
                       <span className="font-mono text-xs font-bold text-neutral-900 bg-white px-2 py-0.5 rounded border border-emerald-300">
                         AWB: {latestShipment.awb}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">
+                        In Courier Processing
                       </span>
                     )}
                   </div>
                   <p className="text-xs font-bold text-neutral-900">
                     {assignedWarehouse?.name || "Warehouse"} — {assignedWarehouse?.city}, {assignedWarehouse?.state} ({assignedWarehouse?.pincode})
                   </p>
-                  <p className="text-[11px] text-emerald-700 mt-1">
+                  <p className="text-[11px] text-emerald-700">
                     Courier: <span className="capitalize font-semibold">{latestShipment.courierName || latestShipment.provider}</span> • Status: {latestShipment.providerStatus || latestShipment.status}
                   </p>
+                  {latestShipment.labelUrl && (
+                    <div className="pt-2 border-t border-emerald-200">
+                      <a
+                        href={latestShipment.labelUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-950 hover:underline"
+                      >
+                        <PrinterIcon className="w-3.5 h-3.5" />
+                        <span>Print Shipping Label (PDF)</span>
+                      </a>
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* Pending Courier Dispatch */
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3.5">
-                  <div className="flex items-center gap-1.5 text-amber-800 text-[10px] font-black uppercase tracking-wider mb-1">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3.5 space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-amber-800 text-[10px] font-black uppercase tracking-wider">
                     <span className="w-2 h-2 rounded-full bg-amber-500" />
-                    Pending Courier Dispatch (Dashboard Selection)
+                    Pending Courier Dispatch
                   </div>
                   <p className="text-xs text-neutral-800">
-                    Current Godown: <span className="font-bold">{assignedWarehouse?.name || "Central Warehouse"} ({originState})</span>
+                    Dispatch Warehouse: <span className="font-bold">{assignedWarehouse?.name || "Central Warehouse"} ({originState})</span>
                   </p>
-                  <p className="text-[11px] text-amber-700 mt-1 leading-snug">
-                    When you ship this order in your <b>Shiprocket / Delhivery / Xpressbees</b> dashboard and choose your pickup location, our webhook will automatically update this warehouse and align the Tax Invoice state.
-                  </p>
+
+                  {!isUnsettled && (
+                    <button
+                      type="button"
+                      onClick={() => pushToShiprocketMutation.mutate(orderId, {
+                        onSuccess: () => toast.success("AWB assigned and order dispatched via Shiprocket!"),
+                        onError: (err: any) => toast.error(err.response?.data?.message || err.message || "Failed to dispatch via Shiprocket")
+                      })}
+                      disabled={pushToShiprocketMutation.isPending}
+                      className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs uppercase tracking-wider rounded shadow-xs transition-colors disabled:opacity-50"
+                    >
+                      <TruckIcon className="w-4 h-4" />
+                      {pushToShiprocketMutation.isPending ? "Generating AWB via Shiprocket..." : "Dispatch & Generate AWB via Shiprocket"}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -933,8 +977,9 @@ export const AdminOrderDetailModule = ({ orderId, isModal = false, onClose }: Ad
   );
 
   if (isModal) {
-    return (
-      <div className="fixed inset-0 z-[70] bg-slate-900/80 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150">
+    if (!mounted || typeof document === "undefined") return null;
+    return createPortal(
+      <div className="fixed inset-0 z-[100] bg-slate-900/80 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150">
         <div 
           className="w-full max-w-6xl bg-slate-50 rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
           onClick={(e) => e.stopPropagation()}
@@ -993,7 +1038,8 @@ export const AdminOrderDetailModule = ({ orderId, isModal = false, onClose }: Ad
             {mainContent}
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 

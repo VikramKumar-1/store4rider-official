@@ -145,7 +145,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" className={`${inter.variable} font-sans`}>
+    <html lang="en" className={`${inter.variable} font-sans`} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="shortcut icon" href="/favicon.ico" />
@@ -155,7 +155,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
       </head>
-      <body className="antialiased bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans">
+      <body className="antialiased bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans" suppressHydrationWarning>
         <Providers>
           <NavigationProgress />
           <div className="flex-1 w-full">

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { formatPrice } from "@store4riders/shared-utils";
@@ -20,6 +21,11 @@ import {
 import { OrdersNavTabs } from "./OrdersNavTabs";
 
 export const ExchangeRequestsModule = () => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("exchanges"); // "exchanges", "return_requested", "return_approved", "return_picked", "returned"
@@ -427,8 +433,8 @@ export const ExchangeRequestsModule = () => {
       </div>
 
       {/* Reject Modal */}
-      {rejectModalOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+      {rejectModalOrder && mounted && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-neutral-200 space-y-4">
             <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
               <h3 className="font-black text-neutral-900 uppercase text-base flex items-center gap-2">
@@ -482,7 +488,8 @@ export const ExchangeRequestsModule = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -2,8 +2,70 @@ export interface IGuideAuthor {
   name: string;
   url: string;
   jobTitle?: string;
+  avatar?: string;
   bio?: string;
   sameAs: string[];
+}
+
+export interface IBlogCategory {
+  _id?: string;
+  id?: string;
+  name: string;
+  slug: string;
+  description?: string;
+  articleCount?: number;
+  order?: number;
+  isActive?: boolean;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+}
+
+export interface IBlogAuthor {
+  name: string;
+  url?: string;
+  jobTitle?: string;
+  avatar?: string;
+  bio?: string;
+  sameAs?: string[];
+}
+
+export interface IBlogPost {
+  _id?: string;
+  id?: string;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt?: string;
+  featuredImage?: string;
+  videoUrl?: string;
+  categoryId?: string;
+  category?: IBlogCategory;
+  categoryName?: string;
+  categorySlug?: string;
+  tags?: string[];
+  author?: IBlogAuthor;
+  status: "draft" | "published";
+  publishedAt?: Date | string;
+  readingTimeMinutes?: number;
+  wordCount?: number;
+  views?: number;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+}
+
+export interface IBlogPostQuery {
+  page?: number;
+  limit?: number;
+  status?: "all" | "draft" | "published";
+  categoryId?: string;
+  categorySlug?: string;
+  search?: string;
+  tag?: string;
+  sortBy?: "publishedAt" | "createdAt" | "views" | "title";
+  sortOrder?: "asc" | "desc";
 }
 
 export interface IGuideCategory {

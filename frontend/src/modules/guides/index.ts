@@ -5,3 +5,5 @@ export { GuideCard } from "./components/GuideCard";
 export { GuideAuthorCard } from "./components/GuideAuthorCard";
 export * from "./data/guides-data";
 export * from "./utils/schema";
+export * from "./utils/getPost";
+export * from "./utils/video";

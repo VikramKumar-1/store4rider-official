@@ -27,10 +27,20 @@ export interface SearchSuggestCategory {
   slug: string;
 }
 
+export interface ScopedSuggestion {
+  type: "category" | "brand";
+  label: string;
+  query: string;
+  categorySlug?: string;
+  categoryName?: string;
+  brand?: string;
+}
+
 export interface SearchSuggestResponse {
   products: SearchSuggestProduct[];
   categories: SearchSuggestCategory[];
   brands: string[];
+  scopedSuggestions?: ScopedSuggestion[];
   isCorrected?: boolean;
   correctedQuery?: string;
 }

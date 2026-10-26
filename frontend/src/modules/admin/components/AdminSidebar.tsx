@@ -25,6 +25,9 @@ import {
   RefreshCw,
   MessageSquare,
   Search,
+  Plus,
+  BookOpen,
+  FileText,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
@@ -81,7 +84,7 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Hero & SEO", href: "/admin/homepage/hero-seo", icon: Globe },
       { name: "Section Edit", href: "/admin/homepage/sections", icon: Layers },
-      { name: "Insta Reels", href: "/admin/homepage/sections?tab=socialMedia", icon: Instagram },
+      { name: "Insta Reels", href: "/admin/homepage/reels", icon: Instagram },
     ],
   },
   { 
@@ -110,6 +113,16 @@ const navItems: NavItem[] = [
     href: "/admin/brands", 
     icon: Tags, 
     allowedRoles: ["super_admin", "admin"] 
+  },
+  { 
+    name: "Blog", 
+    icon: BookOpen, 
+    allowedRoles: ["super_admin", "admin"],
+    subItems: [
+      { name: "All Articles", href: "/admin/blog", icon: FileText },
+      { name: "New Article", href: "/admin/blog/new", icon: Plus },
+      { name: "Categories", href: "/admin/blog/categories", icon: FolderTree },
+    ],
   },
   { 
     name: "Orders", 
@@ -245,7 +258,7 @@ export function AdminSidebar() {
                     {item.subItems.map((sub) => {
                       const isChildActive = sub.href === "/admin/orders"
                         ? (pathname === "/admin/orders" || /^\/admin\/orders\/[0-9a-fA-F-]+$/.test(pathname))
-                        : (pathname === sub.href || pathname.startsWith(sub.href + "/") || pathname.startsWith(sub.href + "?"));
+                        : sub.href.includes("?") ? (pathname === sub.href.split("?")[0] && currentTab === new URLSearchParams(sub.href.split("?")[1]).get("tab")) : (pathname === sub.href || pathname.startsWith(sub.href + "/"));
                       return (
                         <Link
                           key={sub.name}

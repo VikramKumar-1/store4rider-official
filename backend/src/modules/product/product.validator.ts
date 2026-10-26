@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createProductSchema, updateProductSchema } from "@store4riders/shared-validation";
-import { resolveFuzzySearchTerms } from "../../core/utils/fuzzySearch";
+import { resolveFuzzySearchTerms, getGearAccessoryExclusion } from "../../core/utils/fuzzySearch";
 import { buildSearchSlugs } from "./product.category-constants";
 
 /**
@@ -29,40 +29,134 @@ export class ProductValidator {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "12", 10);
     const category = searchParams.get("category");
+    const categoryId = searchParams.get("categoryId");
     const brand = searchParams.get("brand");
     const search = searchParams.get("search") || searchParams.get("q");
     
-    const filters: Record<string, unknown> = {
+    const scope = searchParams.get("scope");
+    const isAdmin = scope === "admin";
+    
+    const filters: Record<string, unknown> = {};
+    const andConditions: any[] = [];
+
+    if (!isAdmin) {
       // Hide child variants (draft) and disabled products (archived)
       // Products with status=published OR status=undefined (old data) will show
-      status: { $nin: ["draft", "archived"] },
+      filters.status = { $nin: ["draft", "archived"] };
       // Magento visibility "1" means "Not Visible Individually", but text exports say "Not Visible Individually"
-      visibility: { $nin: ["1", "Not Visible Individually"] }
-    };
-    const andConditions: any[] = [
-      {
-        $or: [
-          { basePrice: { $gt: 0 } },
-          { specialPrice: { $gt: 0 } },
-          { "variants.price": { $gt: 0 } }
-        ]
-      },
-      // Hide out-of-stock products unless they allow backorders or have variant stock
-      {
-        $or: [
-          { allowBackorders: true },
-          { "variants.stock": { $gt: 0 } },
-          {
-            $and: [
-              { "variants.0": { $exists: false } },
-              { stockStatus: { $ne: 0 } },
-              { qty: { $gt: 0 } }
+      filters.visibility = { $nin: ["1", "Not Visible Individually"] };
+
+      andConditions.push(
+        {
+          $or: [
+            { basePrice: { $gt: 0 } },
+            { specialPrice: { $gt: 0 } },
+            { "variants.price": { $gt: 0 } }
+          ]
+        },
+        // Hide out-of-stock products unless they allow backorders or have variant stock
+        {
+          $or: [
+            { allowBackorders: true },
+            { "variants.stock": { $gt: 0 } },
+            {
+              $and: [
+                { "variants.0": { $exists: false } },
+                { stockStatus: { $ne: 0 } },
+                { qty: { $gt: 0 } }
+              ]
+            }
+          ]
+        }
+      );
+    } else {
+      // Admin-specific status filter (All, Enabled/Published, Disabled/Draft, Archived)
+      const statusParam = searchParams.get("status");
+      if (statusParam && statusParam !== "all") {
+        const s = statusParam.toLowerCase();
+        if (s === "enabled" || s === "published") {
+          andConditions.push({
+            $or: [
+              { status: "published" },
+              { status: { $exists: false }, stockStatus: { $ne: 0 } }
             ]
-          }
-        ]
+          });
+        } else if (s === "disabled" || s === "draft") {
+          andConditions.push({
+            $or: [
+              { status: { $in: ["draft", "archived"] } },
+              { stockStatus: 0 }
+            ]
+          });
+        } else if (s === "archived") {
+          andConditions.push({ status: "archived" });
+        }
       }
-    ];
+
+      // Admin-specific product type filter (Simple, Configurable)
+      const typeParam = searchParams.get("type") || searchParams.get("productType");
+      if (typeParam && typeParam !== "all") {
+        const tp = typeParam.toLowerCase();
+        if (tp.includes("simple")) {
+          andConditions.push({ productType: "simple" });
+        } else if (tp.includes("configurable")) {
+          andConditions.push({ productType: "configurable" });
+        } else {
+          andConditions.push({ productType: typeParam });
+        }
+      }
+
+      // Admin-specific attribute set filter
+      const attributeSetParam = searchParams.get("attributeSet") || searchParams.get("attributeSetCode");
+      if (attributeSetParam && attributeSetParam !== "all") {
+        andConditions.push({
+          $or: [
+            { attributeSetCode: new RegExp('^' + ProductValidator.escapeRegExp(attributeSetParam) + '$', "i") },
+            { "attributes.attribute_set_code": new RegExp('^' + ProductValidator.escapeRegExp(attributeSetParam) + '$', "i") }
+          ]
+        });
+      }
+
+      // Admin SKU search / filter
+      const skuParam = searchParams.get("sku");
+      if (skuParam) {
+        andConditions.push({
+          $or: [
+            { sku: new RegExp(ProductValidator.escapeRegExp(skuParam.trim()), "i") },
+            { "variants.sku": new RegExp(ProductValidator.escapeRegExp(skuParam.trim()), "i") }
+          ]
+        });
+      }
+
+      // Admin Name search / filter
+      const nameParam = searchParams.get("name");
+      if (nameParam) {
+        andConditions.push({
+          name: new RegExp(ProductValidator.escapeRegExp(nameParam.trim()), "i")
+        });
+      }
+
+      // Admin ID filter
+      const idParam = searchParams.get("id");
+      if (idParam) {
+        if (idParam.match(/^[0-9a-fA-F]{24}$/)) {
+          andConditions.push({ _id: idParam });
+        } else {
+          andConditions.push({
+            $or: [
+              { sku: new RegExp(ProductValidator.escapeRegExp(idParam), "i") },
+              { "attributes.entity_id": idParam },
+              { "attributes.id": idParam }
+            ]
+          });
+        }
+      }
+    }
     
+    if (categoryId) {
+      andConditions.push({ categoryId: categoryId.trim() });
+    }
+
     // Accurate category matching for Magento paths and product names with word boundaries
     if (category) {
       let cleanSlug = category.toLowerCase().trim();
@@ -75,10 +169,15 @@ export class ProductValidator {
       const searchSlugs = buildSearchSlugs(cleanSlug);
 
       // Match ANY of the possible variations in the DB (Category Match)
-      const categoryMatchCondition = { categorySlugs: { $in: searchSlugs } };
+      // Match ANY of the possible variations in the DB (Category Match - slugs or direct categoryId)
+      const isHexId = /^[0-9a-fA-F]{24}$/.test(category.trim());
+      const categoryMatchCondition: any = isHexId
+        ? { categoryId: category.trim() }
+        : { categorySlugs: { $in: searchSlugs } };
 
       // Clean up Magento's messy tagging: Exclude accessories from main categories
       const excludeConditions: any[] = [];
+      if (!isAdmin) {
       if ((cleanSlug.includes("boot") || cleanSlug.includes("shoe")) && !cleanSlug.includes("sock") && !cleanSlug.includes("lace") && !cleanSlug.includes("insole") && !cleanSlug.includes("cover") && !cleanSlug.includes("slider")) {
         excludeConditions.push({ name: { $not: /\b(socks?|laces?|insole|covers?|toe\s*slider)\b/i } });
       } else if (cleanSlug.includes("helmet") && !cleanSlug.includes("visor") && !cleanSlug.includes("cleaner") && !cleanSlug.includes("balaclava") && !cleanSlug.includes("intercom") && !cleanSlug.includes("communicator") && !cleanSlug.includes("spoiler") && !cleanSlug.includes("pinlock") && !cleanSlug.includes("lens") && !cleanSlug.includes("shield")) {
@@ -89,6 +188,7 @@ export class ProductValidator {
         excludeConditions.push({ name: { $not: /\b(cable|wire|battery|clamp|mount|pad)\b/i } });
       } else if (cleanSlug.includes("knee-guard") || cleanSlug.includes("knee-guards")) {
         excludeConditions.push({ name: { $not: /\b(hip|elbow|shoulder|back|chest|tailbone)\b/i } });
+      }
       }
 
       /* 
@@ -225,8 +325,8 @@ export class ProductValidator {
       }
     }
 
-    const minPrice = searchParams.get("minPrice") || searchParams.get("priceMin");
-    const maxPrice = searchParams.get("maxPrice") || searchParams.get("priceMax");
+    const minPrice = searchParams.get("priceFrom") || searchParams.get("minPrice") || searchParams.get("priceMin");
+    const maxPrice = searchParams.get("priceTo") || searchParams.get("maxPrice") || searchParams.get("priceMax");
     if (minPrice || maxPrice) {
       const baseCond: Record<string, number> = {};
       const variantCond: Record<string, number> = {};
@@ -427,6 +527,11 @@ export class ProductValidator {
         
         // $and ensures ALL typed concepts match (either exact or typo-corrected)
         andConditions.push({ $and: searchConditions });
+
+        const exclusionRegex = getGearAccessoryExclusion(correctedTerms.length > 0 ? correctedTerms : terms);
+        if (exclusionRegex) {
+          andConditions.push({ name: { $not: exclusionRegex } });
+        }
       }
     }
 

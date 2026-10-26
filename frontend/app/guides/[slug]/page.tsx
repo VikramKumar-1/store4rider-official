@@ -13,7 +13,8 @@ import {
   buildBreadcrumbSchema,
 } from "@/modules/guides";
 
-export const dynamic = "force-static";
+export const revalidate = 60;
+export const dynamicParams = true;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -178,7 +179,7 @@ export default async function GuidesDynamicSlugPage({ params }: Props) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
         />
-        <GuideDetailModule slug={slug} />
+        <GuideDetailModule slug={slug} initialPost={post} />
       </>
     );
   }

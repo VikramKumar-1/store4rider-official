@@ -1,24 +1,35 @@
 import { meiliClient } from "../../core/search/meilisearch";
 import { CategoryRepository } from "../category/category.repository";
-import { resolveFuzzySearchTerms } from "../../core/utils/fuzzySearch";
+import { resolveFuzzySearchTerms, getGearAccessoryExclusion } from "../../core/utils/fuzzySearch";
 
 export class SearchService {
   static async suggest(query: string) {
     let productHits: any[] = [];
     const { terms, correctedTerms, isCorrected, correctedQuery } = resolveFuzzySearchTerms(query);
+    const effectiveTerms = correctedTerms.length > 0 ? correctedTerms : terms;
+    const effectiveQuery = isCorrected ? correctedQuery : query.trim();
+    const exclusionRegex = getGearAccessoryExclusion(effectiveTerms);
 
     // 1. Try Meilisearch first if available
     if (meiliClient) {
       try {
         const searchQuery = isCorrected ? `${query} ${correctedQuery}` : query;
         const productSearch = await meiliClient.index("products").search(searchQuery, {
-          limit: 15,
+          limit: 20,
           attributesToRetrieve: ["id", "name", "slug", "brand", "thumbnail", "basePrice", "specialPrice"],
         });
         const rawHits = productSearch.hits || [];
 
         if (rawHits.length > 0) {
-          const ids = rawHits.map((p) => p.id);
+          // Filter out accessory items when searching for core gear (e.g. searching "helmet" shouldn't return bandana)
+          const cleanHits = rawHits.filter((p: any) => {
+            if (exclusionRegex && exclusionRegex.test(p.name || "")) {
+              return false;
+            }
+            return true;
+          });
+
+          const ids = cleanHits.map((p) => p.id);
           const { ProductModel } = await import("../product/product.model");
           const inStockProducts = await ProductModel.find({
             _id: { $in: ids },
@@ -30,21 +41,21 @@ export class SearchService {
           }).select("_id").lean().exec();
 
           const inStockSet = new Set(inStockProducts.map((p: any) => p._id.toString()));
-          productHits = rawHits.filter((p) => inStockSet.has(p.id)).slice(0, 6);
+          productHits = cleanHits.filter((p) => inStockSet.has(p.id)).slice(0, 6);
         }
       } catch (error) {
         // Meilisearch offline/error - gracefully proceed to MongoDB Atlas fallback
       }
     }
 
-    // 2. MongoDB Atlas Direct Search Fallback with Typo-Tolerance (Zero Mock)
+    // 2. MongoDB Atlas Direct Search Fallback with Typo-Tolerance & Weighted Relevance (Zero Mock)
     // Runs if Meilisearch is offline, unconfigured, or returned 0 hits
     if (productHits.length === 0) {
       try {
         const { ProductModel } = await import("../product/product.model");
 
         if (terms.length > 0) {
-          const conditions = terms.map((w, idx) => {
+          const conditions: any[] = terms.map((w, idx) => {
             const corrected = correctedTerms[idx] || w;
             const regexList = [
               new RegExp(w.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&"), "i"),
@@ -66,6 +77,11 @@ export class SearchService {
             };
           });
 
+          // Strictly exclude accessories if query is for core gear (e.g. "helmet" excludes bandanas & visors)
+          if (exclusionRegex) {
+            conditions.push({ name: { $not: exclusionRegex } });
+          }
+
           const mongoProducts = await ProductModel.find({
             $and: conditions,
             $or: [
@@ -75,12 +91,64 @@ export class SearchService {
               { qty: { $gt: 0 } },
             ],
           })
-            .select("name slug brand images image colorImages thumbnail basePrice specialPrice variants stockStatus")
-            .limit(8)
+            .select("name slug brand images image colorImages thumbnail basePrice specialPrice variants stockStatus salesCount")
+            .limit(35)
             .lean()
             .exec();
 
-          productHits = mongoProducts.map((p: any) => {
+          // High-accuracy relevance scoring engine
+          const lowerQuery = query.toLowerCase().trim();
+          const lowerCorrected = correctedQuery.toLowerCase().trim();
+          const wordBoundaryRegex = new RegExp(`\\b${effectiveQuery.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`, "i");
+
+          const scored = mongoProducts.map((p: any) => {
+            let score = 10;
+            const pName = (p.name || "").toLowerCase();
+            const pBrand = (p.brand || "").toLowerCase();
+
+            // 1. Exact phrase or starts with in product title (Highest priority)
+            if (pName.startsWith(lowerQuery) || pName.startsWith(lowerCorrected)) {
+              score += 100;
+            } else if (pName.includes(lowerQuery) || pName.includes(lowerCorrected)) {
+              score += 60;
+            }
+
+            // 2. Word boundary match in title
+            if (wordBoundaryRegex.test(pName)) {
+              score += 40;
+            }
+
+            // 3. Brand match
+            if (pBrand.includes(lowerQuery) || pBrand.includes(lowerCorrected)) {
+              score += 30;
+            }
+
+            // 4. In stock boost
+            if (p.stockStatus !== 0) {
+              score += 20;
+            }
+
+            // 5. High sales boost
+            if (p.salesCount && p.salesCount > 0) {
+              score += Math.min(p.salesCount, 15);
+            }
+
+            // 6. Penalty for accessories if user searched for core product
+            if (exclusionRegex && exclusionRegex.test(pName)) {
+              score -= 300;
+            }
+
+            return { product: p, score };
+          });
+
+          // Sort by relevance score descending and take top 6
+          const topMatches = scored
+            .filter((item) => item.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 6)
+            .map((item) => item.product);
+
+          productHits = topMatches.map((p: any) => {
             let effectivePrice = p.specialPrice || p.basePrice || 0;
             if (!effectivePrice && Array.isArray(p.variants) && p.variants.length > 0) {
               effectivePrice = p.variants[0].price || 0;
@@ -142,7 +210,7 @@ export class SearchService {
       // Ignore category search error
     }
 
-    // 4. Discover matching brands (with typo tolerance)
+    // 4. Discover matching brands (Direct brand match or Top brands with matching products)
     let matchedBrands: string[] = [];
     try {
       const { ProductModel } = await import("../product/product.model");
@@ -154,18 +222,72 @@ export class SearchService {
         brandRegexes.push(new RegExp(escapedCorrected, "i"));
       }
 
-      const distinctBrands = await ProductModel.distinct("brand", {
+      // Check for direct brand name matches
+      let distinctBrands = await ProductModel.distinct("brand", {
         $or: brandRegexes.map((rx) => ({ brand: { $regex: rx } })),
       });
-      matchedBrands = distinctBrands.filter(Boolean).slice(0, 3);
+
+      // If no direct brand matches (e.g. user typed "helmet"), discover top brands selling the matching gear
+      if (distinctBrands.filter(Boolean).length === 0 && terms.length > 0) {
+        const gearBrandConditions: any[] = [
+          {
+            $or: terms.map((w) => ({
+              $or: [
+                { name: { $regex: new RegExp(w, "i") } },
+                { magentoCategories: { $regex: new RegExp(w, "i") } },
+              ],
+            })),
+          },
+          { brand: { $ne: null, $nin: ["", "Other", "Generic"] } },
+          { stockStatus: { $ne: 0 } },
+        ];
+        if (exclusionRegex) {
+          gearBrandConditions.push({ name: { $not: exclusionRegex } });
+        }
+        distinctBrands = await ProductModel.distinct("brand", { $and: gearBrandConditions });
+      }
+
+      matchedBrands = distinctBrands.filter(Boolean).slice(0, 4);
     } catch {
       // Ignore brand error
+    }
+
+    // 5. Generate Flipkart / Amazon Style Scoped Intent Suggestions
+    const scopedSuggestions: Array<{
+      type: "category" | "brand";
+      label: string;
+      query: string;
+      categorySlug?: string;
+      categoryName?: string;
+      brand?: string;
+    }> = [];
+
+    // Contextual category intents (e.g. "helmet in Full Face Helmets")
+    for (const cat of matchedCategories.slice(0, 2)) {
+      scopedSuggestions.push({
+        type: "category",
+        label: `${effectiveQuery} in ${cat.name}`,
+        query: effectiveQuery,
+        categorySlug: cat.slug,
+        categoryName: cat.name,
+      });
+    }
+
+    // Contextual brand intents (e.g. "helmet by Axor", "helmet by SMK")
+    for (const b of matchedBrands.slice(0, 3)) {
+      scopedSuggestions.push({
+        type: "brand",
+        label: `${effectiveQuery} by ${b}`,
+        query: effectiveQuery,
+        brand: b,
+      });
     }
 
     return {
       products: productHits,
       categories: matchedCategories,
       brands: matchedBrands,
+      scopedSuggestions,
       isCorrected,
       correctedQuery: isCorrected ? correctedQuery : undefined,
     };

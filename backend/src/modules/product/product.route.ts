@@ -34,6 +34,14 @@ export async function productRouter(req: NextRequest, routePath: string[]): Prom
     return await ProductController.create(req);
   }
 
+  if (method === 'GET' && pathLen === 1 && routePath[0] === 'check-sku') {
+    return await ProductController.checkSku(req);
+  }
+
+  if (method === 'GET' && pathLen === 1 && routePath[0] === 'check-slug') {
+    return await ProductController.checkSlug(req);
+  }
+
   if (method === 'GET' && pathLen === 1 && routePath[0] === 'by-skus') {
     return await ProductController.getBySkus(req);
   }

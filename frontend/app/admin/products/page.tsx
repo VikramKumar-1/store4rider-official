@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AdminProducts } from "@/modules/admin/components/AdminProducts";
 
 export const metadata = {
@@ -5,5 +6,9 @@ export const metadata = {
 };
 
 export default function ProductsPage() {
-  return <AdminProducts />;
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading catalog products...</div>}>
+      <AdminProducts />
+    </Suspense>
+  );
 }

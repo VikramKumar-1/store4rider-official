@@ -5,9 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { 
   MagnifyingGlassIcon, 
-  XMarkIcon, 
-  SparklesIcon, 
-  ArrowRightIcon 
+  XMarkIcon,
+ArrowRightIcon 
 } from "@heroicons/react/24/outline";
 import TopBanner from "@/modules/homepage/components/TopBanner";
 import Navbar from "@/modules/homepage/components/Navbar";
@@ -174,9 +173,15 @@ export const BrandsDirectoryModule: React.FC = () => {
       {/* 2. Hero Section */}
       <section className="bg-white border-b border-neutral-200/80 pt-8 pb-10 px-4 sm:px-6">
         <div className="max-w-[1400px] mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand/10 text-brand text-xs font-bold uppercase tracking-wider mb-4">
-            <SparklesIcon className="w-4 h-4" />
-            <span>Official Brand Directory</span>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <span className="w-2 h-2 rounded-full bg-brand" />
+            <span className="text-xs font-black uppercase tracking-widest text-brand">
+              Official Brand Directory
+            </span>
+            <span className="text-neutral-300">•</span>
+            <span className="text-xs font-medium text-neutral-500">
+              100% Genuine Manufacturer Gear
+            </span>
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-neutral-900 mb-3">
             Shop By Brand

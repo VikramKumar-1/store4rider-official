@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
@@ -29,9 +30,14 @@ interface OrderQuickViewModalProps {
 }
 
 export const OrderQuickViewModal: React.FC<OrderQuickViewModalProps> = ({ order, onClose, hideFinancials = false }) => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [selectedGalleryItem, setSelectedGalleryItem] = useState<any | null>(null);
 
-  if (!order) return null;
+  if (!mounted || typeof document === "undefined" || !order) return null;
 
   const orderNum = order.orderNumber || order.id || order._id;
   const customerName = order.shippingAddress?.fullName || order.customer?.fullName || "Guest Customer";
@@ -124,8 +130,8 @@ export const OrderQuickViewModal: React.FC<OrderQuickViewModalProps> = ({ order,
 
   const badge = getStatusBadge(order.status);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
       <div 
         className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden flex flex-col my-auto max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
@@ -468,6 +474,7 @@ export const OrderQuickViewModal: React.FC<OrderQuickViewModalProps> = ({ order,
           hideFinancials={hideFinancials}
         />
       )}
-    </div>
+    </div>,
+    document.body
   );
 };

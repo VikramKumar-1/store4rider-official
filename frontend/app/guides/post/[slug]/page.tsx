@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import {
   GuideDetailModule,
-  getGuideBySlug,
+  fetchGuideOrBlogPost,
   GUIDE_POSTS,
   buildAuthorSchema,
   buildBlogPostingSchema,
   buildBreadcrumbSchema,
 } from "@/modules/guides";
 
-export const dynamic = "force-static";
+export const revalidate = 60;
+export const dynamicParams = true;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -22,7 +24,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const post = getGuideBySlug(slug);
+  const post = await fetchGuideOrBlogPost(slug);
 
   if (!post) {
     return {
@@ -31,9 +33,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const title = `${post.title} | Store4Riders Guides`;
-  const description = post.description;
+  const title = post.metaTitle?.trim() || `${post.title} | Store4Riders Guides`;
+  const description =
+    post.metaDescription?.trim() ||
+    post.description?.trim() ||
+    post.excerpt?.trim() ||
+    "Expert motorcycle riding guides, gear care advice, and maintenance tips by Store4Riders.";
   const canonical = `https://www.store4riders.com/guides/post/${post.slug}`;
+  const rawPublished = post.publishedDate || post.publishedAt || new Date().toISOString();
+  const rawModified = post.modifiedDate || post.updatedAt || rawPublished;
 
   return {
     title,
@@ -59,10 +67,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: canonical,
       siteName: "Store4Riders",
       type: "article",
-      publishedTime: post.publishedDate,
-      modifiedTime: post.modifiedDate || post.publishedDate,
-      authors: [post.author.name],
-      section: post.categoryName,
+      publishedTime: typeof rawPublished === "string" ? rawPublished : rawPublished.toISOString?.() || undefined,
+      modifiedTime: typeof rawModified === "string" ? rawModified : rawModified.toISOString?.() || undefined,
+      authors: [post.author?.name || "Store4Riders Team"],
+      section: post.categoryName || "Motorcycle Guides",
       images: post.featuredImage
         ? [
             {
@@ -85,20 +93,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function GuidePostPage({ params }: Props) {
   const { slug } = await params;
-  const post = getGuideBySlug(slug);
+  const post = await fetchGuideOrBlogPost(slug);
 
   if (!post) {
-    return <GuideDetailModule slug={slug} />;
+    notFound();
   }
 
-  const siteUrl = "https://www.store4riders.com";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://www.store4riders.com";
   const authorSchema = buildAuthorSchema(post.author, siteUrl);
   const blogPostingSchema = buildBlogPostingSchema(post, siteUrl);
   const breadcrumbSchema = buildBreadcrumbSchema(
     [
       { name: "Home", url: "/" },
       { name: "Guides", url: "/guides" },
-      { name: post.categoryName, url: `/guides/category/${post.categorySlug}` },
+      { name: post.categoryName || "Guides", url: `/guides/category/${post.categorySlug || "general"}` },
       { name: post.title, url: `/guides/post/${post.slug}` },
     ],
     siteUrl
@@ -118,8 +126,7 @@ export default async function GuidePostPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
-      <GuideDetailModule slug={slug} />
+      <GuideDetailModule slug={slug} initialPost={post} />
     </>
   );
 }
-

@@ -20,6 +20,15 @@ export const GuideCard: React.FC<GuideCardProps> = ({ post, priority = false }) 
       })
     : "";
 
+  const authorInitials =
+    post.author?.name
+      ?.trim()
+      .split(/\s+/)
+      .map((part: string) => part[0]?.toUpperCase())
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("") || "VM";
+
   return (
     <article className="group bg-white rounded-2xl border border-neutral-200/90 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col h-full hover:-translate-y-1">
       {/* Featured Image */}
@@ -50,9 +59,9 @@ export const GuideCard: React.FC<GuideCardProps> = ({ post, priority = false }) 
         {/* Meta row */}
         <div className="flex items-center gap-3 text-xs text-neutral-500 font-medium mb-2.5">
           {formattedDate && (
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1" suppressHydrationWarning>
               <Calendar className="w-3.5 h-3.5 text-neutral-400" />
-              {formattedDate}
+              <span suppressHydrationWarning>{formattedDate}</span>
             </span>
           )}
           {post.readingTimeMinutes && (
@@ -78,9 +87,21 @@ export const GuideCard: React.FC<GuideCardProps> = ({ post, priority = false }) 
         {/* Footer: Author & Read More */}
         <div className="pt-4 border-t border-neutral-100 flex items-center justify-between mt-auto">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-banner/10 text-brand flex items-center justify-center text-[10px] font-black">
-              VM
-            </div>
+            {post.author?.avatar ? (
+              <div className="relative w-6 h-6 rounded-full overflow-hidden border border-slate-200 shrink-0">
+                <Image
+                  src={post.author.avatar}
+                  alt={post.author.name || "Author"}
+                  fill
+                  sizes="24px"
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-banner/10 text-brand flex items-center justify-center text-[10px] font-black shrink-0">
+                {authorInitials}
+              </div>
+            )}
             <span className="text-xs font-semibold text-neutral-700">
               {post.author.name}
             </span>
