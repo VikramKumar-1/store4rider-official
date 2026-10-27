@@ -101,15 +101,16 @@ describe("SEO Schema Utilities", () => {
         "Riding Gear > Jackets"
       );
 
-      expect(schema["@context"]).toBe("https://schema.org");
-      expect(schema["@type"]).toBe("Product");
-      expect(schema.name).toBe(product.name);
-      expect(schema.sku).toBe("ALP-TGP-001");
-      expect(schema.brand.name).toBe("Alpinestars");
-      expect(schema.category).toBe("Riding Gear > Jackets");
+      expect(schema).not.toBeNull();
+      expect(schema!["@context"]).toBe("https://schema.org");
+      expect(schema!["@type"]).toBe("Product");
+      expect(schema!.name).toBe(product.name);
+      expect(schema!.sku).toBe("ALP-TGP-001");
+      expect(schema!.brand.name).toBe("Alpinestars");
+      expect(schema!.category).toBe("Riding Gear > Jackets");
 
       // Offer verification
-      const offer = schema.offers;
+      const offer = schema!.offers;
       expect(offer["@type"]).toBe("Offer");
       expect(offer.price).toBe(16999);
       expect(offer.priceCurrency).toBe("INR");
@@ -129,9 +130,10 @@ describe("SEO Schema Utilities", () => {
       };
 
       const schema = buildProductSchema(product as any, "https://store4riders.com");
-      expect(schema.offers.price).toBe(5499);
-      expect(schema.offers.availability).toBe("https://schema.org/OutOfStock");
-      expect(schema.image).toEqual(["https://store4riders.com/Store4riders-Logo.jpg"]);
+      expect(schema).not.toBeNull();
+      expect(schema!.offers.price).toBe(5499);
+      expect(schema!.offers.availability).toBe("https://schema.org/OutOfStock");
+      expect(schema!.image).toEqual(["https://store4riders.com/Store4riders-Logo.jpg"]);
     });
   });
 
@@ -143,11 +145,12 @@ describe("SEO Schema Utilities", () => {
       ];
 
       const schema = buildFAQSchema(faqs);
-      expect(schema["@type"]).toBe("FAQPage");
-      expect(schema.mainEntity).toHaveLength(2);
-      expect(schema.mainEntity[0]["@type"]).toBe("Question");
-      expect(schema.mainEntity[0].name).toBe("What is your return policy?");
-      expect(schema.mainEntity[0].acceptedAnswer.text).toBe("We offer a 7-day size exchange or store credit.");
+      expect(schema).not.toBeNull();
+      expect(schema!["@type"]).toBe("FAQPage");
+      expect(schema!.mainEntity).toHaveLength(2);
+      expect(schema!.mainEntity[0]["@type"]).toBe("Question");
+      expect(schema!.mainEntity[0].name).toBe("What is your return policy?");
+      expect(schema!.mainEntity[0].acceptedAnswer.text).toBe("We offer a 7-day size exchange or store credit.");
     });
   });
 });

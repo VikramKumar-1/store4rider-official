@@ -41,7 +41,9 @@ describe("OrderRepository - linkGuestOrders", () => {
     expect(count).toBe(3);
     expect(OrderModel.updateMany).toHaveBeenCalledTimes(1);
 
-    const [calledFilter, calledUpdate] = vi.mocked(OrderModel.updateMany).mock.calls[0];
+    const [calledFilterRaw, calledUpdateRaw] = vi.mocked(OrderModel.updateMany).mock.calls[0];
+    const calledFilter = calledFilterRaw as any;
+    const calledUpdate = calledUpdateRaw as any;
 
     // Filter assertions
     expect(calledFilter.$and).toHaveLength(2);
