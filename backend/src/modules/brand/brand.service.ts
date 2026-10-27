@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { BrandRepository } from "./brand.repository";
 import { IBrand } from "@store4riders/shared-types";
 import { NotFoundError } from "../../core/errors/AppError";
@@ -7,8 +8,14 @@ export class BrandService {
     return await BrandRepository.findAll();
   }
 
-  static async getBrandById(id: string) {
-    const brand = await BrandRepository.findById(id);
+  static async getBrandById(idOrSlug: string) {
+    let brand: IBrand | null = null;
+    if (mongoose.isValidObjectId(idOrSlug)) {
+      brand = await BrandRepository.findById(idOrSlug);
+    }
+    if (!brand) {
+      brand = await BrandRepository.findBySlug(idOrSlug);
+    }
     if (!brand) throw new NotFoundError("Brand not found");
     return brand;
   }

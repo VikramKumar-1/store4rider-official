@@ -318,10 +318,12 @@ export const CheckoutPageModule = () => {
   // Handle failed or cancelled payment redirect
   useEffect(() => {
     if (isFailedParam) {
-      toast.error("Payment was cancelled or unsuccessful. Your items are still safely in your cart.");
+      if (!orderIdParam) {
+        toast.info("Payment session ended. Your items are still safely in your cart.");
+      }
       setCurrentStep(2);
     }
-  }, [isFailedParam]);
+  }, [isFailedParam, orderIdParam]);
 
   // If orderId is provided in URL, update generatedOrderNumber
   useEffect(() => {
@@ -695,18 +697,18 @@ export const CheckoutPageModule = () => {
         {/* SCREEN 3: SUCCESS (matching Figma Screen 4) */}
         {/* ========================================================================= */}
         {currentStep === 3 ? (
-          <div className="max-w-2xl mx-auto py-16 text-center flex flex-col items-center animate-in fade-in zoom-in-95 duration-400">
+          <div className="max-w-xl mx-auto py-6 sm:py-8 text-center flex flex-col items-center animate-in fade-in zoom-in-95 duration-400">
             {/* Green Checkmark Circle */}
-            <div className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center mb-6 shadow-md">
-              <CheckIcon className="w-9 h-9 stroke-[3]" />
+            <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mb-3 shadow-sm">
+              <CheckIcon className="w-6 h-6 stroke-[3]" />
             </div>
 
             {/* Modern Heading: ORDER CONFIRMED! / PAYMENT SUCCESS! */}
-            <h1 className="font-sans text-3xl sm:text-4xl lg:text-5xl font-extrabold text-neutral-900 tracking-wide uppercase mb-4">
+            <h1 className="font-sans text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-wide uppercase mb-2">
               {paymentOption === "cod" ? "ORDER CONFIRMED!" : "PAYMENT SUCCESS!"}
             </h1>
 
-            <p className="text-neutral-500 text-xs sm:text-sm max-w-lg mb-8 leading-relaxed font-sans">
+            <p className="text-neutral-500 text-xs sm:text-sm max-w-md mb-3 leading-normal font-sans">
               Thank you for shopping with Store4Riders. Your order <strong>#{generatedOrderNumber}</strong> has been confirmed. A receipt and tracking details have been sent to {formData.email || user?.email ? <strong>{formData.email || user?.email}</strong> : "your registered email address"}.
             </p>
             
@@ -716,7 +718,7 @@ export const CheckoutPageModule = () => {
             
             <Link
               href="/"
-              className="bg-banner hover:bg-orange-600 text-white font-bold tracking-widest text-xs uppercase px-12 py-4 rounded-none shadow-md transition-all active:scale-[0.99]"
+              className="bg-banner hover:bg-orange-600 text-white font-bold tracking-widest text-[11px] sm:text-xs uppercase px-8 py-3 rounded-none shadow-sm transition-all active:scale-[0.99]"
             >
               BACK TO HOME
             </Link>

@@ -275,7 +275,7 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
           {/* Hover Overlay: Color Swatches */}
           {uniqueColors.length > 0 && (
             <div className="absolute bottom-3 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
-              <div className="flex flex-wrap gap-1.5 bg-white/70 backdrop-blur-sm px-2.5 py-1.5 rounded-lg shadow-sm border border-white/40">
+              <div className="flex flex-wrap items-center gap-1.5 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.12)] border border-neutral-200/90">
                 {uniqueColors.slice(0, 5).map((color) => (
                   <button
                     key={color}
@@ -284,14 +284,14 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
                       e.stopPropagation();
                       router.push(`/${product.slug || product.id}?color=${encodeURIComponent(color)}`);
                     }}
-                    className="w-4 h-4 sm:w-4 sm:h-4 border border-black/80 shadow-sm transition-transform hover:scale-110"
+                    className="w-5 h-5 rounded-[4px] border border-black/15 shadow-2xs transition-transform hover:scale-115"
                     style={{ background: parseColorToBackground(color) }}
                     title={color}
                     aria-label={`View ${color} variant`}
                   />
                 ))}
                 {uniqueColors.length > 5 && (
-                  <span className="text-[10px] text-slate-800 self-center font-bold pl-1">+{uniqueColors.length - 5}</span>
+                  <span className="text-[10px] text-neutral-700 self-center font-bold px-1.5 py-0.5 bg-neutral-100 border border-neutral-200 rounded-full">+{uniqueColors.length - 5}</span>
                 )}
               </div>
             </div>

@@ -210,14 +210,25 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
   };
 }
 
-export default async function CategoryPage({ params }: CategoryPageProps) {
+export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
   const slugArray = resolvedParams.categorySlug;
   const isSingleSegment = slugArray.length === 1;
   const candidateSlug = (slugArray[slugArray.length - 1] || "").replace(/\.html$/i, "");
 
   // 1. If single segment resolves to a Product, render the Product Detail Page directly!
-  if (isSingleSegment && candidateSlug) {
+  const hasFilterParams = Boolean(
+    resolvedSearchParams.brand ||
+    resolvedSearchParams.search ||
+    (resolvedSearchParams as any).colour ||
+    (resolvedSearchParams as any).color ||
+    (resolvedSearchParams as any).size ||
+    (resolvedSearchParams as any).minPrice ||
+    (resolvedSearchParams as any).maxPrice
+  );
+
+  if (isSingleSegment && candidateSlug && !hasFilterParams) {
     const product = await getProduct(candidateSlug);
     if (product) {
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
@@ -293,14 +304,16 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         }
       }
 
-      // Fetch sample products for CollectionPage ItemList schema
-      const prodUrl = baseUrl.includes('/v1')
-        ? `${baseUrl}/products?category=${encodeURIComponent(category)}&limit=12`
-        : `${baseUrl}/v1/products?category=${encodeURIComponent(category)}&limit=12`;
-      const prodRes = await fetch(prodUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(2500) });
-      if (prodRes.ok) {
-        const prodData = await prodRes.json();
-        collectionProducts = prodData?.data?.items || prodData?.data || [];
+      // Fetch sample products for CollectionPage ItemList schema (only on initial view, skip on filter clicks)
+      if (!hasFilterParams) {
+        const prodUrl = baseUrl.includes('/v1')
+          ? `${baseUrl}/products?category=${encodeURIComponent(category)}&limit=12`
+          : `${baseUrl}/v1/products?category=${encodeURIComponent(category)}&limit=12`;
+        const prodRes = await fetch(prodUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(2500) });
+        if (prodRes.ok) {
+          const prodData = await prodRes.json();
+          collectionProducts = prodData?.data?.items || prodData?.data || [];
+        }
       }
     } catch (e) {
       // Ignore

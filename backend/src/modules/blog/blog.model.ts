@@ -9,6 +9,9 @@ const blogCategorySchema = new Schema<IBlogCategory>(
     articleCount: { type: Number, default: 0 },
     order: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true, index: true },
+    metaTitle: { type: String, default: "" },
+    metaDescription: { type: String, default: "" },
+    metaKeywords: { type: String, default: "" },
   },
   { timestamps: true }
 );

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Bars3Icon, ShoppingBagIcon, MagnifyingGlassIcon, XMarkIcon, HeartIcon, UserIcon } from "@heroicons/react/24/outline";
 import { NavbarProps } from "../types/homepage.types";
 import { useCartStore } from "@/stores/useCartStore";
@@ -31,6 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const items = useCartStore((state) => state.items);
   const { user, isAuthenticated, logout } = useAuthStore();
+  const router = useRouter();
 
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -201,7 +203,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                 else setIsUserMenuOpen((v) => !v);
               }}
               onClose={() => setIsUserMenuOpen(false)}
-              onLogout={() => { logout(); setIsUserMenuOpen(false); }}
+              onLogout={() => {
+                logout();
+                setIsUserMenuOpen(false);
+                router.push("/");
+              }}
               menuRef={userMenuRef}
             />
 
@@ -241,7 +247,10 @@ export const Navbar: React.FC<NavbarProps> = ({
         mounted={mounted}
         isAuthenticated={isAuthenticated}
         user={user}
-        onLogout={logout}
+        onLogout={() => {
+          logout();
+          router.push("/");
+        }}
       />
     </>
   );

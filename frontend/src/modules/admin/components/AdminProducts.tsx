@@ -30,6 +30,8 @@ import {
   useBulkUpdateProducts,
   useDeleteProduct,
 } from "@/core/hooks/useProducts";
+import { useBrands } from "@/core/hooks/useBrands";
+import { downloadBrandProductCsv } from "@/core/utils/exportCsv";
 import { apiClient } from "@/core/api/client";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -52,6 +54,10 @@ const ATTRIBUTE_SETS = [
 export function AdminProducts() {
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category") || searchParams.get("categoryId") || "";
+
+  const { data: brands = [] } = useBrands();
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportBrand, setExportBrand] = useState("all");
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
@@ -283,21 +289,8 @@ export function AdminProducts() {
           <Button
             variant="outline"
             className="flex items-center space-x-2 text-slate-700 bg-white hover:bg-slate-50 border-slate-200"
-            onClick={async () => {
-              try {
-                const res = await apiClient.get("/products/export", { responseType: "blob" });
-                const url = window.URL.createObjectURL(new Blob([res.data]));
-                const link = document.createElement("a");
-                link.href = url;
-                link.setAttribute("download", "store4riders_products.csv");
-                document.body.appendChild(link);
-                link.click();
-                link.parentNode?.removeChild(link);
-                toast.success("Export downloaded successfully!");
-              } catch (e: any) {
-                toast.error("Failed to export CSV");
-              }
-            }}
+            onClick={() => setIsExportModalOpen(true)}
+            title="Export products CSV by brand or full catalog"
           >
             <Download size={18} />
             <span>Export CSV</span>
@@ -724,6 +717,66 @@ export function AdminProducts() {
               </div>
             </div>
           )}
+        </div>
+      </Modal>
+
+      {/* Brand-Specific or Full Catalog CSV Export Modal */}
+      <Modal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Export Products CSV"
+      >
+        <div className="space-y-4 pt-1">
+          <p className="text-xs text-slate-500">
+            Download your product catalog in standard Magento CSV format. You can export all products or filter exclusively by a single brand for easy spreadsheet editing and inventory stock updates.
+          </p>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+              Select Brand to Export
+            </label>
+            <select
+              value={exportBrand}
+              onChange={(e) => setExportBrand(e.target.value)}
+              className="w-full text-sm p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:border-brand focus:ring-1 focus:ring-brand font-medium text-slate-800"
+            >
+              <option value="all">🌐 All Brands (Full Catalog Export)</option>
+              {brands.map((b) => (
+                <option key={b._id} value={b.name}>
+                  🏷️ {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 space-y-1">
+            <p className="font-semibold text-slate-700">
+              {exportBrand === "all"
+                ? "Full Catalog Export: Exports all products and child variants across all brands."
+                : `Selective Brand Export: Exports only products and variants belonging to "${exportBrand}".`}
+            </p>
+            <p className="text-[11px] text-slate-400">
+              Includes parent rows, child variants, pricing, stock levels, images, swatches, categories, and attributes.
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100">
+            <Button variant="outline" onClick={() => setIsExportModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                downloadBrandProductCsv(exportBrand);
+                setIsExportModalOpen(false);
+              }}
+              className="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+            >
+              <Download size={16} />
+              <span>
+                {exportBrand === "all" ? "Download All Products CSV" : `Download ${exportBrand} CSV`}
+              </span>
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>

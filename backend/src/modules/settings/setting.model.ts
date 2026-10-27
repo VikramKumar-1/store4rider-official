@@ -33,6 +33,12 @@ export interface ISetting extends Document {
   returnWindowDays?: number;
   popularSearches?: string[];
   snapmintMinOrderValue?: number;
+  brandsMetaTitle?: string;
+  brandsMetaDescription?: string;
+  brandsMetaKeywords?: string;
+  guidesMetaTitle?: string;
+  guidesMetaDescription?: string;
+  guidesMetaKeywords?: string;
 }
 
 const settingSchema = new Schema<ISetting>(
@@ -63,6 +69,12 @@ const settingSchema = new Schema<ISetting>(
     youtubeUrl: { type: String, default: "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg" },
     returnWindowDays: { type: Number, default: 7 },
     popularSearches: { type: [String], default: [] },
+    brandsMetaTitle: { type: String, default: "" },
+    brandsMetaDescription: { type: String, default: "" },
+    brandsMetaKeywords: { type: String, default: "" },
+    guidesMetaTitle: { type: String, default: "" },
+    guidesMetaDescription: { type: String, default: "" },
+    guidesMetaKeywords: { type: String, default: "" },
     packagePresets: { 
       type: [{ name: String, length: Number, breadth: Number, height: Number }], 
       default: [

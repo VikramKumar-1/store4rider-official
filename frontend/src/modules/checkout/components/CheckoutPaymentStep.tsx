@@ -153,10 +153,14 @@ export const CheckoutPaymentStep = ({
 
   const [isCheckingStatus, setIsCheckingStatus] = React.useState(false);
   const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
+  const [autoVerifyState, setAutoVerifyState] = React.useState<"verifying" | "confirmed" | "unconfirmed">(
+    isFailedParam && generatedOrderNumber ? "verifying" : "unconfirmed"
+  );
+  const hasAutoCheckedRef = React.useRef(false);
 
-  const handleCheckStatus = async () => {
+  const handleCheckStatus = async (silent = false) => {
     if (!generatedOrderNumber) {
-      toast.error("No active order reference found to check status.");
+      if (!silent) toast.error("No active order reference found to check status.");
       return;
     }
     try {
@@ -164,100 +168,187 @@ export const CheckoutPaymentStep = ({
       const res = await apiClient.post("/orders/sync-payment", { orderId: generatedOrderNumber });
       const result = res.data?.data;
       if (result?.isConfirmed) {
+        setAutoVerifyState("confirmed");
         toast.success(result.message || "Payment verified with bank! Your order is confirmed.");
-        if (typeof window !== "undefined") {
-          window.location.href = `/checkout?success=true&orderId=${encodeURIComponent(result.orderNumber || generatedOrderNumber)}`;
-        }
+        setTimeout(() => {
+          if (typeof window !== "undefined") {
+            window.location.href = `/checkout?success=true&orderId=${encodeURIComponent(result.orderNumber || generatedOrderNumber)}`;
+          }
+        }, 800);
       } else {
-        setStatusMessage(result?.message || "Payment has not been received yet from the bank. If debited, it will be automatically refunded by your bank.");
-        toast.info(result?.message || "Transaction has not been captured yet.");
+        setAutoVerifyState("unconfirmed");
+        setStatusMessage(result?.message || "Bank has not confirmed this payment yet. If debited, it will be automatically refunded by your bank within 24-48 hours.");
+        if (!silent) {
+          toast.info(result?.message || "Transaction has not been captured yet.");
+        }
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Could not check payment status. Please try again.");
+      setAutoVerifyState("unconfirmed");
+      if (!silent) {
+        toast.error(err.response?.data?.error || "Could not check payment status. Please try again.");
+      }
     } finally {
       setIsCheckingStatus(false);
     }
   };
+
+  // Auto-check once after redirect in case gateway was 1-2 seconds slow to sync
+  React.useEffect(() => {
+    if (isFailedParam && generatedOrderNumber && !hasAutoCheckedRef.current) {
+      hasAutoCheckedRef.current = true;
+      const timer = setTimeout(() => {
+        handleCheckStatus(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    } else if (isFailedParam && !generatedOrderNumber) {
+      setAutoVerifyState("unconfirmed");
+    }
+  }, [isFailedParam, generatedOrderNumber]);
 
   return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-300">
       
       {/* Enterprise Alert banner & Real-Time Status Reconciliation */}
       {isFailedParam && (
-        <div className="bg-amber-50/90 border border-amber-300/80 rounded-lg p-4 flex flex-col gap-3 shadow-xs">
-          <div className="flex items-start gap-2.5">
-            <span className="text-xl shrink-0 leading-none mt-0.5">⚠️</span>
-            <div className="flex flex-col gap-1 w-full">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <span className="text-xs font-bold text-amber-950 uppercase tracking-wide">
-                  Payment Incomplete or Cancelled
+        <>
+          {/* Phase A: Active Verification with Bank */}
+          {autoVerifyState === "verifying" && (
+            <div className="bg-blue-50/95 border border-blue-200 rounded-lg p-4 flex flex-col gap-3 shadow-xs animate-in fade-in">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full border-3 border-blue-600 border-t-transparent animate-spin shrink-0 mt-0.5" />
+                <div className="flex flex-col gap-1 w-full">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-xs font-bold text-blue-950 uppercase tracking-wide">
+                      Checking Live Payment Status With Bank...
+                    </span>
+                    {generatedOrderNumber && (
+                      <span className="text-[11px] font-mono font-bold bg-blue-100 text-blue-900 px-2 py-0.5 rounded border border-blue-300">
+                        Ref: {generatedOrderNumber}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-blue-900 leading-relaxed font-sans">
+                    You were redirected from the payment gateway. We are checking real-time transaction confirmation with your bank.
+                  </p>
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-blue-800 font-medium">
+                    <span className="inline-block w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                    <span>If money was debited from your account, your order will be confirmed in just a moment...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Phase B: Payment Confirmed by Bank */}
+          {autoVerifyState === "confirmed" && (
+            <div className="bg-emerald-50 border border-emerald-300 rounded-lg p-4 flex items-center gap-3 shadow-xs animate-in fade-in">
+              <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center text-lg font-bold shrink-0">
+                ✓
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-bold text-emerald-950">Payment Verified with Bank!</span>
+                <p className="text-xs text-emerald-800">Your order has been confirmed successfully. Redirecting to your confirmation receipt...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Phase C: Unconfirmed or Action Needed */}
+          {autoVerifyState === "unconfirmed" && (
+            <div className="bg-amber-50/90 border border-amber-300/80 rounded-lg p-4 flex flex-col gap-3.5 shadow-xs animate-in fade-in">
+              {/* Header */}
+              <div className="flex items-start gap-2.5">
+                <span className="text-xl shrink-0 leading-none mt-0.5">ℹ️</span>
+                <div className="flex flex-col gap-1 w-full">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-xs font-bold text-amber-950 uppercase tracking-wide">
+                      Payment Status: Awaiting Bank Confirmation or Unsuccessful
+                    </span>
+                    {generatedOrderNumber && (
+                      <span className="text-[11px] font-mono font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded border border-amber-300">
+                        Ref: {generatedOrderNumber}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-amber-900 leading-relaxed font-sans">
+                    Your bank or UPI gateway has not confirmed this payment yet. Here is what to do based on your situation:
+                  </p>
+                </div>
+              </div>
+
+              {/* Two Situation Cards: Money Debited vs Cancelled */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
+                {/* Scenario 1: Money Cut */}
+                <div className="bg-white p-3 rounded-lg border border-amber-200/90 flex flex-col gap-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900">
+                    <span className="text-sm">💸</span>
+                    <span>If money was debited from your bank / UPI:</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-600 leading-relaxed">
+                    UPI apps (GPay, PhonePe, Paytm) or bank networks sometimes take 1–2 minutes to settle. Click below to re-verify live status with your bank.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleCheckStatus(false)}
+                    disabled={isCheckingStatus}
+                    className="mt-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 py-2 rounded transition-all flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-60 cursor-pointer"
+                  >
+                    <span className={isCheckingStatus ? "animate-spin inline-block" : ""}>🔄</span>
+                    <span>{isCheckingStatus ? "Checking Live Bank Status..." : "Re-Check Bank Status"}</span>
+                  </button>
+                </div>
+
+                {/* Scenario 2: Payment Cancelled or Declined */}
+                <div className="bg-white p-3 rounded-lg border border-amber-200/90 flex flex-col gap-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900">
+                    <span className="text-sm">🛒</span>
+                    <span>If you cancelled or transaction declined:</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-600 leading-relaxed">
+                    Don&apos;t worry, <strong>all your items are still safely in your cart</strong>. You can simply retry with another payment method (Cards, UPI, NetBanking, or COD) below.
+                  </p>
+                  <a
+                    href={`https://wa.me/918789494263?text=${encodeURIComponent(`Hi Store4Riders, my payment status is pending for Order Ref ${generatedOrderNumber}. Please help check.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-auto bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs px-3 py-2 rounded transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+                  >
+                    <span>💬 Need Help? WhatsApp Support</span>
+                  </a>
+                </div>
+              </div>
+
+              {statusMessage && (
+                <div className="p-2.5 bg-white border border-amber-300 rounded text-xs text-neutral-800 font-medium">
+                  {statusMessage}
+                </div>
+              )}
+
+              {/* Real RBI Timeline Breakdown */}
+              <div className="bg-white/80 border border-amber-200/80 rounded p-3 text-[11px] text-neutral-700 flex flex-col gap-1.5">
+                <span className="font-bold text-neutral-900 flex items-center gap-1">
+                  <span>🏛️</span> RBI Mandated Auto-Reversal Timelines (If Money Debited):
                 </span>
-                {generatedOrderNumber && (
-                  <span className="text-[11px] font-mono font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded border border-amber-300">
-                    Ref: {generatedOrderNumber}
-                  </span>
-                )}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-[11px]">
+                  <div className="bg-amber-50/50 p-2 rounded border border-amber-100 flex flex-col">
+                    <span className="font-bold text-neutral-900">⚡ UPI / GPay / PhonePe</span>
+                    <span className="text-neutral-600">Reversal within <strong>24 to 48 Hours</strong></span>
+                  </div>
+                  <div className="bg-amber-50/50 p-2 rounded border border-amber-100 flex flex-col">
+                    <span className="font-bold text-neutral-900">💳 Debit / Credit Cards</span>
+                    <span className="text-neutral-600">Reversal within <strong>3 to 5 Working Days</strong></span>
+                  </div>
+                  <div className="bg-amber-50/50 p-2 rounded border border-amber-100 flex flex-col">
+                    <span className="font-bold text-neutral-900">🏦 NetBanking</span>
+                    <span className="text-neutral-600">Reversal within <strong>2 to 4 Working Days</strong></span>
+                  </div>
+                </div>
+                <span className="text-[10px] text-neutral-500 italic mt-0.5">
+                  *As per RBI Circular DPSS.CO.PD No.629/02.01.014/2019-20, banks automatically credit back uncaptured funds without manual claims.
+                </span>
               </div>
-              <p className="text-xs text-amber-900 leading-relaxed font-sans">
-                Your previous payment attempt was cancelled or could not be completed. <strong>Your items are still safely in your cart.</strong> You can retry with any preferred payment method below.
-              </p>
-            </div>
-          </div>
-
-          {/* Action Row: Check Real-Time Status Button */}
-          {generatedOrderNumber && (
-            <div className="flex items-center gap-2 pt-1 border-t border-amber-200/60 flex-wrap">
-              <button
-                type="button"
-                onClick={handleCheckStatus}
-                disabled={isCheckingStatus}
-                className="bg-white hover:bg-neutral-50 text-neutral-800 border border-amber-300 hover:border-amber-400 font-bold text-xs px-3 py-1.5 rounded transition-all flex items-center gap-1.5 shadow-2xs disabled:opacity-60 cursor-pointer"
-              >
-                <span className={isCheckingStatus ? "animate-spin inline-block" : ""}>🔄</span>
-                <span>{isCheckingStatus ? "Checking Live Bank Status..." : "Did Money Cut? Check Status"}</span>
-              </button>
-
-              <a
-                href={`https://wa.me/918789494263?text=${encodeURIComponent(`Hi Store4Riders, my payment failed for Order Ref ${generatedOrderNumber}. Please check.`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded transition-colors flex items-center gap-1 ml-auto"
-              >
-                <span>💬 WhatsApp Support</span>
-              </a>
             </div>
           )}
-
-          {statusMessage && (
-            <div className="p-2.5 bg-white border border-amber-200 rounded text-xs text-neutral-800 font-medium">
-              {statusMessage}
-            </div>
-          )}
-
-          {/* Real RBI Timeline Breakdown */}
-          <div className="bg-white/80 border border-amber-200/80 rounded p-3 text-[11px] text-neutral-700 flex flex-col gap-1.5">
-            <span className="font-bold text-neutral-900 flex items-center gap-1">
-              <span>🏛️</span> RBI Mandated Auto-Reversal Timelines (If Money Debited):
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-[11px]">
-              <div className="bg-amber-50/50 p-2 rounded border border-amber-100 flex flex-col">
-                <span className="font-bold text-neutral-900">⚡ UPI / GPay / PhonePe</span>
-                <span className="text-neutral-600">Reversal within <strong>24 to 48 Hours</strong></span>
-              </div>
-              <div className="bg-amber-50/50 p-2 rounded border border-amber-100 flex flex-col">
-                <span className="font-bold text-neutral-900">💳 Debit / Credit Cards</span>
-                <span className="text-neutral-600">Reversal within <strong>3 to 5 Working Days</strong></span>
-              </div>
-              <div className="bg-amber-50/50 p-2 rounded border border-amber-100 flex flex-col">
-                <span className="font-bold text-neutral-900">🏦 NetBanking</span>
-                <span className="text-neutral-600">Reversal within <strong>2 to 4 Working Days</strong></span>
-              </div>
-            </div>
-            <span className="text-[10px] text-neutral-500 italic mt-0.5">
-              *As per RBI Circular DPSS.CO.PD No.629/02.01.014/2019-20, banks automatically credit back uncaptured funds without manual claims.
-            </span>
-          </div>
-        </div>
+        </>
       )}
 
       {/* Heading */}

@@ -1400,7 +1400,7 @@ Once PayU + COD are production-solid:
 
 ### Tasks
 
-- [ ] **11.1** Build dynamic `sitemap.xml` generation
+- [x] **11.1** Build dynamic `sitemap.xml` generation
   - `frontend/app/sitemap.ts` — Next.js sitemap API
   - Include: all products, categories, blog posts, static pages
   - Auto-update on content changes
@@ -1417,11 +1417,11 @@ Once PayU + COD are production-solid:
   - [x] `BreadcrumbList` on PDP, catalog, categories, exchange policy, and guides
   - [x] `BlogPosting` on blog detail pages (`https://schema.org/BlogPosting` with verified author, social handles, speakable, and article metadata)
   - [x] `FAQPage` on category pages and exchange/policy pages
-- [ ] **11.5** Add Open Graph + Twitter Card meta tags
+- [x] **11.5** Add Open Graph + Twitter Card meta tags
   - All pages: title, description, image, url, type
   - Product pages: price, availability
   - Blog pages: article metadata
-- [ ] **11.6** Add canonical URLs on all pages
+- [x] **11.6** Add canonical URLs on all pages
   - Via Next.js `metadata.alternates.canonical`
 - [ ] **11.7** Build Google product taxonomy mapping
   - Map store categories to Google product category IDs
@@ -1442,7 +1442,7 @@ Once PayU + COD are production-solid:
 
 ## Phase 12 — Analytics & Marketing
 
-**Status:** ⬜ NOT STARTED
+**Status:** 🔄 IN PROGRESS
 **Modules:** Google & Facebook Integration (16), Product Feed (17)
 **Depends on:** Phase 11 (SEO taxonomy for feeds)
 

@@ -10,6 +10,9 @@ const brandSchema = new Schema<IBrand>(
     isActive: { type: Boolean, default: true },
     showInMenu: { type: Boolean, default: true },
     menuGroup: { type: String, default: "Featured Brands" },
+    metaTitle: { type: String, default: "" },
+    metaDescription: { type: String, default: "" },
+    metaKeywords: { type: String, default: "" },
   },
   { timestamps: true }
 );

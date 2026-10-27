@@ -20,6 +20,11 @@ export async function blogRouter(req: NextRequest, routePath: string[]): Promise
   // PUBLIC ROUTES
   // ========================================================
 
+  // GET /api/v1/blog/page-seo -> public page SEO for /guides
+  if (method === "GET" && pathLen === 1 && routePath[0] === "page-seo") {
+    return await BlogController.getPageSeo(req);
+  }
+
   // GET /api/v1/blog/posts -> public list
   if (method === "GET" && pathLen === 1 && routePath[0] === "posts") {
     return await BlogController.getPublicPosts(req);
@@ -38,6 +43,18 @@ export async function blogRouter(req: NextRequest, routePath: string[]): Promise
   // GET /api/v1/blog/categories -> public category list
   if (method === "GET" && pathLen === 1 && routePath[0] === "categories") {
     return await BlogController.getPublicCategories(req);
+  }
+
+  // GET /api/v1/blog/categories/:slug -> single category
+  if (method === "GET" && pathLen === 2 && routePath[0] === "categories") {
+    return await BlogController.getCategoryBySlug(req, routePath[1]);
+  }
+
+  // PUT /api/v1/blog/page-seo -> admin update page SEO for /guides
+  if (method === "PUT" && pathLen === 1 && routePath[0] === "page-seo") {
+    const userId = extractUserFromAuth(req);
+    await checkPermission(userId, PermissionAction.MANAGE_BLOGS, UserService.getRole);
+    return await BlogController.updatePageSeo(req);
   }
 
   // ========================================================

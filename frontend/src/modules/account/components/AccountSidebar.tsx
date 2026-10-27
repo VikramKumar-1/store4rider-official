@@ -16,7 +16,7 @@ const links = [
 ];
 
 export function AccountSidebar() {
-  const { user, isAuthenticated, setUser } = useAuthStore();
+  const { user, isAuthenticated, setUser, logout } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -28,18 +28,22 @@ export function AccountSidebar() {
 
   useEffect(() => {
     if (mounted && !isAuthenticated) {
-      router.push("/login");
+      router.push("/");
     }
   }, [mounted, isAuthenticated, router]);
 
   const handleLogout = async () => {
     try {
       await apiClient.post("/auth/logout");
+      logout();
       setUser(null);
       toast.success("Logged out successfully");
-      router.push("/login");
+      router.push("/");
     } catch (err) {
-      toast.error("Logout failed");
+      logout();
+      setUser(null);
+      toast.success("Logged out successfully");
+      router.push("/");
     }
   };
 

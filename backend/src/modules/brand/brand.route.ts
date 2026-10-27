@@ -8,6 +8,17 @@ export async function brandRouter(req: NextRequest, routePath: string[]): Promis
   const method = req.method;
   const pathLen = routePath.length;
 
+  if (pathLen === 1 && routePath[0] === "page-seo") {
+    if (method === "GET") {
+      return await BrandController.getPageSeo(req);
+    }
+    if (method === "PUT") {
+      const userId = extractUserFromAuth(req);
+      await checkAdmin(userId, UserService.getRole);
+      return await BrandController.updatePageSeo(req);
+    }
+  }
+
   if (method === "GET" && pathLen === 0) {
     return await BrandController.getAll(req);
   }

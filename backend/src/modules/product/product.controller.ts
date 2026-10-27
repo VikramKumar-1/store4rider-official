@@ -98,12 +98,22 @@ export class ProductController {
 
   static async export(req: NextRequest) {
     try {
-      const csvData = await ProductService.exportCsv();
+      const url = new URL(req.url);
+      const brand = url.searchParams.get("brand") || undefined;
+      const csvData = await ProductService.exportCsv(brand);
+      
+      const safeBrandName = brand && brand !== "all" 
+        ? brand.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/(^_|_$)/g, "")
+        : "all";
+      const filename = brand && brand !== "all"
+        ? `store4riders_${safeBrandName}_products.csv`
+        : `store4riders_products.csv`;
+
       return new NextResponse(csvData, {
         status: 200,
         headers: {
-          'Content-Type': 'text/csv',
-          'Content-Disposition': 'attachment; filename="store4riders_products.csv"',
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${filename}"`,
         },
       });
     } catch (error: any) {

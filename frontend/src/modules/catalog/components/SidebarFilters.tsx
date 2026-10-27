@@ -133,6 +133,27 @@ export function SidebarFilters() {
   const activeBrands = currentBrandParam ? currentBrandParam.split(",").map(b => b.trim()) : [];
   const activeSizes = searchParams.get("size") ? searchParams.get("size")!.split(",").map(s => s.trim()) : [];
   const activeColours = searchParams.get("colour") ? searchParams.get("colour")!.split(",").map(c => c.trim()) : [];
+
+  // Local optimistic state for instant (0ms) visual checkbox ticking
+  const [optimisticParams, setOptimisticParams] = React.useState<Record<string, string[]>>({});
+
+  React.useEffect(() => {
+    const map: Record<string, string[]> = {
+      brand: activeBrands,
+      size: activeSizes,
+      colour: activeColours,
+    };
+    DYNAMIC_FILTERS.forEach((df: any) => {
+      const val = searchParams.get(df.code);
+      map[df.code] = val ? val.split(",").map((v: string) => v.trim()) : [];
+    });
+    setOptimisticParams(map);
+  }, [searchParams, currentBrandParam, DYNAMIC_FILTERS]);
+
+  const isParamActive = (paramName: string, value: string, fallback: string[]): boolean => {
+    const list = optimisticParams[paramName];
+    return list !== undefined ? list.includes(value) : fallback.includes(value);
+  };
   const currentMinPrice = searchParams.get("minPrice") ? Number(searchParams.get("minPrice")) : undefined;
   const currentMaxPrice = searchParams.get("maxPrice") ? Number(searchParams.get("maxPrice")) : undefined;
 
@@ -173,6 +194,20 @@ export function SidebarFilters() {
   };
 
   const toggleArrayParam = (paramName: string, value: string) => {
+    // Instant 0ms optimistic visual toggle
+    setOptimisticParams(prev => {
+      const current = prev[paramName] || (
+        paramName === 'brand' ? activeBrands :
+        paramName === 'size' ? activeSizes :
+        paramName === 'colour' ? activeColours :
+        (searchParams.get(paramName) ? searchParams.get(paramName)!.split(',').map(s => s.trim()) : [])
+      );
+      const updated = current.includes(value)
+        ? current.filter(item => item !== value)
+        : [...current, value];
+      return { ...prev, [paramName]: updated };
+    });
+
     const params = new URLSearchParams(Array.from(searchParams.entries()));
     const current = params.get(paramName) ? params.get(paramName)!.split(",") : [];
     
@@ -433,7 +468,7 @@ export function SidebarFilters() {
               <AccordionSection key="size" title={sizeLabel} defaultOpen={false}>
                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
                   {SIZES.map((sz: any) => {
-                    const active = activeSizes.includes(sz.name);
+                    const active = isParamActive("size", sz.name, activeSizes);
                     return (
                       <label key={sz.name} className="flex items-center justify-between cursor-pointer group">
                         <div className="flex items-center gap-2.5">
@@ -464,7 +499,7 @@ export function SidebarFilters() {
               <AccordionSection key="brand" title={config.label} defaultOpen={false}>
                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
                   {BRANDS.map((brand: any) => {
-                    const active = activeBrands.includes(brand.name);
+                    const active = isParamActive("brand", brand.name, activeBrands);
                     return (
                       <label key={brand.name} className="flex items-center justify-between cursor-pointer group">
                         <div className="flex items-center gap-2.5">
@@ -495,7 +530,7 @@ export function SidebarFilters() {
               <AccordionSection key="color" title={config.label} defaultOpen={false}>
                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
                   {COLOURS.map((color: any) => {
-                    const active = activeColours.includes(color.name);
+                    const active = isParamActive("colour", color.name, activeColours);
                     return (
                       <label key={color.name} className="flex items-center justify-between cursor-pointer group">
                         <div className="flex items-center gap-2.5">
@@ -531,7 +566,7 @@ export function SidebarFilters() {
               <AccordionSection key={dynamicFilter.code} title={dynamicFilter.label} defaultOpen={false}>
                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
                   {dynamicFilter.values.map((val: any) => {
-                    const active = activeValues.includes(val.name);
+                    const active = isParamActive(dynamicFilter.code, val.name, activeValues);
                     return (
                       <label key={val.name} className="flex items-center justify-between cursor-pointer group">
                         <div className="flex items-center gap-2.5">

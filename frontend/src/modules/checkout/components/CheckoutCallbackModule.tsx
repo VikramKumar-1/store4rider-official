@@ -42,22 +42,24 @@ export const CheckoutCallbackModule = () => {
     <div className="min-h-[60vh] flex flex-col items-center justify-center p-4">
       <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center flex flex-col items-center">
         {isSuccess ? (
-          <CheckCircleIcon className="w-20 h-20 text-green-500 mb-4" />
+          <CheckCircleIcon className="w-20 h-20 text-emerald-500 mb-4" />
         ) : (
-          <XCircleIcon className="w-20 h-20 text-red-500 mb-4" />
+          <div className="w-20 h-20 rounded-full bg-amber-50 border-2 border-amber-300 flex items-center justify-center text-3xl mb-4 text-amber-600">
+            ⏳
+          </div>
         )}
         
-        <h1 className="text-2xl font-bold mb-2">
-          {isSuccess ? "Payment Successful!" : "Payment Failed"}
+        <h1 className="text-2xl font-bold mb-2 text-neutral-900">
+          {isSuccess ? "Payment Successful!" : "Checking Payment Status"}
         </h1>
         
-        <p className="text-neutral-600 mb-6">
+        <p className="text-neutral-600 mb-6 text-sm leading-relaxed">
           {isSuccess 
             ? `Your order ${orderId ? "#" + orderId : ""} has been placed successfully.` 
-            : "We couldn't process your payment. Please try again."}
+            : "Redirecting to checkout to verify confirmation with your bank. If money was debited, your order will be confirmed automatically."}
         </p>
 
-        <p className="text-sm text-neutral-400 mb-8">
+        <p className="text-xs text-neutral-400 mb-6">
           Redirecting in {countdown} seconds...
         </p>
 
@@ -65,7 +67,7 @@ export const CheckoutCallbackModule = () => {
           onClick={() => isSuccess ? router.push("/account/orders") : router.push(orderId ? `/checkout?failed=true&orderId=${encodeURIComponent(orderId)}` : "/checkout?failed=true")}
           className="w-full"
         >
-          {isSuccess ? "View Orders Now" : "Try Again Now"}
+          {isSuccess ? "View Orders Now" : "Check Status on Checkout"}
         </Button>
       </div>
     </div>

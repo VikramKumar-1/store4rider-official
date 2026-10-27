@@ -6,6 +6,9 @@ export const createBlogCategorySchema = z.object({
   description: z.string().max(1000).optional().or(z.literal("")),
   order: z.number().int().optional().default(0),
   isActive: z.boolean().optional().default(true),
+  metaTitle: z.string().max(120).optional().or(z.literal("")),
+  metaDescription: z.string().max(500).optional().or(z.literal("")),
+  metaKeywords: z.string().max(500).optional().or(z.literal("")),
 });
 
 export const updateBlogCategorySchema = createBlogCategorySchema.partial();

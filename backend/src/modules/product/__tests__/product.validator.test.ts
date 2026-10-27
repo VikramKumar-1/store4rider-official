@@ -57,28 +57,37 @@ describe('ProductValidator', () => {
     const result = ProductValidator.validateListQuery(req);
     const andConditions = (result.filters as any).$and;
     expect(andConditions).toBeDefined();
-    const sizeCond = andConditions.find((cond: any) => cond.$or && cond.$or.some((s: any) => s.configurableVariations));
+    const sizeCond = andConditions.find((cond: any) =>
+      cond.$or && cond.$or.some((s: any) => s.configurableVariations || (s.$and && s.$and.some((a: any) => a.configurableVariations)))
+    );
     expect(sizeCond).toBeDefined();
     expect(sizeCond.$or.length).toBe(9);
-    expect(sizeCond.$or[0].configurableVariations.$in[0].source).toEqual('(?:size|eu_size|eu_size_for_boots)=XL(\\||,|$)');
+    const configVarPart = sizeCond.$or[0].configurableVariations || sizeCond.$or[0].$and?.find((a: any) => a.configurableVariations)?.configurableVariations;
+    expect(configVarPart.$in[0].source).toEqual('(?:size|eu_size|eu_size_for_boots)=XL(\\||,|$)');
   });
 
   it('should parse multiple sizes correctly', () => {
     const req = createMockReq('http://localhost/api/products?size=L,XL');
     const result = ProductValidator.validateListQuery(req);
     const andConditions = (result.filters as any).$and;
-    const sizeCond = andConditions.find((cond: any) => cond.$or && cond.$or.some((s: any) => s.configurableVariations));
+    const sizeCond = andConditions.find((cond: any) =>
+      cond.$or && cond.$or.some((s: any) => s.configurableVariations || (s.$and && s.$and.some((a: any) => a.configurableVariations)))
+    );
     expect(sizeCond).toBeDefined();
-    expect(sizeCond.$or[0].configurableVariations.$in).toHaveLength(2);
+    const configVarPart = sizeCond.$or[0].configurableVariations || sizeCond.$or[0].$and?.find((a: any) => a.configurableVariations)?.configurableVariations;
+    expect(configVarPart.$in).toHaveLength(2);
   });
 
   it('should ignore empty spaces and extra commas in sizes', () => {
     const req = createMockReq('http://localhost/api/products?size=L,, XL, ');
     const result = ProductValidator.validateListQuery(req);
     const andConditions = (result.filters as any).$and;
-    const sizeCond = andConditions.find((cond: any) => cond.$or && cond.$or.some((s: any) => s.configurableVariations));
+    const sizeCond = andConditions.find((cond: any) =>
+      cond.$or && cond.$or.some((s: any) => s.configurableVariations || (s.$and && s.$and.some((a: any) => a.configurableVariations)))
+    );
     expect(sizeCond).toBeDefined();
-    expect(sizeCond.$or[0].configurableVariations.$in).toHaveLength(2);
+    const configVarPart = sizeCond.$or[0].configurableVariations || sizeCond.$or[0].$and?.find((a: any) => a.configurableVariations)?.configurableVariations;
+    expect(configVarPart.$in).toHaveLength(2);
   });
 
   it('should parse multiple colours correctly including colour and color aliases', () => {

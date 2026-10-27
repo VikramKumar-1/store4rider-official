@@ -120,9 +120,35 @@ export class OrderRepository {
   }
 
   static async linkGuestOrders(email: string, userId: string): Promise<number> {
+    if (!email || !userId) return 0;
+    const cleanEmail = email.trim();
+    const escaped = cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const emailRegex = new RegExp(`^${escaped}$`, "i");
+
     const result = await OrderModel.updateMany(
-      { guestEmail: email, userId: { $exists: false } },
-      { $set: { userId } }
+      {
+        $and: [
+          {
+            $or: [
+              { guestEmail: emailRegex },
+              { "shippingAddress.email": emailRegex },
+            ],
+          },
+          {
+            $or: [
+              { userId: { $exists: false } },
+              { userId: null },
+              { userId: "" },
+            ],
+          },
+        ],
+      },
+      {
+        $set: {
+          userId,
+          guestEmail: cleanEmail.toLowerCase(),
+        },
+      }
     ).exec();
     return result.modifiedCount;
   }

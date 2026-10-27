@@ -2,8 +2,11 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { apiClient } from "@/core/api/client";
+import { useBrands } from "@/core/hooks/useBrands";
+import { downloadBrandProductCsv } from "@/core/utils/exportCsv";
 import {
   ArrowUpTrayIcon,
+  ArrowDownTrayIcon,
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import {
@@ -12,6 +15,8 @@ import {
 } from "@heroicons/react/24/solid";
 
 export function ProductMigration() {
+  const { data: brands = [] } = useBrands();
+  const [selectedExportBrand, setSelectedExportBrand] = useState("all");
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [status, setStatus] = useState<{ type: "idle" | "success" | "error"; message: string }>({ type: "idle", message: "" });
@@ -107,15 +112,57 @@ export function ProductMigration() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Bulk Product Upload</h1>
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Bulk Product Upload & CSV Manager</h1>
         <p className="text-gray-600">
-          Upload your product CSV file here. The system will automatically map the columns, merge parent/child variants, and securely store the extra columns into product attributes.
+          Export products by brand to easily review and update prices, stocks, and variants in Excel / Google Sheets, or upload your completed CSV file below.
         </p>
       </div>
 
+      {/* Brand CSV Download Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <ArrowDownTrayIcon className="w-5 h-5 text-emerald-600" />
+              Download Products CSV by Brand
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Select a brand to download only its products in Magento-standard CSV format. Edit prices or stocks in your spreadsheet and upload it back below.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedExportBrand}
+              onChange={(e) => setSelectedExportBrand(e.target.value)}
+              className="text-xs p-2.5 bg-white border border-slate-300 rounded-lg font-medium text-slate-700 min-w-[200px]"
+            >
+              <option value="all">🌐 All Brands (Full Catalog)</option>
+              {brands.map((b) => (
+                <option key={b._id} value={b.name}>
+                  🏷️ {b.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={() => downloadBrandProductCsv(selectedExportBrand)}
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-xs"
+            >
+              <ArrowDownTrayIcon className="w-4 h-4" />
+              <span>Download CSV</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-lg shadow border border-gray-200 p-8">
+        <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <ArrowUpTrayIcon className="w-5 h-5 text-brand" />
+          Upload Updated CSV
+        </h2>
         <div 
           className="border-2 border-dashed border-gray-300 rounded-lg p-12 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
           onClick={() => fileInputRef.current?.click()}
@@ -181,7 +228,7 @@ export function ProductMigration() {
         </div>
       </div>
       
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
         <h3 className="text-blue-900 font-semibold flex items-center mb-2">
           <InformationCircleIcon className="w-5 h-5 mr-2 shrink-0 text-blue-600" />
           How it works

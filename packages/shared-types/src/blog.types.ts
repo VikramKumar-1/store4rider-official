@@ -13,6 +13,9 @@ export interface IBlogCategory {
   name: string;
   slug: string;
   description?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
   articleCount?: number;
   order?: number;
   isActive?: boolean;
@@ -73,6 +76,9 @@ export interface IGuideCategory {
   name: string;
   slug: string;
   description?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
   articleCount?: number;
 }
 

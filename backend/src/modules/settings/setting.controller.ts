@@ -37,6 +37,12 @@ export class SettingController {
       youtubeUrl: settings.youtubeUrl,
       returnWindowDays: settings.returnWindowDays || 7,
       snapmintMinOrderValue: settings.snapmintMinOrderValue ?? (Number(process.env.SNAPMINT_MIN_ORDER_VALUE) || 25000),
+      brandsMetaTitle: settings.brandsMetaTitle || "",
+      brandsMetaDescription: settings.brandsMetaDescription || "",
+      brandsMetaKeywords: settings.brandsMetaKeywords || "",
+      guidesMetaTitle: settings.guidesMetaTitle || "",
+      guidesMetaDescription: settings.guidesMetaDescription || "",
+      guidesMetaKeywords: settings.guidesMetaKeywords || "",
     };
     return ApiResponse.success(publicData, "Public settings retrieved successfully");
   }

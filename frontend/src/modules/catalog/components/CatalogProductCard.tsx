@@ -105,7 +105,7 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
         {/* Bottom Dark Gradient Overlay with Product Name & Price */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-2.5 pt-10 z-10 flex flex-col justify-end">
           {product.colors && product.colors.length > 0 && (
-            <div className="flex items-center gap-1 mb-1 pointer-events-auto">
+            <div className="flex items-center gap-1 mb-1.5 pointer-events-auto w-fit bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full border border-neutral-200/90 shadow-xs">
               {product.colors.slice(0, 4).map((colorObj, idx) => (
                 <button
                   key={`${idx}-${colorObj.name}`}
@@ -115,10 +115,10 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
                     setSelectedColorName(colorObj.name);
                     updateImage(colorObj.imageUrl || product.imageUrl);
                   }}
-                  className={`w-3.5 h-3.5 rounded-[2px] shadow-sm transition-all ${
+                  className={`w-4 h-4 rounded-[3px] border border-black/15 shadow-2xs transition-all ${
                     selectedColorName === colorObj.name
-                      ? "ring-2 ring-white scale-110 border-none z-10"
-                      : "border border-white/40 opacity-80"
+                      ? "ring-2 ring-neutral-900 ring-offset-1 ring-offset-white scale-110 z-10"
+                      : "hover:scale-105"
                   }`}
                   style={{ background: parseColorToBackground(colorObj.name) }}
                   title={colorObj.name}
@@ -126,7 +126,7 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
                 />
               ))}
               {product.colors.length > 4 && (
-                <span className="text-[9px] text-white font-bold ml-0.5">+{product.colors.length - 4}</span>
+                <span className="text-[9px] text-neutral-700 font-bold ml-0.5">+{product.colors.length - 4}</span>
               )}
             </div>
           )}
@@ -169,7 +169,7 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
           <div className="absolute inset-x-2.5 bottom-2.5 z-20 flex flex-col gap-2 opacity-0 translate-y-3 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 pointer-events-auto">
             {/* Color Swatches */}
             {product.colors && product.colors.length > 0 && (
-              <div className="flex w-fit mx-auto items-center justify-center gap-1.5 bg-black/60 backdrop-blur-md border border-white/20 shadow-xl px-3 py-1.5 rounded-full transition-colors">
+              <div className="flex w-fit mx-auto items-center justify-center gap-1.5 bg-white/95 backdrop-blur-md border border-neutral-200/90 shadow-[0_4px_16px_rgba(0,0,0,0.12)] px-2.5 py-1.5 rounded-full transition-colors">
                 {product.colors.slice(0, 5).map((colorObj, idx) => (
                   <div key={`${idx}-${colorObj.name}`} className="relative group/swatch">
                     <button
@@ -179,24 +179,24 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
                         setSelectedColorName(colorObj.name);
                         updateImage(colorObj.imageUrl || product.imageUrl);
                       }}
-                      className={`w-4 h-4 rounded-[3px] shadow-sm transition-all hover:scale-110 ${
+                      className={`w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-[4px] border border-black/15 shadow-2xs transition-all duration-150 hover:scale-115 ${
                         selectedColorName === colorObj.name
-                          ? "ring-2 ring-white scale-110 border-none z-10"
-                          : "border border-white/20 ring-1 ring-white/20 opacity-80 hover:opacity-100"
+                          ? "ring-2 ring-neutral-900 ring-offset-2 ring-offset-white scale-110 z-10 shadow-xs"
+                          : "hover:border-neutral-500"
                       }`}
                       style={{ background: parseColorToBackground(colorObj.name) }}
                       aria-label={`View ${colorObj.name} variant`}
                     />
                     {/* Hover Tooltip */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/swatch:flex flex-col items-center bg-white shadow-xl rounded-md p-1.5 z-50 border border-neutral-100 min-w-[90px] animate-in fade-in zoom-in-95 duration-200">
-                      <div className="w-full aspect-square mb-1.5 rounded-sm border border-neutral-200/50" style={{ background: parseColorToBackground(colorObj.name) }} />
-                      <span className="text-[10px] text-center font-medium text-neutral-600 truncate w-full px-1">{colorObj.name}</span>
-                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-neutral-100 rotate-45" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/swatch:flex flex-col items-center bg-white shadow-xl rounded-md p-1.5 z-50 border border-neutral-200 min-w-[95px] animate-in fade-in zoom-in-95 duration-200">
+                      <div className="w-full aspect-square mb-1.5 rounded-sm border border-neutral-200 shadow-2xs" style={{ background: parseColorToBackground(colorObj.name) }} />
+                      <span className="text-[10px] text-center font-semibold text-neutral-800 truncate w-full px-1">{colorObj.name}</span>
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-neutral-200 rotate-45" />
                     </div>
                   </div>
                 ))}
                 {product.colors.length > 5 && (
-                  <span className="text-[10px] text-slate-800 font-bold bg-white/80 px-1 rounded-sm shadow-xs">
+                  <span className="text-[10px] text-neutral-700 font-bold bg-neutral-100 border border-neutral-200 px-1.5 py-0.5 rounded-full shadow-2xs">
                     +{product.colors.length - 5}
                   </span>
                 )}

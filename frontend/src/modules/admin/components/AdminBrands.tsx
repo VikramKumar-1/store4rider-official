@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { Plus, Edit2, Trash2, Upload, X, Check, Image as ImageIcon, ExternalLink, Globe } from "lucide-react";
+import { Plus, Edit2, Trash2, Upload, X, Check, Image as ImageIcon, ExternalLink, Globe, Download } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
@@ -12,6 +12,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createBrandSchema } from "@store4riders/shared-validation";
 import { compressImageToWebP, uploadImageToS3 } from "@/core/utils/imageCompressor";
+import { downloadBrandProductCsv } from "@/core/utils/exportCsv";
+import { apiClient } from "@/core/api/client";
 import { toast } from "sonner";
 
 const PRESET_MENU_GROUPS = [
@@ -31,6 +33,9 @@ type BrandFormValues = {
   isActive: boolean;
   showInMenu?: boolean;
   menuGroup?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
 };
 
 export function AdminBrands() {
@@ -44,12 +49,52 @@ export function AdminBrands() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Parent /brands directory page SEO state
+  const [isPageSeoModalOpen, setIsPageSeoModalOpen] = useState(false);
+  const [isSavingPageSeo, setIsSavingPageSeo] = useState(false);
+  const [pageSeo, setPageSeo] = useState({
+    metaTitle: "",
+    metaDescription: "",
+    metaKeywords: "",
+  });
+
+  useEffect(() => {
+    apiClient
+      .get("/brands/page-seo")
+      .then((res) => {
+        if (res.data?.data) {
+          setPageSeo({
+            metaTitle: res.data.data.metaTitle || "",
+            metaDescription: res.data.data.metaDescription || "",
+            metaKeywords: res.data.data.metaKeywords || "",
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSavePageSeo = async () => {
+    try {
+      setIsSavingPageSeo(true);
+      await apiClient.put("/brands/page-seo", pageSeo);
+      toast.success("Shop by Brand directory (/brands) SEO updated successfully!");
+      setIsPageSeoModalOpen(false);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to update page SEO");
+    } finally {
+      setIsSavingPageSeo(false);
+    }
+  };
+
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<BrandFormValues>({
     resolver: zodResolver(createBrandSchema),
     defaultValues: { 
       isActive: true, 
       showInMenu: true, 
-      menuGroup: "Featured Brands" 
+      menuGroup: "Featured Brands",
+      metaTitle: "",
+      metaDescription: "",
+      metaKeywords: "",
     }
   });
 
@@ -66,7 +111,10 @@ export function AdminBrands() {
       description: "", 
       isActive: true, 
       showInMenu: true, 
-      menuGroup: "Featured Brands" 
+      menuGroup: "Featured Brands",
+      metaTitle: "",
+      metaDescription: "",
+      metaKeywords: "",
     });
     setIsModalOpen(true);
   };
@@ -81,6 +129,9 @@ export function AdminBrands() {
       isActive: brand.isActive,
       showInMenu: brand.showInMenu !== false,
       menuGroup: brand.menuGroup || "Featured Brands",
+      metaTitle: brand.metaTitle || "",
+      metaDescription: brand.metaDescription || "",
+      metaKeywords: brand.metaKeywords || "",
     });
     setIsModalOpen(true);
   };
@@ -130,9 +181,55 @@ export function AdminBrands() {
             Manage product brands, storefront navigation submenu placement, and logos
           </p>
         </div>
-        <Button onClick={openCreateModal} className="flex items-center space-x-2">
-          <Plus size={18} />
-          <span>Add Brand</span>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setIsPageSeoModalOpen(true)}
+            className="flex items-center space-x-2 text-slate-700 bg-white hover:bg-slate-50 border-slate-200"
+            title="Configure SEO for main /brands page"
+          >
+            <Globe size={16} className="text-brand" />
+            <span>/brands Page SEO</span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => downloadBrandProductCsv()}
+            className="flex items-center space-x-2 text-slate-700 bg-white hover:bg-slate-50 border-slate-200"
+            title="Download full product catalog CSV"
+          >
+            <Download size={16} />
+            <span>Export Catalog CSV</span>
+          </Button>
+          <Button onClick={openCreateModal} className="flex items-center space-x-2">
+            <Plus size={18} />
+            <span>Add Brand</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Brands Directory Page SEO Banner */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-red-50 text-brand flex items-center justify-center shrink-0">
+            <Globe size={18} />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Shop by Brand Root Directory SEO (<span className="text-brand font-mono">/brands</span>)
+            </h4>
+            <p className="text-xs text-slate-500 mt-0.5 max-w-xl truncate">
+              {pageSeo.metaTitle ? pageSeo.metaTitle : "Default: Shop By Brand | All Motorcycle Brands A–Z | Store4Riders"}
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsPageSeoModalOpen(true)}
+          className="text-xs font-bold flex items-center gap-1.5 shrink-0"
+        >
+          <Edit2 size={13} />
+          <span>Edit /brands SEO</span>
         </Button>
       </div>
 
@@ -210,6 +307,13 @@ export function AdminBrands() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end space-x-2">
+                      <button
+                        onClick={() => downloadBrandProductCsv(brand.name)}
+                        className="p-2 text-slate-400 hover:text-emerald-600 transition-colors rounded-lg hover:bg-emerald-50"
+                        title={`Download ${brand.name} Products CSV`}
+                      >
+                        <Download size={16} />
+                      </button>
                       <button
                         onClick={() => openEditModal(brand)}
                         className="p-2 text-slate-400 hover:text-brand transition-colors rounded-lg hover:bg-slate-100"
@@ -353,7 +457,7 @@ export function AdminBrands() {
                   Show in Top Menu (&apos;Shop By Brand&apos;)
                 </label>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  When enabled, this brand will be shown in the storefront dropdown under "Shop By Brand".
+                  When enabled, this brand will be shown in the storefront dropdown under &quot;Shop By Brand&quot;.
                 </p>
               </div>
             </div>
@@ -388,6 +492,45 @@ export function AdminBrands() {
             )}
           </div>
 
+          {/* SEO & Search Engine Optimization */}
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+            <div className="flex items-center gap-2">
+              <Globe size={16} className="text-brand" />
+              <h3 className="text-sm font-semibold text-slate-800">SEO & Search Engine Metadata</h3>
+            </div>
+            <p className="text-xs text-slate-500">
+              Configure custom search engine metadata for this brand page. If left blank, default store formatting will be used.
+            </p>
+
+            <div>
+              <Input
+                label="Meta Title"
+                placeholder="e.g. AGV Helmets India | Buy AGV Motorcycle Helmets Online"
+                {...register("metaTitle")}
+                error={errors.metaTitle?.message}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Meta Description</label>
+              <textarea
+                {...register("metaDescription")}
+                placeholder="e.g. Explore certified AGV motorcycle helmets with official warranty, express shipping across India, and best prices at Store4Riders."
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand outline-none transition-all resize-y min-h-[70px] text-sm"
+              />
+              {errors.metaDescription && <p className="mt-1 text-sm text-red-500">{errors.metaDescription.message}</p>}
+            </div>
+
+            <div>
+              <Input
+                label="Meta Keywords"
+                placeholder="e.g. agv, helmets, agv pista gp rr, agv k6 s, motorcycle helmet india"
+                {...register("metaKeywords")}
+                error={errors.metaKeywords?.message}
+              />
+            </div>
+          </div>
+
           <div className="flex items-center space-x-2">
             <input
               type="checkbox"
@@ -412,6 +555,67 @@ export function AdminBrands() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Brand Directory (/brands) Page SEO Modal */}
+      <Modal
+        isOpen={isPageSeoModalOpen}
+        onClose={() => setIsPageSeoModalOpen(false)}
+        title="Edit Shop by Brand Directory SEO (/brands)"
+      >
+        <div className="space-y-4 pt-1">
+          <p className="text-xs text-slate-500">
+            Configure the search engine meta title, description, and keywords for the parent <span className="font-semibold text-slate-700">/brands</span> page (the A–Z Brand Directory on your store).
+          </p>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+              Meta Title
+            </label>
+            <Input
+              value={pageSeo.metaTitle}
+              onChange={(e) => setPageSeo({ ...pageSeo, metaTitle: e.target.value })}
+              placeholder="e.g. Shop By Brand | All Motorcycle Brands A–Z | Store4Riders"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+              Meta Description
+            </label>
+            <textarea
+              value={pageSeo.metaDescription}
+              onChange={(e) => setPageSeo({ ...pageSeo, metaDescription: e.target.value })}
+              rows={3}
+              placeholder="e.g. Browse authentic motorcycle helmets, riding gear, accessories, and performance parts by brand. Explore our complete A-Z brand directory at Store4Riders."
+              className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:outline-hidden focus:border-brand focus:ring-1 focus:ring-brand"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+              Meta Keywords
+            </label>
+            <Input
+              value={pageSeo.metaKeywords}
+              onChange={(e) => setPageSeo({ ...pageSeo, metaKeywords: e.target.value })}
+              placeholder="e.g. motorcycle brands, riding gear brands, helmet brands, store4riders"
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100">
+            <Button variant="outline" onClick={() => setIsPageSeoModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={isSavingPageSeo}
+              onClick={handleSavePageSeo}
+              className="bg-brand text-white font-bold"
+            >
+              {isSavingPageSeo ? "Saving..." : "Save /brands SEO"}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

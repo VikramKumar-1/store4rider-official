@@ -258,6 +258,7 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
                     onClick={() => {
                       onLogout();
                       onClose();
+                      router.push("/");
                     }}
                     className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-100 bg-white"
                   >

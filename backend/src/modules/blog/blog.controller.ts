@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { BlogService } from "./blog.service";
 import { BlogValidator } from "./blog.validator";
+import { SettingService } from "../settings/setting.service";
 import { ApiResponse } from "../../core/response/ApiResponse";
 
 export class BlogController {
@@ -28,6 +29,22 @@ export class BlogController {
   static async getPublicCategories(req: NextRequest) {
     const categories = await BlogService.getAllCategories(false);
     return ApiResponse.success(categories, "Blog categories fetched successfully");
+  }
+
+  static async getCategoryBySlug(req: NextRequest, slug: string) {
+    const category = await BlogService.getCategoryBySlug(slug);
+    return ApiResponse.success(category, "Blog category fetched successfully");
+  }
+
+  static async getPageSeo(req: NextRequest) {
+    const seo = await SettingService.getGuidesPageSeo();
+    return ApiResponse.success(seo, "Guides page SEO fetched successfully");
+  }
+
+  static async updatePageSeo(req: NextRequest) {
+    const body = await req.json();
+    const updated = await SettingService.updateGuidesPageSeo(body);
+    return ApiResponse.success(updated, "Guides page SEO updated successfully");
   }
 
   // ===================== ADMIN =====================

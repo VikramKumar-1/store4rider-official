@@ -47,11 +47,80 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  // 1. Orders
+  { 
+    name: "Orders", 
+    icon: ShoppingCart, 
+    allowedRoles: ["super_admin", "admin", "logistic", "order_manager"],
+    subItems: [
+      { name: "All Placed Orders", href: "/admin/orders", icon: ShoppingCart },
+      { name: "Failed Transactions", href: "/admin/orders/failed", icon: AlertTriangle },
+      { name: "Exchange Requests", href: "/admin/orders/exchanges", icon: RefreshCw },
+    ],
+  },
+  // 2. Logistics
+  { 
+    name: "Logistics", 
+    href: "/admin/shipping", 
+    icon: Truck, 
+    allowedRoles: ["super_admin", "admin", "logistic"] 
+  },
+  // 3. Products
+  { 
+    name: "Products", 
+    href: "/admin/products", 
+    icon: Box, 
+    allowedRoles: ["super_admin", "admin"] 
+  },
+  // 4. Blogs
+  { 
+    name: "Blog", 
+    icon: BookOpen, 
+    allowedRoles: ["super_admin", "admin"],
+    subItems: [
+      { name: "All Articles", href: "/admin/blog", icon: FileText },
+      { name: "New Article", href: "/admin/blog/new", icon: Plus },
+      { name: "Categories", href: "/admin/blog/categories", icon: FolderTree },
+    ],
+  },
+  // 5. Homepage
+  {
+    name: "Homepage",
+    icon: LayoutTemplate,
+    allowedRoles: ["super_admin", "admin"],
+    subItems: [
+      { name: "Hero & SEO", href: "/admin/homepage/hero-seo", icon: Globe },
+      { name: "Section Edit", href: "/admin/homepage/sections", icon: Layers },
+      { name: "Insta Reels", href: "/admin/homepage/reels", icon: Instagram },
+    ],
+  },
+  // Remaining items
   { 
     name: "Dashboard", 
     href: "/admin", 
     icon: Home, 
     allowedRoles: ["super_admin", "admin"] 
+  },
+  { 
+    name: "Categories", 
+    href: "/admin/categories", 
+    icon: FolderTree, 
+    allowedRoles: ["super_admin", "admin"] 
+  },
+  { 
+    name: "Brands", 
+    href: "/admin/brands", 
+    icon: Tags, 
+    allowedRoles: ["super_admin", "admin"] 
+  },
+  { 
+    name: "Users", 
+    icon: Users, 
+    allowedRoles: ["super_admin", "admin"],
+    subItems: [
+      { name: "Staff & Team", href: "/admin/users?tab=staff", icon: ShieldCheck },
+      { name: "Customers", href: "/admin/users?tab=customers", icon: UserCheck },
+    ],
   },
   { 
     name: "Contact Inquiries", 
@@ -71,70 +140,6 @@ const navItems: NavItem[] = [
     icon: AlertTriangle, 
     allowedRoles: ["customer_care", "customer_support"] 
   },
-  { 
-    name: "Logistics", 
-    href: "/admin/shipping", 
-    icon: Truck, 
-    allowedRoles: ["super_admin", "admin", "logistic"] 
-  },
-  {
-    name: "Homepage",
-    icon: LayoutTemplate,
-    allowedRoles: ["super_admin", "admin"],
-    subItems: [
-      { name: "Hero & SEO", href: "/admin/homepage/hero-seo", icon: Globe },
-      { name: "Section Edit", href: "/admin/homepage/sections", icon: Layers },
-      { name: "Insta Reels", href: "/admin/homepage/reels", icon: Instagram },
-    ],
-  },
-  { 
-    name: "Users", 
-    icon: Users, 
-    allowedRoles: ["super_admin", "admin"],
-    subItems: [
-      { name: "Staff & Team", href: "/admin/users?tab=staff", icon: ShieldCheck },
-      { name: "Customers", href: "/admin/users?tab=customers", icon: UserCheck },
-    ],
-  },
-  { 
-    name: "Products", 
-    href: "/admin/products", 
-    icon: Box, 
-    allowedRoles: ["super_admin", "admin"] 
-  },
-  { 
-    name: "Categories", 
-    href: "/admin/categories", 
-    icon: FolderTree, 
-    allowedRoles: ["super_admin", "admin"] 
-  },
-  { 
-    name: "Brands", 
-    href: "/admin/brands", 
-    icon: Tags, 
-    allowedRoles: ["super_admin", "admin"] 
-  },
-  { 
-    name: "Blog", 
-    icon: BookOpen, 
-    allowedRoles: ["super_admin", "admin"],
-    subItems: [
-      { name: "All Articles", href: "/admin/blog", icon: FileText },
-      { name: "New Article", href: "/admin/blog/new", icon: Plus },
-      { name: "Categories", href: "/admin/blog/categories", icon: FolderTree },
-    ],
-  },
-  { 
-    name: "Orders", 
-    icon: ShoppingCart, 
-    allowedRoles: ["super_admin", "admin", "logistic", "order_manager"],
-    subItems: [
-      { name: "All Placed Orders", href: "/admin/orders", icon: ShoppingCart },
-      { name: "Failed Transactions", href: "/admin/orders/failed", icon: AlertTriangle },
-      { name: "Exchange Requests", href: "/admin/orders/exchanges", icon: RefreshCw },
-    ],
-  },
-
   { 
     name: "Bulk Upload", 
     href: "/admin/products/migration", 
@@ -173,20 +178,24 @@ export function AdminSidebar() {
   const currentTab = searchParams.get("tab");
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
+    Orders: pathname.startsWith("/admin/orders"),
+    Blog: pathname.startsWith("/admin/blog"),
     Homepage: pathname.startsWith("/admin/homepage"),
     Users: pathname.startsWith("/admin/users"),
-    Orders: pathname.startsWith("/admin/orders"),
   });
 
   useEffect(() => {
+    if (pathname.startsWith("/admin/orders")) {
+      setOpenMenus(prev => ({ ...prev, Orders: true }));
+    }
+    if (pathname.startsWith("/admin/blog")) {
+      setOpenMenus(prev => ({ ...prev, Blog: true }));
+    }
     if (pathname.startsWith("/admin/homepage")) {
       setOpenMenus(prev => ({ ...prev, Homepage: true }));
     }
     if (pathname.startsWith("/admin/users")) {
       setOpenMenus(prev => ({ ...prev, Users: true }));
-    }
-    if (pathname.startsWith("/admin/orders")) {
-      setOpenMenus(prev => ({ ...prev, Orders: true }));
     }
   }, [pathname]);
 
@@ -223,7 +232,7 @@ export function AdminSidebar() {
       
       <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
         {filteredNavItems.map((item) => {
-          // If item has sub-items (like Homepage or Users)
+          // If item has sub-items (like Orders, Blog, Homepage or Users)
           if (item.subItems) {
             const isSubActive = item.subItems.some((sub) => {
               const baseHref = sub.href.split("?")[0];
@@ -292,8 +301,6 @@ export function AdminSidebar() {
             const baseHref = item.href.split("?")[0];
             isActive = pathname === baseHref || pathname.startsWith(baseHref + "/");
           } 
- 
-
 
           return (
             <Link

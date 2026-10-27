@@ -1143,10 +1143,43 @@ export class ProductService {
     });
   }
 
-  static async exportCsv(): Promise<string> {
+  static async exportCsv(brand?: string): Promise<string> {
     const { ProductModel } = await import("./product.model");
-    // Fetch all products
-    const products = await ProductModel.find({}).lean().exec();
+    
+    const filter: any = {};
+    if (brand && brand.trim() && brand !== "all") {
+      const cleanBrand = brand.trim();
+      let brandDoc: any = null;
+      try {
+        const { BrandModel } = await import("../brand/brand.model");
+        brandDoc = await BrandModel.findOne({
+          $or: [
+            { slug: cleanBrand.toLowerCase() },
+            { name: new RegExp(`^${cleanBrand.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}$`, "i") },
+          ],
+        }).lean().exec();
+      } catch (err) {
+        // Continue with name match
+      }
+
+      const matchingNames = new Set<string>([cleanBrand]);
+      if (brandDoc) {
+        if (brandDoc.name) matchingNames.add(brandDoc.name);
+        if (brandDoc.slug) matchingNames.add(brandDoc.slug);
+      }
+
+      const regexPattern = Array.from(matchingNames)
+        .map((n) => n.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&"))
+        .join("|");
+
+      filter.$or = [
+        { brand: { $regex: new RegExp(regexPattern, "i") } },
+        ...(brandDoc?._id ? [{ brandId: brandDoc._id.toString() }] : []),
+      ];
+    }
+
+    // Fetch products
+    const products = await ProductModel.find(filter).lean().exec();
 
     // Map to Magento CSV Headers with image labels and swatches
     const baseHeaders = [

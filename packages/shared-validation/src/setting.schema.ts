@@ -35,6 +35,12 @@ export const updateSettingSchema = z.object({
   returnWindowDays: z.number().min(0).max(365).optional(),
   popularSearches: z.array(z.string()).optional(),
   snapmintMinOrderValue: z.number().min(0).optional(),
+  brandsMetaTitle: z.string().max(200).optional().or(z.literal("")),
+  brandsMetaDescription: z.string().max(500).optional().or(z.literal("")),
+  brandsMetaKeywords: z.string().max(500).optional().or(z.literal("")),
+  guidesMetaTitle: z.string().max(200).optional().or(z.literal("")),
+  guidesMetaDescription: z.string().max(500).optional().or(z.literal("")),
+  guidesMetaKeywords: z.string().max(500).optional().or(z.literal("")),
 });
 
 export type UpdateSettingInput = z.infer<typeof updateSettingSchema>;

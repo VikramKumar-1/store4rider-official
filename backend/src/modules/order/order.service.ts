@@ -257,10 +257,14 @@ export class OrderService {
 
     try {
       await session.withTransaction(async () => {
+        const effectiveGuestEmail = !userId
+          ? (guestEmail || shippingAddressSnapshot?.email || input.email || "")?.toLowerCase()?.trim() || undefined
+          : undefined;
+
         const orderData: Partial<IOrder> = {
           orderNumber,
           ...(userId ? { userId } : {}),
-          ...(guestEmail ? { guestEmail } : {}),
+          ...(effectiveGuestEmail ? { guestEmail: effectiveGuestEmail } : {}),
           status: "pending_payment", // Even for pure COD without partial, we might keep it pending until manual confirm, or auto confirm. We will leave it pending_payment
           pricing,
           items: orderItems,

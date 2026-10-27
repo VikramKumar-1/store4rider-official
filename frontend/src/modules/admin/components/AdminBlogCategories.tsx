@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, Edit2, Trash2, ArrowLeft, FolderTree, BookOpen, Check, X } from "lucide-react";
+import { Plus, Edit2, Trash2, ArrowLeft, FolderTree, BookOpen, Check, X, Globe } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
@@ -24,6 +24,9 @@ type CategoryFormValues = {
   description?: string;
   order?: number;
   isActive?: boolean;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
 };
 
 export function AdminBlogCategories() {
@@ -51,6 +54,9 @@ export function AdminBlogCategories() {
       description: "",
       order: 0,
       isActive: true,
+      metaTitle: "",
+      metaDescription: "",
+      metaKeywords: "",
     },
   });
 
@@ -64,6 +70,9 @@ export function AdminBlogCategories() {
       description: "",
       order: categories.length,
       isActive: true,
+      metaTitle: "",
+      metaDescription: "",
+      metaKeywords: "",
     });
     setIsModalOpen(true);
   };
@@ -76,6 +85,9 @@ export function AdminBlogCategories() {
       description: cat.description || "",
       order: cat.order || 0,
       isActive: cat.isActive !== false,
+      metaTitle: cat.metaTitle || "",
+      metaDescription: cat.metaDescription || "",
+      metaKeywords: cat.metaKeywords || "",
     });
     setIsModalOpen(true);
   };
@@ -270,6 +282,56 @@ export function AdminBlogCategories() {
               placeholder="Brief description for SEO and category banner..."
               className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:outline-hidden focus:border-brand focus:ring-1 focus:ring-brand"
             />
+          </div>
+
+          {/* SEO Metadata Card */}
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+            <div className="flex items-center gap-2">
+              <Globe size={15} className="text-brand" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                SEO & Search Engine Metadata
+              </h3>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Customize title tags, descriptions, and keywords for this blog category page.
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                Meta Title
+              </label>
+              <Input
+                {...register("metaTitle")}
+                placeholder="e.g. Motorcycle Helmet Guides & Maintenance Advice | Store4Riders"
+                error={errors.metaTitle?.message}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                Meta Description
+              </label>
+              <textarea
+                {...register("metaDescription")}
+                rows={2}
+                placeholder="e.g. In-depth buying guides, safety ratings, and care maintenance advice for motorcycle helmets..."
+                className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:outline-hidden focus:border-brand focus:ring-1 focus:ring-brand"
+              />
+              {errors.metaDescription && (
+                <p className="mt-1 text-[11px] text-red-500">{errors.metaDescription.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                Meta Keywords
+              </label>
+              <Input
+                {...register("metaKeywords")}
+                placeholder="e.g. helmet guides, motorcycle helmet care, helmet maintenance, store4riders"
+                error={errors.metaKeywords?.message}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

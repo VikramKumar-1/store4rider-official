@@ -1,12 +1,24 @@
 import { NextRequest } from "next/server";
 import { BrandService } from "./brand.service";
 import { BrandValidator } from "./brand.validator";
+import { SettingService } from "../settings/setting.service";
 import { ApiResponse } from "../../core/response/ApiResponse";
 
 export class BrandController {
   static async getAll(req: NextRequest) {
     const brands = await BrandService.getAllBrands();
     return ApiResponse.success(brands, "Brands fetched successfully");
+  }
+
+  static async getPageSeo(req: NextRequest) {
+    const seo = await SettingService.getBrandsPageSeo();
+    return ApiResponse.success(seo, "Brands directory page SEO fetched successfully");
+  }
+
+  static async updatePageSeo(req: NextRequest) {
+    const body = await req.json();
+    const updated = await SettingService.updateBrandsPageSeo(body);
+    return ApiResponse.success(updated, "Brands directory page SEO updated successfully");
   }
 
   static async getById(req: NextRequest, id: string) {

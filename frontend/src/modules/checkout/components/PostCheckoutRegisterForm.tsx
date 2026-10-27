@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useRegister, useLogin } from "@/core/hooks/useAuth";
+import { useRegister, useLogin, useForgotPassword } from "@/core/hooks/useAuth";
 import { apiClient } from "@/core/api/client";
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const ValidationItem = ({ isValid, text }: { isValid: boolean; text: string }) => (
   <div className="flex items-center gap-2 mb-1">
@@ -21,10 +22,25 @@ export function PostCheckoutRegisterForm({ email, name }: { email: string; name:
   const [password, setPassword] = useState("");
   const [isExistingAccount, setIsExistingAccount] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
+  const [resetSent, setResetSent] = useState(false);
   
   const registerMutation = useRegister({ disableRedirect: true });
   const loginMutation = useLogin({ disableRedirect: true });
+  const forgotMutation = useForgotPassword();
   const router = useRouter();
+
+  const handleForgotPassword = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    forgotMutation.mutate(
+      { email },
+      {
+        onSuccess: () => {
+          setResetSent(true);
+        },
+      }
+    );
+  };
 
   // Password validation checks for the UI checklist
   const hasMinLength = password.length >= 8;
@@ -87,22 +103,22 @@ export function PostCheckoutRegisterForm({ email, name }: { email: string; name:
 
   if (isChecking) {
     return (
-      <div className="w-full max-w-sm mt-2 mb-10 bg-white border border-neutral-200 p-6 shadow-sm text-left flex items-center justify-center h-[280px]">
-        <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
+      <div className="w-full max-w-sm mt-1 mb-4 bg-white border border-neutral-200 p-4 shadow-xs text-left flex items-center justify-center h-[180px]">
+        <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (registerMutation.isSuccess || loginMutation.isSuccess) {
     return (
-      <div className="w-full max-w-sm mt-2 mb-10 bg-white border border-emerald-200 p-6 shadow-sm text-left h-[280px] flex flex-col items-center justify-center animate-in fade-in duration-300">
-        <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mb-4">
-          <CheckCircleIcon className="w-8 h-8" />
+      <div className="w-full max-w-sm mt-1 mb-4 bg-white border border-emerald-200 p-4 shadow-xs text-left h-[200px] flex flex-col items-center justify-center animate-in fade-in duration-300">
+        <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mb-3">
+          <CheckCircleIcon className="w-6 h-6" />
         </div>
-        <h3 className="text-emerald-800 font-bold text-sm tracking-wide uppercase mb-1">
+        <h3 className="text-emerald-800 font-bold text-xs tracking-wide uppercase mb-1">
           {loginMutation.isSuccess ? "Logged In Successfully!" : "Account Created!"}
         </h3>
-        <div className="flex items-center gap-2 mt-4 text-neutral-500 text-xs font-medium">
+        <div className="flex items-center gap-2 mt-2 text-neutral-500 text-xs font-medium">
           <div className="w-3.5 h-3.5 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
           Redirecting to your orders...
         </div>
@@ -111,48 +127,79 @@ export function PostCheckoutRegisterForm({ email, name }: { email: string; name:
   }
 
   return (
-    <div className="w-full max-w-sm mt-2 mb-10 bg-white border border-neutral-200 p-6 shadow-sm text-left">
-      <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-900 mb-2">
+    <div className="w-full max-w-sm mt-1 mb-4 bg-white border border-neutral-200 p-4 sm:p-5 shadow-xs text-left">
+      <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-900 mb-1">
         {isExistingAccount ? "Sign In & Track" : "Track Your Order"}
       </h3>
-      <p className="text-xs text-neutral-500 mb-5 leading-relaxed">
+      <p className="text-[11px] text-neutral-500 mb-3 leading-normal">
         {isExistingAccount 
           ? "This email is already registered. Please sign in to track your order." 
           : "Create an account to easily track this order and speed up future checkouts."}
       </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
         {loginMutation.isError && (
-          <div className="bg-red-50 border border-red-100 p-2 rounded text-red-800 text-[11px] font-medium mb-1">
-            {(loginMutation.error as any)?.response?.data?.error || "Login failed. Please check your password."}
+          <div className="bg-red-50 border border-red-100 p-2 rounded text-red-800 text-[11px] font-medium">
+            {(loginMutation.error as any)?.response?.data?.error || "Invalid credentials. Please verify your password."}
+          </div>
+        )}
+
+        {resetSent && (
+          <div className="bg-emerald-50 border border-emerald-200 p-2 rounded text-emerald-800 text-[11px] leading-tight flex items-start gap-1.5">
+            <CheckCircleIcon className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold">Reset link sent!</span> Check your inbox at <strong>{email}</strong> or{" "}
+              <Link
+                href={`/forgot-password?email=${encodeURIComponent(email)}`}
+                className="underline font-semibold text-emerald-900"
+                target="_blank"
+              >
+                open reset page
+              </Link>.
+            </div>
           </div>
         )}
         
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1 block">Email (Auto-linked for tracking)</label>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-0.5 block">
+            Email (Auto-linked for tracking)
+          </label>
           <input 
             type="email" 
             value={email} 
             disabled 
-            className="w-full border border-neutral-300 bg-neutral-100 px-3 py-2 text-sm text-neutral-500 rounded-none cursor-not-allowed"
+            className="w-full border border-neutral-200 bg-neutral-100 px-3 py-1.5 text-xs text-neutral-600 rounded-none cursor-not-allowed"
           />
         </div>
+
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1 block">
-            {isExistingAccount ? "Enter Password *" : "Set a Password *"}
-          </label>
+          <div className="flex items-center justify-between mb-0.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-700 block">
+              {isExistingAccount ? "Enter Password *" : "Set a Password *"}
+            </label>
+            {isExistingAccount && (
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={forgotMutation.isPending}
+                className="text-[10px] font-semibold text-brand hover:underline cursor-pointer disabled:opacity-50"
+              >
+                {forgotMutation.isPending ? "Sending link..." : "Forgot password?"}
+              </button>
+            )}
+          </div>
           <input 
             type="password" 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder={isExistingAccount ? "Your password" : "Min 8 characters"}
             required
-            className="w-full border border-neutral-300 focus:border-brand px-3 py-2 text-sm text-neutral-900 focus:outline-none rounded-none transition-colors"
+            className="w-full border border-neutral-300 focus:border-brand px-3 py-1.5 text-xs text-neutral-900 focus:outline-none rounded-none transition-colors"
           />
         </div>
         
         {!isExistingAccount && (
-          <div className="bg-neutral-50 p-3 rounded border border-neutral-100 mt-1">
+          <div className="bg-neutral-50 p-2.5 rounded border border-neutral-100">
             <ValidationItem isValid={hasMinLength} text="Minimum 8 characters" />
             <ValidationItem isValid={hasNumber} text="Must contain at least 1 number" />
             <ValidationItem isValid={hasUpperAndLowerCase} text="Must contain capital and lowercase letters" />
@@ -163,7 +210,7 @@ export function PostCheckoutRegisterForm({ email, name }: { email: string; name:
         <button 
           type="submit" 
           disabled={registerMutation.isPending || loginMutation.isPending || !password || (!isExistingAccount && !isPasswordValid)}
-          className="w-full bg-neutral-900 hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 mt-1 transition-colors disabled:opacity-50 rounded-none cursor-pointer"
+          className="w-full bg-neutral-900 hover:bg-black text-white text-[11px] font-bold uppercase tracking-wider py-2.5 transition-colors disabled:opacity-50 rounded-none cursor-pointer"
         >
           {isExistingAccount 
             ? (loginMutation.isPending ? "Logging in..." : "Log In & Track Order") 

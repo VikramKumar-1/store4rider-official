@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -18,10 +18,13 @@ import {
   CheckCircle2,
   AlertCircle,
   FileText,
+  Globe,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
+import { toast } from "sonner";
+import { apiClient } from "@/core/api/client";
 import {
   useAdminBlogPosts,
   useAdminBlogCategories,
@@ -38,6 +41,15 @@ export function AdminBlogPosts() {
   const [categorySlug, setCategorySlug] = useState<string>("");
   const [postToDelete, setPostToDelete] = useState<IBlogPost | null>(null);
 
+  // Parent /guides page SEO state
+  const [isPageSeoModalOpen, setIsPageSeoModalOpen] = useState(false);
+  const [isSavingPageSeo, setIsSavingPageSeo] = useState(false);
+  const [pageSeo, setPageSeo] = useState({
+    metaTitle: "",
+    metaDescription: "",
+    metaKeywords: "",
+  });
+
   const { data: postsData, isLoading } = useAdminBlogPosts({
     page,
     limit: 15,
@@ -53,6 +65,34 @@ export function AdminBlogPosts() {
   const posts = postsData?.items || [];
   const totalCount = postsData?.totalCount || 0;
   const totalPages = postsData?.totalPages || 1;
+
+  useEffect(() => {
+    apiClient
+      .get("/blog/page-seo")
+      .then((res) => {
+        if (res.data?.data) {
+          setPageSeo({
+            metaTitle: res.data.data.metaTitle || "",
+            metaDescription: res.data.data.metaDescription || "",
+            metaKeywords: res.data.data.metaKeywords || "",
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSavePageSeo = async () => {
+    try {
+      setIsSavingPageSeo(true);
+      await apiClient.put("/blog/page-seo", pageSeo);
+      toast.success("Blog homepage (/guides) SEO updated successfully!");
+      setIsPageSeoModalOpen(false);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to update page SEO");
+    } finally {
+      setIsSavingPageSeo(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!postToDelete?._id) return;
@@ -93,6 +133,16 @@ export function AdminBlogPosts() {
             </Button>
           )}
 
+          <Button
+            variant="outline"
+            onClick={() => setIsPageSeoModalOpen(true)}
+            className="border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold flex items-center gap-1.5"
+            title="Edit SEO for the /guides root homepage"
+          >
+            <Globe size={15} className="text-brand" />
+            <span>/guides Home SEO</span>
+          </Button>
+
           <Link href="/admin/blog/categories">
             <Button
               variant="outline"
@@ -108,6 +158,32 @@ export function AdminBlogPosts() {
             </Button>
           </Link>
         </div>
+      </div>
+
+      {/* Blog & Guides Directory Page SEO Banner */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-red-50 text-brand flex items-center justify-center shrink-0">
+            <Globe size={18} />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Blog & Guides Root Page SEO (<span className="text-brand font-mono">/guides</span>)
+            </h4>
+            <p className="text-xs text-slate-500 mt-0.5 max-w-xl truncate">
+              {pageSeo.metaTitle ? pageSeo.metaTitle : "Default: Motorcycle Guides & Expert Advice | Store4Riders"}
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsPageSeoModalOpen(true)}
+          className="text-xs font-bold flex items-center gap-1.5 shrink-0"
+        >
+          <Edit2 size={13} />
+          <span>Edit /guides SEO</span>
+        </Button>
       </div>
 
       {/* Filter and Search Bar */}
@@ -199,151 +275,136 @@ export function AdminBlogPosts() {
         {isLoading ? (
           <div className="p-16 text-center text-slate-400 flex flex-col items-center justify-center gap-3">
             <div className="w-8 h-8 border-3 border-brand border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs font-medium">Loading articles...</p>
+            <span className="text-xs">Loading articles...</span>
           </div>
         ) : posts.length === 0 ? (
           <div className="p-16 text-center text-slate-400 flex flex-col items-center justify-center gap-3">
-            <FileText size={44} className="text-slate-300" />
-            <p className="text-sm font-bold text-slate-800">No blog posts found</p>
-            <p className="text-xs text-slate-400 max-w-sm">
-              {search || categorySlug || status !== "all"
-                ? "Try clearing your filters or search terms."
-                : "Get started by creating your first article or syncing existing riding guides."}
-            </p>
-            <div className="flex items-center gap-2 mt-2">
-              <Link href="/admin/blog/new">
-                <Button className="bg-brand text-white text-xs font-bold px-4 py-2 rounded-lg">
-                  <Plus size={14} className="mr-1" /> New Article
-                </Button>
-              </Link>
-              {totalCount === 0 && (
-                <Button
-                  onClick={handleSyncGuides}
-                  disabled={seedContent.isPending}
-                  variant="outline"
-                  className="text-xs font-bold"
-                >
-                  Sync Guides (20)
-                </Button>
-              )}
+            <FileText size={36} className="text-slate-300" />
+            <div>
+              <p className="text-sm font-bold text-slate-700">No articles found</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {search || status !== "all" || categorySlug
+                  ? "Try adjusting your filters or search query"
+                  : "Get started by creating your first article or syncing defaults"}
+              </p>
             </div>
+            {totalCount === 0 && (
+              <Button
+                onClick={handleSyncGuides}
+                disabled={seedContent.isPending}
+                className="mt-2 bg-brand text-white text-xs font-bold"
+              >
+                Sync 20 Default Guides
+              </Button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 font-bold uppercase tracking-wider">
-                  <th className="py-3 px-4 w-16">Cover</th>
+                <tr className="border-b border-slate-200 bg-slate-50/75 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <th className="py-3 px-4">Article</th>
                   <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-4 text-center">Reading Time</th>
-                  <th className="py-3 px-4 text-center">Views</th>
-                  <th className="py-3 px-4">Published Date</th>
+                  <th className="py-3 px-4">Author</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Views</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+              <tbody className="divide-y divide-slate-100 text-xs">
                 {posts.map((post) => (
-                  <tr key={post._id || post.slug} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="relative w-12 h-10 rounded-md overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                        {post.featuredImage ? (
-                          <Image
-                            src={post.featuredImage}
-                            alt={post.title}
-                            fill
-                            sizes="48px"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-300">
-                            <BookOpen size={16} />
+                  <tr key={post._id} className="hover:bg-slate-50/60 transition-colors">
+                    {/* Article title & cover */}
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                          {post.featuredImage ? (
+                            <Image
+                              src={post.featuredImage}
+                              alt={post.title}
+                              fill
+                              sizes="48px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-300">
+                              <BookOpen size={18} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 max-w-md">
+                          <Link
+                            href={`/admin/blog/edit/${post._id}`}
+                            className="font-bold text-slate-800 hover:text-brand line-clamp-1"
+                          >
+                            {post.title}
+                          </Link>
+                          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400">
+                            <span className="font-mono">/guides/{post.slug}</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Clock size={11} /> {post.readingTimeMinutes || 5} min read
+                            </span>
                           </div>
-                        )}
+                        </div>
                       </div>
                     </td>
 
-                    <td className="py-3 px-4 max-w-sm">
-                      <Link
-                        href={`/admin/blog/${post._id}/edit`}
-                        className="font-bold text-slate-900 hover:text-brand transition-colors text-xs line-clamp-1"
-                      >
-                        {post.title}
-                      </Link>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="font-mono text-[10px] text-slate-400">/{post.slug}</span>
+                    {/* Category */}
+                    <td className="py-3.5 px-4 text-slate-600">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700">
+                        {post.categoryName || "Uncategorized"}
+                      </span>
+                    </td>
+
+                    {/* Author */}
+                    <td className="py-3.5 px-4 text-slate-600 font-medium">
+                      {post.author?.name || "Store4Riders"}
+                    </td>
+
+                    {/* Status */}
+                    <td className="py-3.5 px-4">
+                      {post.status === "published" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <CheckCircle2 size={11} /> Published
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          <AlertCircle size={11} /> Draft
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Views */}
+                    <td className="py-3.5 px-4 text-slate-500 font-medium">
+                      <span className="flex items-center gap-1">
+                        <Eye size={12} /> {post.views || 0}
+                      </span>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
                         <Link
-                          href={`/guides/post/${post.slug}`}
+                          href={`/guides/${post.slug}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-slate-400 hover:text-brand inline-flex items-center gap-0.5 text-[10px]"
-                          title="View live post"
+                          className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
+                          title="View live article"
                         >
-                          <ExternalLink size={10} /> Live
+                          <ExternalLink size={14} />
                         </Link>
-                      </div>
-                    </td>
-
-                    <td className="py-3 px-4">
-                      {post.categoryName ? (
-                        <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                          {post.categoryName}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 text-[11px]">—</span>
-                      )}
-                    </td>
-
-                    <td className="py-3 px-4 text-center">
-                      {post.status === "published" ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 size={10} /> Published
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
-                          <AlertCircle size={10} /> Draft
-                        </span>
-                      )}
-                    </td>
-
-                    <td className="py-3 px-4 text-center">
-                      <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 font-mono">
-                        <Clock size={11} className="text-slate-400" />
-                        {post.readingTimeMinutes || 1} min
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-4 text-center">
-                      <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 font-mono">
-                        <Eye size={11} className="text-slate-400" />
-                        {post.views || 0}
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-4 text-slate-500 text-[11px]">
-                      {post.publishedAt
-                        ? new Date(post.publishedAt).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : "—"}
-                    </td>
-
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
                         <Link
-                          href={`/admin/blog/${post._id}/edit`}
-                          className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors"
-                          title="Edit Article"
+                          href={`/admin/blog/edit/${post._id}`}
+                          className="p-1.5 text-slate-500 hover:text-brand hover:bg-red-50 rounded-md transition-colors"
+                          title="Edit article"
                         >
                           <Edit2 size={14} />
                         </Link>
                         <button
                           onClick={() => setPostToDelete(post)}
                           className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                          title="Delete Article"
+                          title="Delete article"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -415,6 +476,67 @@ export function AdminBlogPosts() {
               className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider px-4"
             >
               {deletePost.isPending ? "Deleting..." : "Delete Permanently"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Blog & Guides (/guides) Page SEO Modal */}
+      <Modal
+        isOpen={isPageSeoModalOpen}
+        onClose={() => setIsPageSeoModalOpen(false)}
+        title="Edit Blog & Guides Homepage SEO (/guides)"
+      >
+        <div className="space-y-4 pt-1">
+          <p className="text-xs text-slate-500">
+            Configure the search engine meta title, description, and keywords for the root <span className="font-semibold text-slate-700">/guides</span> blog hub page.
+          </p>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+              Meta Title
+            </label>
+            <Input
+              value={pageSeo.metaTitle}
+              onChange={(e) => setPageSeo({ ...pageSeo, metaTitle: e.target.value })}
+              placeholder="e.g. Motorcycle Guides & Expert Advice | Store4Riders"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+              Meta Description
+            </label>
+            <textarea
+              value={pageSeo.metaDescription}
+              onChange={(e) => setPageSeo({ ...pageSeo, metaDescription: e.target.value })}
+              rows={3}
+              placeholder="e.g. Comprehensive buying guides, gear care advice, maintenance checklists, and touring preparation tips by Store4Riders."
+              className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:outline-hidden focus:border-brand focus:ring-1 focus:ring-brand"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+              Meta Keywords
+            </label>
+            <Input
+              value={pageSeo.metaKeywords}
+              onChange={(e) => setPageSeo({ ...pageSeo, metaKeywords: e.target.value })}
+              placeholder="e.g. motorcycle guides, riding gear guides, helmet guide, chain maintenance, store4riders"
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100">
+            <Button variant="outline" onClick={() => setIsPageSeoModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={isSavingPageSeo}
+              onClick={handleSavePageSeo}
+              className="bg-brand text-white font-bold"
+            >
+              {isSavingPageSeo ? "Saving..." : "Save /guides SEO"}
             </Button>
           </div>
         </div>

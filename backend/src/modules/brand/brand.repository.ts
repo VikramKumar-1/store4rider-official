@@ -14,6 +14,10 @@ export class BrandRepository {
     return BrandModel.findById(id).lean().exec() as unknown as IBrand | null;
   }
 
+  static async findBySlug(slug: string): Promise<IBrand | null> {
+    return BrandModel.findOne({ slug: slug.toLowerCase() }).lean().exec() as unknown as IBrand | null;
+  }
+
   static async create(data: Partial<IBrand>): Promise<IBrand> {
     const brand = new BrandModel(data);
     return (await brand.save()).toObject() as IBrand;

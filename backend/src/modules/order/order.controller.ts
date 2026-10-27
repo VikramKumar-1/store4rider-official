@@ -51,6 +51,15 @@ export class OrderController {
 
   static async myOrders(req: NextRequest) {
     const userId = OrderValidator.extractUserId(req);
+    try {
+      const { UserModel } = await import("../user/user.model");
+      const userDoc: any = await UserModel.findById(userId).select("email").lean().exec();
+      if (userDoc?.email) {
+        await OrderRepository.linkGuestOrders(userDoc.email, userId);
+      }
+    } catch {
+      // Non-blocking sync fallback
+    }
     const orders = await OrderRepository.findByUserId(userId);
     return ApiResponse.success(orders, "Orders fetched successfully");
   }

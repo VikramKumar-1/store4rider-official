@@ -193,32 +193,40 @@ export const parseColorToBackground = (colorName: string): string => {
   // Extract all known colors from the string (handles "Black Orange", "Black/Orange", "Matte Black Red")
   // Sort by length descending to match "dark grey" before "grey"
   const knownKeys = Object.keys(singleColorMap).sort((a, b) => b.length - a.length);
-  const foundColors: string[] = [];
+  const foundColors: { color: string; index: number }[] = [];
   let tempStr = clean;
   
   for (const key of knownKeys) {
     // Ensure we match whole color words (e.g., don't match 'red' in 'colored')
-    const regex = new RegExp(`(?:^|[^a-z])${key}(?:$|[^a-z])`);
-    if (regex.test(tempStr)) {
-      foundColors.push(singleColorMap[key]);
-      tempStr = tempStr.replace(regex, " "); // Remove to avoid overlaps
+    const regex = new RegExp(`(?:^|[^a-z])${key.replace(".", "\\.")}(?:$|[^a-z])`);
+    const match = tempStr.match(regex);
+    if (match && match.index !== undefined) {
+      foundColors.push({ color: singleColorMap[key], index: match.index });
+      tempStr = tempStr.replace(regex, " ".repeat(match[0].length)); // preserve string indices
     }
   }
 
-  if (foundColors.length > 1) {
-    if (foundColors.length === 2) {
-      return `linear-gradient(135deg, ${foundColors[0]} 50%, ${foundColors[1]} 50%)`;
-    } else if (foundColors.length === 3) {
-      return `linear-gradient(135deg, ${foundColors[0]} 33.3%, ${foundColors[1]} 33.3% 66.6%, ${foundColors[2]} 66.6%)`;
+  foundColors.sort((a, b) => a.index - b.index);
+  const colors = foundColors.map(c => c.color);
+
+  if (colors.length > 1) {
+    if (colors.length === 2) {
+      return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[0]} 49.5%, ${colors[1]} 50.5%, ${colors[1]} 100%)`;
+    } else if (colors.length === 3) {
+      return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[0]} 32.8%, ${colors[1]} 33.3%, ${colors[1]} 66.1%, ${colors[2]} 66.6%, ${colors[2]} 100%)`;
     } else {
-      const step = 100 / foundColors.length;
-      const stops = foundColors.map((h, i) => `${h} ${i * step}% ${(i + 1) * step}%`).join(", ");
+      const step = 100 / colors.length;
+      const stops = colors.map((h, i) => {
+        const start = (i * step).toFixed(1);
+        const end = ((i + 1) * step).toFixed(1);
+        return `${h} ${start}%, ${h} ${end}%`;
+      }).join(", ");
       return `linear-gradient(135deg, ${stops})`;
     }
   }
 
-  if (foundColors.length === 1) {
-    return foundColors[0];
+  if (colors.length === 1) {
+    return colors[0];
   }
 
   // Fallback: check substring match for any color word (without strict boundaries)
