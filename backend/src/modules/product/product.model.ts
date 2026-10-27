@@ -117,6 +117,9 @@ productSchema.index({ "attributes.helmet_type": 1 });
 productSchema.index({ "attributes.material": 1 });
 productSchema.index({ "attributes.riding_style": 1 });
 productSchema.index({ "attributes.certification": 1 });
+productSchema.index({ "variants.attributes.color": 1 });
+productSchema.index({ "variants.attributes.size": 1 });
+productSchema.index({ "variants.stock": 1 });
 
 // Prevent Mongoose from re-compiling the model during Next.js hot reloads
 export const ProductModel = mongoose.models.Product || mongoose.model<IProduct>("Product", productSchema);

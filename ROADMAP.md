@@ -1394,7 +1394,7 @@ Once PayU + COD are production-solid:
 
 ## Phase 11 — SEO
 
-**Status:** ⬜ NOT STARTED
+**Status:** 🔄 IN PROGRESS
 **Modules:** SEO (15)
 **Depends on:** Phase 2 (product/category SEO fields), Phase 10 (blog URLs for sitemap)
 
@@ -1404,19 +1404,19 @@ Once PayU + COD are production-solid:
   - `frontend/app/sitemap.ts` — Next.js sitemap API
   - Include: all products, categories, blog posts, static pages
   - Auto-update on content changes
-- [ ] **11.2** Build `robots.txt`
+- [x] **11.2** Build `robots.txt`
   - `frontend/app/robots.ts` — Next.js robots API
   - Allow all crawlers, disallow `/admin`, `/api`, `/checkout`
   - Point to sitemap URL
-- [ ] **11.3** Build `llms.txt`
+- [x] **11.3** Build `llms.txt`
   - `frontend/app/llms.txt/route.ts` — served as plain text
   - Content: site name and description, product categories hierarchy, brand list, key page URLs (homepage, catalog, blog, support, policies), contact information, shipping & returns policy summary, structured for AI crawlers to understand site purpose and content
-- [ ] **11.4** Add JSON-LD schema markup
-  - `Organization` schema on homepage
-  - `Product` schema on PDP (name, price, availability, reviews, images)
-  - `BreadcrumbList` on all pages with breadcrumbs
+- [x] **11.4** Add JSON-LD schema markup
+  - [x] `Organization` & `OnlineStore` schema on homepage (unified graph with `@id: .../#organization` and DB settings)
+  - [x] `Product` schema on PDP (name, price, availability, aggregate reviews, images, seller, offers, return policy, delivery details)
+  - [x] `BreadcrumbList` on PDP, catalog, categories, exchange policy, and guides
   - [x] `BlogPosting` on blog detail pages (`https://schema.org/BlogPosting` with verified author, social handles, speakable, and article metadata)
-  - `FAQPage` on FAQ/support page
+  - [x] `FAQPage` on category pages and exchange/policy pages
 - [ ] **11.5** Add Open Graph + Twitter Card meta tags
   - All pages: title, description, image, url, type
   - Product pages: price, availability

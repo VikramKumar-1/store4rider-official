@@ -3,6 +3,12 @@ import { Suspense } from "react";
 import { ProductsPageModule } from "@/modules/catalog/components/ProductsPageModule";
 import { ProductDetailPageModule } from "@/modules/product-detail/components/ProductDetailPageModule";
 import ProductsLoading from "../products/loading";
+import {
+  buildProductSchema,
+  buildBreadcrumbSchema,
+  buildCollectionSchema,
+  buildFAQSchema,
+} from "@/core/utils/seo-schema";
 
 const rawApiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 const API_BASE = rawApiBase.includes("/v1")
@@ -57,7 +63,9 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
       const canonicalPath = `/${candidateSlug}`;
 
       return {
-        title,
+        title: {
+          absolute: title,
+        },
         description: cleanDescription,
         keywords,
         alternates: {
@@ -129,7 +137,9 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
           const canonicalPath = `/${slugArray.join('/')}`;
 
           return {
-            title,
+            title: {
+              absolute: title,
+            },
             description,
             keywords: catNode.metaKeywords ? catNode.metaKeywords.split(',').map((k: string) => k.trim()) : [],
             alternates: {
@@ -211,36 +221,37 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     const product = await getProduct(candidateSlug);
     if (product) {
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
-      const productSchema = {
-        "@context": "https://schema.org/",
-        "@type": "Product",
-        name: product.name,
-        image: product.images?.map((img: any) => img.url) || [],
-        description: product.metaDescription || product.shortDescription || product.name,
-        sku: product.sku || product._id,
-        brand: {
-          "@type": "Brand",
-          name: product.brand || "Store4Riders",
-        },
-        offers: {
-          "@type": "Offer",
-          url: `${siteUrl}/${candidateSlug}`,
-          priceCurrency: "INR",
-          price: product.specialPrice || product.basePrice || 0,
-          availability:
-            product.stockStatus === 1 || product.stockStatus === true || (product.stockQuantity && product.stockQuantity > 0)
-              ? "https://schema.org/InStock"
-              : "https://schema.org/OutOfStock",
-          itemCondition: "https://schema.org/NewCondition",
-        },
-      };
+      const productSchema = buildProductSchema(product, siteUrl);
+      const breadcrumbSchema = buildBreadcrumbSchema(
+        [
+          { name: "Home", url: "/" },
+          ...(product.categorySlugs?.[0]
+            ? [{ name: product.categorySlugs[0].replace(/[-_]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()), url: `/${product.categorySlugs[0]}` }]
+            : [{ name: "Products", url: "/products" }]),
+          { name: product.name, url: `/${candidateSlug}` },
+        ],
+        siteUrl
+      );
+      const faqSchema = buildFAQSchema(product.faqs);
 
       return (
         <>
+          {productSchema && (
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+            />
+          )}
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
           />
+          {faqSchema && (
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+            />
+          )}
           <ProductDetailPageModule slug={candidateSlug} />
         </>
       );
@@ -310,54 +321,19 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     `Explore our certified range of ${categoryName} at Store4Riders. High quality motorcycle gear with fast delivery across India.`;
   const currentUrl = `${siteUrl}/${slugArray.join('/')}`;
 
-  const collectionSchema = {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    name: categoryName,
+  const collectionSchema = buildCollectionSchema({
+    title: categoryName,
     description: categoryDescription,
     url: currentUrl,
-    isPartOf: {
-      "@type": "WebSite",
-      name: "Store4Riders",
-      url: siteUrl,
-    },
-    mainEntity: {
-      "@type": "ItemList",
-      name: `${categoryName} Collection`,
-      description: `Shop ${categoryName} online at Store4Riders`,
-      url: currentUrl,
-      numberOfItems: collectionProducts.length,
-      itemListElement: collectionProducts.map((p: any, idx: number) => ({
-        "@type": "ListItem",
-        position: idx + 1,
-        url: `${siteUrl}/${p.slug}`,
-        item: {
-          "@type": "Product",
-          name: p.name,
-          url: `${siteUrl}/${p.slug}`,
-          ...(p.images?.[0]?.url ? { image: p.images[0].url } : {}),
-          offers: {
-            "@type": "Offer",
-            priceCurrency: "INR",
-            price: p.specialPrice || p.basePrice || 0,
-            availability:
-              p.stockStatus === 1 || p.stockStatus === true
-                ? "https://schema.org/InStock"
-                : "https://schema.org/OutOfStock",
-            itemCondition: "https://schema.org/NewCondition",
-          },
-        },
-      })),
-    },
-  };
+    siteUrl,
+    products: collectionProducts,
+  });
 
   // Schema: BreadcrumbList
-  const breadcrumbElements = [
+  const breadcrumbElements: Array<{ name: string; url: string }> = [
     {
-      "@type": "ListItem",
-      position: 1,
       name: "Home",
-      item: siteUrl,
+      url: "/",
     },
   ];
 
@@ -371,40 +347,13 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         : seg.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
     breadcrumbElements.push({
-      "@type": "ListItem",
-      position: idx + 2,
       name: segName,
-      item: `${siteUrl}${accumulatedPath}`,
+      url: accumulatedPath,
     });
   });
 
-  const breadcrumbSchema = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: breadcrumbElements,
-  };
-
-  // Schema: FAQPage (Google Rich Snippets for Category/Submenu FAQs)
-  const faqSchema = initialCategoryNode?.faqs && initialCategoryNode.faqs.length > 0
-    ? {
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        mainEntity: initialCategoryNode.faqs
-          .filter((f: any) => f.question && f.answer)
-          .map((f: any) => ({
-            "@type": "Question",
-            name: f.question.trim(),
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: (f.answer || "")
-                .replace(/<[^>]*>/g, " ")
-                .replace(/&nbsp;/g, " ")
-                .replace(/\s+/g, " ")
-                .trim(),
-            },
-          })),
-      }
-    : null;
+  const breadcrumbSchema = buildBreadcrumbSchema(breadcrumbElements, siteUrl);
+  const faqSchema = buildFAQSchema(initialCategoryNode?.faqs);
 
   return (
     <>

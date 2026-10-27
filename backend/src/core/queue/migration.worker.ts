@@ -18,7 +18,7 @@ const KNOWN_FIELDS = new Set([
   "weight", "is_in_stock", "product_type", "categories", "base_image", "additional_images",
   "configurable_variations", "related_skus", "upsell_skus", "crosssell_skus", "qty",
   "status", "product_online", "visibility", "tax_class_name", "brand",
-  "meta_title", "meta_keyword", "meta_description", "size_chart", "sizechart", "gender",
+  "meta_title", "meta_keyword", "meta_keywords", "meta_description", "size_chart", "sizechart", "gender",
   "gender_1", "country_of_manufacture", "country_of_origin", "attribute_set_code", 
   "attribute_set", "configurable_variation_labels", "backorders", "free_shipping",
   "special_from_date", "special_to_date"
@@ -208,9 +208,9 @@ export const migrationWorker = new Worker("migrationQueue", async (job: Job) => 
       status: ((row.status || row.product_online) === "1" || (row.status || row.product_online)?.toLowerCase() === "enabled") ? "published" : "draft",
       visibility: row.visibility,
       magentoCategories: row.categories,
-      metaTitle: row.meta_title || "",
-      metaKeywords: row.meta_keyword || "",
-      metaDescription: row.meta_description || "",
+      metaTitle: row.meta_title ? String(row.meta_title).trim() : "",
+      metaKeywords: (row.meta_keywords || row.meta_keyword) ? String(row.meta_keywords || row.meta_keyword).trim() : "",
+      metaDescription: row.meta_description ? String(row.meta_description).trim() : "",
       sizeChart,
       size_chart: sizeChart,
       gender,
@@ -331,6 +331,25 @@ export const migrationWorker = new Worker("migrationQueue", async (job: Job) => 
       }
     }
     
+    // SEO Inheritance: If parent is missing any SEO field, inherit from child variant
+    if (!parentProd.metaTitle || !parentProd.metaDescription || !parentProd.metaKeywords) {
+      for (const childSku of skus) {
+        const childRow = simples.get(childSku);
+        if (childRow) {
+          if (!parentProd.metaTitle && childRow.meta_title) {
+            parentProd.metaTitle = String(childRow.meta_title).trim();
+          }
+          if (!parentProd.metaKeywords && (childRow.meta_keywords || childRow.meta_keyword)) {
+            parentProd.metaKeywords = String(childRow.meta_keywords || childRow.meta_keyword).trim();
+          }
+          if (!parentProd.metaDescription && childRow.meta_description) {
+            parentProd.metaDescription = String(childRow.meta_description).trim();
+          }
+        }
+        if (parentProd.metaTitle && parentProd.metaKeywords && parentProd.metaDescription) break;
+      }
+    }
+
     finalProducts.push(parentProd);
     stats.mapped++;
   }

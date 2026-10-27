@@ -1,15 +1,59 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeftRight, CheckCircle2, AlertCircle, Clock, ShieldCheck, HelpCircle } from "lucide-react";
+import { buildBreadcrumbSchema, buildFAQSchema } from "@/core/utils/seo-schema";
 
 export const metadata: Metadata = {
   title: "Exchange Policy | Store4Riders",
   description: "Store4Riders 7-day hassle-free size and gear exchange policy for riding jackets, helmets, boots, gloves, and accessories.",
+  alternates: {
+    canonical: "https://store4riders.com/returns",
+  },
 };
 
 export default function ExchangePolicyPage() {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
+
+  const breadcrumbSchema = buildBreadcrumbSchema(
+    [
+      { name: "Home", url: "/" },
+      { name: "Exchange Policy", url: "/returns" },
+    ],
+    siteUrl
+  );
+
+  const faqSchema = buildFAQSchema([
+    {
+      question: "What is the Store4Riders exchange window?",
+      answer: "We offer a dedicated 7-day size and gear replacement exchange window from the confirmed date of delivery.",
+    },
+    {
+      question: "What products qualify for exchange?",
+      answer: "Riding jackets, pants, boots, helmets, and gloves must be unused, unwashed, and in pristine condition with all manufacturer tags, armor inserts, and original packaging intact. Helmet visor protective peels must remain unpeeled.",
+    },
+    {
+      question: "How do I request an exchange?",
+      answer: "Visit My Account > My Orders and select the delivered order, or email our support team at support@store4riders.com with photos of the gear and your desired replacement size.",
+    },
+    {
+      question: "Is doorstep reverse pickup provided?",
+      answer: "Yes, our courier logistics partners arrange reverse doorstep pickup directly from your delivery address upon QC authorization.",
+    },
+  ]);
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pt-28 sm:pt-32 pb-20 px-4 sm:px-6">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
+      <div className="min-h-screen bg-slate-50 text-slate-900 pt-28 sm:pt-32 pb-20 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header Hero */}
         <div className="bg-white rounded-2xl p-6 sm:p-10 shadow-sm border border-slate-200/80">
@@ -123,5 +167,6 @@ export default function ExchangePolicyPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

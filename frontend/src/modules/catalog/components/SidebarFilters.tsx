@@ -187,7 +187,7 @@ export function SidebarFilters() {
     
     params.set("page", "1");
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '/products';
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const handleBrandToggle = (brandName: string) => toggleArrayParam("brand", brandName);
@@ -208,7 +208,7 @@ export function SidebarFilters() {
     }
     params.set("page", "1");
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '/products';
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const removeArrayParamItem = (paramName: string, value: string) => {
@@ -231,7 +231,7 @@ export function SidebarFilters() {
     });
     params.set("page", "1");
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '/products';
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   // Build active pills list for "Now Shopping By"

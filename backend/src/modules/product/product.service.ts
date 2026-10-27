@@ -486,7 +486,7 @@ export class ProductService {
     });
 
     const products = await ProductModel.find(baseFilters)
-      .select("name brand gender magentoCategories variants configurableVariations colorImages stockStatus attributes basePrice specialPrice")
+      .select("name brand gender magentoCategories variants.attributes variants.stock configurableVariations colorImages stockStatus attributes basePrice specialPrice")
       .lean()
       .exec();
 
@@ -538,14 +538,14 @@ export class ProductService {
 
       if (p.variants && p.variants.length > 0) {
         p.variants.forEach((v: any) => {
-          const vCol = getDynamicAttrLocal(v.attributes, ['color', 'colour']);
-          if (vCol) availableColors.add(vCol.toLowerCase());
-          const vSiz = getDynamicAttrLocal(v.attributes, ['size', 'eu_size', 'eu_size_for_boots']);
-          if (vSiz) availableSizes.add(vSiz.toLowerCase());
+          if (v.stock > 0 || p.allowBackorders) {
+            const vCol = getDynamicAttrLocal(v.attributes, ['color', 'colour']);
+            if (vCol) availableColors.add(vCol.toLowerCase());
+            const vSiz = getDynamicAttrLocal(v.attributes, ['size', 'eu_size', 'eu_size_for_boots']);
+            if (vSiz) availableSizes.add(vSiz.toLowerCase());
+          }
         });
-      }
-      
-      if (p.configurableVariations) {
+      } else if (p.configurableVariations) {
         const vars = p.configurableVariations.split("|");
         for (const variant of vars) {
           const attrs = variant.split(",");
@@ -606,14 +606,14 @@ export class ProductService {
       if (p.variants && p.variants.length > 0) {
         const topDefaultColor = getDynamicAttr(p.attributes, ['color', 'colour']);
         p.variants.forEach((v: any) => {
-          extractedVariants.push({ 
-            color: getDynamicAttr(v.attributes, ['color', 'colour']) || topDefaultColor, 
-            size: getDynamicAttr(v.attributes, ['size', 'eu_size', 'eu_size_for_boots']) 
-          });
+          if (v.stock > 0 || p.allowBackorders) {
+            extractedVariants.push({ 
+              color: getDynamicAttr(v.attributes, ['color', 'colour']) || topDefaultColor, 
+              size: getDynamicAttr(v.attributes, ['size', 'eu_size', 'eu_size_for_boots']) 
+            });
+          }
         });
-      }
-      
-      if (p.configurableVariations) {
+      } else if (p.configurableVariations) {
         const topDefaultColor = getDynamicAttr(p.attributes, ['color', 'colour']);
         const vars = p.configurableVariations.split("|");
         for (const variant of vars) {

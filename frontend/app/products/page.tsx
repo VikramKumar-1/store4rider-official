@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ProductsPageModule } from "@/modules/catalog/components/ProductsPageModule";
 import ProductsLoading from "./loading";
+import { buildCollectionSchema, buildBreadcrumbSchema } from "@/core/utils/seo-schema";
 
 interface ProductsPageProps {
   searchParams: Promise<{ category?: string; brand?: string; search?: string }>;
@@ -91,42 +92,20 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     pageUrl = `${siteUrl}/products?search=${encodeURIComponent(search)}`;
   }
 
-  const collectionSchema = {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    name: title,
-    description: description,
+  const collectionSchema = buildCollectionSchema({
+    title,
+    description,
     url: pageUrl,
-    isPartOf: {
-      "@type": "WebSite",
-      name: "Store4Riders",
-      url: siteUrl,
-    },
-    mainEntity: {
-      "@type": "ItemList",
-      name: title,
-      url: pageUrl,
-    },
-  };
+    siteUrl,
+  });
 
-  const breadcrumbSchema = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: siteUrl,
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: category ? title : "Products",
-        item: pageUrl,
-      },
+  const breadcrumbSchema = buildBreadcrumbSchema(
+    [
+      { name: "Home", url: "/" },
+      { name: category ? title : "Products", url: pageUrl },
     ],
-  };
+    siteUrl
+  );
 
   return (
     <>

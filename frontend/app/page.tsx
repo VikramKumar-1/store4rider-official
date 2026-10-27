@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import HomepageModule from "@/modules/homepage";
+import { buildOrganizationSchema } from "@/core/utils/seo-schema";
 
 export async function generateMetadata(): Promise<Metadata> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -16,15 +17,17 @@ export async function generateMetadata(): Promise<Metadata> {
       const seo = data?.data?.seo;
       if (seo) {
         return {
-          title: seo.metaTitle || "Store4Riders | Premium Motorcycle Riding Gear & Accessories",
-          description: seo.metaDescription || "Shop certified motorcycle helmets, riding jackets, pants, boots, and safety gear in India.",
-          keywords: seo.metaKeywords || "motorcycle helmets, riding gear, riding jackets, riding boots, bike accessories",
+          title: {
+            absolute: seo.metaTitle || "Store4Riders - Buy Riding Gear Online | Helmet online",
+          },
+          description: seo.metaDescription || "Buy top quality motorcycle accessories, motorcycle boots, Biking gear, riding suits and more. Best helmet brands in India available. Best Riding gear @ India's online riding gear shop.",
+          keywords: seo.metaKeywords || "Biker helmets, riding jacket, biker gloves, motorcycle helmet, riding boots, bike accessories near me",
           alternates: {
             canonical: "/",
           },
           openGraph: {
-            title: seo.ogTitle || seo.metaTitle || "Store4Riders | Premium Motorcycle Riding Gear & Accessories",
-            description: seo.ogDescription || seo.metaDescription || "Shop certified motorcycle helmets, riding jackets, pants, boots, and safety gear in India.",
+            title: seo.ogTitle || seo.metaTitle || "Store4Riders - Buy Riding Gear Online | Helmet online",
+            description: seo.ogDescription || seo.metaDescription || "Buy top quality motorcycle accessories, motorcycle boots, Biking gear, riding suits and more. Best helmet brands in India available. Best Riding gear @ India's online riding gear shop.",
             type: "website",
             images: seo.ogImage ? [{ url: seo.ogImage }] : undefined,
           },
@@ -36,14 +39,17 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return {
-    title: "Store4Riders | Premium Motorcycle Riding Gear & Accessories",
-    description: "Shop certified motorcycle helmets, riding jackets, pants, boots, and safety gear in India. Genuine products, best prices & express delivery at Store4Riders.",
+    title: {
+      absolute: "Store4Riders - Buy Riding Gear Online | Helmet online",
+    },
+    description: "Buy top quality motorcycle accessories, motorcycle boots, Biking gear, riding suits and more. Best helmet brands in India available. Best Riding gear @ India's online riding gear shop.",
+    keywords: "Biker helmets, riding jacket, biker gloves, motorcycle helmet, riding boots, bike accessories near me",
     alternates: {
       canonical: "/",
     },
     openGraph: {
-      title: "Store4Riders | Premium Motorcycle Riding Gear & Accessories",
-      description: "Shop certified motorcycle helmets, riding jackets, pants, boots, and safety gear in India.",
+      title: "Store4Riders - Buy Riding Gear Online | Helmet online",
+      description: "Buy top quality motorcycle accessories, motorcycle boots, Biking gear, riding suits and more. Best helmet brands in India available. Best Riding gear @ India's online riding gear shop.",
       type: "website",
     },
   };
@@ -119,57 +125,54 @@ export default async function Home() {
   const activeInsta = storeSettings?.instagramUrl || "https://www.instagram.com/store4riders/";
   const activeYt = storeSettings?.youtubeUrl || "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg";
 
-  const onlineStoreSchema = {
+  const validReviews = Array.isArray(storeReviews)
+    ? storeReviews.filter((r: any) => typeof r.rating === "number" && r.rating > 0)
+    : [];
+  const aggregateRating = validReviews.length > 0
+    ? {
+        ratingValue: validReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / validReviews.length,
+        reviewCount: validReviews.length,
+      }
+    : undefined;
+
+  const homepageSchema = {
     "@context": "https://schema.org",
-    "@type": "OnlineStore",
-    "@id": `${siteUrl}/#store`,
-    name: storeSettings?.legalBusinessName || "Store4Riders",
-    url: siteUrl,
-    logo: `${siteUrl}/Store4riders-Logo.jpg`,
-    image: `${siteUrl}/Store4riders-Logo.jpg`,
-    description: "India's leading destination for certified motorcycle riding helmets, jackets, boots, gloves, and riding accessories. Top brands, 100% authentic gear with fast shipping.",
-    ...(activePhone ? { telephone: activePhone } : {}),
-    email: activeEmail,
-    acceptedPaymentMethod: [
-      "Cash on Delivery",
-      "Credit Card",
-      "Debit Card",
-      "UPI",
-      "Net Banking",
-      "EMI",
+    "@graph": [
+      buildOrganizationSchema({
+        siteUrl,
+        legalName: storeSettings?.legalBusinessName || "Store4Riders",
+        phone: activePhone,
+        email: activeEmail,
+        streetAddress: storeSettings?.storeOriginAddress,
+        locality: storeSettings?.storeOriginCity || "Pune",
+        region: storeSettings?.storeOriginState || "Maharashtra",
+        postalCode: storeSettings?.storeOriginPincode || "411001",
+        returnWindowDays: activeReturnDays,
+        socialLinks: [activeFb, activeInsta, activeYt].filter(Boolean),
+        aggregateRating,
+      }),
+      {
+        "@type": "WebPage",
+        "@id": `${siteUrl}/#homepage`,
+        url: siteUrl,
+        name: "Store4Riders - Buy Riding Gear Online | Helmet online",
+        description: "Buy top quality motorcycle accessories, motorcycle boots, Biking gear, riding suits and more. Best helmet brands in India available. Best Riding gear @ India's online riding gear shop.",
+        isPartOf: {
+          "@type": "WebSite",
+          "@id": `${siteUrl}/#website`,
+        },
+        about: {
+          "@id": `${siteUrl}/#organization`,
+        },
+      },
     ],
-    address: {
-      "@type": "PostalAddress",
-      ...(storeSettings?.storeOriginAddress ? { streetAddress: storeSettings.storeOriginAddress } : {}),
-      addressLocality: storeSettings?.storeOriginCity || "Pune",
-      addressRegion: storeSettings?.storeOriginState || "Maharashtra",
-      postalCode: storeSettings?.storeOriginPincode || "411001",
-      addressCountry: "IN",
-    },
-    contactPoint: {
-      "@type": "ContactPoint",
-      ...(activePhone ? { telephone: activePhone } : {}),
-      email: activeEmail,
-      contactType: "customer service",
-      areaServed: "IN",
-      availableLanguage: ["English", "Hindi"],
-    },
-    hasMerchantReturnPolicy: {
-      "@type": "MerchantReturnPolicy",
-      applicableCountry: "IN",
-      returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
-      merchantReturnDays: activeReturnDays,
-      returnMethod: "https://schema.org/ReturnByMail",
-      returnFees: "https://schema.org/FreeReturn",
-    },
-    sameAs: [activeFb, activeInsta, activeYt].filter(Boolean),
   };
 
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(onlineStoreSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homepageSchema) }}
       />
       <HomepageModule
         backendProducts={backendProducts}

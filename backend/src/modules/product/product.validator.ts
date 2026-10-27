@@ -389,7 +389,12 @@ export class ProductValidator {
       const skuSizeRegexes = sizes.map(s => new RegExp(`[-_]${ProductValidator.escapeRegExp(s)}(?:[-_]|$)`, "i"));
       andConditions.push({
         $or: [
-          { configurableVariations: { $in: configVarRegexes } },
+          {
+            $and: [
+              { "variants.0": { $exists: false } },
+              { configurableVariations: { $in: configVarRegexes } }
+            ]
+          },
           { "variants.attributes.size": { $in: exactRegexes } },
           { "variants.attributes.eu_size": { $in: exactRegexes } },
           { "variants.attributes.eu_size_for_boots": { $in: exactRegexes } },
@@ -461,7 +466,12 @@ export class ProductValidator {
       });
       andConditions.push({
         $or: [
-          { configurableVariations: { $in: configVarRegexes } },
+          {
+            $and: [
+              { "variants.0": { $exists: false } },
+              { configurableVariations: { $in: configVarRegexes } }
+            ]
+          },
           { "variants.attributes.color": { $in: exactRegexes } },
           { "variants.attributes.colour": { $in: exactRegexes } },
           { "attributes.color": { $in: exactRegexes } },

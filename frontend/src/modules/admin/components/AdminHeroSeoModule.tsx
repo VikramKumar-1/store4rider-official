@@ -64,12 +64,12 @@ export function AdminHeroSeoModule() {
   });
 
   const [seoState, setSeoState] = useState<IHomepageSeoConfig>({
-    metaTitle: "Store4Riders | Premium Motorcycle Riding Gear & Accessories",
+    metaTitle: "Store4Riders - Buy Riding Gear Online | Helmet online",
     metaDescription:
-      "Shop certified motorcycle helmets, riding jackets, pants, boots, and safety gear in India. Genuine products, best prices & express delivery at Store4Riders.",
-    metaKeywords: "motorcycle helmets, riding gear, riding jackets, riding boots, bike accessories, store4riders",
-    ogTitle: "Store4Riders | Premium Motorcycle Riding Gear & Accessories",
-    ogDescription: "Shop certified motorcycle helmets, riding jackets, pants, boots, and safety gear in India.",
+      "Buy top quality motorcycle accessories, motorcycle boots, Biking gear, riding suits and more. Best helmet brands in India available. Best Riding gear @ India's online riding gear shop.",
+    metaKeywords: "Biker helmets, riding jacket, biker gloves, motorcycle helmet, riding boots, bike accessories near me",
+    ogTitle: "Store4Riders - Buy Riding Gear Online | Helmet online",
+    ogDescription: "Buy top quality motorcycle accessories, motorcycle boots, Biking gear, riding suits and more. Best helmet brands in India available. Best Riding gear @ India's online riding gear shop.",
     ogImage: "/Store4riders-Logo.jpg",
     canonicalUrl: "https://store4riders.com",
   });

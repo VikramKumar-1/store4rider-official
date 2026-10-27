@@ -83,7 +83,9 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
           key={`mob-${fadeKey}`}
           src={imgSrc}
           alt={product.name}
-          className="w-full h-full absolute inset-0 object-contain pb-8 group-active:scale-95 transition-transform duration-300 mix-blend-multiply animate-in fade-in slide-in-from-right-8 duration-500 ease-out"
+          loading="lazy"
+          decoding="async"
+          className="w-full h-full absolute inset-0 object-contain pb-8 group-active:scale-95 transition-opacity duration-200 mix-blend-multiply"
           onError={() => setImgSrc(FALLBACK_IMAGE)}
         />
 
@@ -144,7 +146,9 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
             key={`desk-${fadeKey}`}
             src={imgSrc}
             alt={product.name}
-            className="w-full h-full absolute inset-0 object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500 ease-in-out will-change-transform animate-in fade-in slide-in-from-right-8 duration-500 ease-out"
+            loading="lazy"
+          decoding="async"
+          className="w-full h-full absolute inset-0 object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 ease-out will-change-transform"
             onError={() => setImgSrc(FALLBACK_IMAGE)}
           />
           
