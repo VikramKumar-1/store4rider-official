@@ -131,6 +131,19 @@ export const initializeMeilisearch = async () => {
  */
 export const indexProduct = async (product: any) => {
   try {
+    // Only index parent / publicly visible products
+    const isHiddenChild =
+      product.visibility === "1" ||
+      product.visibility === "Not Visible Individually" ||
+      product.status === "draft" ||
+      product.status === "archived";
+
+    if (isHiddenChild) {
+      if (product._id) {
+        await removeProductFromIndex(product._id.toString());
+      }
+      return;
+    }
     const doc = transformProductForSearch(product);
     await meiliClient.index(INDEX_NAME).addDocuments([doc], { primaryKey: "id" });
   } catch (err) {
@@ -154,9 +167,19 @@ export const removeProductFromIndex = async (productId: string) => {
  */
 export const syncAllProductsToMeilisearch = async () => {
   try {
-    logger.info("Starting full Meilisearch sync...");
-    // Sync all products except archived ones
-    const products = await ProductModel.find({ status: { $ne: "archived" } }).lean().exec();
+    logger.info("Starting full Meilisearch sync for parent products...");
+    // Only sync parent products: published and publicly visible
+    const products = await ProductModel.find({
+      status: { $nin: ["draft", "archived"] },
+      visibility: { $nin: ["1", "Not Visible Individually"] },
+    }).lean().exec();
+
+    // Clear the existing index to eliminate any old child products
+    try {
+      await meiliClient.index(INDEX_NAME).deleteAllDocuments();
+    } catch {
+      // Index might be empty
+    }
     
     const documents = products.map(transformProductForSearch);
     

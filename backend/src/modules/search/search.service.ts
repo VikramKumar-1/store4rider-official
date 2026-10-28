@@ -2,59 +2,192 @@ import { meiliClient } from "../../core/search/meilisearch";
 import { CategoryRepository } from "../category/category.repository";
 import { resolveFuzzySearchTerms, getGearAccessoryExclusion } from "../../core/utils/fuzzySearch";
 
+const STOREFRONT_CANONICAL_CATEGORIES = [
+  { name: "Motorcycle Helmets", slug: "motorcycle-helmets", url: "/motorcycle-helmets", keywords: ["helmet", "helmets", "headgear", "motorcycle helmet"] },
+  { name: "Full Face Helmets", slug: "full-face-helmets", url: "/motorcycle-helmets/full-face-helmets", keywords: ["full face"] },
+  { name: "Modular Helmets", slug: "modular-helmets", url: "/motorcycle-helmets/modular-helmets", keywords: ["modular", "flip up"] },
+  { name: "Off Road Helmets", slug: "off-road-helmets", url: "/motorcycle-helmets/off-road-helmets", keywords: ["off road helmet", "motocross"] },
+  { name: "Open Face Helmets", slug: "open-face-helmets", url: "/motorcycle-helmets/open-face-helmets", keywords: ["open face", "half face"] },
+  { name: "Helmet Accessories & Visors", slug: "helmet-accessories", url: "/motorcycle-helmets/helmet-accessories", keywords: ["visor", "visors", "pinlock", "helmet accessories"] },
+  { name: "Bluetooth Intercoms", slug: "bluetooth-intercoms", url: "/motorcycle-helmets/bluetooth-intercoms", keywords: ["intercom", "bluetooth", "communicator", "cardo", "sena"] },
+  { name: "Balaclava", slug: "balaclava", url: "/motorcycle-helmets/balaclava", keywords: ["balaclava", "buff", "face mask"] },
+  { name: "Riding Gear", slug: "riding-gear", url: "/riding-gear", keywords: ["riding gear", "biker gear"] },
+  { name: "Riding Jackets", slug: "riding-jackets", url: "/riding-gear/riding-jackets", keywords: ["jacket", "jackets", "riding jacket", "biker jacket"] },
+  { name: "Protectors / Armour", slug: "protectors-armour", url: "/riding-gear/riding-jackets/protectors-armour", keywords: ["armour", "armor", "protector", "chest guard"] },
+  { name: "Riding Pants", slug: "riding-pants", url: "/riding-gear/riding-pants", keywords: ["pant", "pants", "riding pant", "trouser"] },
+  { name: "Riding Jeans", slug: "motorcycle-riding-jeans", url: "/riding-gear/riding-pants/motorcycle-riding-jeans", keywords: ["jeans", "riding jeans"] },
+  { name: "Touring Pants", slug: "touring-pants", url: "/riding-gear/riding-pants/touring-pants", keywords: ["touring pant"] },
+  { name: "Knee Guards", slug: "knee-guards-bikers", url: "/riding-gear/riding-pants/knee-guards-bikers", keywords: ["knee guard", "knee guards"] },
+  { name: "Riding Gloves", slug: "riding-gloves", url: "/riding-gear/riding-gloves", keywords: ["glove", "gloves", "riding glove"] },
+  { name: "Full Gauntlet Gloves", slug: "full-gauntlet-gloves", url: "/riding-gear/riding-gloves/full-gauntlet-gloves", keywords: ["full gauntlet"] },
+  { name: "Semi Gauntlet Gloves", slug: "semi-gauntlet-gloves", url: "/riding-gear/riding-gloves/semi-gauntlet-gloves", keywords: ["semi gauntlet"] },
+  { name: "Short Motorbike Gloves", slug: "short-motorbike-gloves", url: "/riding-gear/riding-gloves/short-motorbike-gloves", keywords: ["short glove"] },
+  { name: "Motorcycle Riding Boots", slug: "motorcycle-riding-boots", url: "/riding-gear/motorcycle-riding-boots", keywords: ["boot", "boots", "riding boot", "shoe", "shoes"] },
+  { name: "Sports Riding Shoes", slug: "sports-riding-shoes", url: "/riding-gear/motorcycle-riding-boots/sports-riding-shoes", keywords: ["sports shoe", "riding shoe"] },
+  { name: "Short Biking Boots", slug: "short-biking-boots", url: "/riding-gear/motorcycle-riding-boots/short-biking-boots", keywords: ["short boot"] },
+  { name: "Off Road Boots", slug: "off-road-riding-boots", url: "/riding-gear/motorcycle-riding-boots/off-road-riding-boots", keywords: ["off road boot"] },
+  { name: "Luggage & Bags", slug: "motorcycle-bags-bike-luggage", url: "/motorcycle-bags-bike-luggage", keywords: ["luggage", "bag", "bags"] },
+  { name: "Tank Bags", slug: "tank-bags-bikes", url: "/motorcycle-bags-bike-luggage/tank-bags-bikes", keywords: ["tank bag", "tankbag"] },
+  { name: "Saddle Bags", slug: "saddle-bags-bikes", url: "/motorcycle-bags-bike-luggage/saddle-bags-bikes", keywords: ["saddle bag", "saddlebag", "pannier"] },
+  { name: "Motorcycle Tail Bags", slug: "motorcycle-tail-bags", url: "/motorcycle-bags-bike-luggage/motorcycle-tail-bags", keywords: ["tail bag", "tailbag"] },
+  { name: "Bike Accessories", slug: "motorcycle-accessories-online", url: "/motorcycle-accessories-online", keywords: ["accessory", "accessories"] },
+  { name: "Spares & Parts", slug: "spares", url: "/spares", keywords: ["spare", "spares", "parts", "exhaust", "filter", "spark plug"] },
+  { name: "Gadgets", slug: "gadgets", url: "/gadgets", keywords: ["gadget", "gadgets", "phone holder", "mobile mount"] },
+];
+
 export class SearchService {
   static async suggest(query: string) {
     let productHits: any[] = [];
     const { terms, correctedTerms, isCorrected, correctedQuery } = resolveFuzzySearchTerms(query);
     const effectiveTerms = correctedTerms.length > 0 ? correctedTerms : terms;
     const effectiveQuery = isCorrected ? correctedQuery : query.trim();
-    const exclusionRegex = getGearAccessoryExclusion(effectiveTerms);
+
+    const inStockCondition = {
+      $or: [
+        { allowBackorders: true },
+        { "variants.stock": { $gt: 0 } },
+        {
+          $and: [
+            { "variants.0": { $exists: false } },
+            { stockStatus: { $ne: 0 } },
+            { qty: { $gt: 0 } },
+          ],
+        },
+      ],
+    };
+
+    // Helper to format product hit from MongoDB doc
+    const mapProductHit = (p: any) => {
+      let effectivePrice = p.specialPrice || p.basePrice || 0;
+      if (!effectivePrice && Array.isArray(p.variants) && p.variants.length > 0) {
+        effectivePrice = p.variants[0].price || 0;
+      }
+
+      let imgUrl = p.thumbnail || p.image || "";
+      if (!imgUrl && p.images && Array.isArray(p.images) && p.images.length > 0) {
+        const first = p.images[0];
+        imgUrl = typeof first === "string" ? first : (first?.url || "");
+      }
+      if (!imgUrl && p.colorImages && typeof p.colorImages === "object") {
+        const colorVals = Object.values(p.colorImages);
+        if (colorVals.length > 0 && typeof colorVals[0] === "string") {
+          imgUrl = colorVals[0] as string;
+        }
+      }
+
+      const hasStock = Boolean(
+        p.allowBackorders === true ||
+        (Array.isArray(p.variants) && p.variants.some((v: any) => Number(v.stock) > 0)) ||
+        (!p.variants?.length && p.stockStatus !== 0 && (p.qty === undefined || Number(p.qty) > 0))
+      );
+
+      return {
+        id: (p._id || p.id).toString(),
+        name: p.name,
+        slug: p.slug,
+        brand: p.brand || "",
+        thumbnail: imgUrl,
+        basePrice: p.basePrice || effectivePrice,
+        specialPrice: p.specialPrice && p.specialPrice < (p.basePrice || 0) ? p.specialPrice : (p.basePrice || effectivePrice),
+        inStock: Boolean(hasStock),
+      };
+    };
+
+    // Helper to score products for maximum relevance & accuracy
+    const scoreProduct = (p: any) => {
+      let score = 10;
+      const pName = (p.name || "").toLowerCase();
+      const pBrand = (p.brand || "").toLowerCase();
+      const lowerQuery = query.toLowerCase().trim();
+      const lowerCorrected = correctedQuery.toLowerCase().trim();
+
+      // Exact phrase match in title
+      if (pName.startsWith(lowerQuery) || pName.startsWith(lowerCorrected)) {
+        score += 80;
+      } else if (pName.includes(lowerQuery) || pName.includes(lowerCorrected)) {
+        score += 50;
+      }
+
+      // Brand match boost
+      if (pBrand.includes(lowerQuery) || pBrand.includes(lowerCorrected)) {
+        score += 35;
+      }
+
+      // Prioritize in-stock items
+      const hasStock = Boolean(
+        p.allowBackorders === true ||
+        (Array.isArray(p.variants) && p.variants.some((v: any) => Number(v.stock) > 0)) ||
+        (!p.variants?.length && p.stockStatus !== 0 && (p.qty === undefined || Number(p.qty) > 0))
+      );
+      if (hasStock) {
+        score += 25;
+      }
+
+      // Configurable / Parent products preferred over standalone orphan items
+      if (p.productType === "configurable") {
+        score += 15;
+      }
+
+      // Sales count boost
+      if (p.salesCount && p.salesCount > 0) {
+        score += Math.min(p.salesCount, 15);
+      }
+
+      // Deprioritize small replacement parts/accessories if user searched for core gear
+      const isCoreSearch = effectiveTerms.some((t) => /^(helmet|helmets|jacket|jackets|boot|boots|shoe|shoes|glove|gloves)$/i.test(t));
+      if (isCoreSearch && /^(replacement|pinlock\s*\d+|spoiler|liner|deflector|air\s*vent|chin\s*curtain|ratchet|pivot|screw|pad)/i.test(pName)) {
+        score -= 25;
+      }
+
+      return score;
+    };
 
     // 1. Try Meilisearch first if available
     if (meiliClient) {
       try {
         const searchQuery = isCorrected ? `${query} ${correctedQuery}` : query;
         const productSearch = await meiliClient.index("products").search(searchQuery, {
-          limit: 20,
+          limit: 25,
           attributesToRetrieve: ["id", "name", "slug", "brand", "thumbnail", "basePrice", "specialPrice"],
         });
         const rawHits = productSearch.hits || [];
 
         if (rawHits.length > 0) {
-          // Filter out accessory items when searching for core gear (e.g. searching "helmet" shouldn't return bandana)
-          const cleanHits = rawHits.filter((p: any) => {
-            if (exclusionRegex && exclusionRegex.test(p.name || "")) {
-              return false;
-            }
-            return true;
-          });
-
-          const ids = cleanHits.map((p) => p.id);
+          const ids = rawHits.map((p) => p.id);
           const { ProductModel } = await import("../product/product.model");
-          const inStockProducts = await ProductModel.find({
-            _id: { $in: ids },
-            $or: [
-              { stockStatus: { $ne: 0 } },
-              { allowBackorders: true },
-              { "variants.stock": { $gt: 0 } },
-            ],
-          }).select("_id").lean().exec();
 
-          const inStockSet = new Set(inStockProducts.map((p: any) => p._id.toString()));
-          productHits = cleanHits.filter((p) => inStockSet.has(p.id)).slice(0, 6);
+          const dbProducts = await ProductModel.find({
+            _id: { $in: ids },
+            visibility: { $nin: ["1", "Not Visible Individually"] },
+            status: { $nin: ["draft", "archived"] },
+            ...inStockCondition,
+          })
+            .select("name slug brand images image colorImages thumbnail basePrice specialPrice variants stockStatus salesCount productType qty allowBackorders")
+            .lean()
+            .exec();
+
+          if (dbProducts.length > 0) {
+            const scoredHits = dbProducts
+              .map((p) => ({ product: p, score: scoreProduct(p) }))
+              .sort((a, b) => b.score - a.score)
+              .map((item) => mapProductHit(item.product))
+              .filter((p) => p.inStock);
+
+            productHits = scoredHits.slice(0, 6);
+          }
         }
       } catch (error) {
-        // Meilisearch offline/error - gracefully proceed to MongoDB Atlas fallback
+        // Meilisearch offline/error - proceed to MongoDB Atlas
       }
     }
 
-    // 2. MongoDB Atlas Direct Search Fallback with Typo-Tolerance & Weighted Relevance (Zero Mock)
-    // Runs if Meilisearch is offline, unconfigured, or returned 0 hits
-    if (productHits.length === 0) {
+    // 2. MongoDB Atlas Direct Search (runs if Meilisearch offline or returned fewer than 4 items)
+    if (productHits.length < 4) {
       try {
         const { ProductModel } = await import("../product/product.model");
 
         if (terms.length > 0) {
+          const existingIds = new Set(productHits.map((h) => h.id));
           const conditions: any[] = terms.map((w, idx) => {
             const corrected = correctedTerms[idx] || w;
             const regexList = [
@@ -77,134 +210,51 @@ export class SearchService {
             };
           });
 
-          // Strictly exclude accessories if query is for core gear (e.g. "helmet" excludes bandanas & visors)
-          if (exclusionRegex) {
-            conditions.push({ name: { $not: exclusionRegex } });
-          }
-
           const mongoProducts = await ProductModel.find({
-            $and: conditions,
-            $or: [
-              { stockStatus: { $ne: 0 } },
-              { allowBackorders: true },
-              { "variants.stock": { $gt: 0 } },
-              { qty: { $gt: 0 } },
+            $and: [
+              ...conditions,
+              inStockCondition,
+              { visibility: { $nin: ["1", "Not Visible Individually"] } },
+              { status: { $nin: ["draft", "archived"] } },
             ],
           })
-            .select("name slug brand images image colorImages thumbnail basePrice specialPrice variants stockStatus salesCount")
-            .limit(35)
+            .select("name slug brand images image colorImages thumbnail basePrice specialPrice variants stockStatus salesCount productType qty allowBackorders")
+            .limit(40)
             .lean()
             .exec();
 
-          // High-accuracy relevance scoring engine
-          const lowerQuery = query.toLowerCase().trim();
-          const lowerCorrected = correctedQuery.toLowerCase().trim();
-          const wordBoundaryRegex = new RegExp(`\\b${effectiveQuery.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`, "i");
-
-          const scored = mongoProducts.map((p: any) => {
-            let score = 10;
-            const pName = (p.name || "").toLowerCase();
-            const pBrand = (p.brand || "").toLowerCase();
-
-            // 1. Exact phrase or starts with in product title (Highest priority)
-            if (pName.startsWith(lowerQuery) || pName.startsWith(lowerCorrected)) {
-              score += 100;
-            } else if (pName.includes(lowerQuery) || pName.includes(lowerCorrected)) {
-              score += 60;
-            }
-
-            // 2. Word boundary match in title
-            if (wordBoundaryRegex.test(pName)) {
-              score += 40;
-            }
-
-            // 3. Brand match
-            if (pBrand.includes(lowerQuery) || pBrand.includes(lowerCorrected)) {
-              score += 30;
-            }
-
-            // 4. In stock boost
-            if (p.stockStatus !== 0) {
-              score += 20;
-            }
-
-            // 5. High sales boost
-            if (p.salesCount && p.salesCount > 0) {
-              score += Math.min(p.salesCount, 15);
-            }
-
-            // 6. Penalty for accessories if user searched for core product
-            if (exclusionRegex && exclusionRegex.test(pName)) {
-              score -= 300;
-            }
-
-            return { product: p, score };
-          });
-
-          // Sort by relevance score descending and take top 6
-          const topMatches = scored
-            .filter((item) => item.score > 0)
+          const scoredMongo = mongoProducts
+            .filter((p: any) => !existingIds.has(p._id?.toString()))
+            .map((p: any) => ({ product: p, score: scoreProduct(p) }))
             .sort((a, b) => b.score - a.score)
-            .slice(0, 6)
-            .map((item) => item.product);
+            .map((item) => mapProductHit(item.product))
+            .filter((p) => p.inStock);
 
-          productHits = topMatches.map((p: any) => {
-            let effectivePrice = p.specialPrice || p.basePrice || 0;
-            if (!effectivePrice && Array.isArray(p.variants) && p.variants.length > 0) {
-              effectivePrice = p.variants[0].price || 0;
-            }
-
-            let imgUrl = p.thumbnail || p.image || "";
-            if (!imgUrl && p.images && Array.isArray(p.images) && p.images.length > 0) {
-              const first = p.images[0];
-              imgUrl = typeof first === "string" ? first : (first?.url || "");
-            }
-            if (!imgUrl && p.colorImages && typeof p.colorImages === "object") {
-              const colorVals = Object.values(p.colorImages);
-              if (colorVals.length > 0 && typeof colorVals[0] === "string") {
-                imgUrl = colorVals[0] as string;
-              }
-            }
-
-            return {
-              id: p._id.toString(),
-              name: p.name,
-              slug: p.slug,
-              brand: p.brand || "",
-              thumbnail: imgUrl,
-              basePrice: p.basePrice || effectivePrice,
-              specialPrice: p.specialPrice && p.specialPrice < (p.basePrice || 0) ? p.specialPrice : (p.basePrice || effectivePrice),
-              inStock: p.stockStatus !== 0,
-            };
-          });
+          productHits = [...productHits, ...scoredMongo].filter((p) => p.inStock).slice(0, 6);
         }
       } catch (err) {
-        console.error("MongoDB suggest fallback error:", err);
+        console.error("MongoDB suggest error:", err);
       }
     }
 
-    // 3. Search categories in MongoDB (with typo tolerance)
-    let matchedCategories: any[] = [];
+    // 3. Match Storefront Canonical Categories (Ensures 100% accurate category URLs)
+    let matchedCategories: Array<{ id: string; name: string; slug: string; url: string }> = [];
     try {
-      const categories = await CategoryRepository.findAll();
       const lowerQuery = query.toLowerCase().trim();
       const lowerCorrected = correctedQuery.toLowerCase().trim();
 
-      matchedCategories = categories
-        .filter((c) => {
-          const cName = c.name.toLowerCase();
-          const cSlug = c.slug.toLowerCase();
-          return (
-            cName.includes(lowerQuery) ||
-            cSlug.includes(lowerQuery) ||
-            (isCorrected && (cName.includes(lowerCorrected) || cSlug.includes(lowerCorrected)))
-          );
-        })
-        .slice(0, 4)
+      matchedCategories = STOREFRONT_CANONICAL_CATEGORIES.filter((cat) => {
+        const nameMatch = cat.name.toLowerCase().includes(lowerQuery) || cat.name.toLowerCase().includes(lowerCorrected);
+        const slugMatch = cat.slug.toLowerCase().includes(lowerQuery) || cat.slug.toLowerCase().includes(lowerCorrected);
+        const keywordMatch = cat.keywords.some((kw) => kw.includes(lowerQuery) || lowerQuery.includes(kw));
+        return nameMatch || slugMatch || keywordMatch;
+      })
+        .slice(0, 3)
         .map((c) => ({
-          id: c._id.toString(),
+          id: c.slug,
           name: c.name,
           slug: c.slug,
+          url: c.url,
         }));
     } catch {
       // Ignore category search error
@@ -222,8 +272,11 @@ export class SearchService {
         brandRegexes.push(new RegExp(escapedCorrected, "i"));
       }
 
-      // Check for direct brand name matches
+      // Check for direct brand name matches (strictly in-stock products)
       let distinctBrands = await ProductModel.distinct("brand", {
+        visibility: { $nin: ["1", "Not Visible Individually"] },
+        status: { $nin: ["draft", "archived"] },
+        ...inStockCondition,
         $or: brandRegexes.map((rx) => ({ brand: { $regex: rx } })),
       });
 
@@ -239,11 +292,10 @@ export class SearchService {
             })),
           },
           { brand: { $ne: null, $nin: ["", "Other", "Generic"] } },
-          { stockStatus: { $ne: 0 } },
+          inStockCondition,
+          { visibility: { $nin: ["1", "Not Visible Individually"] } },
+          { status: { $nin: ["draft", "archived"] } },
         ];
-        if (exclusionRegex) {
-          gearBrandConditions.push({ name: { $not: exclusionRegex } });
-        }
         distinctBrands = await ProductModel.distinct("brand", { $and: gearBrandConditions });
       }
 

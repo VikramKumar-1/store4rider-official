@@ -46,11 +46,13 @@ export const MOTORCYCLE_VOCABULARY = [
   "thermal", "baselayer", "windcheater", "innerwear",
   "airbag", "vest",
 
-  // Major Motorcycle Gear Brands in Store4Riders
+  // Major Motorcycle Gear Brands in Store4Riders & Global
   "rynox", "axor", "smk", "raida", "viaterra", "alpinestars",
   "ls2", "forma", "falco", "tcx", "sidi", "dainese",
   "korda", "scoyco", "bbg", "sol", "vega", "studds", "steelbird",
-  "mothe", "motul", "putoline", "wd40", "carbonado",
+  "motul", "putoline", "wd40", "carbonado", "shoei", "arai", "agv",
+  "shark", "hjc", "bell", "mt", "scorpion", "airoh", "revit", "spidi",
+  "held", "macna", "ixon", "kyt", "scala", "maddog", "grandpitstop",
   "shoerella", "rynoxgears", "senabluetooth", "cardo"
 ];
 
@@ -64,7 +66,7 @@ export const GEAR_ACCESSORY_RULES: GearAccessoryRule[] = [
   {
     core: /\b(helmet|helmets)\b/i,
     allowedAccessories: /\b(visor|visors|pinlock|cleaner|spray|balaclava|balaclavas|bandana|bandanas|intercom|communicator|spoiler|pad|pads|screw|lock|deflector|shield|lens|chin\s*curtain)\b/i,
-    excludedNames: /\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|vent|vents|replacement|cleaner|spray|mask|balaclava|balaclavas|bandana|bandanas|lens|shield|anti-fog)\b/i,
+    excludedNames: /(?!.*\b(helmet|helmets)\b).*\b(visor|visors|pinlock|spoiler|deflector|pad|pads|screw|lock|chin\s*curtain|ratchet|pivot|air\s*vent|mask|balaclava|balaclavas|bandana|bandanas|lens|anti-fog)\b|\b(cleaner|spray)\b/i,
   },
   {
     core: /\b(jacket|jackets)\b/i,

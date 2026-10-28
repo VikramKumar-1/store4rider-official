@@ -25,6 +25,7 @@ export interface SearchSuggestCategory {
   id: string;
   name: string;
   slug: string;
+  url?: string;
 }
 
 export interface ScopedSuggestion {

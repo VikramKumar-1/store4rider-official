@@ -46,29 +46,29 @@ export class ProductValidator {
       // Magento visibility "1" means "Not Visible Individually", but text exports say "Not Visible Individually"
       filters.visibility = { $nin: ["1", "Not Visible Individually"] };
 
-      andConditions.push(
-        {
-          $or: [
-            { basePrice: { $gt: 0 } },
-            { specialPrice: { $gt: 0 } },
-            { "variants.price": { $gt: 0 } }
-          ]
-        },
-        // Hide out-of-stock products unless they allow backorders or have variant stock
-        {
-          $or: [
-            { allowBackorders: true },
-            { "variants.stock": { $gt: 0 } },
-            {
-              $and: [
-                { "variants.0": { $exists: false } },
-                { stockStatus: { $ne: 0 } },
-                { qty: { $gt: 0 } }
-              ]
-            }
-          ]
-        }
-      );
+      andConditions.push({
+        $or: [
+          { basePrice: { $gt: 0 } },
+          { specialPrice: { $gt: 0 } },
+          { "variants.price": { $gt: 0 } }
+        ]
+      });
+
+      // Hide out-of-stock products completely on storefront:
+      // Strictly allow only products that have active stock or allowBackorders: true
+      andConditions.push({
+        $or: [
+          { allowBackorders: true },
+          { "variants.stock": { $gt: 0 } },
+          {
+            $and: [
+              { "variants.0": { $exists: false } },
+              { stockStatus: { $ne: 0 } },
+              { qty: { $gt: 0 } }
+            ]
+          }
+        ]
+      });
     } else {
       // Admin-specific status filter (All, Enabled/Published, Disabled/Draft, Archived)
       const statusParam = searchParams.get("status");
@@ -353,21 +353,9 @@ export class ProductValidator {
 
     const inStock = searchParams.get("inStock");
     if (inStock === "true" || inStock === "1") {
-      // Explicitly show only IN STOCK
       andConditions.push({ 
         $or: [
           { stockStatus: { $gt: 0 } },
-          { allowBackorders: true },
-          { "variants.stock": { $gt: 0 } }
-        ]
-      });
-    } else if (inStock === "false" || inStock === "0" || inStock === "all") {
-      // Explicitly requested to see everything, including out of stock (no filter applied)
-    } else {
-      // DEFAULT: Hide out of stock products
-      andConditions.push({ 
-        $or: [
-          { stockStatus: { $ne: 0 } },
           { allowBackorders: true },
           { "variants.stock": { $gt: 0 } }
         ]

@@ -595,17 +595,20 @@ export class ProductService {
     }
     
     if (rawActiveFilters?.search) {
-      const escaped = rawActiveFilters.search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-      const searchRegex = new RegExp(escaped, "i");
+      const tokens = rawActiveFilters.search.trim().split(/\s+/).filter(Boolean);
       baseFilters.$and = baseFilters.$and || [];
-      baseFilters.$and.push({
-        $or: [
-          { name: { $regex: searchRegex } },
-          { brand: { $regex: searchRegex } },
-          { sku: { $regex: searchRegex } },
-          { magentoCategories: { $regex: searchRegex } },
-        ],
-      });
+      for (const token of tokens) {
+        const escaped = token.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const tokenRegex = new RegExp(escaped, "i");
+        baseFilters.$and.push({
+          $or: [
+            { name: { $regex: tokenRegex } },
+            { brand: { $regex: tokenRegex } },
+            { sku: { $regex: tokenRegex } },
+            { magentoCategories: { $regex: tokenRegex } },
+          ],
+        });
+      }
     }
 
     baseFilters.$and = baseFilters.$and || [];
