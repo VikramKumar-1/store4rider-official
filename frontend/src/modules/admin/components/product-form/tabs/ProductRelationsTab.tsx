@@ -18,6 +18,7 @@ import {
   RelationType,
 } from "../modals/AddRelatedProductsModal";
 import { useProductsBySkus, IBackendProduct } from "@/core/hooks/useProducts";
+import { normalizeExternalImageUrl } from "@/core/utils/mediaUrlHelper";
 import { toast } from "sonner";
 
 export function ProductRelationsTab() {
@@ -78,13 +79,39 @@ export function ProductRelationsTab() {
   // Combine server data + local cached data so new selections show immediately
   const resolveProducts = (skus: string[], serverList?: IBackendProduct[]) => {
     const map = new Map<string, IBackendProduct>();
-    serverList?.forEach((p) => map.set(p.sku, p));
+    serverList?.forEach((p) => {
+      if (p.sku) {
+        map.set(p.sku.trim(), p);
+        map.set(p.sku.trim().toLowerCase(), p);
+      }
+      if (Array.isArray(p.variants)) {
+        p.variants.forEach((v) => {
+          if (v.sku) {
+            map.set(v.sku.trim(), p);
+            map.set(v.sku.trim().toLowerCase(), p);
+          }
+        });
+      }
+    });
     cachedProducts.forEach((p, s) => {
-      if (!map.has(s)) map.set(s, p);
+      const trimmed = s.trim();
+      if (!map.has(trimmed)) map.set(trimmed, p);
+      if (!map.has(trimmed.toLowerCase())) map.set(trimmed.toLowerCase(), p);
+      if (Array.isArray(p.variants)) {
+        p.variants.forEach((v) => {
+          if (v.sku) {
+            const vTrimmed = v.sku.trim();
+            if (!map.has(vTrimmed)) map.set(vTrimmed, p);
+            if (!map.has(vTrimmed.toLowerCase())) map.set(vTrimmed.toLowerCase(), p);
+          }
+        });
+      }
     });
 
     return skus.map((s) => {
-      if (map.has(s)) return map.get(s)!;
+      const trimmed = s.trim();
+      const matched = map.get(trimmed) || map.get(trimmed.toLowerCase());
+      if (matched) return matched;
       // Fallback placeholder if DB hasn't indexed yet
       return {
         _id: s,
@@ -128,19 +155,20 @@ export function ProductRelationsTab() {
     }
   };
 
-  // Handle removing a single product
-  const handleRemoveProduct = (relation: RelationType, skuToRemove: string) => {
+  // Handle removing a single product (handles both parent SKU and variant raw SKU)
+  const handleRemoveProduct = (relation: RelationType, skuToRemove: string, rawSku?: string) => {
+    const isTarget = (s: string) => s === skuToRemove || (rawSku && s === rawSku);
     if (relation === "related") {
-      const filtered = relatedSkus.filter((s) => s !== skuToRemove);
+      const filtered = relatedSkus.filter((s) => !isTarget(s));
       setRelatedSkusInput(filtered.join(", "));
     } else if (relation === "upsell") {
-      const filtered = upsellSkus.filter((s) => s !== skuToRemove);
+      const filtered = upsellSkus.filter((s) => !isTarget(s));
       setUpsellSkusInput(filtered.join(", "));
     } else if (relation === "crosssell") {
-      const filtered = crosssellSkus.filter((s) => s !== skuToRemove);
+      const filtered = crosssellSkus.filter((s) => !isTarget(s));
       setCrosssellSkusInput(filtered.join(", "));
     }
-    toast.info(`Removed SKU ${skuToRemove}`);
+    toast.info(`Removed SKU ${rawSku || skuToRemove}`);
   };
 
   // Render a relation section matching Magento 2 admin layout
@@ -218,7 +246,9 @@ export function ProductRelationsTab() {
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {productsList.map((product, idx) => {
-                  const thumbnail = product.images?.[0]?.url;
+                  const rawSku = alreadySkus[idx];
+                  const rawThumbnail = product.images?.[0]?.url || product.variants?.find((v: any) => v.imageUrl || v.images?.[0]?.url)?.imageUrl || (product as any).imageUrl;
+                  const thumbnail = rawThumbnail ? normalizeExternalImageUrl(rawThumbnail) : "";
                   const isProductDisabled =
                     product.status === "draft" ||
                     product.status === "archived" ||
@@ -235,6 +265,8 @@ export function ProductRelationsTab() {
                               src={thumbnail}
                               alt={product.name}
                               fill
+                              unoptimized
+                              referrerPolicy="no-referrer"
                               sizes="36px"
                               className="object-contain"
                             />
@@ -284,7 +316,7 @@ export function ProductRelationsTab() {
                       <td className="px-3 py-2 text-center">
                         <button
                           type="button"
-                          onClick={() => handleRemoveProduct(relation, product.sku)}
+                          onClick={() => handleRemoveProduct(relation, product.sku, rawSku)}
                           className="p-1.5 text-slate-400 hover:text-red-600 rounded-md hover:bg-red-50 transition-colors cursor-pointer"
                           title="Remove item"
                         >

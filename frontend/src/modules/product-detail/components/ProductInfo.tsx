@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { StarIcon } from "@heroicons/react/24/solid";
 import { ColorOption } from "../types/product-detail.types";
@@ -8,6 +9,9 @@ import { ColorOption } from "../types/product-detail.types";
 interface ProductInfoProps {
   id: string;
   category: string;
+  brand?: string;
+  brandSlug?: string;
+  brandLogo?: string;
   rating: number;
   name: string;
   originalPriceFormatted?: string;
@@ -36,6 +40,9 @@ import { useAuthStore } from "@/stores/useAuthStore";
 export const ProductInfo: React.FC<ProductInfoProps> = ({
   id,
   category,
+  brand,
+  brandSlug,
+  brandLogo,
   rating,
   name,
   originalPriceFormatted,
@@ -78,8 +85,29 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
   return (
     <>
       <div className="flex flex-col gap-1.5">
-        {/* Header: Rating Only */}
-        <div className="flex items-center justify-end">
+        {/* Header: Brand (Left) & Rating (Right) */}
+        <div className="flex items-center justify-between gap-3 min-h-[24px]">
+          {brand ? (
+            brandSlug ? (
+              <Link
+                href={`/brands/${brandSlug}`}
+                className="inline-flex items-center gap-1.5 group text-xs md:text-sm font-black uppercase tracking-wider text-neutral-500 hover:text-brand transition-colors"
+                title={`Explore ${brand} collection`}
+              >
+                <span className="text-[10px] md:text-xs font-semibold text-neutral-400 normal-case tracking-normal">Brand:</span>
+                <span className="text-[#ab1509] group-hover:underline underline-offset-2 font-black">
+                  {brand}
+                </span>
+              </Link>
+            ) : (
+              <div className="inline-flex items-center gap-1.5 text-xs md:text-sm font-black uppercase tracking-wider text-neutral-500">
+                <span className="text-[10px] md:text-xs font-semibold text-neutral-400 normal-case tracking-normal">Brand:</span>
+                <span className="text-neutral-900 font-black">{brand}</span>
+              </div>
+            )
+          ) : (
+            <div />
+          )}
           {rating > 0 ? (
             <div 
               onClick={() => {

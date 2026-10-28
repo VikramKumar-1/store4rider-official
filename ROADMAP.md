@@ -1,6 +1,6 @@
-# Store4Riders — Master Implementation Roadmap
+# Store4Riders â€” Master Implementation Roadmap
 
-> **⚠️ This is the SINGLE SOURCE OF TRUTH for all implementation work.**
+> **âš ï¸ This is the SINGLE SOURCE OF TRUTH for all implementation work.**
 > Every AI agent MUST read this file AND `.agents/rules/CODING_STANDARDS.md` before writing ANY code.
 > Update status as work progresses. Never skip a phase.
 
@@ -9,19 +9,19 @@
 ## How This Document Works
 
 - Each **Phase** is a self-contained block of work
-- Status per phase: `⬜ NOT STARTED` → `🔄 IN PROGRESS` → `✅ COMPLETED`
-- Status per task: `[ ]` not done → `[/]` in progress → `[x]` done
+- Status per phase: `â¬œ NOT STARTED` â†’ `ðŸ”„ IN PROGRESS` â†’ `âœ… COMPLETED`
+- Status per task: `[ ]` not done â†’ `[/]` in progress â†’ `[x]` done
 - **Rule:** Complete current phase fully before moving to next
-- **Rule:** After completing a phase, update its status to `✅ COMPLETED` and move on
+- **Rule:** After completing a phase, update its status to `âœ… COMPLETED` and move on
 
 ---
 
-## ⚠️ MANDATORY — Coding Standards (READ BEFORE WRITING ANY CODE)
+## âš ï¸ MANDATORY â€” Coding Standards (READ BEFORE WRITING ANY CODE)
 
-> **Full standards are in `.agents/rules/CODING_STANDARDS.md` — READ THE ENTIRE FILE.**
+> **Full standards are in `.agents/rules/CODING_STANDARDS.md` â€” READ THE ENTIRE FILE.**
 > Below is a quick summary. Violating any of these will break production.
 
-### Architecture — What Goes Where
+### Architecture â€” What Goes Where
 
 | Layer | Location | Purpose |
 |---|---|---|
@@ -30,54 +30,54 @@
 | **Shared Utils** | `packages/shared-utils/src/` | Pure utility functions (`formatPrice`, `slugify`, etc.) |
 | **Backend Modules** | `backend/src/modules/<module>/` | 6-file DDD pattern (model, repo, service, controller, validator, route) |
 | **Backend Core** | `backend/src/core/` | Shared infra (middlewares, utils, cache, email, storage, payments, shipping) |
-| **Frontend Pages** | `frontend/app/` | Thin wrappers — metadata + render module component only |
+| **Frontend Pages** | `frontend/app/` | Thin wrappers â€” metadata + render module component only |
 | **Frontend Modules** | `frontend/src/modules/<module>/` | Feature UI components (the actual page content) |
 | **Frontend Stores** | `frontend/src/stores/` | Zustand stores (client state only) |
 | **Frontend Hooks** | `frontend/src/core/hooks/` | TanStack React Query hooks (server state) |
 | **Frontend Components** | `frontend/src/components/` | Shared/reusable UI components |
 
-### Backend — 6-File DDD Pattern Per Module (STRICT)
+### Backend â€” 6-File DDD Pattern Per Module (STRICT)
 
 Every new backend module MUST have exactly these 6 files:
 
 ```
 backend/src/modules/<module-name>/
-├── <module>.model.ts        # Mongoose schema — use mongoose.models.X || mongoose.model()
-├── <module>.repository.ts   # DB queries ONLY — .lean().exec(), accept sessions for transactions
-├── <module>.service.ts      # ALL business logic — calls Repository, throws AppError subclasses
-├── <module>.controller.ts   # HTTP handler — calls Validator → Service → ApiResponse
-├── <module>.validator.ts    # Zod validation — parses req.body / req.query
-├── <module>.route.ts        # Router + @swagger JSDoc — pattern matches method + path
+â”œâ”€â”€ <module>.model.ts        # Mongoose schema â€” use mongoose.models.X || mongoose.model()
+â”œâ”€â”€ <module>.repository.ts   # DB queries ONLY â€” .lean().exec(), accept sessions for transactions
+â”œâ”€â”€ <module>.service.ts      # ALL business logic â€” calls Repository, throws AppError subclasses
+â”œâ”€â”€ <module>.controller.ts   # HTTP handler â€” calls Validator â†’ Service â†’ ApiResponse
+â”œâ”€â”€ <module>.validator.ts    # Zod validation â€” parses req.body / req.query
+â”œâ”€â”€ <module>.route.ts        # Router + @swagger JSDoc â€” pattern matches method + path
 ```
 
-Request flow: `Route → Middleware → Controller → Validator → Service → Repository → Model`
+Request flow: `Route â†’ Middleware â†’ Controller â†’ Validator â†’ Service â†’ Repository â†’ Model`
 
-### Backend — Critical Rules
+### Backend â€” Critical Rules
 
 - **ALL business logic in Service layer.** Controllers are thin. Repositories are DB-only.
-- **ALWAYS use `ApiResponse.success()` / `ApiResponse.paginated()` / `ApiResponse.error()`** — never return raw objects
-- **ALWAYS throw `AppError` subclasses** (`NotFoundError`, `UnauthorizedError`, `ForbiddenError`, `ValidationError`, `ConflictError`) — never raw `Error()`
-- **ALWAYS validate with Zod** in Validator class — every endpoint, no exceptions
+- **ALWAYS use `ApiResponse.success()` / `ApiResponse.paginated()` / `ApiResponse.error()`** â€” never return raw objects
+- **ALWAYS throw `AppError` subclasses** (`NotFoundError`, `UnauthorizedError`, `ForbiddenError`, `ValidationError`, `ConflictError`) â€” never raw `Error()`
+- **ALWAYS validate with Zod** in Validator class â€” every endpoint, no exceptions
 - **ALWAYS use `.lean().exec()`** for read queries
 - **ALWAYS register new routes** in `backend/src/router.ts`
 - **ALWAYS add `@swagger` JSDoc** to route files
-- **NEVER use `console.log`** — use `logger` from `@/core/utils/logger`
-- **NEVER hardcode URLs, keys, secrets** — use `process.env.*`
-- **NEVER access Mongoose directly from Service** — go through Repository
+- **NEVER use `console.log`** â€” use `logger` from `@/core/utils/logger`
+- **NEVER hardcode URLs, keys, secrets** â€” use `process.env.*`
+- **NEVER access Mongoose directly from Service** â€” go through Repository
 
-### Frontend — Critical Rules
+### Frontend â€” Critical Rules
 
-- **Pages are thin wrappers** — `app/` files only define metadata + render a module component
-- **ALL data fetching via TanStack Query hooks** in `src/core/hooks/` — never fetch in components
-- **Client state via Zustand** in `src/stores/` — auth, cart, UI state only
-- **Forms via React Hook Form + Zod** — validation schemas from `@store4riders/shared-validation`
-- **ALWAYS use `<Image>` from `next/image`** — never raw `<img>`
-- **ALWAYS use `<Link>` from `next/link`** — never raw `<a>` for internal navigation
-- **ALWAYS use `apiClient` from `@/core/api/client.ts`** — never create new Axios instances
-- **Destructure `response.data.data`** — backend wraps in `{ success, data }`
+- **Pages are thin wrappers** â€” `app/` files only define metadata + render a module component
+- **ALL data fetching via TanStack Query hooks** in `src/core/hooks/` â€” never fetch in components
+- **Client state via Zustand** in `src/stores/` â€” auth, cart, UI state only
+- **Forms via React Hook Form + Zod** â€” validation schemas from `@store4riders/shared-validation`
+- **ALWAYS use `<Image>` from `next/image`** â€” never raw `<img>`
+- **ALWAYS use `<Link>` from `next/link`** â€” never raw `<a>` for internal navigation
+- **ALWAYS use `apiClient` from `@/core/api/client.ts`** â€” never create new Axios instances
+- **Destructure `response.data.data`** â€” backend wraps in `{ success, data }`
 - **NO dark mode** unless explicitly requested
-- **NO heavy animations** — use CSS `transition-*` classes, Framer Motion only for modals
-- **Mobile-first responsive** — test at 375px, 768px, 1024px, 1440px
+- **NO heavy animations** â€” use CSS `transition-*` classes, Framer Motion only for modals
+- **Mobile-first responsive** â€” test at 375px, 768px, 1024px, 1440px
 
 ### Naming Conventions
 
@@ -92,93 +92,93 @@ Request flow: `Route → Middleware → Controller → Validator → Service →
 
 ### What Already Exists (DO NOT RECREATE)
 
-These are already built — **import and reuse**, never rewrite:
+These are already built â€” **import and reuse**, never rewrite:
 
-- `ApiResponse` → `@/core/response/ApiResponse.ts`
-- `AppError` + subclasses → `@/core/errors/AppError.ts`
-- `logger` → `@/core/utils/logger.ts`
-- `connectToDatabase()` → `@/core/database/connection.ts`
-- `redis` / `setCache` / `getCache` → `@/core/cache/redis.ts`
-- `apiClient` (frontend Axios) → `@/core/api/client.ts`
-- `extractUserFromAuth` → `@/core/middlewares/auth.ts`
-- `checkAdmin` → `@/core/middlewares/admin.ts`
-- `checkRateLimit` → `@/core/middlewares/rateLimiter.ts`
-- `applyCors` → `@/core/middlewares/cors.ts`
-- `applySecurityHeaders` → `@/core/middlewares/security.ts`
-- `getPresignedUrl` → `@/core/storage/s3.ts`
-- `sendEmail` → `@/core/email/ses.ts`
-- `addEmailJob` → `@/core/queue/email.queue.ts`
-- `formatPrice`, `slugify`, `calculateTax` → `@store4riders/shared-utils`
+- `ApiResponse` â†’ `@/core/response/ApiResponse.ts`
+- `AppError` + subclasses â†’ `@/core/errors/AppError.ts`
+- `logger` â†’ `@/core/utils/logger.ts`
+- `connectToDatabase()` â†’ `@/core/database/connection.ts`
+- `redis` / `setCache` / `getCache` â†’ `@/core/cache/redis.ts`
+- `apiClient` (frontend Axios) â†’ `@/core/api/client.ts`
+- `extractUserFromAuth` â†’ `@/core/middlewares/auth.ts`
+- `checkAdmin` â†’ `@/core/middlewares/admin.ts`
+- `checkRateLimit` â†’ `@/core/middlewares/rateLimiter.ts`
+- `applyCors` â†’ `@/core/middlewares/cors.ts`
+- `applySecurityHeaders` â†’ `@/core/middlewares/security.ts`
+- `getPresignedUrl` â†’ `@/core/storage/s3.ts`
+- `sendEmail` â†’ `@/core/email/ses.ts`
+- `addEmailJob` â†’ `@/core/queue/email.queue.ts`
+- `formatPrice`, `slugify`, `calculateTax` â†’ `@store4riders/shared-utils`
 
-### 🔒 Security — Enforce In EVERY Phase (Not Just Phase 16)
+### ðŸ”’ Security â€” Enforce In EVERY Phase (Not Just Phase 16)
 
 These rules apply to **every single line of code** you write, from Phase 1 onwards:
 
 **Authentication & Authorization:**
-- NEVER store JWTs in localStorage or sessionStorage — HttpOnly cookies ONLY
+- NEVER store JWTs in localStorage or sessionStorage â€” HttpOnly cookies ONLY
 - ALWAYS use `extractUserFromAuth()` middleware for protected routes
 - ALWAYS use `checkAdmin()` or `checkPermission()` for admin routes
 - Access tokens: 15min expiry. Refresh tokens: 7 days, blacklisted on logout via Redis
 
 **Input Validation & Injection Prevention:**
-- EVERY endpoint MUST validate input via Zod in the Validator class — zero exceptions
-- Sanitize all MongoDB query inputs — prevent `$gt`, `$ne` NoSQL injection attacks
+- EVERY endpoint MUST validate input via Zod in the Validator class â€” zero exceptions
+- Sanitize all MongoDB query inputs â€” prevent `$gt`, `$ne` NoSQL injection attacks
 - Limit string lengths in Zod schemas (e.g., `z.string().max(500)`)
-- NEVER concatenate user input into queries — use parameterized queries
+- NEVER concatenate user input into queries â€” use parameterized queries
 - Validate file types and sizes for all uploads
 
-**Error Handling — Never Crash, Never Leak:**
-- ALWAYS throw `AppError` subclasses — NEVER raw `Error()`
-- NEVER expose stack traces or internal errors to clients — return safe messages
+**Error Handling â€” Never Crash, Never Leak:**
+- ALWAYS throw `AppError` subclasses â€” NEVER raw `Error()`
+- NEVER expose stack traces or internal errors to clients â€” return safe messages
 - ALWAYS use `logger.error()` with request context for debugging
 - Frontend: show `toast.error()` with user-friendly messages, NEVER raw error objects
 - Frontend: wrap page-level components with Error Boundaries
 
 **Headers & CORS:**
 - Security headers already applied globally via `applySecurityHeaders()` middleware
-- CORS strictly allows ONLY `FRONTEND_URL` — no wildcards in production
-- Rate limiting on auth endpoints via `checkRateLimit()` — already configured
+- CORS strictly allows ONLY `FRONTEND_URL` â€” no wildcards in production
+- Rate limiting on auth endpoints via `checkRateLimit()` â€” already configured
 
 **Secrets:**
-- NEVER commit `.env` files — use `.env.example` as template
-- NEVER hardcode API keys, secrets, or URLs — always `process.env.*`
+- NEVER commit `.env` files â€” use `.env.example` as template
+- NEVER hardcode API keys, secrets, or URLs â€” always `process.env.*`
 
-### ⚡ Performance — Enforce In EVERY Phase (Not Just Phase 16)
+### âš¡ Performance â€” Enforce In EVERY Phase (Not Just Phase 16)
 
 These rules apply to **every query, component, and API call** you write:
 
 **Backend Performance:**
-- ALWAYS use `.lean()` on read queries — returns plain JS objects, 10x faster
+- ALWAYS use `.lean()` on read queries â€” returns plain JS objects, 10x faster
 - ALWAYS use `.exec()` after query chains
-- NEVER return unbounded results — default `limit: 20`, max `limit: 100`
+- NEVER return unbounded results â€” default `limit: 20`, max `limit: 100`
 - Use `.select("field1 field2")` when you don't need all fields
-- Avoid N+1 queries — use `$in` for batch lookups, never loop with individual queries
+- Avoid N+1 queries â€” use `$in` for batch lookups, never loop with individual queries
 - Use Redis cache (`setCache`/`getCache`) for hot data (categories, settings, popular products)
 - Use MongoDB transactions (`session`) for multi-document writes that must be atomic
 
 **Frontend Performance:**
-- ALWAYS use `next/image` with proper `sizes` attribute — never raw `<img>`
+- ALWAYS use `next/image` with proper `sizes` attribute â€” never raw `<img>`
 - Use `dynamic(() => import(...), { ssr: false })` for heavy components (editors, charts)
 - Use `loading="lazy"` for below-the-fold images
-- Debounce search inputs — minimum 300ms
-- TanStack Query `staleTime: 60000` already configured — don't override without reason
+- Debounce search inputs â€” minimum 300ms
+- TanStack Query `staleTime: 60000` already configured â€” don't override without reason
 - Use `React.memo()` for expensive list item components
-- Use `useMemo`/`useCallback` only when profiling shows actual need — no premature optimization
+- Use `useMemo`/`useCallback` only when profiling shows actual need â€” no premature optimization
 - Prefetch: `<Link>` auto-prefetches, use `prefetch={false}` for rarely visited links
 
 **API Performance:**
-- Pagination ALWAYS from backend — frontend passes `?page=1&limit=20`, NEVER loads all data
+- Pagination ALWAYS from backend â€” frontend passes `?page=1&limit=20`, NEVER loads all data
 - Frontend NEVER does client-side pagination on full datasets
-- Frontend NEVER computes prices, discounts, totals — backend does ALL calculations
-- Keep API responses < 200ms for reads — use indexes and caching
+- Frontend NEVER computes prices, discounts, totals â€” backend does ALL calculations
+- Keep API responses < 200ms for reads â€” use indexes and caching
 
-### 🧹 Code Quality — Every Commit
+### ðŸ§¹ Code Quality â€” Every Commit
 
-- **No TypeScript errors** — `pnpm build` must pass
-- **No ESLint errors** — `pnpm lint` must pass
-- **No `any` types** — use proper interfaces from `@store4riders/shared-types`
+- **No TypeScript errors** â€” `pnpm build` must pass
+- **No ESLint errors** â€” `pnpm lint` must pass
+- **No `any` types** â€” use proper interfaces from `@store4riders/shared-types`
 - **No unused imports or variables**
-- **No commented-out code** — delete it, git has history
+- **No commented-out code** â€” delete it, git has history
 - **English only** in code, comments, logs, and docs
 - **Preserve existing comments** unrelated to your changes
 - **Update Swagger docs** when adding/modifying API endpoints
@@ -189,12 +189,12 @@ These rules apply to **every query, component, and API call** you write:
 
 | Question | Decision |
 |---|---|
-| Admin Panel | Separate route group in frontend (`/admin/*`) — single deployment |
+| Admin Panel | Separate route group in frontend (`/admin/*`) â€” single deployment |
 | WhatsApp Provider | **Meta Cloud API** as default, but build with **adapter/strategy pattern** so any provider (Interakt, Wati, etc.) can be swapped without code changes |
-| Payment Gateways | Do **all** step by step — PayU ✅ → CCavenue → Snapmint |
+| Payment Gateways | Do **all** step by step â€” PayU âœ… â†’ CCavenue â†’ Snapmint |
 | COD Partial Payment | **Admin-configurable** (percentage or fixed amount, settable per order value range) |
 | Shipping Priority | **Shiprocket first** (it aggregates Delhivery/Xpressbees). Then add individual carrier APIs |
-| Newsletter | **Enterprise template-based system** — predefined blocks (header, text, image, CTA button, product grid, footer) with drag-and-drop arrangement. Think Mailchimp-style but custom-built |
+| Newsletter | **Enterprise template-based system** â€” predefined blocks (header, text, image, CTA button, product grid, footer) with drag-and-drop arrangement. Think Mailchimp-style but custom-built |
 | Blog Editor | **TipTap** (headless, extensible, supports video embeds natively) |
 | llms.txt | Include **everything**: site description, all product categories, brand list, key page URLs, contact info, shipping/returns policies summary, structured for AI crawlers. Follow the emerging `llms.txt` standard |
 
@@ -204,28 +204,28 @@ These rules apply to **every query, component, and API call** you write:
 
 | Phase | Name | Modules Covered | Status |
 |---|---|---|---|
-| 1 | Foundation & Admin Shell | Admin Dashboard, Roles & Permissions | ✅ COMPLETED |
-| 2 | Product & Catalog Enhancement | Product Catalogue, Brand Mgmt, Category | ✅ COMPLETED |
-| 3 | Search & Discovery | Search & Filter (Meilisearch) | ✅ COMPLETED |
-| 4 | Payment Gateways | Payment Module (PayU, CCavenue, Snapmint, COD) | ✅ COMPLETED |
-| 5 | Shipping & Logistics | Shipping (Shiprocket, Delhivery, Xpressbees) | ✅ COMPLETED |
-| 6 | Order Lifecycle & Returns | Order Management, Returns, Invoices | ✅ COMPLETED |
-| 7 | Customer Account Enhancement | Account Module (password reset, tracking, invoices) | ⬜ NOT STARTED |
-| 8 | Notifications & WhatsApp | Notification, WhatsApp Automation | ⬜ NOT STARTED |
-| 9 | Email & Newsletter | Newsletter System, Email Templates | ⬜ NOT STARTED |
-| 10 | Blog | Blog Module (TipTap editor, video support) | ⬜ NOT STARTED |
-| 11 | SEO | Sitemap, robots.txt, llms.txt, Schema Markup, OG Tags | ⬜ NOT STARTED |
-| 12 | Analytics & Marketing | GA4, GTM, Facebook Pixel, Meta CAPI, Product Feeds | ⬜ NOT STARTED |
-| 13 | Media Management | WebP Pipeline, Media Library, Bulk Upload | ⬜ NOT STARTED |
-| 14 | Homepage & UI Polish | Homepage consolidation, Recently Viewed, Compare | ⬜ NOT STARTED |
-| 15 | Data Migration | Full Magento data migration with audit | ⬜ NOT STARTED |
-| 16 | Security, Performance & Launch | Security hardening, CDN, Lighthouse, E2E Tests | ⬜ NOT STARTED |
+| 1 | Foundation & Admin Shell | Admin Dashboard, Roles & Permissions | âœ… COMPLETED |
+| 2 | Product & Catalog Enhancement | Product Catalogue, Brand Mgmt, Category | âœ… COMPLETED |
+| 3 | Search & Discovery | Search & Filter (Meilisearch) | âœ… COMPLETED |
+| 4 | Payment Gateways | Payment Module (PayU, CCavenue, Snapmint, COD) | âœ… COMPLETED |
+| 5 | Shipping & Logistics | Shipping (Shiprocket, Delhivery, Xpressbees) | âœ… COMPLETED |
+| 6 | Order Lifecycle & Returns | Order Management, Returns, Invoices | âœ… COMPLETED |
+| 7 | Customer Account Enhancement | Account Module (password reset, tracking, invoices) | âœ… COMPLETED |
+| 8 | Notifications & WhatsApp | Notification, WhatsApp Automation | â¬œ NOT STARTED |
+| 9 | Email & Newsletter | Newsletter System, Email Templates | â¬œ NOT STARTED |
+| 10 | Blog | Blog Module (TipTap editor, video support) | â¬œ NOT STARTED |
+| 11 | SEO | Sitemap, robots.txt, llms.txt, Schema Markup, OG Tags | â¬œ NOT STARTED |
+| 12 | Analytics & Marketing | GA4, GTM, Facebook Pixel, Meta CAPI, Product Feeds | â¬œ NOT STARTED |
+| 13 | Media Management | WebP Pipeline, Media Library, Bulk Upload | â¬œ NOT STARTED |
+| 14 | Homepage & UI Polish | Homepage consolidation, Recently Viewed, Compare | â¬œ NOT STARTED |
+| 15 | Data Migration | Full Magento data migration with audit | â¬œ NOT STARTED |
+| 16 | Security, Performance & Launch | Security hardening, CDN, Lighthouse, E2E Tests | â¬œ NOT STARTED |
 
 ---
 
-## Phase 1 — Foundation & Admin Shell
+## Phase 1 â€” Foundation & Admin Shell
 
-**Status:** ✅ COMPLETED
+**Status:** âœ… COMPLETED
 **Modules:** Admin Dashboard (19), User Roles & Permissions (20)
 **Why First:** Every subsequent phase needs admin UI to manage the features we build.
 
@@ -236,24 +236,24 @@ These rules apply to **every query, component, and API call** you write:
   - Update `packages/shared-validation/src/user.schema.ts`
   - Update `backend/src/modules/user/user.model.ts`
 - [x] **1.2** Build permission matrix system
-  - Create `backend/src/core/config/permissions.ts` — define role → action mappings
-  - Create `backend/src/core/middlewares/permission.ts` — `checkPermission(action)` middleware
+  - Create `backend/src/core/config/permissions.ts` â€” define role â†’ action mappings
+  - Create `backend/src/core/middlewares/permission.ts` â€” `checkPermission(action)` middleware
   - Keep existing `checkAdmin()` working (backward compat)
 - [x] **1.3** Build admin user management endpoints
-  - `GET /admin/users` — list all users (paginated, filterable by role)
-  - `PUT /admin/users/:id/role` — assign role
-  - `PUT /admin/users/:id/status` — enable/disable user
+  - `GET /admin/users` â€” list all users (paginated, filterable by role)
+  - `PUT /admin/users/:id/role` â€” assign role
+  - `PUT /admin/users/:id/status` â€” enable/disable user
 - [x] **1.4** Build admin dashboard stats endpoints
-  - `GET /admin/dashboard/stats` — total orders, revenue, customers, products, low stock count
-  - `GET /admin/dashboard/recent-orders` — last 10 orders
-  - `GET /admin/dashboard/revenue-chart` — daily revenue for last 30 days
+  - `GET /admin/dashboard/stats` â€” total orders, revenue, customers, products, low stock count
+  - `GET /admin/dashboard/recent-orders` â€” last 10 orders
+  - `GET /admin/dashboard/revenue-chart` â€” daily revenue for last 30 days
 
 ### Frontend Tasks
 
 - [x] **1.5** Set up admin route group structure
-  - Create `frontend/app/admin/layout.tsx` — admin layout with sidebar navigation
-  - Create `frontend/app/admin/page.tsx` — dashboard with KPI cards and charts
-  - Create `frontend/src/modules/admin/` — admin feature module
+  - Create `frontend/app/admin/layout.tsx` â€” admin layout with sidebar navigation
+  - Create `frontend/app/admin/page.tsx` â€” dashboard with KPI cards and charts
+  - Create `frontend/src/modules/admin/` â€” admin feature module
   - Add admin auth guard (redirect non-admin users)
 - [x] **1.6** Build admin dashboard page
   - KPI cards: Total Revenue, Orders Today, Active Customers, Products Count
@@ -277,24 +277,24 @@ These rules apply to **every query, component, and API call** you write:
 
 ---
 
-## Phase 2 — Product & Catalog Enhancement
+## Phase 2 â€” Product & Catalog Enhancement
 
-**Status:** ✅ COMPLETED
+**Status:** âœ… COMPLETED
 **Modules:** Product Catalogue (2), Category (4), Brand Management
 **Depends on:** Phase 1 (admin UI to manage products)
 
 ### Backend Tasks
 
 - [x] **2.1** Build `brand` module (6-file DDD pattern)
-  - `brand.model.ts` — `name`, `slug`, `logo`, `description`, `isActive`
+  - `brand.model.ts` â€” `name`, `slug`, `logo`, `description`, `isActive`
   - Full CRUD: `GET /brands`, `POST /brands`, `PUT /brands/:id`, `DELETE /brands/:id`
-  - Add to `packages/shared-types/src/brand.types.ts` — `IBrand` interface
+  - Add to `packages/shared-types/src/brand.types.ts` â€” `IBrand` interface
 - [x] **2.2** Enhance Product model
   - Add fields: `status` (draft/published/archived), `isFeatured`, `tags[]`, `videoUrl`, `documents[]` (array of `{name, url}`)
   - Update `packages/shared-types/src/product.types.ts`
   - Update `packages/shared-validation/src/product.schema.ts`
 - [x] **2.3** Build CSV bulk stock/pricing update
-  - `POST /admin/products/bulk-update` — accepts CSV upload
+  - `POST /admin/products/bulk-update` â€” accepts CSV upload
   - CSV columns: `sku`, `basePrice`, `specialPrice`, `stockStatus`
   - Returns validation report: success count, error rows with reasons
   - Wrap in MongoDB transaction for atomicity
@@ -317,8 +317,8 @@ These rules apply to **every query, component, and API call** you write:
   - Category tree view with drag-to-reorder & status badges (`In Menu` / `Hidden from Menu`, `Thumbnail`, `Hero Cards`)
   - Submenu visibility toggle (`includeInMenu`), submenu group, and badge tags
   - Category thumbnail image upload with WebP compression
-  - Hero section showcase card picker (3-card layout as per storefront design)
-  - Subcategory tiles component matching 3-column mobile & desktop hero cards with safe route resolution
+  - Hero section showcase card picker (up to 5-card layout as per client requirement)
+  - Subcategory tiles component matching up to 5-card mobile hero showcase with safe route resolution
   - Dynamic navbar megamenu integration honoring submenu visibility and newly created subcategories
 - [x] **2.8** Build admin brand management UI
   - Brand list, create/edit form with logo upload
@@ -338,9 +338,9 @@ These rules apply to **every query, component, and API call** you write:
 
 ---
 
-## Phase 3 — Search & Discovery
+## Phase 3 â€” Search & Discovery
 
-**Status:** ✅ COMPLETED
+**Status:** âœ… COMPLETED
 **Modules:** Search & Filter (5)
 **Depends on:** Phase 2 (product enhancements for attribute filters)
 
@@ -351,14 +351,14 @@ These rules apply to **every query, component, and API call** you write:
   - Auto-index on product create/update/delete
   - Configure searchable attributes, filterable attributes, sortable attributes
 - [x] **3.2** Build search autocomplete endpoint
-  - `GET /search/suggest?q=...` — returns top 5 product suggestions + top 3 category matches
+  - `GET /search/suggest?q=...` â€” returns top 5 product suggestions + top 3 category matches
 - [x] **3.3** Build advanced filter endpoint
   - Dynamic attribute extraction from product variants (sizes, colours)
   - `GET /products?size=L&colour=Black&brand=Clan&priceMin=500&priceMax=5000`
 - [x] **3.4** Add sort options
   - `sort=newest` (by createdAt desc)
   - `sort=bestselling` (by salesCount desc)
-  - `sort=rating` (by avgRating desc — needs aggregate rating field)
+  - `sort=rating` (by avgRating desc â€” needs aggregate rating field)
 
 ### Frontend Tasks
 
@@ -372,7 +372,7 @@ These rules apply to **every query, component, and API call** you write:
   - Brand filter with checkboxes
   - Active filter tags with clear buttons
 - [x] **3.7** Add sort dropdown to catalog page
-  - Newest, Bestselling, Price Low→High, Price High→Low, Rating
+  - Newest, Bestselling, Price Lowâ†’High, Price Highâ†’Low, Rating
 
 ### Verification
 
@@ -384,21 +384,21 @@ These rules apply to **every query, component, and API call** you write:
 
 ---
 
-## Phase 4 — Payment Gateways (Production-Grade)
+## Phase 4 â€” Payment Gateways (Production-Grade)
 
-**Status:** ✅ COMPLETED
+**Status:** âœ… COMPLETED
 **Modules:** Payment Module, Order Refactor, Checkout Enhancement
 **Depends on:** Phase 3 (completed)
 **Approach:** 12-step senior engineering methodology. Each step is reviewed & tested before proceeding.
 
-> **⚠️ MANDATORY:** Do NOT implement all steps at once. Complete ONE step, review, test, then proceed to the next.
+> **âš ï¸ MANDATORY:** Do NOT implement all steps at once. Complete ONE step, review, test, then proceed to the next.
 > **Architecture reference:** See `implementation_plan.md` artifact for full audit findings, state machine diagrams, and database schema designs.
 
 ### Resolved Decisions
 
 | Question | Decision |
 |---|---|
-| Payment Gateways | PayU (primary) → CCavenue → Snapmint (Razorpay removed) |
+| Payment Gateways | PayU (primary) â†’ CCavenue â†’ Snapmint (Razorpay removed) |
 | COD Partial Payment | Admin-configurable: `codPartialPaymentType` (percentage/fixed), `codPartialPaymentValue` |
 | PayU/CCavenue/Snapmint credentials | Not available yet. Build as stubs with sandbox defaults. Activate when credentials are provided |
 | Snapmint EMI flow | Hosted page (industry standard). Snapmint handles tenure selection, RBI disclosures |
@@ -406,103 +406,103 @@ These rules apply to **every query, component, and API call** you write:
 | Coupon integration | Integrated into `POST /orders`. Backend validates server-side, never trusts frontend `cartTotal` |
 | Existing orders | No production data. Clean schema rebuild |
 
-### Architecture — File/Folder Structure (Strategy Pattern)
+### Architecture â€” File/Folder Structure (Strategy Pattern)
 
 ```
-backend/src/core/payments/           ← Payment gateway abstraction (Strategy Pattern)
-├── PaymentGateway.ts                ← Interface contract (all gateways implement this)
-├── PaymentGatewayFactory.ts         ← Factory
-├── PayUGateway.ts                   ← PayU implementation (only file to touch for PayU changes)
-├── CCavenueGateway.ts               ← CCavenue implementation
-└── SnapmintGateway.ts               ← Snapmint implementation
+backend/src/core/payments/           â† Payment gateway abstraction (Strategy Pattern)
+â”œâ”€â”€ PaymentGateway.ts                â† Interface contract (all gateways implement this)
+â”œâ”€â”€ PaymentGatewayFactory.ts         â† Factory
+â”œâ”€â”€ PayUGateway.ts                   â† PayU implementation (only file to touch for PayU changes)
+â”œâ”€â”€ CCavenueGateway.ts               â† CCavenue implementation
+â””â”€â”€ SnapmintGateway.ts               â† Snapmint implementation
 
-backend/src/modules/payment/         ← Payment entity (separate from Order)
-├── payment.model.ts                 ← Mongoose schema: status, amount, gatewayOrderId, refunds[], webhookEvents[]
-└── payment.repository.ts            ← DB queries: findByGatewayOrderId, atomicStatusTransition, addWebhookEvent
+backend/src/modules/payment/         â† Payment entity (separate from Order)
+â”œâ”€â”€ payment.model.ts                 â† Mongoose schema: status, amount, gatewayOrderId, refunds[], webhookEvents[]
+â””â”€â”€ payment.repository.ts            â† DB queries: findByGatewayOrderId, atomicStatusTransition, addWebhookEvent
 ```
 
 > **To change PayU logic:** Open ONLY `PayUGateway.ts`. Zero changes to Order, Payment, or other gateways.
 > **To add a new gateway (e.g., Stripe):** Create `StripeGateway.ts` implementing `IPaymentGateway`, register in factory. Zero changes to existing code.
 
-### Architecture — State Machines (Order ≠ Payment)
+### Architecture â€” State Machines (Order â‰  Payment)
 
 **Order Status (Fulfillment Lifecycle):**
-`pending_payment` → `confirmed` → `processing` → `shipped` → `delivered`
-                         ↓
-                    `cancelled` / `failed` / `return_requested` → `return_approved` → `returned`
+`pending_payment` â†’ `confirmed` â†’ `processing` â†’ `shipped` â†’ `delivered`
+                         â†“
+                    `cancelled` / `failed` / `return_requested` â†’ `return_approved` â†’ `returned`
 
 **Payment Status (Financial Lifecycle):**
-`created` → `pending` → `captured` → `refunded` / `partially_refunded`
-                 ↓
+`created` â†’ `pending` â†’ `captured` â†’ `refunded` / `partially_refunded`
+                 â†“
               `failed`
 
 ### Critical Bugs Found in Audit (Fixed in Step 3)
 
-1. **`decrementStock()` queries non-existent `stock` field** — stock is NEVER decremented
-2. **Order items saved with `price: 0`** — `ICartItem` has no `price` field
-3. **`specialPrice` ignored in cart** — sale items charged at `basePrice`
-4. **Frontend never calls `POST /orders`** — opens Razorpay with `order_id: ""`
-5. **Double stock decrement race condition** — both `verifyPayment()` and `handleWebhook()` decrement
-6. **Hardcoded test API key** — `"rzp_test_SxxPIU94rZKzyE"` in frontend fallback
+1. **`decrementStock()` queries non-existent `stock` field** â€” stock is NEVER decremented
+2. **Order items saved with `price: 0`** â€” `ICartItem` has no `price` field
+3. **`specialPrice` ignored in cart** â€” sale items charged at `basePrice`
+4. **Frontend never calls `POST /orders`** â€” opens Razorpay with `order_id: ""`
+5. **Double stock decrement race condition** â€” both `verifyPayment()` and `handleWebhook()` decrement
+6. **Hardcoded test API key** â€” `"rzp_test_SxxPIU94rZKzyE"` in frontend fallback
 
-### Step 1 — Existing Code Audit ✅ DONE
+### Step 1 â€” Existing Code Audit âœ… DONE
 
 Deep audit of all payment-related code completed. Findings:
 
 - [x] **1.1** Audited `order.service.ts`, `order.model.ts`, `order.controller.ts`, `order.route.ts`, `order.repository.ts`, `order.validator.ts`
-- [x] **1.2** Audited `cart.service.ts`, `cart.model.ts`, `cart.repository.ts` — found `specialPrice` ignored, `ICartItem` has no `price` field
-- [x] **1.3** Audited `product.model.ts`, `product.repository.ts` — found `decrementStock()` queries non-existent `stock` field
-- [x] **1.4** Audited `coupon.service.ts`, `coupon.model.ts` — found coupons disconnected from checkout, `cartTotal` from client untrusted
-- [x] **1.5** Audited `setting.model.ts`, `setting.repository.ts` — only has `taxRate`, `freeShippingThreshold`, `shippingCost`
+- [x] **1.2** Audited `cart.service.ts`, `cart.model.ts`, `cart.repository.ts` â€” found `specialPrice` ignored, `ICartItem` has no `price` field
+- [x] **1.3** Audited `product.model.ts`, `product.repository.ts` â€” found `decrementStock()` queries non-existent `stock` field
+- [x] **1.4** Audited `coupon.service.ts`, `coupon.model.ts` â€” found coupons disconnected from checkout, `cartTotal` from client untrusted
+- [x] **1.5** Audited `setting.model.ts`, `setting.repository.ts` â€” only has `taxRate`, `freeShippingThreshold`, `shippingCost`
 - [x] **1.6** Audited frontend: `CheckoutPageModule.tsx`, `CheckoutConfirmation.tsx`, `CheckoutSummary.tsx`, `useCheckout.ts`, `useCartStore.ts`
 - [x] **1.7** Audited auth/middleware: `auth.ts`, `rateLimiter.ts`, `errorHandler.ts`, `cors.ts`, `security.ts`, `permissions.ts`
 - [x] **1.8** Audited infra: `redis.ts`, `email.queue.ts`, `env.ts`, `router.ts`, `ApiResponse.ts`, `AppError.ts`
-- [x] **1.9** Searched for idempotency patterns — only status-check based, no `Idempotency-Key` middleware
-- [x] **1.10** Searched for transaction patterns — consistent `session.withTransaction()` usage across services
+- [x] **1.9** Searched for idempotency patterns â€” only status-check based, no `Idempotency-Key` middleware
+- [x] **1.10** Searched for transaction patterns â€” consistent `session.withTransaction()` usage across services
 
 **6 Critical Bugs Identified** (see "Critical Bugs Found in Audit" section above)
 
-### Step 2 — Architecture & Database Design ✅ DONE
+### Step 2 â€” Architecture & Database Design âœ… DONE
 
-- [x] **2.1** Designed Order Status state machine (fulfillment lifecycle): `pending_payment` → `confirmed` → `processing` → `shipped` → `delivered` + cancellation/return paths
-- [x] **2.2** Designed Payment Status state machine (financial lifecycle): `created` → `pending` → `captured` → `refunded`/`partially_refunded` + `failed` path
-- [x] **2.3** Designed new `Payment` model schema — separate entity with `gatewayOrderId`, `refunds[]`, `webhookEvents[]`, `idempotencyKey`
-- [x] **2.4** Designed updated `Order` model schema — `pricing` object (server-calculated), `items[].unitPrice`, `orderNumber`, `shippingAddress` snapshot
-- [x] **2.5** Designed updated `Settings` model — COD config fields, `enabledGateways[]`
-- [x] **2.6** Designed file/folder structure — Strategy Pattern for gateways (`core/payments/`), Payment entity (`modules/payment/`)
-- [x] **2.7** Resolved all decisions — cart sync, coupon integration, credentials, Snapmint flow
+- [x] **2.1** Designed Order Status state machine (fulfillment lifecycle): `pending_payment` â†’ `confirmed` â†’ `processing` â†’ `shipped` â†’ `delivered` + cancellation/return paths
+- [x] **2.2** Designed Payment Status state machine (financial lifecycle): `created` â†’ `pending` â†’ `captured` â†’ `refunded`/`partially_refunded` + `failed` path
+- [x] **2.3** Designed new `Payment` model schema â€” separate entity with `gatewayOrderId`, `refunds[]`, `webhookEvents[]`, `idempotencyKey`
+- [x] **2.4** Designed updated `Order` model schema â€” `pricing` object (server-calculated), `items[].unitPrice`, `orderNumber`, `shippingAddress` snapshot
+- [x] **2.5** Designed updated `Settings` model â€” COD config fields, `enabledGateways[]`
+- [x] **2.6** Designed file/folder structure â€” Strategy Pattern for gateways (`core/payments/`), Payment entity (`modules/payment/`)
+- [x] **2.7** Resolved all decisions â€” cart sync, coupon integration, credentials, Snapmint flow
 
 > **Full architecture details:** See `implementation_plan.md` artifact for complete DB schemas, state machine diagrams, and type definitions.
 
-### Step 3 — Fix Foundational Bugs + Rebuild Order Creation ✅ DONE
+### Step 3 â€” Fix Foundational Bugs + Rebuild Order Creation âœ… DONE
 
-- [x] **3.1** Update `packages/shared-types/src/order.types.ts` — new `IOrder` with `pricing` object (subtotal, discount, couponCode, couponDiscount, tax, taxRate, shipping, total), `items[].unitPrice`, `items[].name`, `items[].sku`, `orderNumber`, `shippingAddress` snapshot, `paymentMethod`
-- [x] **3.2** Create `packages/shared-types/src/payment.types.ts` — `IPayment`, `IRefund`, `PaymentStatus`, `PaymentGatewayType`, `PaymentMethodType`
-- [x] **3.3** Update `packages/shared-validation/src/order.schema.ts` — add `paymentMethod` enum, `couponCode` optional string
-- [x] **3.4** Update `backend/src/modules/order/order.model.ts` — new schema with `pricing`, `items[].unitPrice`, `orderNumber`, `shippingAddress` embedded snapshot
-- [x] **3.5** Fix `backend/src/modules/cart/cart.service.ts` — use `specialPrice || basePrice` in `recalculateSummary()`
-- [x] **3.6** Fix `backend/src/modules/product/product.repository.ts` — fix `decrementStock()` to work with actual `stockStatus` + `variants[].stock` fields
-- [x] **3.7** Refactor `backend/src/modules/order/order.service.ts` — server-side price calculation from DB, proper `items[].unitPrice`, coupon validation, `orderNumber` generation
-- [x] **3.8** Update `backend/src/modules/order/order.repository.ts` — add `atomicStatusTransition()`, `findByGatewayOrderId()`
-- [x] **3.9** Update `backend/src/modules/settings/setting.model.ts` — add COD config fields, `enabledGateways[]`
+- [x] **3.1** Update `packages/shared-types/src/order.types.ts` â€” new `IOrder` with `pricing` object (subtotal, discount, couponCode, couponDiscount, tax, taxRate, shipping, total), `items[].unitPrice`, `items[].name`, `items[].sku`, `orderNumber`, `shippingAddress` snapshot, `paymentMethod`
+- [x] **3.2** Create `packages/shared-types/src/payment.types.ts` â€” `IPayment`, `IRefund`, `PaymentStatus`, `PaymentGatewayType`, `PaymentMethodType`
+- [x] **3.3** Update `packages/shared-validation/src/order.schema.ts` â€” add `paymentMethod` enum, `couponCode` optional string
+- [x] **3.4** Update `backend/src/modules/order/order.model.ts` â€” new schema with `pricing`, `items[].unitPrice`, `orderNumber`, `shippingAddress` embedded snapshot
+- [x] **3.5** Fix `backend/src/modules/cart/cart.service.ts` â€” use `specialPrice || basePrice` in `recalculateSummary()`
+- [x] **3.6** Fix `backend/src/modules/product/product.repository.ts` â€” fix `decrementStock()` to work with actual `stockStatus` + `variants[].stock` fields
+- [x] **3.7** Refactor `backend/src/modules/order/order.service.ts` â€” server-side price calculation from DB, proper `items[].unitPrice`, coupon validation, `orderNumber` generation
+- [x] **3.8** Update `backend/src/modules/order/order.repository.ts` â€” add `atomicStatusTransition()`, `findByGatewayOrderId()`
+- [x] **3.9** Update `backend/src/modules/settings/setting.model.ts` â€” add COD config fields, `enabledGateways[]`
 
 **Verify Step 3:**
 - [x] `POST /orders` creates order with correct server-calculated prices
 - [x] `items[].unitPrice` uses `specialPrice` when available
-- [x] `pricing.total` matches sum of (unitPrice × quantity) + tax + shipping - discount
+- [x] `pricing.total` matches sum of (unitPrice Ã— quantity) + tax + shipping - discount
 - [x] `shippingAddress` is a snapshot (not just ID reference)
 - [x] `orderNumber` is generated server-side (not `Math.random()`)
 - [x] `decrementStock()` actually works with real product data
 - [x] Order status starts as `pending_payment`
 
-### Step 4 — Payment Model + Gateway Abstraction ✅ DONE
+### Step 4 â€” Payment Model + Gateway Abstraction âœ… DONE
 
-- [x] **4.1** Create `backend/src/modules/payment/payment.model.ts` — Mongoose schema for `IPayment` with `status`, `amount`, `gatewayOrderId`, `gatewayPaymentId`, `refunds[]`, `webhookEvents[]`, `idempotencyKey`
-- [x] **4.2** Create `backend/src/modules/payment/payment.repository.ts` — CRUD + `findByGatewayOrderId`, `findByIdempotencyKey`, `addWebhookEvent`, `hasProcessedEvent`, `atomicStatusTransition`
-- [x] **4.3** Create `backend/src/core/payments/PaymentGateway.ts` — abstract interface with `createOrder()`, `verifyPayment()`, `handleWebhook()`, `initiateRefund()`, `getPaymentStatus()`
-- [x] **4.4** Create `backend/src/core/payments/PayUGateway.ts` — extract logic, implement interface
-- [x] **4.5** Create `backend/src/core/payments/PaymentGatewayFactory.ts` — factory pattern
-- [x] **4.6** Update `backend/src/modules/order/order.service.ts` — use `PaymentGatewayFactory`, create Payment record, link to Order
+- [x] **4.1** Create `backend/src/modules/payment/payment.model.ts` â€” Mongoose schema for `IPayment` with `status`, `amount`, `gatewayOrderId`, `gatewayPaymentId`, `refunds[]`, `webhookEvents[]`, `idempotencyKey`
+- [x] **4.2** Create `backend/src/modules/payment/payment.repository.ts` â€” CRUD + `findByGatewayOrderId`, `findByIdempotencyKey`, `addWebhookEvent`, `hasProcessedEvent`, `atomicStatusTransition`
+- [x] **4.3** Create `backend/src/core/payments/PaymentGateway.ts` â€” abstract interface with `createOrder()`, `verifyPayment()`, `handleWebhook()`, `initiateRefund()`, `getPaymentStatus()`
+- [x] **4.4** Create `backend/src/core/payments/PayUGateway.ts` â€” extract logic, implement interface
+- [x] **4.5** Create `backend/src/core/payments/PaymentGatewayFactory.ts` â€” factory pattern
+- [x] **4.6** Update `backend/src/modules/order/order.service.ts` â€” use `PaymentGatewayFactory`, create Payment record, link to Order
 
 **Verify Step 4:**
 - [x] `POST /orders` with `paymentMethod: "payu"` creates both Order + Payment records
@@ -511,12 +511,12 @@ Deep audit of all payment-related code completed. Findings:
 - [x] Gateway API secrets never leave backend
 - [x] Gateway abstraction is clean (can add Snapmint later)
 
-### Step 5 — Frontend Checkout Integration ✅ DONE
+### Step 5 â€” Frontend Checkout Integration âœ… DONE
 
-- [x] **5.1** Update `frontend/src/core/hooks/useCheckout.ts` — accept `paymentMethod`, call `POST /orders`, handle response per gateway type
-- [x] **5.2** Update `frontend/src/modules/checkout/components/CheckoutPageModule.tsx` — wire `handleAgreeToPay` to backend, remove `order_id: ""`
-- [x] **5.3** Update `frontend/src/modules/checkout/components/CheckoutConfirmation.tsx` — payment method selection (PayU + COD for now)
-- [x] **5.4** Create `frontend/src/core/hooks/usePaymentSettings.ts` — fetch enabled gateways + COD config
+- [x] **5.1** Update `frontend/src/core/hooks/useCheckout.ts` â€” accept `paymentMethod`, call `POST /orders`, handle response per gateway type
+- [x] **5.2** Update `frontend/src/modules/checkout/components/CheckoutPageModule.tsx` â€” wire `handleAgreeToPay` to backend, remove `order_id: ""`
+- [x] **5.3** Update `frontend/src/modules/checkout/components/CheckoutConfirmation.tsx` â€” payment method selection (PayU + COD for now)
+- [x] **5.4** Create `frontend/src/core/hooks/usePaymentSettings.ts` â€” fetch enabled gateways + COD config
 
 **Verify Step 5:**
 - [x] Checkout calls `POST /orders` BEFORE redirecting to Gateway
@@ -526,76 +526,76 @@ Deep audit of all payment-related code completed. Findings:
 - [x] Double-click on "Pay" button is prevented
 - [x] Browser refresh doesn't create duplicate order
 
-### Step 6 — Server-Side Payment Verification ✅ DONE
+### Step 6 â€” Server-Side Payment Verification âœ… DONE
 
-- [x] **6.1** Update `backend/src/modules/order/order.service.ts` — enhanced `verifyPayment()` with amount/currency/ownership checks
-- [x] **6.2** Update `backend/src/modules/payment/payment.repository.ts` — `atomicStatusTransition()` for Payment
+- [x] **6.1** Update `backend/src/modules/order/order.service.ts` â€” enhanced `verifyPayment()` with amount/currency/ownership checks
+- [x] **6.2** Update `backend/src/modules/payment/payment.repository.ts` â€” `atomicStatusTransition()` for Payment
 
 **Verify Step 6:**
-- [x] Valid signature → Payment=captured, Order=confirmed
-- [x] Invalid signature → 400 error, no status change
-- [x] Amount mismatch → 400 error
-- [x] Order belongs to different user → 403 error (IDOR prevention)
-- [x] Already-paid order → idempotent success (no double processing)
+- [x] Valid signature â†’ Payment=captured, Order=confirmed
+- [x] Invalid signature â†’ 400 error, no status change
+- [x] Amount mismatch â†’ 400 error
+- [x] Order belongs to different user â†’ 403 error (IDOR prevention)
+- [x] Already-paid order â†’ idempotent success (no double processing)
 - [x] `crypto.timingSafeEqual()` used for signature comparison
 
-### Step 7 — Webhook Handler ✅ DONE
+### Step 7 â€” Webhook Handler âœ… DONE
 
-- [x] **7.1** Refactor `backend/src/modules/order/order.service.ts` — `handleWebhook()` with event deduplication
-- [x] **7.2** Update `backend/src/modules/order/order.controller.ts` — raw body handling, gateway detection from headers
-- [x] **7.3** Update `backend/src/modules/payment/payment.repository.ts` — `addWebhookEvent()`, `hasProcessedEvent()`
+- [x] **7.1** Refactor `backend/src/modules/order/order.service.ts` â€” `handleWebhook()` with event deduplication
+- [x] **7.2** Update `backend/src/modules/order/order.controller.ts` â€” raw body handling, gateway detection from headers
+- [x] **7.3** Update `backend/src/modules/payment/payment.repository.ts` â€” `addWebhookEvent()`, `hasProcessedEvent()`
 
 **Verify Step 7:**
-- [x] `payment.captured` → Payment=captured, Order=confirmed
-- [x] `payment.failed` → Payment=failed, Order=failed
-- [x] `refund.processed` → Payment=refunded
-- [x] Duplicate webhook (same event_id) → no reprocessing
-- [x] Invalid signature → 400 reject
-- [x] Webhook before frontend verify → works correctly
-- [x] Frontend verify before webhook → webhook finds already-paid, skips
+- [x] `payment.captured` â†’ Payment=captured, Order=confirmed
+- [x] `payment.failed` â†’ Payment=failed, Order=failed
+- [x] `refund.processed` â†’ Payment=refunded
+- [x] Duplicate webhook (same event_id) â†’ no reprocessing
+- [x] Invalid signature â†’ 400 reject
+- [x] Webhook before frontend verify â†’ works correctly
+- [x] Frontend verify before webhook â†’ webhook finds already-paid, skips
 
-### Step 8 — Idempotency ✅ DONE
+### Step 8 â€” Idempotency âœ… DONE
 
-- [x] **8.1** Add `Idempotency-Key` header support to `POST /orders` — check Redis/DB before creating
-- [x] **8.2** Implement atomic status transitions — `findOneAndUpdate({ status: fromStatus })` so only one of verify/webhook can transition
-- [x] **8.3** Webhook event deduplication — store `event_id` in Payment's `webhookEvents[]`
-- [x] **8.4** Frontend — disable pay button after click, re-enable on failure
+- [x] **8.1** Add `Idempotency-Key` header support to `POST /orders` â€” check Redis/DB before creating
+- [x] **8.2** Implement atomic status transitions â€” `findOneAndUpdate({ status: fromStatus })` so only one of verify/webhook can transition
+- [x] **8.3** Webhook event deduplication â€” store `event_id` in Payment's `webhookEvents[]`
+- [x] **8.4** Frontend â€” disable pay button after click, re-enable on failure
 
 **Verify Step 8:**
-- [x] Double-click → same order returned, not two orders
-- [x] Browser refresh during processing → same order
-- [x] API retry (network timeout) → same order
-- [x] Duplicate webhook → no reprocessing
-- [x] Concurrent verify + webhook → only one processes stock/email
+- [x] Double-click â†’ same order returned, not two orders
+- [x] Browser refresh during processing â†’ same order
+- [x] API retry (network timeout) â†’ same order
+- [x] Duplicate webhook â†’ no reprocessing
+- [x] Concurrent verify + webhook â†’ only one processes stock/email
 
-### Step 9 — Transactions + Inventory ✅ DONE
+### Step 9 â€” Transactions + Inventory âœ… DONE
 
-- [x] **9.1** Implement atomic payment confirmation transaction: update Payment → update Order → decrement stock → increment salesCount → update coupon usage → clear cart
+- [x] **9.1** Implement atomic payment confirmation transaction: update Payment â†’ update Order â†’ decrement stock â†’ increment salesCount â†’ update coupon usage â†’ clear cart
 - [x] **9.2** Fix `decrementStock()` for simple products AND variant-level stock
-- [x] **9.3** Handle insufficient stock at payment time (transaction fails → refund initiated → order=failed)
+- [x] **9.3** Handle insufficient stock at payment time (transaction fails â†’ refund initiated â†’ order=failed)
 
 **Verify Step 9:**
-- [x] Successful payment → stock decremented, cart cleared, coupon usage incremented
-- [x] Stock insufficient → transaction fails, payment needs refund
-- [x] Concurrent checkout for last item → only one succeeds
+- [x] Successful payment â†’ stock decremented, cart cleared, coupon usage incremented
+- [x] Stock insufficient â†’ transaction fails, payment needs refund
+- [x] Concurrent checkout for last item â†’ only one succeeds
 - [x] `decrementStock()` works for both simple products AND variant-level stock
 
-### Step 10 — Refund
+### Step 10 â€” Refund
 
-- [x] **10.1** Add `initiateRefund()` to `PayUGateway.ts` — calls PayU Refund API
-- [x] **10.2** Add `requestRefund()` to `backend/src/modules/order/order.service.ts` — full + partial refund
-- [x] **10.3** Add `addRefund()` to `payment.repository.ts` — track refund in Payment's `refunds[]`
+- [x] **10.1** Add `initiateRefund()` to `PayUGateway.ts` â€” calls PayU Refund API
+- [x] **10.2** Add `requestRefund()` to `backend/src/modules/order/order.service.ts` â€” full + partial refund
+- [x] **10.3** Add `addRefund()` to `payment.repository.ts` â€” track refund in Payment's `refunds[]`
 
 **Verify Step 10:**
-- [x] Full refund → Payment=refunded, Order=cancelled, stock restored
-- [x] Partial refund → Payment=partially_refunded, amount tracked
-- [x] Duplicate refund request → prevented
-- [x] Refund failure → logged, admin notified
+- [x] Full refund â†’ Payment=refunded, Order=cancelled, stock restored
+- [x] Partial refund â†’ Payment=partially_refunded, amount tracked
+- [x] Duplicate refund request â†’ prevented
+- [x] Refund failure â†’ logged, admin notified
 
-### Step 10.5 — Admin Payment Settings Page
+### Step 10.5 â€” Admin Payment Settings Page
 
-- [x] **10.5.1** Create `frontend/app/admin/settings/page.tsx` — thin wrapper
-- [x] **10.5.2** Create `frontend/src/modules/admin/components/AdminPaymentSettings.tsx` — gateway toggles, COD config, payment log viewer
+- [x] **10.5.1** Create `frontend/app/admin/settings/page.tsx` â€” thin wrapper
+- [x] **10.5.2** Create `frontend/src/modules/admin/components/AdminPaymentSettings.tsx` â€” gateway toggles, COD config, payment log viewer
 - [x] **10.5.3** Add admin routes: `GET/PUT /admin/settings`, `GET /admin/payment-logs`
 
 **Verify Step 10.5:**
@@ -603,18 +603,18 @@ Deep audit of all payment-related code completed. Findings:
 - [x] Admin can configure COD partial payment
 - [x] Admin can view payment logs with filters
 
-### Step 11 — Security Review ✅ DONE
+### Step 11 â€” Security Review âœ… DONE
 
 - [x] **11.1** Verify no secret leakage in logs, responses, or frontend
-- [x] **11.2** Verify IDOR protection — users can only access their own orders
-- [x] **11.3** Verify amount tampering prevention — backend calculates all amounts
-- [x] **11.4** Verify webhook spoofing prevention — HMAC with `timingSafeEqual`
-- [x] **11.5** Verify replay attack prevention — webhook event deduplication
-- [x] **11.6** Verify double processing prevention — atomic transitions
-- [x] **11.7** Verify sensitive data not logged — no card data, CVV, secrets
+- [x] **11.2** Verify IDOR protection â€” users can only access their own orders
+- [x] **11.3** Verify amount tampering prevention â€” backend calculates all amounts
+- [x] **11.4** Verify webhook spoofing prevention â€” HMAC with `timingSafeEqual`
+- [x] **11.5** Verify replay attack prevention â€” webhook event deduplication
+- [x] **11.6** Verify double processing prevention â€” atomic transitions
+- [x] **11.7** Verify sensitive data not logged â€” no card data, CVV, secrets
 - [x] **11.8** Verify rate limiting on order creation endpoints
 
-### Step 12 — Failure & Edge Case Testing
+### Step 12 â€” Failure & Edge Case Testing
 
 Test ALL 16 scenarios:
 - [x] Successful payment (Payment=captured, Order=confirmed, stock decremented)
@@ -634,16 +634,16 @@ Test ALL 16 scenarios:
 - [x] Insufficient stock at payment time (transaction fails, refund initiated)
 - [x] Amount tampered on frontend (backend rejects mismatch)
 
-### After Steps 3–12: Add Other Gateways
+### After Steps 3â€“12: Add Other Gateways
 
 Once PayU + COD are production-solid:
-- [x] **4.G1** Create `backend/src/core/payments/PayUGateway.ts` — implement `IPaymentGateway`, SHA-512 hash, redirect flow, webhook
-- [x] **4.G2** Create `backend/src/core/payments/CCavenueGateway.ts` — AES-128-CBC encryption, redirect, webhook
-- [x] **4.G3** Create `backend/src/core/payments/SnapmintGateway.ts` — EMI/BNPL redirect to hosted page, webhook
+- [x] **4.G1** Create `backend/src/core/payments/PayUGateway.ts` â€” implement `IPaymentGateway`, SHA-512 hash, redirect flow, webhook
+- [x] **4.G2** Create `backend/src/core/payments/CCavenueGateway.ts` â€” AES-128-CBC encryption, redirect, webhook
+- [x] **4.G3** Create `backend/src/core/payments/SnapmintGateway.ts` â€” EMI/BNPL redirect to hosted page, webhook
 - [x] **4.G4** Add callback routes: `POST /api/v1/payments/webhook/:gateway`
-- [x] **4.G5** Create `frontend/app/checkout/callback/page.tsx` — handles redirect from PayU/CCavenue/Snapmint
+- [x] **4.G5** Create `frontend/app/checkout/callback/page.tsx` â€” handles redirect from PayU/CCavenue/Snapmint
 - [x] **4.G6** Update env.ts with PayU/CCavenue/Snapmint env vars
-- [x] **4.G7** Update checkout UI — show all enabled gateways from settings
+- [x] **4.G7** Update checkout UI â€” show all enabled gateways from settings
 
 ### Phase 4 Verification (ALL must pass before marking complete)
 
@@ -653,7 +653,7 @@ Once PayU + COD are production-solid:
 - [x] Payment model captures all transaction events
 - [x] Refund flow works (full + partial)
 - [x] All 16 failure scenarios pass
-- [x] Security review complete — no vulnerabilities
+- [x] Security review complete â€” no vulnerabilities
 - [x] Admin settings page works (gateway toggles, COD config, logs)
 - [x] Gateway stubs ready for PayU/CCavenue/Snapmint (activate when credentials available)
 
@@ -661,50 +661,50 @@ Once PayU + COD are production-solid:
 
 ---
 
-## Phase 5 — Shipping & Logistics (Revised — Production-Grade)
+## Phase 5 â€” Shipping & Logistics (Revised â€” Production-Grade)
 
-**Status:** ✅ COMPLETED
+**Status:** âœ… COMPLETED
 **Modules:** Shipping (11)
 **Depends on:** Phase 4 (orders need payment before shipping)
 
-> **⚠️ AUDIT RESULT (2026-09-25):** Tasks 5.1–5.6 were marked complete but contain **15 critical bugs** (hardcoded fallbacks, wrong field mappings, auth token not cached, webhook is a stub). Tasks 5.7 and 5.8 were **falsely marked complete** — zero frontend code exists. This revised plan fixes all bugs first, then builds remaining features.
+> **âš ï¸ AUDIT RESULT (2026-09-25):** Tasks 5.1â€“5.6 were marked complete but contain **15 critical bugs** (hardcoded fallbacks, wrong field mappings, auth token not cached, webhook is a stub). Tasks 5.7 and 5.8 were **falsely marked complete** â€” zero frontend code exists. This revised plan fixes all bugs first, then builds remaining features.
 
 > **Decisions:**
-> - **Customer shipping charge:** Flat rate from admin Settings (e.g., ₹49). No weight-based pricing for now.
+> - **Customer shipping charge:** Flat rate from admin Settings (e.g., â‚¹49). No weight-based pricing for now.
 > - **Courier selection:** Admin selects courier during fulfillment (auto-suggest cheapest, manual override). Customer only sees "Standard Delivery" with flat rate.
 > - **Warehouse:** Build for single warehouse initially. Model supports multiple for future expansion.
 > - **Provider credentials:** Not available yet. Build all 3 providers, test when credentials arrive.
-> - **Scope cuts:** NDR, RTO, reverse logistics, manifest → deferred to Phase 6. Multi-vendor, multi-package, COD reconciliation → future phases.
+> - **Scope cuts:** NDR, RTO, reverse logistics, manifest â†’ deferred to Phase 6. Multi-vendor, multi-package, COD reconciliation â†’ future phases.
 
-### Previously Completed (5.1–5.6) — Built With Bugs
+### Previously Completed (5.1â€“5.6) â€” Built With Bugs
 
 - [x] **5.1** Build shipping provider abstraction layer
-  - `backend/src/core/shipping/ShippingProvider.ts` — interface with 5 methods ✅
-  - `backend/src/core/shipping/ShiprocketProvider.ts` — real API calls ✅ (bugs found)
-  - `backend/src/core/shipping/DelhiveryProvider.ts` — real API calls ✅ (bugs found)
-  - `backend/src/core/shipping/XpressbeesProvider.ts` — real API calls ✅ (base URL unverified)
-  - `backend/src/core/shipping/ShippingProviderFactory.ts` — factory pattern ✅
+  - `backend/src/core/shipping/ShippingProvider.ts` â€” interface with 5 methods âœ…
+  - `backend/src/core/shipping/ShiprocketProvider.ts` â€” real API calls âœ… (bugs found)
+  - `backend/src/core/shipping/DelhiveryProvider.ts` â€” real API calls âœ… (bugs found)
+  - `backend/src/core/shipping/XpressbeesProvider.ts` â€” real API calls âœ… (base URL unverified)
+  - `backend/src/core/shipping/ShippingProviderFactory.ts` â€” factory pattern âœ…
 - [x] **5.2** Build `shipping` module (6-file DDD pattern)
-  - All 6 files exist with real logic ✅ (webhook handler is a stub)
-  - Shared types and validation schemas exist ✅
+  - All 6 files exist with real logic âœ… (webhook handler is a stub)
+  - Shared types and validation schemas exist âœ…
 - [x] **5.3** Integrate Shiprocket API (real API calls, bugs: token not cached, pickup_location wrong)
 - [x] **5.4** Integrate Delhivery API (real API calls, bugs: return_state uses city, payload format unclear)
 - [x] **5.5** Integrate Xpressbees API (real API calls, caution: base URL "Sample", needs verification)
-- [x] **5.6** Build rate comparison endpoint `POST /shipments/rates` (works, registered in router ✅)
+- [x] **5.6** Build rate comparison endpoint `POST /shipments/rates` (works, registered in router âœ…)
 
 ---
 
-### Step 5-A — Fix All Bugs in Existing Code (Do FIRST)
+### Step 5-A â€” Fix All Bugs in Existing Code (Do FIRST)
 
 > **RULE:** Do NOT write any new features until every bug below is fixed. Each fix must be verified.
 
-- [x] **5-A.1** Fix Shiprocket `pickup_location` — currently set to pincode, must be warehouse nickname
+- [x] **5-A.1** Fix Shiprocket `pickup_location` â€” currently set to pincode, must be warehouse nickname
   - File: `backend/src/core/shipping/ShiprocketProvider.ts` line 45
   - Change: Read warehouse name from Settings/Warehouse model, not pincode
-- [x] **5-A.2** Fix Delhivery `return_state` bug — currently uses `originCity` ("Pune") as state
+- [x] **5-A.2** Fix Delhivery `return_state` bug â€” currently uses `originCity` ("Pune") as state
   - File: `backend/src/core/shipping/DelhiveryProvider.ts` line 52
   - Change: Use `storeOriginState` from Settings (add field if missing)
-- [x] **5-A.3** Remove ALL hardcoded fallback values — throw `AppError` instead
+- [x] **5-A.3** Remove ALL hardcoded fallback values â€” throw `AppError` instead
   - `ShiprocketProvider.ts`: Remove `|| "411001"` fallback pincode (lines 39, 136)
   - `DelhiveryProvider.ts`: Remove `|| "411001"` (line 31), `|| "Pune"` (line 32), `|| "3-4 Days"` (line 174)
   - `XpressbeesProvider.ts`: Remove `|| "411001"` (line 31), `|| "3-5 Days"` (line 143)
@@ -715,7 +715,7 @@ Once PayU + COD are production-solid:
   - Fix: Check Redis `shiprocket:auth_token` first, if valid return cached token, else login and cache
   - Use `setCache` / `getCache` from `@/core/cache/redis.ts`
 - [x] **5-A.5** Replace dynamic `require()` with static `import` in all 3 providers
-  - `ShiprocketProvider.ts`: Lines 38, 135 — `require("../../modules/settings/setting.repository")`
+  - `ShiprocketProvider.ts`: Lines 38, 135 â€” `require("../../modules/settings/setting.repository")`
   - `DelhiveryProvider.ts`: Lines 30, 150
   - `XpressbeesProvider.ts`: Lines 30, 118
   - Change to: `import { SettingRepository } from "../../modules/settings/setting.repository";` at top of file
@@ -732,7 +732,7 @@ Once PayU + COD are production-solid:
   - File: `backend/src/modules/shipping/shipment.controller.ts`
 - [x] **5-A.10** Add shipping env vars section to `.env.example`
   - Add: `SHIPROCKET_EMAIL=`, `SHIPROCKET_PASSWORD=`, `DELHIVERY_API_KEY=`, `XPRESSBEES_API_KEY=`
-- [x] **5-A.11** Add `storeOriginState` field to Settings model (currently missing — caused Delhivery bug)
+- [x] **5-A.11** Add `storeOriginState` field to Settings model (currently missing â€” caused Delhivery bug)
   - File: `backend/src/modules/settings/setting.model.ts`
 
 **Verify Step 5-A:**
@@ -744,7 +744,7 @@ Once PayU + COD are production-solid:
 
 ---
 
-### Step 5-B — Expand Shipment Model & Shared Types
+### Step 5-B â€” Expand Shipment Model & Shared Types
 
 > **WHY:** Current model is MVP-grade. Missing fields for proper tracking, cost tracking, webhook idempotency, and order-shipment linking.
 
@@ -752,8 +752,8 @@ Once PayU + COD are production-solid:
   - Add to `ShipmentStatus` type: `"shipment_created"`, `"awb_assigned"`, `"ndr"`, `"rto_in_transit"`, `"lost"`, `"damaged"`, `"failed"`
   - Add `shipmentType: "forward" | "reverse"` to `IShipment`
   - Add `providerOrderId?: string` to `IShipment` (Shiprocket returns both order_id and shipment_id)
-  - Add `providerStatus?: string` to `IShipment` (raw status string from courier — preserved for debugging)
-  - Add `volumetricWeight?: number` to `IShipment` (calculated: L×B×H / 5000)
+  - Add `providerStatus?: string` to `IShipment` (raw status string from courier â€” preserved for debugging)
+  - Add `volumetricWeight?: number` to `IShipment` (calculated: LÃ—BÃ—H / 5000)
   - Add `chargeableWeight?: number` to `IShipment` (max of actual weight vs volumetric)
   - Add `pickupStatus?: "pending" | "scheduled" | "picked" | "failed"` to `IShipment`
   - Add `pickupScheduledDate?: string | Date` to `IShipment`
@@ -769,7 +769,7 @@ Once PayU + COD are production-solid:
     - Add `description?: string` (rename/alias from `activity`)
     - Change `date: string` to `timestamp: string | Date` (proper naming)
     - Add `receivedAt?: string | Date` (when we received this event)
-    - Add `providerEventId?: string` (for webhook idempotency — skip if already processed)
+    - Add `providerEventId?: string` (for webhook idempotency â€” skip if already processed)
 - [x] **5-B.2** Update `backend/src/modules/shipping/shipment.model.ts`
   - Add all new fields from 5-B.1 to Mongoose schema
   - Add `providerEventId` to `trackingEventSchema` subdocument
@@ -778,7 +778,7 @@ Once PayU + COD are production-solid:
 - [x] **5-B.3** Update `packages/shared-validation/src/shipping.schema.ts`
   - Update `createShipmentSchema` to include optional new fields
   - Add `serviceabilitySchema` (for pincode check endpoint)
-  - Add `getRatesSchema` (proper Zod schema — replace manual validation in validator)
+  - Add `getRatesSchema` (proper Zod schema â€” replace manual validation in validator)
 
 **Verify Step 5-B:**
 - [x] `packages/shared-types` builds with no errors
@@ -787,9 +787,9 @@ Once PayU + COD are production-solid:
 
 ---
 
-### Step 5-C — Warehouse / Pickup Location Module
+### Step 5-C â€” Warehouse / Pickup Location Module
 
-> **WHY:** All 3 providers need a warehouse/pickup location. Shiprocket specifically requires the registered pickup location nickname. Current code has no warehouse concept — just flat fields on Settings.
+> **WHY:** All 3 providers need a warehouse/pickup location. Shiprocket specifically requires the registered pickup location nickname. Current code has no warehouse concept â€” just flat fields on Settings.
 > **SCOPE:** Single warehouse for now. Model supports multiple for future expansion.
 
 - [x] **5-C.1** Create shared types: `packages/shared-types/src/warehouse.types.ts`
@@ -798,13 +798,13 @@ Once PayU + COD are production-solid:
 - [x] **5-C.2** Create shared validation: `packages/shared-validation/src/warehouse.schema.ts`
   - `createWarehouseSchema`, `updateWarehouseSchema`
   - Export from `packages/shared-validation/src/index.ts`
-- [x] **5-C.3** Create `backend/src/modules/warehouse/` — full 6-file DDD module
-  - `warehouse.model.ts` — Mongoose schema with all `IWarehouse` fields, indexes on `warehouseCode` (unique) and `isDefault`
-  - `warehouse.repository.ts` — CRUD + `findDefault()` + `findByCode()`, all with `.lean().exec()`
-  - `warehouse.service.ts` — business logic (only one default warehouse allowed, validate before save)
-  - `warehouse.controller.ts` — thin HTTP handler using `ApiResponse.success()`
-  - `warehouse.validator.ts` — Zod validation using shared schemas
-  - `warehouse.route.ts` — Admin CRUD: `GET /admin/warehouses`, `POST /admin/warehouses`, `PUT /admin/warehouses/:id`, `DELETE /admin/warehouses/:id`, `GET /admin/warehouses/default`. Add `@swagger` JSDoc.
+- [x] **5-C.3** Create `backend/src/modules/warehouse/` â€” full 6-file DDD module
+  - `warehouse.model.ts` â€” Mongoose schema with all `IWarehouse` fields, indexes on `warehouseCode` (unique) and `isDefault`
+  - `warehouse.repository.ts` â€” CRUD + `findDefault()` + `findByCode()`, all with `.lean().exec()`
+  - `warehouse.service.ts` â€” business logic (only one default warehouse allowed, validate before save)
+  - `warehouse.controller.ts` â€” thin HTTP handler using `ApiResponse.success()`
+  - `warehouse.validator.ts` â€” Zod validation using shared schemas
+  - `warehouse.route.ts` â€” Admin CRUD: `GET /admin/warehouses`, `POST /admin/warehouses`, `PUT /admin/warehouses/:id`, `DELETE /admin/warehouses/:id`, `GET /admin/warehouses/default`. Add `@swagger` JSDoc.
 - [x] **5-C.4** Register warehouse routes in `backend/src/router.ts`
 - [x] **5-C.5** Update all 3 shipping providers to fetch warehouse from `WarehouseRepository.findDefault()` instead of `SettingRepository.getSettings()` for origin address
   - Shiprocket: Use `warehouse.shiprocketLocationId` for `pickup_location` field
@@ -821,7 +821,7 @@ Once PayU + COD are production-solid:
 
 ---
 
-### Step 5-D — Pincode Serviceability Check Endpoint
+### Step 5-D â€” Pincode Serviceability Check Endpoint
 
 > **WHY:** Customer must know at checkout if delivery is possible to their pincode BEFORE placing an order. Currently no such check exists.
 > **Business rule:** If NO provider can deliver to a pincode, block checkout with error message.
@@ -830,9 +830,9 @@ Once PayU + COD are production-solid:
   - Signature: `checkServiceability(deliveryPincode: string, weightKg: number, isCod: boolean): Promise<ServiceabilityResult>`
   - `ServiceabilityResult`: `{ serviceable: boolean, codAvailable: boolean, estimatedDays?: number, provider: string }`
 - [x] **5-D.2** Implement `checkServiceability()` in `ShiprocketProvider`
-  - Use existing `/courier/serviceability/` endpoint — check if `available_courier_companies` array is non-empty
+  - Use existing `/courier/serviceability/` endpoint â€” check if `available_courier_companies` array is non-empty
 - [x] **5-D.3** Implement `checkServiceability()` in `DelhiveryProvider`
-  - Use existing `/c/api/pin-codes/json/` endpoint — check if pincode is serviceable
+  - Use existing `/c/api/pin-codes/json/` endpoint â€” check if pincode is serviceable
 - [x] **5-D.4** Implement `checkServiceability()` in `XpressbeesProvider`
   - Use provider's serviceability check endpoint
 - [x] **5-D.5** Add `checkServiceability()` to `ShipmentService`
@@ -840,7 +840,7 @@ Once PayU + COD are production-solid:
   - Cache result in Redis: key `serviceability:{pincode}`, TTL 24 hours (pincodes don't change daily)
   - Return: `{ serviceable: true/false, codAvailable: true/false, providers: [...] }`
 - [x] **5-D.6** Add endpoint `POST /shipping/serviceability` in `shipment.route.ts`
-  - Public or auth-required (auth preferred — prevents abuse)
+  - Public or auth-required (auth preferred â€” prevents abuse)
   - Rate limit: 10 requests per minute per IP
 - [x] **5-D.7** Add Zod validation for serviceability request in `shipment.validator.ts`
   - Required: `deliveryPincode` (string, 6 digits for India), `weightKg` (number, min 0.01)
@@ -855,7 +855,7 @@ Once PayU + COD are production-solid:
 
 ---
 
-### Step 5-E — Expand Provider Interface & Implement Pickup Request
+### Step 5-E â€” Expand Provider Interface & Implement Pickup Request
 
 > **WHY:** Couriers don't auto-pickup. Admin must request a pickup after creating a shipment. Also, `getRates()` needs dimensions for volumetric weight accuracy.
 
@@ -878,10 +878,10 @@ Once PayU + COD are production-solid:
   - Xpressbees: Verify using webhook secret
   - If provider doesn't support signature verification, log warning and return true (but add TODO)
 - [x] **5-E.6** Add `requestPickup()` to `ShipmentService` and expose via controller/route
-  - `POST /admin/shipments/:id/pickup` — admin-only endpoint
+  - `POST /admin/shipments/:id/pickup` â€” admin-only endpoint
 - [x] **5-E.7** Add volumetric weight calculation utility
-  - Create `packages/shared-utils/src/shipping.ts`: `calculateVolumetricWeight(length, breadth, height): number` → L×B×H / 5000
-  - `calculateChargeableWeight(actualWeight, volumetricWeight): number` → max of both
+  - Create `packages/shared-utils/src/shipping.ts`: `calculateVolumetricWeight(length, breadth, height): number` â†’ LÃ—BÃ—H / 5000
+  - `calculateChargeableWeight(actualWeight, volumetricWeight): number` â†’ max of both
 
 **Verify Step 5-E:**
 - [x] `requestPickup()` is callable for all 3 providers (even if sandbox returns error due to no credentials)
@@ -891,12 +891,12 @@ Once PayU + COD are production-solid:
 
 ---
 
-### Step 5-F — Real Webhook Implementation (Replace Stub)
+### Step 5-F â€” Real Webhook Implementation (Replace Stub)
 
-> **WHY:** `handleWebhook()` is currently a stub that just logs and returns `{ success: true }`. Real shipping status updates come via provider webhooks — without this, tracking never updates automatically.
+> **WHY:** `handleWebhook()` is currently a stub that just logs and returns `{ success: true }`. Real shipping status updates come via provider webhooks â€” without this, tracking never updates automatically.
 
 - [x] **5-F.1** Implement real `handleWebhook()` in `ShipmentService`
-  - Flow: Receive payload → Identify provider → Verify signature → Extract AWB → Find shipment by AWB → Check idempotency (providerEventId) → Normalize status → Store event → Update shipment status → Update order status if needed → Return 200
+  - Flow: Receive payload â†’ Identify provider â†’ Verify signature â†’ Extract AWB â†’ Find shipment by AWB â†’ Check idempotency (providerEventId) â†’ Normalize status â†’ Store event â†’ Update shipment status â†’ Update order status if needed â†’ Return 200
 - [x] **5-F.2** Create provider-specific webhook payload parsers
   - Each provider sends different webhook formats
   - Shiprocket: `{ order_id, awb, current_status, shipment_status, etd, scans[] }`
@@ -906,36 +906,36 @@ Once PayU + COD are production-solid:
 - [x] **5-F.3** Implement webhook idempotency
   - Store `providerEventId` in each tracking event
   - Before processing: check if event with same `providerEventId` already exists in `shipment.events[]`
-  - If duplicate → skip, return 200 (don't reprocess)
-  - If provider doesn't send event ID → generate fingerprint from `awb + status + timestamp`
+  - If duplicate â†’ skip, return 200 (don't reprocess)
+  - If provider doesn't send event ID â†’ generate fingerprint from `awb + status + timestamp`
 - [x] **5-F.4** Implement shipment status normalization mapping per provider
   - Map provider-specific statuses to internal `ShipmentStatus` enum
-  - Example: Shiprocket `"7"` (Delivered) → `"delivered"`, Delhivery `"Dispatched"` → `"in_transit"`
+  - Example: Shiprocket `"7"` (Delivered) â†’ `"delivered"`, Delhivery `"Dispatched"` â†’ `"in_transit"`
   - Store BOTH `normalizedStatus` and `providerStatus` on the event
 - [x] **5-F.5** Update order status based on shipment status changes
-  - `picked_up` / `in_transit` → Order status to `shipped`
-  - `delivered` → Order status to `delivered`
-  - `rto_initiated` → Order status to `cancelled` (or keep as-is for Phase 6 handling)
+  - `picked_up` / `in_transit` â†’ Order status to `shipped`
+  - `delivered` â†’ Order status to `delivered`
+  - `rto_initiated` â†’ Order status to `cancelled` (or keep as-is for Phase 6 handling)
 - [x] **5-F.6** Update webhook route to call `verifyWebhookSignature()` before processing
-  - If verification fails → return 400, log the attempt
+  - If verification fails â†’ return 400, log the attempt
 - [x] **5-F.7** Add `@swagger` JSDoc for webhook endpoints
 
 **Verify Step 5-F:**
 - [x] Sending a fake Shiprocket-format webhook payload to `POST /shipments/webhook/shiprocket` with correct structure updates shipment status
 - [x] Sending the SAME webhook payload twice does NOT create duplicate events (idempotency works)
 - [x] Invalid webhook signature returns 400
-- [x] Order status transitions correctly (in_transit → order=shipped, delivered → order=delivered)
+- [x] Order status transitions correctly (in_transit â†’ order=shipped, delivered â†’ order=delivered)
 
 ---
 
-### Step 5-G — Task 5.7: Frontend Checkout Pincode Serviceability + Flat Rate
+### Step 5-G â€” Task 5.7: Frontend Checkout Pincode Serviceability + Flat Rate
 
 > **Business flow:**
 > 1. Customer enters delivery pincode in checkout Step 2
 > 2. Frontend calls `POST /shipping/serviceability` with pincode
-> 3. If NOT serviceable → show error: "Sorry, delivery is not available for this pincode." → block "Continue to Payment"
-> 4. If serviceable → show "Standard Delivery" with admin-configured flat rate (from Settings `shippingCost` field)
-> 5. Customer does NOT choose a courier — that's admin's job during fulfillment
+> 3. If NOT serviceable â†’ show error: "Sorry, delivery is not available for this pincode." â†’ block "Continue to Payment"
+> 4. If serviceable â†’ show "Standard Delivery" with admin-configured flat rate (from Settings `shippingCost` field)
+> 5. Customer does NOT choose a courier â€” that's admin's job during fulfillment
 
 - [x] **5-G.1** Create `frontend/src/core/hooks/useShippingServiceability.ts`
   - TanStack Query hook: `useServiceabilityCheck(pincode: string)`
@@ -949,7 +949,7 @@ Once PayU + COD are production-solid:
   - If NOT serviceable: Show red error banner "Delivery is not available for pincode XXXXXX. Please try a different address."
   - If NOT serviceable: Disable "CONTINUE TO PAYMENT" button
   - If serviceable: Show green checkmark next to pincode + "Delivery available" text
-  - Keep existing "Standard Delivery" display — show admin flat rate from `shippingCost` prop
+  - Keep existing "Standard Delivery" display â€” show admin flat rate from `shippingCost` prop
   - If COD not available for that pincode: Disable COD option in payment step (pass info forward)
 - [x] **5-G.3** Pass `codAvailable` flag from checkout Step 2 to Step 3 (payment selection)
   - If `codAvailable === false` for the pincode, hide/disable COD payment option
@@ -964,18 +964,18 @@ Once PayU + COD are production-solid:
 
 ---
 
-### Step 5-H — Task 5.8: Frontend Order Tracking Page
+### Step 5-H â€” Task 5.8: Frontend Order Tracking Page
 
 > **Customer-facing tracking page.** Shows shipment status timeline.
-> Hook `useOrderShipments(orderId)` already exists at `frontend/src/core/hooks/useShipments.ts` — reuse it.
+> Hook `useOrderShipments(orderId)` already exists at `frontend/src/core/hooks/useShipments.ts` â€” reuse it.
 
 - [x] **5-H.1** Create route: `frontend/app/account/orders/[orderId]/tracking/page.tsx`
-  - Thin wrapper — metadata + render `OrderTrackingModule`
+  - Thin wrapper â€” metadata + render `OrderTrackingModule`
   - `metadata: { title: "Track Order | Store4Riders" }`
 - [x] **5-H.2** Create feature module: `frontend/src/modules/order-tracking/`
-  - `frontend/src/modules/order-tracking/components/OrderTrackingModule.tsx` — main component
-  - `frontend/src/modules/order-tracking/components/TrackingTimeline.tsx` — visual timeline
-  - `frontend/src/modules/order-tracking/components/ShipmentInfoCard.tsx` — AWB, courier, provider info
+  - `frontend/src/modules/order-tracking/components/OrderTrackingModule.tsx` â€” main component
+  - `frontend/src/modules/order-tracking/components/TrackingTimeline.tsx` â€” visual timeline
+  - `frontend/src/modules/order-tracking/components/ShipmentInfoCard.tsx` â€” AWB, courier, provider info
 - [x] **5-H.3** Build `OrderTrackingModule`
   - Fetch order details (existing `useOrderById` hook or similar)
   - Fetch shipment details using `useOrderShipments(orderId)` from existing hook
@@ -991,11 +991,11 @@ Once PayU + COD are production-solid:
   - Current/latest status highlighted (colored dot + bold text)
   - Past events: muted color
   - Future milestones (if not yet reached): greyed out with dashed line
-  - Standard milestones: Order Confirmed → Shipped → In Transit → Out for Delivery → Delivered
+  - Standard milestones: Order Confirmed â†’ Shipped â†’ In Transit â†’ Out for Delivery â†’ Delivered
 - [x] **5-H.6** Add "Track Order" button/link in customer order history page
   - Link to `/account/orders/[orderId]/tracking`
   - Only show for orders with status `shipped`, `processing`, or `delivered`
-- [x] **5-H.7** Mobile responsive — test at 375px, 768px breakpoints
+- [x] **5-H.7** Mobile responsive â€” test at 375px, 768px breakpoints
   - Timeline should stack vertically on mobile
   - Shipment info card should be full-width on mobile
 
@@ -1011,47 +1011,47 @@ Once PayU + COD are production-solid:
 
 ---
 
-### Step 5-I — Task 5.9: Admin Shipping Management Dashboard
+### Step 5-I â€” Task 5.9: Admin Shipping Management Dashboard
 
-> **Admin-facing shipping management.** This is where admin fulfills orders — sees rates, creates shipments, prints labels.
+> **Admin-facing shipping management.** This is where admin fulfills orders â€” sees rates, creates shipments, prints labels.
 
 - [x] **5-I.1** Create route: `frontend/app/admin/shipping/page.tsx`
-  - Thin wrapper — metadata + render `AdminShippingDashboard`
+  - Thin wrapper â€” metadata + render `AdminShippingDashboard`
 - [x] **5-I.2** Create `frontend/src/core/hooks/useAdminShipments.ts`
-  - `useAdminShipments(filters)` — paginated shipment list with filters
-  - `useShipmentRates(orderId)` — fetch live rates for an order
-  - `useCreateShipment()` — mutation to create shipment
-  - `useSyncTracking(shipmentId)` — mutation to sync tracking
-  - `useRequestPickup(shipmentId)` — mutation to request pickup
-- [x] **5-I.3** Build `AdminShippingDashboard` — main page component
-  - Tab 1: **Shipments** — list of all shipments with filters (provider, status, date range)
-  - Tab 2: **Warehouses** — warehouse management (CRUD from Step 5-C)
+  - `useAdminShipments(filters)` â€” paginated shipment list with filters
+  - `useShipmentRates(orderId)` â€” fetch live rates for an order
+  - `useCreateShipment()` â€” mutation to create shipment
+  - `useSyncTracking(shipmentId)` â€” mutation to sync tracking
+  - `useRequestPickup(shipmentId)` â€” mutation to request pickup
+- [x] **5-I.3** Build `AdminShippingDashboard` â€” main page component
+  - Tab 1: **Shipments** â€” list of all shipments with filters (provider, status, date range)
+  - Tab 2: **Warehouses** â€” warehouse management (CRUD from Step 5-C)
   - Summary cards at top: Total Shipments, Pending Pickup, In Transit, Delivered, RTO
-- [x] **5-I.4** Build `ShipmentListTable` — filterable, paginated table
+- [x] **5-I.4** Build `ShipmentListTable` â€” filterable, paginated table
   - Columns: Order #, AWB, Courier, Provider, Status, Created Date, Actions
   - Filters: Provider dropdown, Status dropdown, Date range picker
   - Search by: Order number, AWB, customer name
   - Actions per row: View Details, Sync Tracking, Print Label
   - Pagination from backend (`?page=1&limit=20`)
-- [x] **5-I.5** Build `OrderFulfillmentPanel` — the key admin workflow
+- [x] **5-I.5** Build `OrderFulfillmentPanel` â€” the key admin workflow
   - Opens when admin clicks "Ship Order" on an order in pending/confirmed status
   - Section 1: Order summary (items, customer address, weight)
-  - Section 2: **Live Rate Comparison Table** — calls `POST /shipments/rates`
-    - Table columns: Provider, Courier Name, Rate (₹), Estimated Days, COD Available
+  - Section 2: **Live Rate Comparison Table** â€” calls `POST /shipments/rates`
+    - Table columns: Provider, Courier Name, Rate (â‚¹), Estimated Days, COD Available
     - Auto-highlight cheapest row
     - Admin can select any row (radio button)
   - Section 3: Package dimensions input (length, breadth, height, weight)
-  - Section 4: "Generate Shipment" button → calls `POST /admin/shipments` with selected provider + dimensions
+  - Section 4: "Generate Shipment" button â†’ calls `POST /admin/shipments` with selected provider + dimensions
   - After creation: Show AWB, "Print Label" button, "Request Pickup" button
-- [x] **5-I.6** Build `WarehouseManager` — admin warehouse CRUD
+- [x] **5-I.6** Build `WarehouseManager` â€” admin warehouse CRUD
   - List warehouses
   - Add/Edit warehouse form (all fields from `IWarehouse`)
   - Set default warehouse
-  - Delete warehouse (soft — set `isActive: false`)
+  - Delete warehouse (soft â€” set `isActive: false`)
 - [x] **5-I.7** Add "Ship Order" action button in existing admin order list/detail pages
   - Only for orders in `confirmed` or `processing` status
   - Opens `OrderFulfillmentPanel`
-- [x] **5-I.8** Build `ShipmentDetailView` — view single shipment details
+- [x] **5-I.8** Build `ShipmentDetailView` â€” view single shipment details
   - All shipment fields, tracking timeline, label download, tracking sync button
 - [x] **5-I.9** Add admin sidebar navigation link for "Shipping"
   - Icon: TruckIcon from Heroicons
@@ -1071,7 +1071,7 @@ Once PayU + COD are production-solid:
 
 ---
 
-### Step 5-J — Retry, Timeout, and Caching (Hardening)
+### Step 5-J â€” Retry, Timeout, and Caching (Hardening)
 
 > **WHY:** Provider APIs can fail transiently. Without retry and caching, every failure is permanent and every identical request hits external APIs.
 
@@ -1097,7 +1097,7 @@ Once PayU + COD are production-solid:
 - [x] A transient 5xx error from Shiprocket is retried and succeeds on second attempt
 - [x] A 400 error is NOT retried (fails immediately)
 - [x] Rate cache is populated after first `POST /shipments/rates` call
-- [x] Second identical call returns cached data (no external API hit — verify via logs)
+- [x] Second identical call returns cached data (no external API hit â€” verify via logs)
 - [x] 11th serviceability request within 1 minute returns 429
 
 ---
@@ -1109,11 +1109,11 @@ Once PayU + COD are production-solid:
 - [x] Warehouse module exists with admin CRUD + default warehouse
 - [x] `POST /shipping/serviceability` endpoint works with Redis caching
 - [x] All 3 providers have `checkServiceability()`, `requestPickup()`, `verifyWebhookSignature()`
-- [x] Webhook handler is REAL — processes events, deduplicates, normalizes status, updates order
+- [x] Webhook handler is REAL â€” processes events, deduplicates, normalizes status, updates order
 - [x] Frontend checkout Step 2 checks pincode serviceability and blocks if not available
 - [x] Frontend tracking page at `/account/orders/[orderId]/tracking` shows timeline
 - [x] Admin shipping dashboard at `/admin/shipping` with shipment list, rate comparison, label printing
-- [x] Admin can fulfill an order: see rates → select courier → generate shipment → print label → request pickup
+- [x] Admin can fulfill an order: see rates â†’ select courier â†’ generate shipment â†’ print label â†’ request pickup
 - [x] Warehouse management works in admin panel
 - [x] Retry wrapper handles transient failures with exponential backoff
 - [x] Serviceability and rate results are cached in Redis
@@ -1122,9 +1122,9 @@ Once PayU + COD are production-solid:
 
 ---
 
-## Phase 6 — Order Lifecycle & Returns
+## Phase 6 â€” Order Lifecycle & Returns
 
-**Status:** ✅ COMPLETED
+**Status:** âœ… COMPLETED
 **Modules:** Order Management (9)
 **Depends on:** Phase 4 (payment), Phase 5 (shipping)
 
@@ -1134,17 +1134,17 @@ Once PayU + COD are production-solid:
   - Add: `packed`, `return_requested`, `return_approved`, `return_picked`, `returned`
   - Update `packages/shared-types/src/order.types.ts`
 - [x] **6.2** Build admin order management endpoints
-  - `PUT /admin/orders/:id/status` — transition order status with validation rules
-  - `POST /admin/orders/:id/notes` — add internal note
-  - `GET /admin/orders` — list all orders with filters (status, date range, customer)
+  - `PUT /admin/orders/:id/status` â€” transition order status with validation rules
+  - `POST /admin/orders/:id/notes` â€” add internal note
+  - `GET /admin/orders` â€” list all orders with filters (status, date range, customer)
 - [x] **6.3** Build returns workflow
-  - `POST /orders/:id/return` — customer requests return (reason, images)
-  - `PUT /admin/orders/:id/return` — admin approves/rejects
+  - `POST /orders/:id/return` â€” customer requests return (reason, images)
+  - `PUT /admin/orders/:id/return` â€” admin approves/rejects
   - Auto-trigger reverse shipment on approval
   - Auto-trigger refund on return receipt
 - [x] **6.4** Build PDF invoice generation
   - GST-compliant invoice with: company details, customer details, items, taxes, totals
-  - `GET /orders/:id/invoice` — returns PDF
+  - `GET /orders/:id/invoice` â€” returns PDF
   - Store generated PDF in S3
 - [x] **6.5** Add `notes` field to Order model
   - Array of `{text, author, timestamp}`
@@ -1163,107 +1163,107 @@ Once PayU + COD are production-solid:
 ### Verification
 
 - [x] Order status transitions follow valid paths
-- [x] Return request → approval → refund flow works end-to-end
+- [x] Return request â†’ approval â†’ refund flow works end-to-end
 - [x] PDF invoices generate with correct GST details
 - [x] Admin notes persist and display correctly
 
 ---
 
-## Phase 7 — Customer Account Enhancement
+## Phase 7 â€” Customer Account Enhancement
 
-**Status:** 🔄 IN PROGRESS
+**Status:** âœ… COMPLETED
 **Modules:** Customer Account (6)
 **Depends on:** Phase 5 (tracking), Phase 6 (returns, invoices)
 
 ### Backend Tasks
 
 - [x] **7.1** Build forgot password flow
-  - `POST /auth/forgot-password` — sends reset email with token via SES
-  - `POST /auth/reset-password` — validates token, sets new password
+  - `POST /auth/forgot-password` â€” sends reset email with token via SES
+  - `POST /auth/reset-password` â€” validates token, sets new password
   - Token stored in Redis with 1-hour expiry
-- [ ] **7.2** Build change password endpoint
-  - `PUT /users/me/password` — requires current password + new password
-- [ ] **7.3** Build guest checkout support
+- [x] **7.2** Build change password endpoint
+  - `PUT /users/me/password` â€” requires current password + new password
+- [x] **7.3** Build guest checkout support
   - `POST /orders` accepts `guestEmail` without auth token
   - Creates temporary guest record or order without userId
   - Send order confirmation to guest email
 - [x] **7.8** Build profile management & addresses endpoints
-  - `GET /users/me` — fetch full user profile
-  - `PUT /users/me` — update name, phone, etc.
-  - `POST /users/me/addresses` — add new shipping/billing address
-  - `PUT /users/me/addresses/:id` — edit address
-  - `DELETE /users/me/addresses/:id` — remove address
-- [/] **7.9** Build wishlist & saved carts endpoints
-  - `GET /users/me/wishlist` — fetch saved products
-  - `POST /users/me/wishlist` — add product to wishlist
-  - `DELETE /users/me/wishlist/:productId` — remove from wishlist
-  - `POST /users/me/saved-carts` — save current cart state for later
+  - `GET /users/me` â€” fetch full user profile
+  - `PUT /users/me` â€” update name, phone, etc.
+  - `POST /users/me/addresses` â€” add new shipping/billing address
+  - `PUT /users/me/addresses/:id` â€” edit address
+  - `DELETE /users/me/addresses/:id` â€” remove address
+- [x] **7.9** Build wishlist & saved carts endpoints
+  - `GET /users/me/wishlist` â€” fetch saved products
+  - `POST /users/me/wishlist` â€” add product to wishlist
+  - `DELETE /users/me/wishlist/:productId` â€” remove from wishlist
+  - `POST /users/me/saved-carts` â€” save current cart state for later
 
 ### Frontend Tasks
 
 - [x] **7.4** Build forgot password page
-  - `/forgot-password` — email input form
-  - `/reset-password?token=...` — new password form
-- [ ] **7.5** Build change password section in account
+  - `/forgot-password` â€” email input form
+  - `/reset-password?token=...` â€” new password form
+- [x] **7.5** Build change password section in account
   - Current password + new password + confirm password form
-- [ ] **7.6** Enhance order history page
+- [x] **7.6** Enhance order history page
   - Show order status with visual progress bar
   - "Track Order" button (links to tracking page from Phase 5)
   - "Download Invoice" button (from Phase 6)
   - "Request Return" button (from Phase 6)
-- [ ] **7.7** Build guest checkout flow
+- [x] **7.7** Build guest checkout flow
   - Email input at checkout start
   - No login required to complete purchase
 - [x] **7.10** Build profile management & addresses UI
-  - `/account/profile` — form to update user details
-  - `/account/addresses` — list of addresses with Add/Edit/Delete modals
-- [/] **7.11** Build wishlist & saved carts UI
-  - `/account/wishlist` — grid of saved products with "Move to Cart" button
+  - `/account/profile` â€” form to update user details
+  - `/account/addresses` â€” list of addresses with Add/Edit/Delete modals
+- [x] **7.11** Build wishlist & saved carts UI
+  - `/account/wishlist` â€” grid of saved products with "Move to Cart" button
   - Heart icon on product cards to toggle wishlist
-  - `/account/saved-carts` — list of saved cart sessions
+  - `/account/saved-carts` â€” list of saved cart sessions
 
 ### Verification
 
-- [ ] Forgot password email arrives with valid reset link
-- [ ] Password reset works and old password is invalidated
-- [ ] Guest can complete checkout without registration
-- [ ] Order history shows all status, tracking, invoice, return actions
-- [ ] Profile updates and address management persist correctly
-- [ ] Wishlist toggle works and displays on `/account/wishlist`
+- [x] Forgot password email arrives with valid reset link
+- [x] Password reset works and old password is invalidated
+- [x] Guest can complete checkout without registration
+- [x] Order history shows all status, tracking, invoice, return actions
+- [x] Profile updates and address management persist correctly
+- [x] Wishlist toggle works and displays on `/account/wishlist`
 
 ---
 
-## Phase 8 — Notifications & WhatsApp
+## Phase 8 â€” Notifications & WhatsApp
 
-**Status:** ⬜ NOT STARTED
+**Status:** â¬œ NOT STARTED
 **Modules:** Notification (25), WhatsApp Automation (12)
 **Depends on:** Phase 6 (order lifecycle events to trigger notifications)
 
 ### Backend Tasks
 
 - [ ] **8.1** Build WhatsApp provider abstraction layer
-  - Create `backend/src/core/whatsapp/WhatsAppProvider.ts` — abstract interface
+  - Create `backend/src/core/whatsapp/WhatsAppProvider.ts` â€” abstract interface
   - Methods: `sendTemplate()`, `sendMessage()`, `getTemplateStatus()`
-  - Create `backend/src/core/whatsapp/MetaCloudProvider.ts` — Meta Cloud API implementation
-  - Factory: `WhatsAppProviderFactory.create(providerName)` — easily swap providers later
+  - Create `backend/src/core/whatsapp/MetaCloudProvider.ts` â€” Meta Cloud API implementation
+  - Factory: `WhatsAppProviderFactory.create(providerName)` â€” easily swap providers later
 - [ ] **8.2** Build `notification` module
-  - `notification.model.ts` — userId, channel (email/whatsapp/push), type, status, sentAt
+  - `notification.model.ts` â€” userId, channel (email/whatsapp/push), type, status, sentAt
   - Centralized dispatch service: `NotificationService.send(userId, event, data)`
   - Routes events to appropriate channel(s) based on user preferences
 - [ ] **8.3** Build WhatsApp template management
   - Store approved template IDs in Settings or dedicated model
   - Templates: order_confirmation, shipping_update, delivery_notification, abandoned_cart, promotional
 - [ ] **8.4** Hook notifications into order lifecycle
-  - Order placed → email + WhatsApp confirmation
-  - Order shipped → email + WhatsApp with tracking link
-  - Order delivered → email + WhatsApp
-  - Payment failed → email notification
+  - Order placed â†’ email + WhatsApp confirmation
+  - Order shipped â†’ email + WhatsApp with tracking link
+  - Order delivered â†’ email + WhatsApp
+  - Payment failed â†’ email notification
 - [ ] **8.5** Build abandoned cart detection
   - Cron job: find carts with items, no order, last updated > 1 hour
   - Send WhatsApp reminder with cart summary
 - [ ] **8.6** Build admin notification dashboard
-  - `GET /admin/notifications` — sent notifications log
-  - `POST /admin/notifications/campaign` — send promotional WhatsApp to segment
+  - `GET /admin/notifications` â€” sent notifications log
+  - `POST /admin/notifications/campaign` â€” send promotional WhatsApp to segment
 
 ### Frontend Tasks
 
@@ -1281,34 +1281,34 @@ Once PayU + COD are production-solid:
 
 ---
 
-## Phase 9 — Email & Newsletter
+## Phase 9 â€” Email & Newsletter
 
-**Status:** ⬜ NOT STARTED
+**Status:** â¬œ NOT STARTED
 **Modules:** Email & Newsletter (13)
 **Depends on:** Phase 8 (notification infrastructure)
 
-> **Enterprise Newsletter System:** Template-based with predefined blocks — header, text block, image block, CTA button, product grid, social links, footer. Admin arranges blocks, fills content, schedules send. Think Mailchimp-style but custom-built.
+> **Enterprise Newsletter System:** Template-based with predefined blocks â€” header, text block, image block, CTA button, product grid, social links, footer. Admin arranges blocks, fills content, schedules send. Think Mailchimp-style but custom-built.
 
 ### Backend Tasks
 
 - [ ] **9.1** Build `newsletter` module (6-file DDD pattern)
-  - `subscriber.model.ts` — email, name, isActive, subscribedAt, source
-  - `campaign.model.ts` — subject, blocks[] (ordered content blocks), scheduledAt, sentAt, status
-  - `newsletter-template.model.ts` — reusable template presets
+  - `subscriber.model.ts` â€” email, name, isActive, subscribedAt, source
+  - `campaign.model.ts` â€” subject, blocks[] (ordered content blocks), scheduledAt, sentAt, status
+  - `newsletter-template.model.ts` â€” reusable template presets
 - [ ] **9.2** Build subscriber management endpoints
-  - `POST /newsletter/subscribe` — public endpoint
-  - `POST /newsletter/unsubscribe` — with token verification
-  - `GET /admin/newsletter/subscribers` — paginated list with export
-  - `POST /admin/newsletter/subscribers/import` — CSV import
+  - `POST /newsletter/subscribe` â€” public endpoint
+  - `POST /newsletter/unsubscribe` â€” with token verification
+  - `GET /admin/newsletter/subscribers` â€” paginated list with export
+  - `POST /admin/newsletter/subscribers/import` â€” CSV import
 - [ ] **9.3** Build campaign management endpoints
-  - `POST /admin/newsletter/campaigns` — create campaign with content blocks
-  - `PUT /admin/newsletter/campaigns/:id` — edit
-  - `POST /admin/newsletter/campaigns/:id/send` — send immediately
-  - `POST /admin/newsletter/campaigns/:id/schedule` — schedule via BullMQ delayed job
-  - `POST /admin/newsletter/campaigns/:id/test` — send test to admin email
+  - `POST /admin/newsletter/campaigns` â€” create campaign with content blocks
+  - `PUT /admin/newsletter/campaigns/:id` â€” edit
+  - `POST /admin/newsletter/campaigns/:id/send` â€” send immediately
+  - `POST /admin/newsletter/campaigns/:id/schedule` â€” schedule via BullMQ delayed job
+  - `POST /admin/newsletter/campaigns/:id/test` â€” send test to admin email
 - [ ] **9.4** Build email template engine
   - HTML email templates using block-based rendering
-  - Block types: header (logo + title), richText, image (with alt), ctaButton (text + url), productGrid (SKUs → rendered product cards), socialLinks, footer
+  - Block types: header (logo + title), richText, image (with alt), ctaButton (text + url), productGrid (SKUs â†’ rendered product cards), socialLinks, footer
   - Responsive email HTML (tables-based for email client compatibility)
 - [ ] **9.5** Build transactional email templates
   - Welcome email, order confirmation, shipping update, delivery, password reset, return confirmation
@@ -1343,26 +1343,26 @@ Once PayU + COD are production-solid:
 
 ---
 
-## Phase 10 — Blog
+## Phase 10 â€” Blog
 
-**Status:** ⬜ NOT STARTED
+**Status:** â¬œ NOT STARTED
 **Modules:** Blog (14)
-**Depends on:** Phase 13 (media management for image/video uploads — can start in parallel)
+**Depends on:** Phase 13 (media management for image/video uploads â€” can start in parallel)
 
 ### Backend Tasks
 
 - [x] **10.1** Build `blog` module (6-file DDD pattern)
-  - `blog-post.model.ts` — title, slug, content (JSON from TipTap), excerpt, featuredImage, videoUrl, categoryId, tags[], author, status (draft/published), publishedAt, metaTitle, metaDescription
-  - `blog-category.model.ts` — name, slug, description
+  - `blog-post.model.ts` â€” title, slug, content (JSON from TipTap), excerpt, featuredImage, videoUrl, categoryId, tags[], author, status (draft/published), publishedAt, metaTitle, metaDescription
+  - `blog-category.model.ts` â€” name, slug, description
   - Add to shared types: `IBlogPost`, `IBlogCategory`
 - [x] **10.2** Build blog CRUD endpoints
-  - `GET /blog/posts` — public paginated list (published only)
-  - `GET /blog/posts/:slug` — public single post
-  - `GET /blog/categories` — public list
+  - `GET /blog/posts` â€” public paginated list (published only)
+  - `GET /blog/posts/:slug` â€” public single post
+  - `GET /blog/categories` â€” public list
   - Admin CRUD for posts and categories
 - [x] **10.3** Build related posts logic
   - Based on shared tags or category
-  - `GET /blog/posts/:slug/related` — returns 3-4 related posts
+  - `GET /blog/posts/:slug/related` â€” returns 3-4 related posts
 
 ### Frontend Tasks
 
@@ -1392,24 +1392,24 @@ Once PayU + COD are production-solid:
 
 ---
 
-## Phase 11 — SEO
+## Phase 11 â€” SEO
 
-**Status:** 🔄 IN PROGRESS
+**Status:** âœ… COMPLETED
 **Modules:** SEO (15)
 **Depends on:** Phase 2 (product/category SEO fields), Phase 10 (blog URLs for sitemap)
 
 ### Tasks
 
 - [x] **11.1** Build dynamic `sitemap.xml` generation
-  - `frontend/app/sitemap.ts` — Next.js sitemap API
+  - `frontend/app/sitemap.ts` â€” Next.js sitemap API
   - Include: all products, categories, blog posts, static pages
   - Auto-update on content changes
 - [x] **11.2** Build `robots.txt`
-  - `frontend/app/robots.ts` — Next.js robots API
+  - `frontend/app/robots.ts` â€” Next.js robots API
   - Allow all crawlers, disallow `/admin`, `/api`, `/checkout`
   - Point to sitemap URL
 - [x] **11.3** Build `llms.txt`
-  - `frontend/app/llms.txt/route.ts` — served as plain text
+  - `frontend/app/llms.txt/route.ts` â€” served as plain text
   - Content: site name and description, product categories hierarchy, brand list, key page URLs (homepage, catalog, blog, support, policies), contact information, shipping & returns policy summary, structured for AI crawlers to understand site purpose and content
 - [x] **11.4** Add JSON-LD schema markup
   - [x] `Organization` & `OnlineStore` schema on homepage (unified graph with `@id: .../#organization` and DB settings)
@@ -1423,26 +1423,26 @@ Once PayU + COD are production-solid:
   - Blog pages: article metadata
 - [x] **11.6** Add canonical URLs on all pages
   - Via Next.js `metadata.alternates.canonical`
-- [ ] **11.7** Build Google product taxonomy mapping
+- [x] **11.7** Build Google product taxonomy mapping
   - Map store categories to Google product category IDs
   - Used in product feed (Phase 12)
-- [ ] **11.8** Enforce image ALT tags
+- [x] **11.8** Enforce image ALT tags
   - Audit all `<Image>` components for missing alt text
   - Add alt text from product `images[].altText` or generate from product name
 
 ### Verification
 
-- [ ] `sitemap.xml` lists all public URLs
-- [ ] `robots.txt` correctly blocks admin/API routes
-- [ ] `llms.txt` accessible and comprehensive
-- [ ] Google Rich Results Test validates JSON-LD schemas
-- [ ] Social sharing shows correct OG preview cards
+- [x] `sitemap.xml` lists all public URLs
+- [x] `robots.txt` correctly blocks admin/API routes
+- [x] `llms.txt` accessible and comprehensive
+- [x] Google Rich Results Test validates JSON-LD schemas
+- [x] Social sharing shows correct OG preview cards
 
 ---
 
-## Phase 12 — Analytics & Marketing
+## Phase 12 â€” Analytics & Marketing
 
-**Status:** 🔄 IN PROGRESS
+**Status:** ðŸ”„ IN PROGRESS
 **Modules:** Google & Facebook Integration (16), Product Feed (17)
 **Depends on:** Phase 11 (SEO taxonomy for feeds)
 
@@ -1462,11 +1462,11 @@ Once PayU + COD are production-solid:
   - Backend sends server events for: Purchase, AddToCart
   - Deduplication with client-side Pixel events via `eventID`
 - [ ] **12.5** Build Google Merchant product feed
-  - `GET /feed/google.xml` — XML feed with Google Shopping attributes
+  - `GET /feed/google.xml` â€” XML feed with Google Shopping attributes
   - Fields: id, title, description, link, image_link, price, availability, brand, gtin, google_product_category
   - Daily auto-generation via cron
 - [ ] **12.6** Build Facebook Catalogue feed
-  - `GET /feed/facebook.csv` — CSV with Facebook Commerce attributes
+  - `GET /feed/facebook.csv` â€” CSV with Facebook Commerce attributes
   - Daily auto-generation via cron
 
 ### Verification
@@ -1478,9 +1478,9 @@ Once PayU + COD are production-solid:
 
 ---
 
-## Phase 13 — Media Management
+## Phase 13 â€” Media Management
 
-**Status:** ⬜ NOT STARTED
+**Status:** â¬œ NOT STARTED
 **Modules:** Media Management (18)
 **Depends on:** Phase 1 (admin UI)
 
@@ -1492,11 +1492,11 @@ Once PayU + COD are production-solid:
   - Generate thumbnails (150px, 300px, 600px widths)
   - Store all variants in S3 with predictable naming
 - [ ] **13.2** Build media library model
-  - `media.model.ts` — originalUrl, webpUrl, thumbnails{}, fileName, fileType, fileSize, altText, folder, uploadedBy, createdAt
-  - `GET /admin/media` — paginated media library with search
-  - `DELETE /admin/media/:id` — soft delete
+  - `media.model.ts` â€” originalUrl, webpUrl, thumbnails{}, fileName, fileType, fileSize, altText, folder, uploadedBy, createdAt
+  - `GET /admin/media` â€” paginated media library with search
+  - `DELETE /admin/media/:id` â€” soft delete
 - [ ] **13.3** Build bulk upload endpoint
-  - `POST /admin/media/bulk-upload` — returns array of presigned URLs
+  - `POST /admin/media/bulk-upload` â€” returns array of presigned URLs
   - Frontend uploads in parallel with progress tracking
 
 ### Frontend Tasks
@@ -1521,28 +1521,28 @@ Once PayU + COD are production-solid:
 
 ---
 
-## Phase 14 — Homepage & UI Polish
+## Phase 14 â€” Homepage & UI Polish
 
-**Status:** ⬜ NOT STARTED
+**Status:** â¬œ NOT STARTED
 **Modules:** Homepage (1), Product Detail enhancements, Recommendation Engine
 **Depends on:** Phase 2 (brands, featured products), Phase 9 (newsletter subscription)
 
 ---
 
-### 14.R — "You May Also Like" Robust Recommendation Engine (PDP)
+### 14.R â€” "You May Also Like" Robust Recommendation Engine (PDP)
 
-> **⚠️ ENTERPRISE-GRADE:** Rule-based recommendation engine (no AI/ML). Deterministic, cacheable, per-product unique results.
+> **âš ï¸ ENTERPRISE-GRADE:** Rule-based recommendation engine (no AI/ML). Deterministic, cacheable, per-product unique results.
 > Replaces the current basic `upsellSkus`-only approach with a smart 3-tier fallback system.
 
 #### Problem Statement
 
 The current "You May Also Like" section on PDP depends entirely on the CSV `upsell_skus` field:
-- Many products have **empty** `upsellSkus` → section doesn't show at all
-- Some products have only **2-3** `upsellSkus` → section looks sparse
-- Different products in the same category/price range show **identical** recommendations → boring UX
+- Many products have **empty** `upsellSkus` â†’ section doesn't show at all
+- Some products have only **2-3** `upsellSkus` â†’ section looks sparse
+- Different products in the same category/price range show **identical** recommendations â†’ boring UX
 - No brand diversity, no price-range awareness, no cross-category mix
 
-#### Architecture — How It Works
+#### Architecture â€” How It Works
 
 **Goal:** Always show exactly **8 relevant products** on every PDP, with per-product unique results.
 
@@ -1552,23 +1552,23 @@ The current "You May Also Like" section on PDP depends entirely on the CSV `upse
 |---|---|---|
 | Tier 1 | CSV `upsellSkus` (admin-curated) | Use all available from database (0-8 products) |
 | Tier 2 | Same category products | Fill remaining slots from same `magentoCategories` keyword match |
-| Tier 3 | Cross-category complementary | Last 2 slots from related gear categories (Helmet → Gloves, Visor, etc.) |
+| Tier 3 | Cross-category complementary | Last 2 slots from related gear categories (Helmet â†’ Gloves, Visor, etc.) |
 
 **Deterministic Seed Shuffle (Per-Product Unique Results):**
 - Backend fetches a **pool of 20-25 eligible products** from DB
 - Uses the current product's `_id` as a **hash seed** to deterministically pick 8 from the pool
-- Same product → always same 8 recommendations (no hydration errors, cacheable)
-- Different product → different 8 recommendations (fresh UX every time)
-- This is NOT `Math.random()` — it's a hash-based deterministic selection safe for SSR
+- Same product â†’ always same 8 recommendations (no hydration errors, cacheable)
+- Different product â†’ different 8 recommendations (fresh UX every time)
+- This is NOT `Math.random()` â€” it's a hash-based deterministic selection safe for SSR
 
 **Diversity Rules (applied during selection from pool):**
 
 | Rule | Description |
 |---|---|
-| Brand cap (global) | Max 3 products from same brand across ALL tiers combined. CSV is sacred (always included even if it exceeds cap). Auto-fill (Tier 2) uses remaining budget: `allowed = max(0, 3 - csv_brand_count)`. Example: CSV has 2 Axor → Tier 2 can add 1 more Axor + fill rest with other brands |
+| Brand cap (global) | Max 3 products from same brand across ALL tiers combined. CSV is sacred (always included even if it exceeds cap). Auto-fill (Tier 2) uses remaining budget: `allowed = max(0, 3 - csv_brand_count)`. Example: CSV has 2 Axor â†’ Tier 2 can add 1 more Axor + fill rest with other brands |
 | Brand diversity | At least 2 different brands in the 8 results |
-| Price range | ±40% of current product's price (₹4,000 helmet → pool from ₹2,400 to ₹5,600) |
-| Cross-category slots | 2 of the 8 come from complementary categories (Helmet → Gloves/Visor/Jacket) |
+| Price range | Â±40% of current product's price (â‚¹4,000 helmet â†’ pool from â‚¹2,400 to â‚¹5,600) |
+| Cross-category slots | 2 of the 8 come from complementary categories (Helmet â†’ Gloves/Visor/Jacket) |
 | Self-exclusion | Current product never appears in its own recommendations |
 | In-stock only | Only products with `stockStatus: 1` are included |
 
@@ -1577,9 +1577,9 @@ The current "You May Also Like" section on PDP depends entirely on the CSV `upse
 | Priority | When |
 |---|---|
 | `salesCount DESC` | When sales data exists (products have been sold) |
-| `_id DESC` (newest first) | Cold start — no sales data yet, show latest products |
+| `_id DESC` (newest first) | Cold start â€” no sales data yet, show latest products |
 
-**Caching Strategy — "IDs Cache, Data Fresh":**
+**Caching Strategy â€” "IDs Cache, Data Fresh":**
 
 > **CRITICAL:** Cache only the **list of 8 product IDs** in Redis, NOT the full product data.
 > When serving, always fetch **fresh product data** from MongoDB for those 8 IDs.
@@ -1591,16 +1591,16 @@ Redis Value: ["id1", "id2", "id3", "id4", "id5", "id6", "id7", "id8"]
 TTL:         1 hour (auto-expire, NO manual cache invalidation needed)
 
 Serve Flow:
-  Step 1: Check Redis for cached IDs                          → ~2ms
-  Step 2: If HIT → Fetch fresh product data for 8 IDs ($in)  → ~5ms
-  Step 3: Filter out deleted/out-of-stock products            → instant
-  Step 4: Return live data                                    → Total ~7ms
+  Step 1: Check Redis for cached IDs                          â†’ ~2ms
+  Step 2: If HIT â†’ Fetch fresh product data for 8 IDs ($in)  â†’ ~5ms
+  Step 3: Filter out deleted/out-of-stock products            â†’ instant
+  Step 4: Return live data                                    â†’ Total ~7ms
 
-  Step 2b: If MISS → Run pool generation + shuffle (expensive) → ~30ms
-         → Save 8 IDs to Redis (TTL 1hr)
-         → Fetch fresh data → Return
+  Step 2b: If MISS â†’ Run pool generation + shuffle (expensive) â†’ ~30ms
+         â†’ Save 8 IDs to Redis (TTL 1hr)
+         â†’ Fetch fresh data â†’ Return
 
-  If Redis is down → try-catch → serve directly from DB (no crash)
+  If Redis is down â†’ try-catch â†’ serve directly from DB (no crash)
 ```
 
 **Why no manual cache invalidation:**
@@ -1608,7 +1608,7 @@ Serve Flow:
 - The cheap part (fetching 8 products by `_id`) always hits DB for fresh data
 - Deleted/OOS products are filtered out on every request (instant)
 - When cache TTL expires after 1 hour, pool recomputes with any new products added
-- Zero cache invalidation bugs possible — simplest and most robust approach
+- Zero cache invalidation bugs possible â€” simplest and most robust approach
 
 **Edge Cases Handled:**
 
@@ -1618,28 +1618,28 @@ Serve Flow:
 | Product has 3 upsellSkus | Use those 3, fill remaining 5 from Tier 2+3 |
 | Product has 8+ upsellSkus | Use first 8 from upsellSkus, no Tier 2/3 needed |
 | Category has < 6 products | Use whatever is available, fill rest from Tier 3 cross-category |
-| Price range too narrow (few matches) | Widen to ±60%, then ±80%, then no price filter |
-| Product deleted from DB | Filtered out at Step 3 — not shown, no dead link |
-| Product goes out of stock | Filtered out at Step 3 — removed instantly |
-| Price changed | Step 2 fetches fresh data — new price shown instantly |
+| Price range too narrow (few matches) | Widen to Â±60%, then Â±80%, then no price filter |
+| Product deleted from DB | Filtered out at Step 3 â€” not shown, no dead link |
+| Product goes out of stock | Filtered out at Step 3 â€” removed instantly |
+| Price changed | Step 2 fetches fresh data â€” new price shown instantly |
 | New product added to category | Shows up after cache TTL expires (max 1 hour) |
-| Redis down | try-catch fallback to direct DB query — no error to user |
-| All 8 cached products deleted | Return whatever remains (6, 4, etc.) — graceful degradation |
+| Redis down | try-catch fallback to direct DB query â€” no error to user |
+| All 8 cached products deleted | Return whatever remains (6, 4, etc.) â€” graceful degradation |
 | Cold start (no sales data) | Sort by `_id DESC` (newest products first) instead of salesCount |
-| Product `brand` is empty/null | Use `brand \|\| "unknown"` — diversity logic won't crash, treats as one brand |
-| Product `magentoCategories` is empty | Skip Tier 2 category match → fill all remaining from Tier 3 cross-category |
-| Product `basePrice` is 0 or null | Skip price range filter entirely → match all prices in category |
+| Product `brand` is empty/null | Use `brand \|\| "unknown"` â€” diversity logic won't crash, treats as one brand |
+| Product `magentoCategories` is empty | Skip Tier 2 category match â†’ fill all remaining from Tier 3 cross-category |
+| Product `basePrice` is 0 or null | Skip price range filter entirely â†’ match all prices in category |
 
 **DSA Algorithms Used (Exact Specifications):**
 
-> **⚠️ These are the exact algorithms to implement. No `Math.random()` anywhere.**
+> **âš ï¸ These are the exact algorithms to implement. No `Math.random()` anywhere.**
 
 | DSA Concept | Where Used | Algorithm | Complexity |
 |---|---|---|---|
-| **Seeded Fisher-Yates Shuffle** | Pick 8 from pool of 20-25 | Use product `_id` string → `crypto.createHash('md5').update(id).digest()` → extract 32-bit integer as seed → Fisher-Yates with modular arithmetic instead of `Math.random()` | O(n) time, O(1) extra space |
-| **HashSet (Set\<string\>)** | Deduplication across 3 tiers | `const seen = new Set<string>()` → before adding any product, check `seen.has(id)` → prevents same product appearing from Tier 1 and Tier 2 | O(1) per lookup |
-| **Greedy Selection** | Brand diversity enforcement | Iterate shuffled pool → maintain `brandCount: Map<string, number>` → skip product if `brandCount.get(brand) >= 3` → ensures max 3 per brand | O(n) single pass |
-| **Progressive Widening** | Price range fallback | Try ±40% → if pool < 8, try ±60% → if still < 8, try ±80% → if still < 8, no price filter | Max 4 DB queries (rare) |
+| **Seeded Fisher-Yates Shuffle** | Pick 8 from pool of 20-25 | Use product `_id` string â†’ `crypto.createHash('md5').update(id).digest()` â†’ extract 32-bit integer as seed â†’ Fisher-Yates with modular arithmetic instead of `Math.random()` | O(n) time, O(1) extra space |
+| **HashSet (Set\<string\>)** | Deduplication across 3 tiers | `const seen = new Set<string>()` â†’ before adding any product, check `seen.has(id)` â†’ prevents same product appearing from Tier 1 and Tier 2 | O(1) per lookup |
+| **Greedy Selection** | Brand diversity enforcement | Iterate shuffled pool â†’ maintain `brandCount: Map<string, number>` â†’ skip product if `brandCount.get(brand) >= 3` â†’ ensures max 3 per brand | O(n) single pass |
+| **Progressive Widening** | Price range fallback | Try Â±40% â†’ if pool < 8, try Â±60% â†’ if still < 8, try Â±80% â†’ if still < 8, no price filter | Max 4 DB queries (rare) |
 
 **Seeded Fisher-Yates Implementation Pseudocode:**
 ```
@@ -1648,7 +1648,7 @@ function seededShuffle(array, seedString):
   hash = crypto.createHash('md5').update(seedString).digest()
   seed = hash.readUInt32BE(0)  // First 4 bytes as unsigned 32-bit integer
   
-  // Simple seeded PRNG (Mulberry32 — fast, good distribution)
+  // Simple seeded PRNG (Mulberry32 â€” fast, good distribution)
   function nextRandom():
     seed = (seed + 0x6D2B79F5) | 0
     t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
@@ -1665,10 +1665,10 @@ function seededShuffle(array, seedString):
 
 **MongoDB Compound Index Required:**
 
-> **⚠️ MUST add before deploying. Without this index, pool query will be 500ms+ instead of 15ms.**
+> **âš ï¸ MUST add before deploying. Without this index, pool query will be 500ms+ instead of 15ms.**
 
 ```javascript
-// Add to product.model.ts — compound index for recommendation pool query
+// Add to product.model.ts â€” compound index for recommendation pool query
 ProductSchema.index(
   { stockStatus: 1, salesCount: -1, _id: -1 },
   { name: "idx_recommendations_pool" }
@@ -1680,14 +1680,14 @@ This index covers the `stockStatus: 1` filter + `salesCount DESC, _id DESC` sort
 
 > When cache expires and 100 users hit the same product simultaneously, ALL 100 will miss cache and run the expensive pool query. This is called "cache stampede" or "thundering herd."
 
-**Solution — Stale-While-Recompute with Short Lock:**
+**Solution â€” Stale-While-Recompute with Short Lock:**
 ```
 Step 1: Cache MISS detected
 Step 2: Set a temporary Redis key "lock:rec:{slug}" with TTL 5 seconds
-Step 3: If lock already exists → serve stale data (read expired key with GET, Redis keeps it briefly) OR skip cache and serve from DB (acceptable for 5 seconds)
-Step 4: If lock acquired → compute pool → save to cache → delete lock
+Step 3: If lock already exists â†’ serve stale data (read expired key with GET, Redis keeps it briefly) OR skip cache and serve from DB (acceptable for 5 seconds)
+Step 4: If lock acquired â†’ compute pool â†’ save to cache â†’ delete lock
 ```
-Alternative simpler approach: **Just accept it.** The pool query is only ~30ms. Even 100 concurrent queries = 100 × 30ms = handled easily by MongoDB. Cache stampede is only a real problem when queries take 500ms+. For 30ms queries, the simpler approach is fine.
+Alternative simpler approach: **Just accept it.** The pool query is only ~30ms. Even 100 concurrent queries = 100 Ã— 30ms = handled easily by MongoDB. Cache stampede is only a real problem when queries take 500ms+. For 30ms queries, the simpler approach is fine.
 
 **Decision: Use the simpler approach** (no lock). The query is fast enough. Over-engineering stampede prevention for a 30ms query adds complexity without meaningful benefit.
 
@@ -1718,7 +1718,7 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
   - Matches: `magentoCategories` regex OR `name` regex for category keywords
   - Sort: `salesCount DESC, _id DESC` (bestsellers first, newest as tiebreaker/cold-start)
   - Returns: lean products with `.select("name slug sku basePrice specialPrice images brand magentoCategories stockStatus")`
-  - Uses `.lean().exec()` — no Mongoose document overhead
+  - Uses `.lean().exec()` â€” no Mongoose document overhead
 
 - [ ] **14.R.2** Add `findCrossCategoryProducts()` to `product.repository.ts`
   - Reuses existing `findComplementaryGear()` pattern but with price-range and stock filters
@@ -1728,7 +1728,7 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
 - [ ] **14.R.3** Add `getRecommendations(slug)` to `backend/src/modules/product/product.service.ts`
   - Full business logic orchestrator:
     1. Fetch current product by slug (get `_id`, `brand`, `basePrice`, `magentoCategories`, `upsellSkus`)
-    2. Calculate price range: `basePrice * 0.6` to `basePrice * 1.4` (±40%)
+    2. Calculate price range: `basePrice * 0.6` to `basePrice * 1.4` (Â±40%)
     3. Detect category keywords from `magentoCategories` (reuse existing keyword detection from `getKitRecommendations`)
     4. **Tier 1:** Fetch upsellSku products via `findBySkus()` (existing method)
     5. **Tier 2:** If < 6 products, call `findRecommendationPool()` for same-category products
@@ -1737,10 +1737,10 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
     8. **Apply Diversity Rules:** Max 3 per brand, ensure 2+ brands, self-exclude
     9. **Seed Shuffle:** Use product `_id` string hash to deterministically pick exactly 8 from merged pool
     10. Return 8 product IDs
-  - **Caching:** Check Redis `recommendations:{slug}` first → if HIT, use cached IDs → fetch fresh product data via `$in` query → filter deleted/OOS → return
-  - **Cache MISS:** Run full pipeline above → save 8 IDs to Redis with TTL 1 hour → return fresh data
-  - **Redis error:** try-catch → fallback to direct DB pipeline (no crash)
-  - **Price range widening:** If pool < 8 after ±40%, widen to ±60%, then ±80%, then no filter
+  - **Caching:** Check Redis `recommendations:{slug}` first â†’ if HIT, use cached IDs â†’ fetch fresh product data via `$in` query â†’ filter deleted/OOS â†’ return
+  - **Cache MISS:** Run full pipeline above â†’ save 8 IDs to Redis with TTL 1 hour â†’ return fresh data
+  - **Redis error:** try-catch â†’ fallback to direct DB pipeline (no crash)
+  - **Price range widening:** If pool < 8 after Â±40%, widen to Â±60%, then Â±80%, then no filter
 
 - [ ] **14.R.4** Add `getRecommendations` to `backend/src/modules/product/product.controller.ts`
   - Calls `ProductService.getRecommendations(slug)`
@@ -1772,7 +1772,7 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
   - Query key: `["recommendations", slug]`
   - Calls: `GET /products/${slug}/recommendations`
   - `enabled: !!slug`
-  - `staleTime: 300000` (5 minutes — recommendations don't change rapidly)
+  - `staleTime: 300000` (5 minutes â€” recommendations don't change rapidly)
 
 - [ ] **14.R.10** Update `frontend/src/modules/product-detail/components/ProductDetailPageModule.tsx`
   - Replace `useProductsBySkus(upsellSkus)` with `useRecommendations(slug)`
@@ -1782,18 +1782,18 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
 
 #### Verification
 
-- [ ] **V1:** Product WITH upsellSkus → shows mix of curated + category + cross-category = 8 total
-- [ ] **V2:** Product WITHOUT upsellSkus → shows 6 category + 2 cross-category = 8 total
-- [ ] **V3:** Two different products in same category/price → recommendations are DIFFERENT (seed shuffle works)
-- [ ] **V4:** Same product refreshed 10 times → recommendations are IDENTICAL (deterministic, no hydration error)
-- [ ] **V5:** Product deleted from DB → disappears from recommendations immediately (live data fetch)
-- [ ] **V6:** Product price changed → new price shows immediately in recommendations
-- [ ] **V7:** Product goes out of stock → removed from recommendations immediately
-- [ ] **V8:** Redis down → recommendations still load from DB (graceful fallback)
-- [ ] **V9:** Category has < 6 products → fills with cross-category, no empty slots
+- [ ] **V1:** Product WITH upsellSkus â†’ shows mix of curated + category + cross-category = 8 total
+- [ ] **V2:** Product WITHOUT upsellSkus â†’ shows 6 category + 2 cross-category = 8 total
+- [ ] **V3:** Two different products in same category/price â†’ recommendations are DIFFERENT (seed shuffle works)
+- [ ] **V4:** Same product refreshed 10 times â†’ recommendations are IDENTICAL (deterministic, no hydration error)
+- [ ] **V5:** Product deleted from DB â†’ disappears from recommendations immediately (live data fetch)
+- [ ] **V6:** Product price changed â†’ new price shows immediately in recommendations
+- [ ] **V7:** Product goes out of stock â†’ removed from recommendations immediately
+- [ ] **V8:** Redis down â†’ recommendations still load from DB (graceful fallback)
+- [ ] **V9:** Category has < 6 products â†’ fills with cross-category, no empty slots
 - [ ] **V10:** Max 3 products from same brand in results (brand diversity enforced)
 - [ ] **V11:** API response time < 35ms (cached) and < 50ms (uncached)
-- [ ] **V12:** Cold start (all salesCount = 0) → shows newest products instead of empty
+- [ ] **V12:** Cold start (all salesCount = 0) â†’ shows newest products instead of empty
 
 ---
 
@@ -1809,9 +1809,9 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
   - Catalog Picker: Live search by SKU / Title to auto-fill card details and store category picker
   - Frontend: Storefront HeroSection and Homepage sections read dynamically from API with fallback defaults
 - [ ] **14.3** Build product comparison feature
-  - Frontend: `useCompareStore` (Zustand) — max 4 products
+  - Frontend: `useCompareStore` (Zustand) â€” max 4 products
   - "Add to Compare" button on product cards and PDP
-  - `/compare` page — side-by-side comparison table
+  - `/compare` page â€” side-by-side comparison table
 - [ ] **14.4** Enhance PDP with video support
   - YouTube embed player on PDP (if `videoUrl` is set)
   - Video tab or inline player below gallery
@@ -1831,9 +1831,9 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
 
 ---
 
-## Phase 15 — Data Migration
+## Phase 15 â€” Data Migration
 
-**Status:** 🔄 IN PROGRESS
+**Status:** ðŸ”„ IN PROGRESS
 **Modules:** Website Migration (23)
 **Depends on:** Phase 2 (brand model, enhanced product model)
 
@@ -1847,7 +1847,7 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
   - Generate detailed report: total records, successful, failed, warnings
   - Failed records saved to `migration-errors.csv` with row number and error reason
 - [x] **15.2** Migrate product data
-  - All products from Magento CSVs → MongoDB
+  - All products from Magento CSVs â†’ MongoDB
   - Map prices, images, variants, related SKUs, upsell SKUs
   - Verify image URLs resolve to S3
 - [x] **15.3** Auto-generate category tree
@@ -1879,9 +1879,9 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
 
 ---
 
-## Phase 16 — Security, Performance & Launch
+## Phase 16 â€” Security, Performance & Launch
 
-**Status:** ⬜ NOT STARTED
+**Status:** â¬œ NOT STARTED
 **Modules:** Security (21), Performance (22), Audit Logs
 **Depends on:** All previous phases
 
@@ -1894,9 +1894,9 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
   - Generate CSRF token on page load
   - Validate on all state-changing requests
 - [ ] **16.3** Build audit log system
-  - `audit-log.model.ts` — action, userId, resourceType, resourceId, oldValue, newValue, ip, timestamp
+  - `audit-log.model.ts` â€” action, userId, resourceType, resourceId, oldValue, newValue, ip, timestamp
   - Log all admin actions: product create/update/delete, order status changes, user role changes
-  - `GET /admin/audit-logs` — searchable, filterable log viewer
+  - `GET /admin/audit-logs` â€” searchable, filterable log viewer
 - [ ] **16.4** Security review
   - Audit all endpoints for NoSQL injection
   - Verify all inputs validated via Zod
@@ -1926,13 +1926,13 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
 ### Testing Tasks
 
 - [ ] **16.10** Write E2E tests for critical flows
-  - Login → Browse → Add to Cart → Checkout → Payment → Order Confirmation
-  - Admin: Login → Create Product → Manage Order
-  - Search → Filter → Sort → Product Detail
+  - Login â†’ Browse â†’ Add to Cart â†’ Checkout â†’ Payment â†’ Order Confirmation
+  - Admin: Login â†’ Create Product â†’ Manage Order
+  - Search â†’ Filter â†’ Sort â†’ Product Detail
 - [ ] **16.11** Run full test suite
-  - `pnpm test` — all unit tests pass
-  - `pnpm test:e2e` — all E2E tests pass
-  - `pnpm build` — both frontend and backend build without errors
+  - `pnpm test` â€” all unit tests pass
+  - `pnpm test:e2e` â€” all E2E tests pass
+  - `pnpm build` â€” both frontend and backend build without errors
 
 ### Launch Checklist
 
@@ -1960,6 +1960,6 @@ logger.warn(`[Recommendations] Redis error, falling back to DB`, { slug, error: 
 
 ---
 
-## Done! 🎉
+## Done! ðŸŽ‰
 
-When all 16 phases are marked `✅ COMPLETED`, the Store4Riders platform is production-ready with all 26 modules from the Scope of Work fully implemented.
+When all 16 phases are marked `âœ… COMPLETED`, the Store4Riders platform is production-ready with all 26 modules from the Scope of Work fully implemented.

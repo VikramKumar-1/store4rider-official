@@ -13,10 +13,11 @@ import Footer from "@/modules/homepage/components/Footer";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { ProductDetailProps } from "./types/product-detail.types";
 import { ProductGallery } from "./components/ProductGallery";
+import { normalizeColorKey } from "./components/ProductDetailPageModule";
 import { ProductInfo } from "./components/ProductInfo";
 import { StickyFooterBar } from "./components/StickyFooterBar";
 
-// Lazy-load below-fold components — don't block initial page render
+// Lazy-load below-fold components ÔÇö don't block initial page render
 const CompleteKitSlider = dynamic(() => import("./components/CompleteKitSlider").then(m => ({ default: m.CompleteKitSlider })), { ssr: false });
 const StoreReviews = dynamic(() => import("./components/StoreReviews").then(m => ({ default: m.StoreReviews })), { ssr: false });
 const DetailAndReviews = dynamic(() => import("./components/DetailAndReviews").then(m => ({ default: m.DetailAndReviews })), { ssr: false });
@@ -103,7 +104,17 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
     } else {
       setSelectedSize("");
     }
-  }, [product.slug, colorQuery, product.colors, product.sizes]);
+
+    // If page was loaded with a ?color= query parameter, clean the address bar
+    // so the user sees the canonical clean slug without sticky ?color= query strings,
+    // exactly matching legacy products (e.g. smk-gullwing-kresto-gloss-modular-helmet).
+    if (colorQuery && typeof window !== "undefined" && window.location.search.includes("color=")) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("color");
+      const cleanPath = url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : "") + url.hash;
+      window.history.replaceState(null, "", cleanPath);
+    }
+  }, [product.slug, colorQuery]);
 
   // Calculate disabled colors based on variant stock
   const disabledColors = React.useMemo(() => {
@@ -118,13 +129,13 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
           const kl = k.toLowerCase();
           return kl === 'color' || kl === 'colour' || kl.includes('color') || kl.includes('colour');
         })?.[1];
-        if (col) validColors.add(String(col).trim().toLowerCase());
+        if (col) validColors.add(normalizeColorKey(String(col)));
       }
     });
 
     if (validColors.size === 0) return [];
     
-    return (product.colors || []).map(c => c.name).filter(c => !validColors.has(c.toLowerCase()));
+    return (product.colors || []).map(c => c.name).filter(c => !validColors.has(normalizeColorKey(c)));
   }, [product.colors, product.rawVariants, product.allowBackorders]);
 
   // Calculate disabled sizes for the CURRENTLY selected color based on variant existence AND stock
@@ -140,7 +151,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         return kl === 'color' || kl === 'colour' || kl.includes('color') || kl.includes('colour');
       })?.[1] || "";
       
-      if (!selectedColor || String(col).trim().toLowerCase() === selectedColor.toLowerCase()) {
+      if (!selectedColor || normalizeColorKey(String(col)) === normalizeColorKey(selectedColor)) {
         // Only mark size as valid if stock is strictly > 0 OR backorders are allowed
         if (v.stock > 0 || product.allowBackorders) {
           const sz = Object.entries(attrs).find(([k]) => {
@@ -261,6 +272,10 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
           label: product.category, 
           href: product.categorySlug ? `/${product.categorySlug}` : `/${product.category.toLowerCase().replace(/\s+/g, '-')}` 
         }] : []),
+        ...(product.brand && product.brandSlug ? [{ 
+          label: product.brand.toUpperCase(), 
+          href: `/brands/${product.brandSlug}` 
+        }] : []),
         { label: product.name }
       ]} />
 
@@ -276,6 +291,9 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
               selectedSize={selectedSize}
               activeVariantImageUrl={activeVariant?.imageUrl}
               colorImages={product.colorImages}
+              colors={product.colors}
+              videoUrl={product.videoUrl}
+              onColorChange={setSelectedColor}
             />
           </div>
 
@@ -284,6 +302,9 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
             <ProductInfo 
               id={product.id}
               category={product.category}
+              brand={product.brand}
+              brandSlug={product.brandSlug}
+              brandLogo={product.brandLogo}
               rating={product.rating}
               name={product.name}
               originalPriceFormatted={activeOriginalPriceFormatted}
@@ -319,14 +340,22 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         {/* 3. Bottom Detail Areas */}
         <div className="mt-3 md:mt-6 w-full">
           <DetailAndReviews 
-            fullDescription={product.fullDescription} 
+            fullDescription={product.fullDescription}
+            brand={product.brand}
+            brandSlug={product.brandSlug}
+            brandLogo={product.brandLogo} 
             reviews={product.productReviews} 
             productId={product.id}
             productName={product.name}
           />
         </div>
         
-        <UpSellProducts products={product.upSellProducts} />
+        {/* Up-Sell: You May Also Like */}
+        {product.upSellProducts && product.upSellProducts.length > 0 && (
+          <UpSellProducts products={product.upSellProducts} title="You May Also Like" />
+        )}
+
+        
 
         {recentViews.length > 0 && (
           <div className="mt-4 md:mt-8">

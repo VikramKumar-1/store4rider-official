@@ -8,7 +8,15 @@ import { GuideCard } from "./GuideCard";
 import { GuideAuthorCard } from "./GuideAuthorCard";
 import { MagnifyingGlassIcon, BookOpenIcon } from "@heroicons/react/24/outline";
 
-export const GuidesHubModule: React.FC = () => {
+interface GuidesHubModuleProps {
+  heroTitle?: string;
+  heroDescription?: string;
+}
+
+export const GuidesHubModule: React.FC<GuidesHubModuleProps> = ({
+  heroTitle = "Motorcycle Guides & Expert Advice",
+  heroDescription = "Real-world gear tests, sizing walkthroughs, maintenance checklists, and touring preparation guides curated by riders for Indian roads and conditions.",
+}) => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -51,11 +59,11 @@ export const GuidesHubModule: React.FC = () => {
             </div>
             
             <h1 className="text-3xl sm:text-5xl font-sans font-black tracking-tight text-neutral-900 mb-4 leading-tight">
-              Motorcycle Guides & Expert Advice
+              {heroTitle}
             </h1>
             
             <p className="text-sm sm:text-base text-neutral-600 leading-relaxed mb-8">
-              Real-world gear tests, sizing walkthroughs, maintenance checklists, and touring preparation guides curated by riders for Indian roads and conditions.
+              {heroDescription}
             </p>
 
             {/* Search Input */}

@@ -310,7 +310,13 @@ export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNod
             enhancedName = inferRichColorFromUrl(imageUrl, name.trim());
           }
           
-          return { name: enhancedName, imageUrl };
+          const swatchMap = (p as any).colorSwatches
+            ? ((p as any).colorSwatches instanceof Map
+                ? Object.fromEntries((p as any).colorSwatches)
+                : (p as any).colorSwatches)
+            : {};
+          const bg = swatchMap[name] || swatchMap[enhancedName] || swatchMap[colorLower];
+          return { name: enhancedName, imageUrl, background: bg };
         });
       })(),
     };

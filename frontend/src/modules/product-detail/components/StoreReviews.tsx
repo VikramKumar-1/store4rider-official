@@ -59,11 +59,17 @@ const ReviewCard: React.FC<{ review: ReviewData }> = ({ review }) => {
 };
 
 import { useStoreReviews } from "@/core/hooks/useStoreReviews";
+import { useUIStore } from "@/stores/useUIStore";
 
 export const StoreReviews: React.FC<{ reviews?: ReviewData[] }> = ({ reviews: propReviews }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useStoreReviews({ random: true });
+  const homepageReviewIds = useUIStore((state) => state.homepageReviewIds);
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useStoreReviews({
+    random: true,
+    limit: 10,
+    excludeIds: homepageReviewIds,
+  });
   const fetchedReviews = data?.pages.flatMap(p => p.data) || [];
   
   // Use fetched reviews if available, fallback to props
@@ -107,7 +113,7 @@ export const StoreReviews: React.FC<{ reviews?: ReviewData[] }> = ({ reviews: pr
           rel="noopener noreferrer"
           className="shrink-0 text-[10px] sm:text-xs font-bold text-brand hover:text-orange-700 hover:underline uppercase tracking-wider flex items-center gap-1 transition-colors bg-orange-50/50 px-2 py-1 rounded-md"
         >
-          SEE ALL
+          See all reviews
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>

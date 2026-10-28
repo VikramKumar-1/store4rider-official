@@ -144,6 +144,8 @@ export interface ProductFormContextType {
   // Variants
   variants: ProductVariant[];
   setVariants: Dispatch<SetStateAction<ProductVariant[]>>;
+  colorSwatches: Record<string, string>;
+  setColorSwatches: Dispatch<SetStateAction<Record<string, string>>>;
   variantImageModalIndex: number | null;
   setVariantImageModalIndex: (v: number | null) => void;
   isUploadingVariantImage: boolean;

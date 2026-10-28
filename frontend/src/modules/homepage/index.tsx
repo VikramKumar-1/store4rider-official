@@ -12,6 +12,7 @@ import Footer from "./components/Footer";
 import { NavLinkItem, HeroProductCardData, CategoryCardData, BrowseProductData, TestimonialData } from "./types/homepage.types";
 import { IHomepageConfig } from "@store4riders/shared-types";
 import { useStoreReviews } from "@/core/hooks/useStoreReviews";
+import { useUIStore } from "@/stores/useUIStore";
 import { usePublicHomepageConfig } from "@/core/hooks/useHomepage";
 import { useProducts } from "@/core/hooks/useProducts";
 
@@ -296,7 +297,7 @@ export const HomepageModule: React.FC<{
       })
     : [];
 
-  const { data: storeReviewsQuery } = useStoreReviews();
+  const { data: storeReviewsQuery } = useStoreReviews({ random: true, limit: 10 });
   const queryReviews = storeReviewsQuery?.pages.flatMap((p) => p.data) || [];
   const fetchedStoreReviews = queryReviews.length > 0 ? queryReviews : (storeReviews || []);
 
@@ -314,15 +315,7 @@ export const HomepageModule: React.FC<{
       avatarUrl: r.avatarUrl,
     }));
 
-    if (mappedReviews.length > 0) {
-      while (mappedReviews.length < 10) {
-        mappedReviews = [...mappedReviews, ...mappedReviews].map((r, index) => ({
-          ...r,
-          id: `${r.id}-${index}`,
-        }));
-      }
-      mappedReviews = mappedReviews.slice(0, 10);
-    }
+    mappedReviews = mappedReviews.slice(0, 20);
 
     return mappedReviews;
   }, [fetchedStoreReviews]);

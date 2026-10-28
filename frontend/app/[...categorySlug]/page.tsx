@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { notFound, permanentRedirect } from "next/navigation";
 import { ProductsPageModule } from "@/modules/catalog/components/ProductsPageModule";
 import { ProductDetailPageModule } from "@/modules/product-detail/components/ProductDetailPageModule";
 import ProductsLoading from "../products/loading";
@@ -19,9 +20,9 @@ const API_BASE = rawApiBase.includes("/v1")
 
 async function getProduct(slug: string) {
   try {
-    const res = await fetch(`${API_BASE}/products/${slug}`, {
+    const res = await fetch(`${API_BASE}/products/${encodeURIComponent(slug)}`, {
       next: { revalidate: 60 },
-      signal: AbortSignal.timeout(2500),
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return null;
     const json = await res.json();
@@ -31,21 +32,53 @@ async function getProduct(slug: string) {
   }
 }
 
+async function getCategoryNode(categorySlug: string) {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+    const treeUrl = baseUrl.includes("/v1") ? `${baseUrl}/categories/tree` : `${baseUrl}/v1/categories/tree`;
+    const res = await fetch(treeUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(8000) });
+    if (res.ok) {
+      const data = await res.json();
+      const findCategory = (nodes: any[]): any => {
+        for (const n of nodes) {
+          if (n.slug === categorySlug || n.slug.replace(/s$/, "") === categorySlug.replace(/s$/, "")) return n;
+          if (n.children) {
+            const found = findCategory(n.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+      const node = findCategory(data?.data || []);
+      if (node && node.description) return node;
+    }
+
+    const singleUrl = baseUrl.includes("/v1")
+      ? `${baseUrl}/categories/${encodeURIComponent(categorySlug)}`
+      : `${baseUrl}/v1/categories/${encodeURIComponent(categorySlug)}`;
+    const singleRes = await fetch(singleUrl, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+    if (singleRes.ok) {
+      const singleData = await singleRes.json();
+      if (singleData?.data) return singleData.data;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 interface CategoryPageProps {
   params: Promise<{ categorySlug: string[] }>;
-  searchParams: Promise<{ brand?: string; search?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 export async function generateMetadata({ params, searchParams }: CategoryPageProps): Promise<Metadata> {
   const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
-  
-  const slugArray = resolvedParams.categorySlug;
-  const isSingleSegment = slugArray.length === 1;
-  const candidateSlug = (slugArray[slugArray.length - 1] || "").replace(/\.html$/i, ""); // Use deepest segment without .html
+  const slugArray = resolvedParams.categorySlug || [];
+  const candidateSlug = (slugArray[slugArray.length - 1] || "").replace(/\.html$/i, "");
 
-  // 1. Check if this slug resolves to a Product (ONLY for single-segment root-level URLs)
-  if (isSingleSegment && candidateSlug) {
+  // 1. Check if this slug resolves to a Product
+  if (candidateSlug) {
     const product = await getProduct(candidateSlug);
     if (product) {
       const title = product.metaTitle?.trim() || `${product.name} | Store4Riders`;
@@ -100,95 +133,35 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
     }
   }
 
-  const category = candidateSlug;
-  const { brand, search } = resolvedSearchParams;
-
-  if (category) {
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-      const fetchUrl = baseUrl.includes('/v1') ? `${baseUrl}/categories/tree` : `${baseUrl}/v1/categories/tree`;
-      const res = await fetch(fetchUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(2500) });
-      if (res.ok) {
-        const data = await res.json();
-        const findCategory = (nodes: any[]): any => {
-          for (const n of nodes) {
-            if (n.slug === category || n.slug.replace(/s$/, '') === category.replace(/s$/, '')) return n;
-            if (n.children) {
-              const found = findCategory(n.children);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-        let catNode = findCategory(data?.data || []);
-        if (!catNode || !catNode.description) {
-          const singleUrl = baseUrl.includes('/v1') ? `${baseUrl}/categories/${category}` : `${baseUrl}/v1/categories/${category}`;
-          const singleRes = await fetch(singleUrl, { cache: 'no-store', signal: AbortSignal.timeout(2500) });
-          if (singleRes.ok) {
-            const singleData = await singleRes.json();
-            if (singleData?.data) {
-              catNode = { ...catNode, ...singleData.data };
-            }
-          }
-        }
-        if (catNode) {
-          const title = catNode.metaTitle || `${catNode.name} - Motorcycle Gear | Store4Riders`;
-          const description = catNode.metaDescription || `Explore the best collection of ${catNode.name} at Store4Riders. Certified gear, best prices & express delivery across India.`;
-          const canonicalPath = `/${slugArray.join('/')}`;
-
-          return {
-            title: {
-              absolute: title,
-            },
-            description,
-            keywords: catNode.metaKeywords ? catNode.metaKeywords.split(',').map((k: string) => k.trim()) : [],
-            alternates: {
-              canonical: canonicalPath,
-            },
-            openGraph: {
-              title,
-              description,
-              url: canonicalPath,
-              type: "website",
-              siteName: "Store4Riders",
-            },
-            twitter: {
-              card: "summary_large_image",
-              title,
-              description,
-            },
-            robots: {
-              index: true,
-              follow: true,
-            },
-          };
-        }
-      }
-    } catch (e) {
-      // Fallback
-    }
-    const formatted = category.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-    const fallbackTitle = `${formatted} - Motorcycle Gear | Store4Riders`;
-    const fallbackDesc = `Explore the best collection of ${formatted} at Store4Riders. High quality, certified motorcycle safety gear with fast shipping across India.`;
-    const canonicalPath = `/${slugArray.join('/')}`;
+  // 2. Check if this resolves to a Category
+  const categoryNode = candidateSlug ? await getCategoryNode(candidateSlug) : null;
+  if (categoryNode) {
+    const title = categoryNode.metaTitle || `${categoryNode.name} - Motorcycle Gear | Store4Riders`;
+    const description =
+      categoryNode.metaDescription ||
+      `Explore the best collection of ${categoryNode.name} at Store4Riders. Certified gear, best prices & express delivery across India.`;
+    const canonicalPath = `/${slugArray.join("/")}`;
 
     return {
-      title: fallbackTitle,
-      description: fallbackDesc,
+      title: {
+        absolute: title,
+      },
+      description,
+      keywords: categoryNode.metaKeywords ? categoryNode.metaKeywords.split(",").map((k: string) => k.trim()) : [],
       alternates: {
         canonical: canonicalPath,
       },
       openGraph: {
-        title: fallbackTitle,
-        description: fallbackDesc,
+        title,
+        description,
         url: canonicalPath,
         type: "website",
         siteName: "Store4Riders",
       },
       twitter: {
         card: "summary_large_image",
-        title: fallbackTitle,
-        description: fallbackDesc,
+        title,
+        description,
       },
       robots: {
         index: true,
@@ -198,14 +171,10 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
   }
 
   return {
-    title: "All Products - Motorcycle Riding Gear | Store4Riders",
-    description: "Browse our extensive catalog of certified motorcycle riding helmets, jackets, boots, gloves and luggage.",
-    alternates: {
-      canonical: "/products",
-    },
+    title: "Page Not Found | Store4Riders",
     robots: {
-      index: true,
-      follow: true,
+      index: false,
+      follow: false,
     },
   };
 }
@@ -213,118 +182,122 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
-  const slugArray = resolvedParams.categorySlug;
-  const isSingleSegment = slugArray.length === 1;
+  const slugArray = resolvedParams.categorySlug || [];
   const candidateSlug = (slugArray[slugArray.length - 1] || "").replace(/\.html$/i, "");
 
-  // 1. If single segment resolves to a Product, render the Product Detail Page directly!
-  const hasFilterParams = Boolean(
-    resolvedSearchParams.brand ||
-    resolvedSearchParams.search ||
-    (resolvedSearchParams as any).colour ||
-    (resolvedSearchParams as any).color ||
-    (resolvedSearchParams as any).size ||
-    (resolvedSearchParams as any).minPrice ||
-    (resolvedSearchParams as any).maxPrice
-  );
+  if (!candidateSlug) {
+    notFound();
+  }
 
-  if (isSingleSegment && candidateSlug && !hasFilterParams) {
-    const product = await getProduct(candidateSlug);
-    if (product) {
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
-      const productSchema = buildProductSchema(product, siteUrl);
-      const breadcrumbSchema = buildBreadcrumbSchema(
-        [
-          { name: "Home", url: "/" },
-          ...(product.categorySlugs?.[0]
-            ? [{ name: product.categorySlugs[0].replace(/[-_]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()), url: `/${product.categorySlugs[0]}` }]
-            : [{ name: "Products", url: "/products" }]),
-          { name: product.name, url: `/${candidateSlug}` },
-        ],
-        siteUrl
-      );
-      const faqSchema = buildFAQSchema(product.faqs);
+  // 1. If candidateSlug resolves to a Product, render the Product Detail Page directly!
+  const product = await getProduct(candidateSlug);
+  if (product) {
+    // If accessed via a multi-segment path (e.g. /riding-gear/gloves/furygan-jet-d3o-riding-gloves),
+    // permanently redirect (HTTP 301) to the canonical root-level product URL: /furygan-jet-d3o-riding-gloves
+    if (slugArray.length > 1) {
+      const qsParams = new URLSearchParams();
+      for (const [key, val] of Object.entries(resolvedSearchParams)) {
+        if (Array.isArray(val)) {
+          val.forEach((v) => qsParams.append(key, v));
+        } else if (typeof val === "string") {
+          qsParams.append(key, val);
+        }
+      }
+      const qs = qsParams.toString() ? `?${qsParams.toString()}` : "";
+      permanentRedirect(`/${candidateSlug}${qs}`);
+    }
 
-      return (
-        <>
-          {productSchema && (
-            <script
-              type="application/ld+json"
-              dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
-            />
-          )}
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
+    const productSchema = buildProductSchema(product, siteUrl);
+    const breadcrumbSchema = buildBreadcrumbSchema(
+      [
+        { name: "Home", url: "/" },
+        ...(product.categorySlugs?.[0]
+          ? [
+              {
+                name: product.categorySlugs[0].replace(/[-_]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                url: `/${product.categorySlugs[0]}`,
+              },
+            ]
+          : [{ name: "Products", url: "/products" }]),
+        ...(product.brand
+          ? [
+              {
+                name: product.brand,
+                url: `/brands/${product.brandSlug || product.brand.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`,
+              },
+            ]
+          : []),
+        { name: product.name, url: `/${candidateSlug}` },
+      ],
+      siteUrl
+    );
+    const faqSchema = buildFAQSchema(product.faqs);
+
+    return (
+      <>
+        {productSchema && (
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
           />
-          {faqSchema && (
-            <script
-              type="application/ld+json"
-              dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-            />
-          )}
-          <ProductDetailPageModule slug={candidateSlug} />
-        </>
-      );
-    }
+        )}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
+        {faqSchema && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+          />
+        )}
+        <ProductDetailPageModule initialProduct={product} slug={candidateSlug} />
+      </>
+    );
+  }
+
+  // 2. Candidate is NOT a product. Check if it resolves to a valid Category.
+  const categoryNode = await getCategoryNode(candidateSlug);
+  if (!categoryNode) {
+    notFound();
   }
 
   const category = candidateSlug;
-  let initialCategoryNode = undefined;
   let collectionProducts: any[] = [];
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
-  
-  if (category) {
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-      const fetchUrl = baseUrl.includes('/v1') ? `${baseUrl}/categories/tree` : `${baseUrl}/v1/categories/tree`;
-      const res = await fetch(fetchUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(2500) });
-      if (res.ok) {
-        const data = await res.json();
-        const findCategory = (nodes: any[]): any => {
-          for (const n of nodes) {
-            if (n.slug === category || n.slug.replace(/s$/, '') === category.replace(/s$/, '')) return n;
-            if (n.children) {
-              const found = findCategory(n.children);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-        initialCategoryNode = findCategory(data?.data || []);
-      }
-      if (!initialCategoryNode || !initialCategoryNode.description) {
-        const singleUrl = baseUrl.includes('/v1') ? `${baseUrl}/categories/${category}` : `${baseUrl}/v1/categories/${category}`;
-        const singleRes = await fetch(singleUrl, { cache: 'no-store', signal: AbortSignal.timeout(2500) });
-        if (singleRes.ok) {
-          const singleData = await singleRes.json();
-          if (singleData?.data) {
-            initialCategoryNode = { ...initialCategoryNode, ...singleData.data };
-          }
-        }
-      }
 
-      // Fetch sample products for CollectionPage ItemList schema (only on initial view, skip on filter clicks)
-      if (!hasFilterParams) {
-        const prodUrl = baseUrl.includes('/v1')
-          ? `${baseUrl}/products?category=${encodeURIComponent(category)}&limit=12`
-          : `${baseUrl}/v1/products?category=${encodeURIComponent(category)}&limit=12`;
-        const prodRes = await fetch(prodUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(2500) });
-        if (prodRes.ok) {
-          const prodData = await prodRes.json();
-          collectionProducts = prodData?.data?.items || prodData?.data || [];
-        }
+  // Check if filtering parameters exist
+  const hasFilterParams = Boolean(
+    resolvedSearchParams.brand ||
+    resolvedSearchParams.search ||
+    resolvedSearchParams.colour ||
+    resolvedSearchParams.color ||
+    resolvedSearchParams.size ||
+    resolvedSearchParams.minPrice ||
+    resolvedSearchParams.maxPrice
+  );
+
+  // Fetch sample products for CollectionPage ItemList schema (only on initial view, skip on filter clicks)
+  if (!hasFilterParams) {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+      const prodUrl = baseUrl.includes("/v1")
+        ? `${baseUrl}/products?category=${encodeURIComponent(category)}&limit=12`
+        : `${baseUrl}/v1/products?category=${encodeURIComponent(category)}&limit=12`;
+      const prodRes = await fetch(prodUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(8000) });
+      if (prodRes.ok) {
+        const prodData = await prodRes.json();
+        collectionProducts = prodData?.data?.items || prodData?.data || [];
       }
-    } catch (e) {
+    } catch {
       // Ignore
     }
   }
 
   // Schema: CollectionPage with ItemList
-  const categoryName =
-    initialCategoryNode?.name ||
-    candidateSlug.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  const cleanRawDesc = (initialCategoryNode?.metaDescription || initialCategoryNode?.description || "")
+  const categoryName = categoryNode.name || candidateSlug.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const cleanRawDesc = (categoryNode.metaDescription || categoryNode.description || "")
     .replace(/<[^>]*>?/gm, "")
     .replace(/&nbsp;/g, " ")
     .replace(/\s+/g, " ")
@@ -332,7 +305,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   const categoryDescription =
     cleanRawDesc ||
     `Explore our certified range of ${categoryName} at Store4Riders. High quality motorcycle gear with fast delivery across India.`;
-  const currentUrl = `${siteUrl}/${slugArray.join('/')}`;
+  const currentUrl = `${siteUrl}/${slugArray.join("/")}`;
 
   const collectionSchema = buildCollectionSchema({
     title: categoryName,
@@ -355,8 +328,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     accumulatedPath += `/${seg}`;
     const isLast = idx === slugArray.length - 1;
     const segName =
-      isLast && initialCategoryNode?.name
-        ? initialCategoryNode.name
+      isLast && categoryNode?.name
+        ? categoryNode.name
         : seg.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
     breadcrumbElements.push({
@@ -366,7 +339,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   });
 
   const breadcrumbSchema = buildBreadcrumbSchema(breadcrumbElements, siteUrl);
-  const faqSchema = buildFAQSchema(initialCategoryNode?.faqs);
+  const faqSchema = buildFAQSchema(categoryNode?.faqs);
 
   return (
     <>
@@ -385,7 +358,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         />
       )}
       <Suspense fallback={<ProductsLoading />}>
-        <ProductsPageModule initialCategoryNode={initialCategoryNode} />
+        <ProductsPageModule initialCategoryNode={categoryNode} />
       </Suspense>
     </>
   );

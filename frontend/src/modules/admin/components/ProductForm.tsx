@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useBrands, useCreateBrand } from "@/core/hooks/useBrands";
 import { useCategoryTree } from "@/core/hooks/useCategories";
 import { useCreateProduct, useUpdateProduct, useProductBySlug } from "@/core/hooks/useProducts";
+import { normalizeExternalImageUrl } from "@/core/utils/mediaUrlHelper";
 import { compressImageToWebP, uploadImageToS3 } from "@/core/utils/imageCompressor";
 
 // Re-export constants & types for backwards compatibility
@@ -39,6 +40,31 @@ import { ProductSeoTab } from "./product-form/tabs/ProductSeoTab";
 import { QuickAddBrandModal } from "./product-form/modals/QuickAddBrandModal";
 import { VariantSettingsModal } from "./product-form/modals/VariantSettingsModal";
 import { ProductReviewModal } from "./product-form/modals/ProductReviewModal";
+
+const formatDateForInput = (val: any): string => {
+  if (!val) return "";
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (!trimmed) return "";
+    if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+      return trimmed.split("T")[0];
+    }
+    const ddmmyyyyMatch = trimmed.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+    if (ddmmyyyyMatch) {
+      const [, day, month, year] = ddmmyyyyMatch;
+      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+  }
+  try {
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().split("T")[0];
+    }
+  } catch {
+    // Ignore invalid date
+  }
+  return "";
+};
 
 export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
   const router = useRouter();
@@ -75,7 +101,7 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
   const [productType, setProductType] = useState<"simple" | "configurable">("simple");
   const [status, setStatus] = useState<"draft" | "published" | "archived">("published");
   const [visibility, setVisibility] = useState("Catalog, Search");
-  const [countryOfManufacture, setCountryOfManufacture] = useState("");
+  const [countryOfManufacture, setCountryOfManufacture] = useState("India");
   const [taxClassName, setTaxClassName] = useState("Taxable Goods (GST 18%)");
   const [hsnCode, setHsnCode] = useState("6506");
   const [isCustomTaxRate, setIsCustomTaxRate] = useState(false);
@@ -118,6 +144,7 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
 
   // Variants
   const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [colorSwatches, setColorSwatches] = useState<Record<string, string>>({});
   const [variantImageModalIndex, setVariantImageModalIndex] = useState<number | null>(null);
   const [isUploadingVariantImage, setIsUploadingVariantImage] = useState(false);
   const [applyToAllSameColor, setApplyToAllSameColor] = useState(true);
@@ -135,6 +162,8 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
   const [metaDescription, setMetaDescription] = useState("");
   const [metaKeywords, setMetaKeywords] = useState("");
   const [faqs, setFaqs] = useState<ProductFaq[]>([]);
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
+  const DRAFT_STORAGE_KEY = "store4riders_product_create_draft";
 
   // Apply Quick Size Preset
   const applySizePreset = (type: "volume" | "apparel" | "footwear" | "waist") => {
@@ -148,6 +177,10 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
     const existingVariantPhoto = variants.find(
       (v) => (v.color || "").trim().toLowerCase() === currentColor.trim().toLowerCase() && v.imageUrl
     );
+    const photoAlt = existingVariantPhoto?.altText || existingVariantPhoto?.images?.[0]?.altText;
+    const cleanAltBase = photoAlt
+      ? photoAlt.replace(/\s*\([^)]*\)$/, "").trim()
+      : (name ? `${name} - ${currentColor}` : currentColor);
 
     const newVariants = sizes.map((s) => ({
       id: crypto.randomUUID(),
@@ -155,10 +188,11 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
       color: currentColor,
       size: s,
       price: basePrice || 0,
+      specialPrice: (typeof specialPrice === "number" && specialPrice > 0 ? specialPrice : "") as number | "",
       stock: 10,
       imageUrl: existingVariantPhoto?.imageUrl,
-      altText: existingVariantPhoto?.altText,
-      images: existingVariantPhoto?.images,
+      altText: existingVariantPhoto?.imageUrl ? `${cleanAltBase} (${s})` : undefined,
+      images: existingVariantPhoto?.imageUrl ? [{ id: crypto.randomUUID(), url: existingVariantPhoto.imageUrl, altText: `${cleanAltBase} (${s})` }] : [],
     }));
     setVariants((prev) => [...prev, ...newVariants]);
   };
@@ -277,7 +311,20 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
       setProductType((existingProduct.productType as any) || "simple");
       setStatus(existingProduct.status || "published");
       setVisibility(existingProduct.visibility || "Catalog, Search");
-      setCountryOfManufacture(existingProduct.countryOfManufacture || "");
+      const existingAttrs = existingProduct.attributes instanceof Map
+        ? Object.fromEntries(existingProduct.attributes)
+        : (existingProduct.attributes || {});
+      setCountryOfManufacture(
+        existingProduct.countryOfManufacture ||
+        existingAttrs.country_of_manufacture ||
+        existingAttrs.country_of_origin ||
+        "India"
+      );
+      if (existingProduct.weightUnit) {
+        setWeightUnit(existingProduct.weightUnit as any);
+      } else if (existingAttrs.weight_unit) {
+        setWeightUnit(existingAttrs.weight_unit as any);
+      }
       const loadedTax = existingProduct.taxClassName || "Taxable Goods (GST 18%)";
       setTaxClassName(loadedTax);
       const taxMatch = loadedTax.match(/(\d+(?:\.\d+)?)/);
@@ -305,16 +352,8 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
 
       setBasePrice(existingProduct.basePrice ?? "");
       setSpecialPrice(existingProduct.specialPrice ?? "");
-      setSpecialPriceFromDate(
-        existingProduct.specialPriceFromDate
-          ? new Date(existingProduct.specialPriceFromDate).toISOString().split("T")[0]
-          : ""
-      );
-      setSpecialPriceToDate(
-        existingProduct.specialPriceToDate
-          ? new Date(existingProduct.specialPriceToDate).toISOString().split("T")[0]
-          : ""
-      );
+      setSpecialPriceFromDate(formatDateForInput(existingProduct.specialPriceFromDate));
+      setSpecialPriceToDate(formatDateForInput(existingProduct.specialPriceToDate));
       setMapPrice(existingProduct.mapPrice ?? "");
       setMsrpPrice(existingProduct.msrpPrice ?? "");
       setStockStatus(existingProduct.stockStatus ?? 1);
@@ -338,6 +377,10 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
       }
       setVideoUrl(existingProduct.videoUrl || "");
 
+      if (existingProduct.gender) {
+        setGender(existingProduct.gender);
+      }
+
       // Attributes
       if (existingProduct.attributes) {
         const raw = existingProduct.attributes;
@@ -356,7 +399,13 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
 
       // Variants
       if (existingProduct.variants && existingProduct.variants.length > 0) {
-        setVariants(
+        if (existingProduct.colorSwatches && typeof existingProduct.colorSwatches === "object") {
+        const swatches = existingProduct.colorSwatches instanceof Map
+          ? Object.fromEntries(existingProduct.colorSwatches)
+          : existingProduct.colorSwatches;
+        setColorSwatches(swatches);
+      }
+      setVariants(
           existingProduct.variants.map((v: any) => {
             const attrs = v.attributes instanceof Map ? Object.fromEntries(v.attributes) : (v.attributes || {});
             const colorVal = attrs.color || attrs.colour || "";
@@ -385,7 +434,7 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
               color: colorVal,
               size: sizeVal,
               price: v.price ?? existingProduct.basePrice,
-              specialPrice: v.specialPrice ?? "",
+              specialPrice: v.specialPrice !== undefined && v.specialPrice !== null ? v.specialPrice : "",
               stock: v.stock ?? 0,
               imageUrl: primaryVariantImg,
               altText: primaryVariantAlt,
@@ -415,6 +464,209 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
       setFaqs(existingProduct.faqs || []);
     }
   }, [mode, existingProduct]);
+
+  // Draft Auto-Restore: Recover unsaved work if admin accidentally refreshed the page
+  useEffect(() => {
+    if (mode === "create" && typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (saved) {
+          const draft = JSON.parse(saved);
+          if (draft && typeof draft === "object") {
+            if (draft.name) setName(draft.name);
+            if (draft.sku) setSku(draft.sku);
+            if (draft.slug) setSlug(draft.slug);
+            if (draft.brand) setBrand(draft.brand);
+            if (draft.categoryId) setCategoryId(draft.categoryId);
+            if (Array.isArray(draft.categorySlugs)) setCategorySlugs(draft.categorySlugs);
+            if (draft.productType) setProductType(draft.productType);
+            if (draft.status) setStatus(draft.status);
+            if (draft.visibility) setVisibility(draft.visibility);
+            if (draft.countryOfManufacture) setCountryOfManufacture(draft.countryOfManufacture);
+            if (draft.weight !== undefined) setWeight(draft.weight);
+            if (draft.weightUnit) setWeightUnit(draft.weightUnit);
+            if (draft.specialPriceFromDate) setSpecialPriceFromDate(draft.specialPriceFromDate);
+            if (draft.specialPriceToDate) setSpecialPriceToDate(draft.specialPriceToDate);
+            if (draft.basePrice !== undefined) setBasePrice(draft.basePrice);
+            if (draft.specialPrice !== undefined) setSpecialPrice(draft.specialPrice);
+            if (draft.mapPrice !== undefined) setMapPrice(draft.mapPrice);
+            if (draft.msrpPrice !== undefined) setMsrpPrice(draft.msrpPrice);
+            if (draft.qty !== undefined) setQty(draft.qty);
+            if (draft.stockStatus !== undefined) setStockStatus(draft.stockStatus);
+            if (draft.outOfStockQty !== undefined) setOutOfStockQty(draft.outOfStockQty);
+            if (draft.minCartQty !== undefined) setMinCartQty(draft.minCartQty);
+            if (draft.maxCartQty !== undefined) setMaxCartQty(draft.maxCartQty);
+            if (draft.notifyOnStockBelow !== undefined) setNotifyOnStockBelow(draft.notifyOnStockBelow);
+            if (draft.allowBackorders !== undefined) setAllowBackorders(Boolean(draft.allowBackorders));
+            if (draft.isFeatured !== undefined) setIsFeatured(Boolean(draft.isFeatured));
+            if (draft.showFeaturedBadge !== undefined) setShowFeaturedBadge(Boolean(draft.showFeaturedBadge));
+            if (draft.isFreeShipping !== undefined) setIsFreeShipping(Boolean(draft.isFreeShipping));
+            if (draft.taxClassName) setTaxClassName(draft.taxClassName);
+            if (draft.isCustomTaxRate !== undefined) setIsCustomTaxRate(Boolean(draft.isCustomTaxRate));
+            if (draft.customTaxRateInput !== undefined) setCustomTaxRateInput(draft.customTaxRateInput);
+            if (draft.hsnCode) setHsnCode(draft.hsnCode);
+            if (draft.shippingFee !== undefined) setShippingFee(draft.shippingFee);
+            if (draft.gender) setGender(draft.gender);
+            if (draft.attributeSetCode) setAttributeSetCode(draft.attributeSetCode);
+            if (draft.videoUrl) setVideoUrl(draft.videoUrl);
+            if (draft.relatedSkusInput) setRelatedSkusInput(draft.relatedSkusInput);
+            if (draft.upsellSkusInput) setUpsellSkusInput(draft.upsellSkusInput);
+            if (draft.crosssellSkusInput) setCrosssellSkusInput(draft.crosssellSkusInput);
+            if (Array.isArray(draft.images) && draft.images.length > 0) setImages(draft.images);
+            if (Array.isArray(draft.variants) && draft.variants.length > 0) setVariants(draft.variants);
+            if (Array.isArray(draft.customAttributes)) setCustomAttributes(draft.customAttributes);
+            if (draft.shortDescription) setShortDescription(draft.shortDescription);
+            if (draft.description) setDescription(draft.description);
+            if (draft.sizeChart) setSizeChart(draft.sizeChart);
+            if (draft.metaTitle) setMetaTitle(draft.metaTitle);
+            if (draft.metaDescription) setMetaDescription(draft.metaDescription);
+            if (draft.metaKeywords) setMetaKeywords(draft.metaKeywords);
+            if (draft.activeTab) setActiveTab(draft.activeTab);
+            setHasRestoredDraft(true);
+            toast.info("⚡ Unsaved product draft restored! You can continue where you left off.");
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to restore draft from localStorage", err);
+      }
+    }
+  }, [mode]);
+
+  // Draft Auto-Save: Persist progress to localStorage whenever user modifies the form in create mode
+  useEffect(() => {
+    if (mode !== "create" || typeof window === "undefined") return;
+    // Don't save empty blank forms
+    if (!name.trim() && !sku.trim() && basePrice === "" && variants.length === 0) return;
+
+    const timer = setTimeout(() => {
+      try {
+        const draftData = {
+          name,
+          sku,
+          slug,
+          brand,
+          categoryId,
+          categorySlugs,
+          productType,
+          status,
+          visibility,
+          countryOfManufacture,
+          weight,
+          weightUnit,
+          basePrice,
+          specialPriceFromDate,
+          specialPriceToDate,
+          specialPrice,
+          mapPrice,
+          msrpPrice,
+          qty,
+          stockStatus,
+          outOfStockQty,
+          minCartQty,
+          maxCartQty,
+          notifyOnStockBelow,
+          allowBackorders,
+          isFeatured,
+          showFeaturedBadge,
+          isFreeShipping,
+          taxClassName,
+          isCustomTaxRate,
+          customTaxRateInput,
+          hsnCode,
+          shippingFee,
+          gender,
+          attributeSetCode,
+          videoUrl,
+          relatedSkusInput,
+          upsellSkusInput,
+          crosssellSkusInput,
+          images,
+          variants,
+          customAttributes,
+          shortDescription,
+          description,
+          sizeChart,
+          metaTitle,
+          metaDescription,
+          metaKeywords,
+          activeTab,
+          savedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+        setHasRestoredDraft(true);
+      } catch (e) {
+        console.warn("Auto-save draft failed", e);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [
+    mode, name, sku, slug, brand, categoryId, categorySlugs, productType, status,
+    visibility, countryOfManufacture, weight, weightUnit, basePrice, specialPrice,
+    specialPriceFromDate, specialPriceToDate, mapPrice, msrpPrice, qty, stockStatus,
+    outOfStockQty, minCartQty, maxCartQty, notifyOnStockBelow, allowBackorders,
+    isFeatured, showFeaturedBadge, isFreeShipping, taxClassName, isCustomTaxRate,
+    customTaxRateInput, hsnCode, shippingFee, gender, attributeSetCode, videoUrl,
+    relatedSkusInput, upsellSkusInput, crosssellSkusInput, images, variants,
+    customAttributes, shortDescription, description, sizeChart, metaTitle,
+    metaDescription, metaKeywords, activeTab,
+  ]);
+
+  const handleClearDraft = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+    setName("");
+    setSku("");
+    setSlug("");
+    setBrand("");
+    setCategoryId("");
+    setCategorySlugs([]);
+    setProductType("simple");
+    setCountryOfManufacture("India");
+    setWeight("");
+    setWeightUnit("kg");
+    setSpecialPriceFromDate("");
+    setSpecialPriceToDate("");
+    setBasePrice("");
+    setSpecialPrice("");
+    setQty(10);
+    setStockStatus(1);
+    setOutOfStockQty(0);
+    setMinCartQty(1);
+    setMaxCartQty(10);
+    setNotifyOnStockBelow(2);
+    setMapPrice("");
+    setMsrpPrice("");
+    setAllowBackorders(false);
+    setIsFeatured(false);
+    setShowFeaturedBadge(false);
+    setIsFreeShipping(false);
+    setTaxClassName("Taxable Goods (GST 18%)");
+    setIsCustomTaxRate(false);
+    setCustomTaxRateInput(18);
+    setHsnCode("6506");
+    setShippingFee("");
+    setGender("");
+    setAttributeSetCode("");
+    setVideoUrl("");
+    setImages([]);
+    setVariants([]);
+    setColorSwatches({});
+    setCustomAttributes([]);
+    setShortDescription("");
+    setDescription("");
+    setSizeChart("");
+    setMetaTitle("");
+    setMetaDescription("");
+    setMetaKeywords("");
+    setRelatedSkusInput("");
+    setUpsellSkusInput("");
+    setCrosssellSkusInput("");
+    setActiveTab("basic");
+    setHasRestoredDraft(false);
+    toast.success("Draft cleared. Fresh product started!");
+  };
 
   // Gallery handlers
   const handleUploadImages = async (files: FileList | null) => {
@@ -692,6 +944,9 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
     if (brand) attributesMap.brand = brand;
     if (gender) attributesMap.gender = gender;
     if (weightUnit) attributesMap.weight_unit = weightUnit;
+    const safeCountry = (countryOfManufacture || "India").trim();
+    attributesMap.country_of_manufacture = safeCountry;
+    attributesMap.country_of_origin = safeCountry;
 
     if (shippingFee !== "" && Number(shippingFee) > 0) {
       attributesMap.ship_cost = String(shippingFee);
@@ -716,31 +971,57 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
     variants.forEach((v) => {
       const vImg = v.imageUrl || v.images?.[0]?.url;
       if (v.color && vImg) {
-        colorImagesMap[v.color.trim()] = vImg;
+        // Sanitize color key: MongoDB BSON keys cannot contain dots (.)
+        const cleanColorKey = v.color.trim().replace(/\./g, " ").replace(/\s+/g, " ").trim();
+        colorImagesMap[cleanColorKey] = vImg;
       }
     });
 
-    // 2. Synchronize variant images into the parent gallery with their Alt Text
+    // 2. Synchronize variant images into the parent gallery with their Alt Text (with Deduplication)
+    const getBaseKey = (url: string) => {
+      try {
+        const path = new URL(url).pathname;
+        const fname = path.split("/").pop() || "";
+        return fname.replace(/^\d{10,15}-/, "").toLowerCase();
+      } catch {
+        return url.split("/").pop()?.replace(/^\d{10,15}-/, "").toLowerCase() || url;
+      }
+    };
+
     const parentImageUrls = new Set(sortedImages.map((img) => img.url));
+    const parentImageKeys = new Set(sortedImages.map((img) => getBaseKey(img.url)));
     const mergedParentImages = [...sortedImages];
 
     variants.forEach((v) => {
       const vUrl = v.imageUrl || v.images?.[0]?.url;
+      const cleanColor = v.color ? v.color.trim().replace(/\./g, " ").replace(/\s+/g, " ").trim() : "";
       const vAlt =
         v.images?.[0]?.altText ||
         v.altText ||
-        (v.color ? `${name.trim()} - ${v.color.trim()}` : `${name.trim()} Variant`);
+        (cleanColor ? `${name.trim()} - ${cleanColor}` : `${name.trim()} Variant`);
 
-      if (vUrl && !parentImageUrls.has(vUrl)) {
-        parentImageUrls.add(vUrl);
-        mergedParentImages.push({
-          id: crypto.randomUUID(),
-          url: vUrl,
-          altText: vAlt,
-          isBase: false,
-        });
+      if (vUrl) {
+        const key = getBaseKey(vUrl);
+        if (!parentImageUrls.has(vUrl) && !parentImageKeys.has(key)) {
+          parentImageUrls.add(vUrl);
+          parentImageKeys.add(key);
+          mergedParentImages.push({
+            id: crypto.randomUUID(),
+            url: vUrl,
+            altText: vAlt,
+            isBase: false,
+          });
+        }
       }
     });
+
+    // If no image is marked isBase, ensure the first image isBase = true
+    if (mergedParentImages.length > 0 && !mergedParentImages.some((img) => img.isBase)) {
+      mergedParentImages[0].isBase = true;
+    }
+
+    // Always sort so that isBase is images[0]
+    mergedParentImages.sort((a, b) => (b.isBase ? 1 : 0) - (a.isBase ? 1 : 0));
 
     const payload: any = {
       name: name.trim(),
@@ -753,45 +1034,48 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
       productType,
       status,
       visibility,
-      countryOfManufacture: countryOfManufacture.trim() || undefined,
+      countryOfManufacture: safeCountry,
       taxClassName: taxClassName.trim() || undefined,
       hsnCode: hsnCode.trim() || undefined,
       weight: weight !== "" ? Number(weight) : undefined,
+      weightUnit: weightUnit || "kg",
       isFeatured,
       showFeaturedBadge: Boolean(isFeatured && showFeaturedBadge),
       isFreeShipping: (shippingFee !== "" && Number(shippingFee) > 0) ? false : isFreeShipping,
 
       basePrice: Number(basePrice),
-      specialPrice: specialPrice !== "" ? Number(specialPrice) : undefined,
-      specialPriceFromDate: specialPriceFromDate ? new Date(specialPriceFromDate) : undefined,
-      specialPriceToDate: specialPriceToDate ? new Date(specialPriceToDate) : undefined,
-      mapPrice: mapPrice !== "" ? Number(mapPrice) : undefined,
-      msrpPrice: msrpPrice !== "" ? Number(msrpPrice) : undefined,
+      specialPrice: specialPrice !== "" && specialPrice !== null ? Number(specialPrice) : null,
+      specialPriceFromDate: specialPriceFromDate ? new Date(specialPriceFromDate).toISOString() : null,
+      specialPriceToDate: specialPriceToDate ? new Date(specialPriceToDate).toISOString() : null,
+      mapPrice: mapPrice !== "" && mapPrice !== null ? Number(mapPrice) : null,
+      msrpPrice: msrpPrice !== "" && msrpPrice !== null ? Number(msrpPrice) : null,
       stockStatus: Number(stockStatus),
       qty: qty !== "" ? Number(qty) : 0,
-      outOfStockQty: outOfStockQty !== "" ? Number(outOfStockQty) : undefined,
-      minCartQty: minCartQty !== "" ? Number(minCartQty) : undefined,
-      maxCartQty: maxCartQty !== "" ? Number(maxCartQty) : undefined,
-      notifyOnStockBelow: notifyOnStockBelow !== "" ? Number(notifyOnStockBelow) : undefined,
+      outOfStockQty: outOfStockQty !== "" && outOfStockQty !== null ? Number(outOfStockQty) : null,
+      minCartQty: minCartQty !== "" && minCartQty !== null ? Number(minCartQty) : null,
+      maxCartQty: maxCartQty !== "" && maxCartQty !== null ? Number(maxCartQty) : null,
+      notifyOnStockBelow: notifyOnStockBelow !== "" && notifyOnStockBelow !== null ? Number(notifyOnStockBelow) : null,
       allowBackorders,
 
       images: mergedParentImages.map((img) => ({
         id: img.id,
-        url: img.url,
+        url: normalizeExternalImageUrl(img.url),
         altText: img.altText || name.trim(),
       })),
       colorImages: Object.keys(colorImagesMap).length > 0 ? colorImagesMap : undefined,
-      videoUrl: videoUrl.trim() || undefined,
+      colorSwatches: Object.keys(colorSwatches).length > 0 ? colorSwatches : undefined,
+      videoUrl: videoUrl.trim() || null,
 
       attributes: attributesMap,
       gender: gender.trim() || undefined,
 
       variants: variants.map((v) => {
+        const cleanColor = v.color ? v.color.trim().replace(/\./g, " ").replace(/\s+/g, " ").trim() : "";
         const vUrl = v.imageUrl || v.images?.[0]?.url;
         const vAlt =
           v.images?.[0]?.altText ||
           v.altText ||
-          (v.color ? `${name.trim()} - ${v.color.trim()}` : `${name.trim()} Variant`);
+          (cleanColor ? `${name.trim()} - ${cleanColor}` : `${name.trim()} Variant`);
 
         const vImages = (v.images && v.images.length > 0)
           ? v.images.map((img: any) => ({
@@ -805,7 +1089,7 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
           id: v.id || crypto.randomUUID(),
           sku: v.sku.trim(),
           price: v.price !== "" ? Number(v.price) : Number(basePrice),
-          specialPrice: v.specialPrice !== "" && v.specialPrice !== undefined ? Number(v.specialPrice) : undefined,
+          specialPrice: (v.specialPrice !== "" && v.specialPrice !== undefined && v.specialPrice !== null) ? Number(v.specialPrice) : null,
           stock: v.stock !== "" ? Number(v.stock) : 0,
           imageUrl: vUrl,
           altText: vAlt,
@@ -814,7 +1098,7 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
           visibility: v.visibility || "Catalog, Search",
           images: vImages,
           attributes: {
-            ...(v.color ? { color: v.color.trim() } : {}),
+            ...(cleanColor ? { color: cleanColor } : {}),
             ...(v.size ? { size: v.size.trim() } : {}),
           },
         };
@@ -824,24 +1108,27 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
       upsellSkus: upsellSkusInput.split(",").map((s) => s.trim()).filter(Boolean),
       crosssellSkus: crosssellSkusInput.split(",").map((s) => s.trim()).filter(Boolean),
 
-      shortDescription: shortDescription.trim() || undefined,
+      shortDescription: shortDescription.trim() || null,
       description: description.trim() || "",
-      sizeChart: sizeChart.trim() || undefined,
+      sizeChart: sizeChart.trim() || null,
 
-      metaTitle: metaTitle.trim() || undefined,
-      metaDescription: metaDescription.trim() || undefined,
-      metaKeywords: metaKeywords.trim() || undefined,
+      metaTitle: metaTitle.trim() || null,
+      metaDescription: metaDescription.trim() || null,
+      metaKeywords: metaKeywords.trim() || null,
       faqs: faqs.filter((f) => f.question.trim() && f.answer.trim()),
     };
 
     try {
       if (mode === "create") {
         await createProduct.mutateAsync(payload);
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+        }
         toast.success("Product created successfully!");
         setIsReviewModalOpen(false);
         router.push("/admin/products");
       } else {
-        const id = existingProduct?._id || initialSlugOrId;
+        const id = existingProduct?._id || (existingProduct as any)?.id || initialSlugOrId;
         if (!id) throw new Error("Product ID not found for update");
         await updateProduct.mutateAsync({ id, data: payload });
         toast.success("Product updated successfully!");
@@ -849,7 +1136,7 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
         router.push("/admin/products");
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.error || err.message || "Failed to save product");
+      toast.error(err.response?.data?.error || err.response?.data?.message || err.message || "Failed to save product");
     }
   };
 
@@ -994,6 +1281,8 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
     // Variants
     variants,
     setVariants,
+    colorSwatches,
+    setColorSwatches,
     variantImageModalIndex,
     setVariantImageModalIndex,
     isUploadingVariantImage,
@@ -1068,8 +1357,14 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
                   {mode === "create" ? "Add New Product" : `Edit Product: ${existingProduct?.name || ""}`}
                 </h1>
                 <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                  Step {currentTabIndex + 1} of 7: {tabItems[currentTabIndex]?.label}
+                  Step {currentTabIndex + 1} of 7: {tabItems[currentTabIndex]?.shortLabel || tabItems[currentTabIndex]?.label}
                 </span>
+                {hasRestoredDraft && mode === "create" && (
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                    <CheckCircle2 size={12} className="text-emerald-600" />
+                    Auto-saved Draft Restored
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
                 Enterprise Catalog Manager — Step-by-step product specifications & gear attributes
@@ -1078,27 +1373,16 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
           </div>
 
           <div className="flex items-center space-x-2">
-            {prevTab && (
+            {hasRestoredDraft && mode === "create" && (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handlePrevTab}
-                className="text-xs flex items-center gap-1 cursor-pointer"
+                onClick={handleClearDraft}
+                className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 cursor-pointer"
+                title="Discard saved draft and start fresh"
               >
-                <ChevronLeft size={14} />
-                <span>Back</span>
-              </Button>
-            )}
-            {nextTab && (
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleNextTab}
-                className="bg-slate-900 hover:bg-slate-800 text-white text-xs flex items-center gap-1 cursor-pointer"
-              >
-                <span>Next Step</span>
-                <ChevronRight size={14} />
+                <span>Clear Draft</span>
               </Button>
             )}
             <Button
@@ -1120,26 +1404,33 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
                   ? `Please fill in required fields to save: ${missingFields.join(", ")}`
                   : mode === "create" ? "Save & publish product" : "Update product"
               }
-              className={`font-semibold px-4 text-xs flex items-center space-x-1.5 shadow-sm transition-all ${
-                isFormValid && !createProduct.isPending && !updateProduct.isPending
+              className={`font-semibold px-4 text-xs flex items-center space-x-2 shadow-sm transition-all ${
+                createProduct.isPending || updateProduct.isPending
+                  ? "bg-brand text-white opacity-95 cursor-wait shadow-sm"
+                  : isFormValid
                   ? "bg-brand hover:bg-brand/90 text-white cursor-pointer"
-                  : "bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none"
+                  : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed shadow-none"
               }`}
             >
-              <Save size={14} />
-              <span>
-                {createProduct.isPending || updateProduct.isPending
-                  ? "Saving..."
-                  : mode === "create"
-                  ? "Save Product"
-                  : "Update Product"}
-              </span>
+              {createProduct.isPending || updateProduct.isPending ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                  <span className="font-bold text-white">
+                    {mode === "create" ? "Publishing..." : "Updating..."}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Save size={14} />
+                  <span>{mode === "create" ? "Save Product" : "Update Product"}</span>
+                </>
+              )}
             </Button>
           </div>
         </div>
 
-        {/* 7-Tab Navigation Bar with Step Numbers & Completion Indicators */}
-        <div className="flex items-center space-x-1 border-b border-slate-200 overflow-x-auto pb-px">
+        {/* 7-Tab Navigation Bar - Responsive Grid (Zero Horizontal Scroll) */}
+        <div className="flex items-center gap-1 bg-slate-100/70 p-1.5 rounded-xl border border-slate-200 overflow-x-auto scrollbar-none w-full">
           {tabItems.map((tab, idx) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1150,32 +1441,37 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
                 key={tab.id}
                 type="button"
                 onClick={() => handleTabChange(tab.id)}
-                className={`flex items-center space-x-2 py-3 px-3.5 border-b-2 font-medium text-xs whitespace-nowrap transition-all cursor-pointer ${
+                title={tab.label}
+                className={`flex items-center justify-center gap-1.5 py-2 px-2.5 xl:px-3 rounded-lg text-xs transition-all cursor-pointer relative text-center shrink-0 flex-1 whitespace-nowrap ${
                   isActive
-                    ? "border-brand text-brand bg-brand/5 rounded-t-lg font-semibold"
-                    : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
+                    ? "bg-white text-brand shadow-xs font-bold border border-slate-200"
+                    : isCompleted
+                    ? "text-slate-700 hover:bg-white/80 font-medium"
+                    : "text-slate-500 hover:bg-white/50 font-medium"
                 }`}
               >
                 <span
-                  className={`w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold transition-colors ${
+                  className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full text-[9px] sm:text-[10px] flex items-center justify-center font-bold shrink-0 transition-colors ${
                     isActive
-                      ? "bg-brand text-white shadow-sm"
+                      ? "bg-brand text-white shadow-2xs"
                       : isCompleted
                       ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
-                      : "bg-slate-100 text-slate-500 border border-slate-200"
+                      : "bg-slate-200 text-slate-500"
                   }`}
                 >
                   {isCompleted && !isActive ? "✓" : idx + 1}
                 </span>
-                <Icon size={14} className={isActive ? "text-brand" : "text-slate-400"} />
-                <span>{tab.label}</span>
+                <Icon size={14} className={`shrink-0 hidden md:inline ${isActive ? "text-brand" : "text-slate-400"}`} />
+                <span className="whitespace-nowrap font-medium">
+                  {tab.label}
+                </span>
                 {tab.isRequired && !isCompleted && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand inline-block" title="Required step" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand inline-block shrink-0" title="Required step" />
                 )}
                 {tab.badge && (
                   <span
-                    className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                      isActive ? "bg-brand text-white" : "bg-slate-100 text-slate-600"
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                      isActive ? "bg-brand/10 text-brand" : "bg-slate-200 text-slate-600"
                     }`}
                   >
                     {tab.badge}
@@ -1194,67 +1490,6 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
         {activeTab === "variants" && <ProductVariantsTab />}
         {activeTab === "relations" && <ProductRelationsTab />}
         {activeTab === "seo" && <ProductSeoTab />}
-
-        {/* In-page Step Navigation Controls */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-          <div>
-            {prevTab ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handlePrevTab}
-                className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 cursor-pointer"
-              >
-                <ChevronLeft size={16} />
-                <span>Back: {prevTab.label}</span>
-              </Button>
-            ) : (
-              <span className="text-xs text-slate-400 italic">Step 1 of 7: Start with basic info</span>
-            )}
-          </div>
-
-          <div className="flex items-center">
-            {!isFormValid ? (
-              <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
-                <AlertCircle size={14} className="text-amber-600 shrink-0" />
-                <span>
-                  Required to Save: <strong className="font-semibold">{missingFields.join(", ")}</strong>
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg">
-                <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-                <span className="font-medium">All required details complete! Ready to save.</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {nextTab ? (
-              <Button
-                type="button"
-                onClick={handleNextTab}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-5 text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
-              >
-                <span>Next: {nextTab.label}</span>
-                <ChevronRight size={16} />
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                disabled={!isFormValid || createProduct.isPending || updateProduct.isPending}
-                className={`font-semibold px-5 text-xs flex items-center gap-1.5 shadow-sm ${
-                  isFormValid && !createProduct.isPending && !updateProduct.isPending
-                    ? "bg-brand hover:bg-brand/90 text-white cursor-pointer"
-                    : "bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none"
-                }`}
-              >
-                <Save size={15} />
-                <span>Review & Save Product</span>
-              </Button>
-            )}
-          </div>
-        </div>
 
         {/* Floating Save & Wizard Bar */}
         <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 py-3 px-4 sm:px-8 z-30 flex flex-wrap items-center justify-between gap-3 shadow-lg">
@@ -1321,20 +1556,27 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
                   ? `Please fill in required fields to save: ${missingFields.join(", ")}`
                   : mode === "create" ? "Save & publish product" : "Update product"
               }
-              className={`font-semibold px-5 text-xs flex items-center gap-1.5 shadow-md transition-all ${
-                isFormValid && !createProduct.isPending && !updateProduct.isPending
+              className={`font-semibold px-5 text-xs flex items-center gap-2 shadow-md transition-all ${
+                createProduct.isPending || updateProduct.isPending
+                  ? "bg-brand text-white opacity-95 cursor-wait shadow-sm"
+                  : isFormValid
                   ? "bg-brand hover:bg-brand/90 text-white cursor-pointer"
-                  : "bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none"
+                  : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed shadow-none"
               }`}
             >
-              <Save size={14} />
-              <span>
-                {createProduct.isPending || updateProduct.isPending
-                  ? "Saving..."
-                  : mode === "create"
-                  ? "Save Product"
-                  : "Update Product"}
-              </span>
+              {createProduct.isPending || updateProduct.isPending ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                  <span className="font-bold text-white">
+                    {mode === "create" ? "Publishing Product..." : "Updating Product..."}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Save size={14} />
+                  <span>{mode === "create" ? "Save Product" : "Update Product"}</span>
+                </>
+              )}
             </Button>
           </div>
         </div>

@@ -72,100 +72,6 @@ const TestimonialCard: React.FC<{ data: TestimonialData }> = ({ data }) => {
   );
 };
 
-// Verified Store4Riders Pune Google Reviews Fallback
-const VERIFIED_STORE_REVIEWS: TestimonialData[] = [
-  {
-    id: "verified-rev-1",
-    authorName: "Pratik Deshmukh",
-    date: "1 month ago",
-    rating: 5,
-    content: "Store4Riders is the best place in Pune for riding gears. Got my MT helmet and riding jacket from here. Great collection and very helpful staff. Must visit for all bikers!",
-    verified: true,
-    link: "https://www.google.com/search?q=Store4Riders+Pune#lrd=0x3bc2c00d5a48819f:0xd4b529549919577c,1,,,,",
-  },
-  {
-    id: "verified-rev-2",
-    authorName: "Vishal Kadam",
-    date: "3 weeks ago",
-    rating: 5,
-    content: "Awesome experience. The owner guided me perfectly to choose the right riding boots. 100% genuine products. Highly recommended for Pune riders.",
-    verified: true,
-    link: "https://www.google.com/search?q=Store4Riders+Pune#lrd=0x3bc2c00d5a48819f:0xd4b529549919577c,1,,,,",
-  },
-  {
-    id: "verified-rev-3",
-    authorName: "Chinmay Kulkarni",
-    date: "5 months ago",
-    rating: 5,
-    content: "Extensive range of safety gear. They took the time to explain the safety ratings (CE level 1 vs 2) which really helped me make an informed decision.",
-    verified: true,
-    link: "https://www.google.com/search?q=Store4Riders+Pune#lrd=0x3bc2c00d5a48819f:0xd4b529549919577c,1,,,,",
-  },
-  {
-    id: "verified-rev-4",
-    authorName: "Akash Singh",
-    date: "1 week ago",
-    rating: 5,
-    content: "Best customer support. I had an issue with a helmet visor I ordered online, they replaced it immediately without any hassle. Very trustworthy.",
-    verified: true,
-    link: "https://www.google.com/search?q=Store4Riders+Pune#lrd=0x3bc2c00d5a48819f:0xd4b529549919577c,1,,,,",
-  },
-  {
-    id: "verified-rev-5",
-    authorName: "Karthik Reddy",
-    date: "2 weeks ago",
-    rating: 5,
-    content: "I bought Rynox gears from their website initially, then visited the Tilak Road store for sizing exchange. Extremely smooth process. Very professional.",
-    verified: true,
-    link: "https://www.google.com/search?q=Store4Riders+Pune#lrd=0x3bc2c00d5a48819f:0xd4b529549919577c,1,,,,",
-  },
-  {
-    id: "verified-rev-6",
-    authorName: "Sumit Jagtap",
-    date: "2 weeks ago",
-    rating: 5,
-    content: "Absolutely fantastic store. Everything a rider needs under one roof. Highly satisfied with my purchase. Keep up the good work Store4Riders!",
-    verified: true,
-    link: "https://www.google.com/search?q=Store4Riders+Pune#lrd=0x3bc2c00d5a48819f:0xd4b529549919577c,1,,,,",
-  },
-  {
-    id: "verified-rev-7",
-    authorName: "Abhishek Sharma",
-    date: "1 month ago",
-    rating: 5,
-    content: "One stop shop for all riding needs! They have an excellent variety of jackets, gloves, and riding pants. The staff knows what they are selling.",
-    verified: true,
-    link: "https://www.google.com/search?q=Store4Riders+Pune#lrd=0x3bc2c00d5a48819f:0xd4b529549919577c,1,,,,",
-  },
-  {
-    id: "verified-rev-8",
-    authorName: "Rohan Patil",
-    date: "4 months ago",
-    rating: 5,
-    content: "Premium quality gear at good prices. I purchased a pair of riding gloves and the quality is outstanding. Will definitely shop here again.",
-    verified: true,
-    link: "https://www.google.com/search?q=Store4Riders+Pune#lrd=0x3bc2c00d5a48819f:0xd4b529549919577c,1,,,,",
-  },
-  {
-    id: "verified-rev-9",
-    authorName: "Saurabh Joshi",
-    date: "2 months ago",
-    rating: 4,
-    content: "Good collection of helmets and accessories. Prices are reasonable compared to other stores in Pune. Just wished they had more parking space outside.",
-    verified: true,
-    link: "https://www.google.com/search?q=Store4Riders+Pune#lrd=0x3bc2c00d5a48819f:0xd4b529549919577c,1,,,,",
-  },
-  {
-    id: "verified-rev-10",
-    authorName: "Nikhil Verma",
-    date: "3 months ago",
-    rating: 4,
-    content: "Visited the store on Tilak Road last weekend. Good stock availability. Could improve the lighting inside the store, but overall a great buying experience.",
-    verified: true,
-    link: "https://www.google.com/search?q=Store4Riders+Pune#lrd=0x3bc2c00d5a48819f:0xd4b529549919577c,1,,,,",
-  },
-];
-
 /**
  * TestimonialsSection Component
  */
@@ -177,9 +83,12 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
-  // Guarantee high quality reviews are always rendered
-  const displayTestimonials =
-    testimonials && testimonials.length > 0 ? testimonials : VERIFIED_STORE_REVIEWS;
+  // Return null when no reviews exist - Zero Mock Compliance
+  if (!testimonials || testimonials.length === 0) {
+    return null;
+  }
+
+  const displayTestimonials = testimonials;
 
   // Mouse drag state
   const isDraggingRef = useRef(false);

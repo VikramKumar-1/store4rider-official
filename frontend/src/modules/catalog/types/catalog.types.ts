@@ -6,7 +6,7 @@ export interface CatalogProduct {
   imageUrl: string;
   rating: number; // e.g. 4.95
   productUrl: string;
-  colors?: { name: string; imageUrl?: string }[];
+  colors?: { name: string; imageUrl?: string; background?: string }[];
   rawSlug?: string;
   isFeatured?: boolean;
   showFeaturedBadge?: boolean;

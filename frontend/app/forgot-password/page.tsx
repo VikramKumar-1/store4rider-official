@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import ForgotPasswordForm from "@/modules/auth/components/ForgotPasswordForm";
@@ -25,13 +25,15 @@ export default function ForgotPasswordPage() {
           Reset Password
         </h2>
         <p className="mt-2 text-center text-sm text-neutral-600">
-          Enter your email address and we'll send you a link to reset your password.
+          Enter your email address and we&apos;ll send you a link to reset your password.
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-neutral-200">
-          <ForgotPasswordForm />
+        <div className="bg-white py-8 px-4 shadow-sm sm:rounded-lg sm:px-10 border border-neutral-200">
+          <Suspense fallback={<div className="h-40 flex items-center justify-center text-xs text-neutral-400">Loading form...</div>}>
+            <ForgotPasswordForm />
+          </Suspense>
         </div>
       </div>
     </div>

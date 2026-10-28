@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { updateProfileSchema, addressSchema } from "@store4riders/shared-validation";
+import { updateProfileSchema, addressSchema, changePasswordSchema } from "@store4riders/shared-validation";
 import { extractUserFromAuth } from "../../core/middlewares/auth";
 import { IUser, IUserAddress } from "@store4riders/shared-types";
 
@@ -28,6 +28,13 @@ export class UserValidator {
     const body = await req.json();
     const data = addressSchema.partial().parse(body) as Partial<IUserAddress>;
     return { userId, data };
+  }
+
+  static async validateChangePassword(req: NextRequest): Promise<{ userId: string; currentPassword: string; newPassword: string }> {
+    const userId = extractUserFromAuth(req);
+    const body = await req.json();
+    const data = changePasswordSchema.parse(body);
+    return { userId, currentPassword: data.currentPassword, newPassword: data.newPassword };
   }
 
   static extractUserId(req: NextRequest): string {

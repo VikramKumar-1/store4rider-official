@@ -2,8 +2,16 @@
   "name": "@store4riders/shared-validation",
   "version": "1.0.0",
   "private": true,
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
   "scripts": {
     "lint": "tsc --noEmit"
   },

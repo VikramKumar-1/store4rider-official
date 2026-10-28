@@ -1,6 +1,6 @@
 import { UserRepository } from "./user.repository";
 import { IUser, IUserAddress, UserRole } from "@store4riders/shared-types";
-import { NotFoundError, ForbiddenError, ConflictError } from "../../core/errors/AppError";
+import { NotFoundError, ForbiddenError, ConflictError, ValidationError } from "../../core/errors/AppError";
 
 /**
  * @class UserService
@@ -27,6 +27,24 @@ export class UserService {
     const user = await UserRepository.update(userId, data);
     if (!user) throw new NotFoundError("User");
     return user;
+  }
+
+  static async changePassword(userId: string, currentPass: string, newPass: string): Promise<void> {
+    const user = await UserRepository.findByIdWithPassword(userId);
+    if (!user) throw new NotFoundError("User");
+
+    if (!user.password) {
+      throw new ValidationError("Account does not have a local password configured");
+    }
+
+    const bcrypt = await import("bcryptjs");
+    const isMatch = await bcrypt.compare(currentPass, user.password);
+    if (!isMatch) {
+      throw new ValidationError("Current password is incorrect");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPass, 12);
+    await UserRepository.update(userId, { password: hashedPassword });
   }
 
   static async addAddress(userId: string, data: Omit<IUserAddress, 'id'>): Promise<IUser> {

@@ -130,6 +130,10 @@ export class ProductValidator {
 
       // Admin Name search / filter
       const nameParam = searchParams.get("name");
+      const parentOnlyParam = searchParams.get("parentOnly");
+      if (parentOnlyParam === "true") {
+        andConditions.push({ visibility: { $nin: ["1", "Not Visible Individually"] } });
+      }
       if (nameParam) {
         andConditions.push({
           name: new RegExp(ProductValidator.escapeRegExp(nameParam.trim()), "i")

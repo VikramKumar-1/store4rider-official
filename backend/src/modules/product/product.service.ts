@@ -3,7 +3,7 @@ import { IProduct } from "@store4riders/shared-types";
 import { NotFoundError, ConflictError } from "../../core/errors/AppError";
 import { indexProduct, removeProductFromIndex } from "../../core/search/meilisearch";
 import { slugify } from "@store4riders/shared-utils";
-import { getCache, setCache, deleteCache } from "../../core/cache/redis";
+import { getCache, setCache, deleteCache, clearProductCaches } from "../../core/cache/redis";
 import { buildSearchSlugs, resolveCanonicalCategorySlugs } from "./product.category-constants";
 
 const PRODUCT_LIST_TTL = 120; // 2 minutes
@@ -18,6 +18,25 @@ const PRODUCT_DETAIL_TTL = 300; // 5 minutes
  * - Automatically syncs all DB changes instantly to the Meilisearch index.
  * - Auto-invalidates Redis cache on product creation, updates, and deletions.
  */
+function parseDateOrNull(val: any): Date | null | undefined {
+  if (val === null) return null;
+  if (val === undefined || val === "") return undefined;
+  if (val instanceof Date) return isNaN(val.getTime()) ? undefined : val;
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (!trimmed) return null;
+    const ddmmyyyyMatch = trimmed.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+    if (ddmmyyyyMatch) {
+      const [, day, month, year] = ddmmyyyyMatch;
+      const d = new Date(`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T00:00:00.000Z`);
+      if (!isNaN(d.getTime())) return d;
+    }
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) return d;
+  }
+  return undefined;
+}
+
 export class ProductService {
   
   static async getProducts(
@@ -53,7 +72,7 @@ export class ProductService {
   }
 
   static async getProductBySlug(slug: string): Promise<IProduct> {
-    const cacheKey = `product_slug_v2_${slug}`;
+    const cacheKey = `product_slug_v3_${slug}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -221,13 +240,56 @@ export class ProductService {
       }
     }
 
+    // DYNAMIC BRAND RESOLUTION (slug, logo, standardized name)
+    let brandName = product.brand || (product.attributes && ((product.attributes as any).brand || (product.attributes as any).Brand)) || "";
+    let brandSlug = product.brandSlug;
+    let brandLogo = product.brandLogo;
+
+    if (!brandSlug && (product.brandId || brandName)) {
+      try {
+        const { BrandModel } = await import("../brand/brand.model");
+        const mongoose = await import("mongoose");
+        let brandDoc: any = null;
+        if (product.brandId && mongoose.default.isValidObjectId(product.brandId)) {
+          brandDoc = await BrandModel.findById(product.brandId).lean().exec();
+        }
+        if (!brandDoc && brandName) {
+          const cleanBrand = String(brandName).trim();
+          const escapeRegex = (s: string) => s.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+          const slugCandidate = slugify(cleanBrand);
+          brandDoc = await BrandModel.findOne({
+            $or: [
+              { slug: slugCandidate },
+              { name: new RegExp(`^${escapeRegex(cleanBrand)}$`, "i") },
+              { slug: new RegExp(`^${escapeRegex(slugCandidate)}$`, "i") },
+            ],
+          }).lean().exec();
+        }
+        if (brandDoc) {
+          brandName = brandDoc.name || brandName;
+          brandSlug = brandDoc.slug;
+          brandLogo = brandDoc.logo;
+        } else if (brandName) {
+          brandSlug = slugify(String(brandName).trim());
+        }
+      } catch {
+        if (brandName && !brandSlug) {
+          brandSlug = slugify(String(brandName).trim());
+        }
+      }
+    }
+
+    if (brandName) product.brand = String(brandName).trim();
+    if (brandSlug) product.brandSlug = brandSlug;
+    if (brandLogo) product.brandLogo = brandLogo;
+
     await setCache(cacheKey, product, PRODUCT_DETAIL_TTL);
     return product;
   }
 
   static async getProductsBySkus(skus: string[]): Promise<IProduct[]> {
     if (!skus || skus.length === 0) return [];
-    const cacheKey = `products_skus_v2_${skus.slice().sort().join("_")}`;
+    const cacheKey = `products_skus_v4_${skus.slice().sort().join("_")}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -249,7 +311,7 @@ export class ProductService {
    * No smart matching, no upsellSkus fallback.
    */
   static async getKitRecommendations(slugOrId: string): Promise<IProduct[]> {
-    const cacheKey = `product_kit_v7_${slugOrId}`;
+    const cacheKey = `product_kit_v4_${slugOrId}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -264,19 +326,95 @@ export class ProductService {
 
     let kitProducts: IProduct[] = [];
 
+    // Strictly Admin DB Truth: Only return products explicitly configured in relatedSkus
     if (product.relatedSkus && product.relatedSkus.length > 0) {
       const cleanSkus = product.relatedSkus
         .join(",")
         .split(",")
         .map(s => s.trim())
         .filter(Boolean);
-      kitProducts = await ProductRepository.findBySkus(cleanSkus);
+      if (cleanSkus.length > 0) {
+        kitProducts = await ProductRepository.findBySkus(cleanSkus);
+      }
     }
 
     await setCache(cacheKey, kitProducts, PRODUCT_DETAIL_TTL);
     return kitProducts;
   }
 
+  /**
+   * Upsell Recommendation Engine — "You May Also Like".
+   * 1. Returns upsellSkus products if configured.
+   * 2. If fewer than 6 items, recommends alternative products from the same category or brand.
+   */
+  static async getUpsellRecommendations(slugOrId: string): Promise<IProduct[]> {
+    const cacheKey = `product_upsell_v4_${slugOrId}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return cached;
+
+    let product: IProduct | null = null;
+    if (slugOrId.match(/^[0-9a-fA-F]{24}$/)) {
+      product = await ProductRepository.findById(slugOrId);
+    }
+    if (!product) {
+      product = await ProductRepository.findBySlug(slugOrId);
+    }
+    if (!product) return [];
+
+    let upsellProducts: IProduct[] = [];
+
+    // Strictly Admin DB Truth: Only return products explicitly configured in upsellSkus
+    if (product.upsellSkus && product.upsellSkus.length > 0) {
+      const cleanSkus = product.upsellSkus
+        .join(",")
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean);
+      if (cleanSkus.length > 0) {
+        upsellProducts = await ProductRepository.findBySkus(cleanSkus);
+      }
+    }
+
+    await setCache(cacheKey, upsellProducts, PRODUCT_DETAIL_TTL);
+    return upsellProducts;
+  }
+
+  /**
+   * Cross-Sell Recommendation Engine — "Frequently Bought Together".
+   * 1. Returns crosssellSkus products if configured.
+   * 2. If fewer than 6 items, recommends essential rider accessories & maintenance care products.
+   */
+  static async getCrossSellRecommendations(slugOrId: string): Promise<IProduct[]> {
+    const cacheKey = `product_crosssell_v3_${slugOrId}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return cached;
+
+    let product: IProduct | null = null;
+    if (slugOrId.match(/^[0-9a-fA-F]{24}$/)) {
+      product = await ProductRepository.findById(slugOrId);
+    }
+    if (!product) {
+      product = await ProductRepository.findBySlug(slugOrId);
+    }
+    if (!product) return [];
+
+    let crossSellProducts: IProduct[] = [];
+
+    // Strictly Admin DB Truth: Only return products explicitly configured in crosssellSkus
+    if (product.crosssellSkus && product.crosssellSkus.length > 0) {
+      const cleanSkus = product.crosssellSkus
+        .join(",")
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean);
+      if (cleanSkus.length > 0) {
+        crossSellProducts = await ProductRepository.findBySkus(cleanSkus);
+      }
+    }
+
+    await setCache(cacheKey, crossSellProducts, PRODUCT_DETAIL_TTL);
+    return crossSellProducts;
+  }
 
   static async getAggregations(filters: Record<string, unknown> = {}, categorySlug?: string, rawActiveFilters?: any): Promise<any> {
     const serializeFilter = (obj: any): string => {
@@ -846,7 +984,12 @@ export class ProductService {
     };
 
     if (excludeId) {
-      query._id = { $ne: excludeId };
+      const mongoose = await import("mongoose");
+      if (mongoose.default.Types.ObjectId.isValid(excludeId)) {
+        query._id = { $ne: excludeId };
+      } else {
+        query.slug = { $ne: excludeId };
+      }
     }
 
     const { ProductModel } = await import("./product.model");
@@ -878,7 +1021,12 @@ export class ProductService {
     };
 
     if (excludeId) {
-      query._id = { $ne: excludeId };
+      const mongoose = await import("mongoose");
+      if (mongoose.default.Types.ObjectId.isValid(excludeId)) {
+        query._id = { $ne: excludeId };
+      } else {
+        query.slug = { $ne: excludeId };
+      }
     }
 
     const { ProductModel } = await import("./product.model");
@@ -898,6 +1046,18 @@ export class ProductService {
   }
 
   static async createProduct(data: Partial<IProduct>): Promise<IProduct> {
+    if (data.specialPriceFromDate !== undefined) {
+      data.specialPriceFromDate = parseDateOrNull(data.specialPriceFromDate) as any;
+    }
+    if (data.specialPriceToDate !== undefined) {
+      data.specialPriceToDate = parseDateOrNull(data.specialPriceToDate) as any;
+    }
+    if (!data.countryOfManufacture) {
+      data.countryOfManufacture = "India";
+    }
+    if (!data.weightUnit) {
+      data.weightUnit = "kg";
+    }
     if (data.sku) {
       const check = await this.checkSkuAvailability(data.sku);
       if (!check.available && check.existingProduct) {
@@ -935,6 +1095,51 @@ export class ProductService {
       }
     }
 
+    // Sanitize colorImages keys: MongoDB BSON keys cannot contain dots (.)
+    if (data.colorImages && typeof data.colorImages === "object") {
+      const sanitizedColorImages: Record<string, string> = {};
+      const entries = data.colorImages instanceof Map
+        ? Array.from(data.colorImages.entries())
+        : Object.entries(data.colorImages);
+      for (const [key, val] of entries) {
+        if (typeof val === "string") {
+          const safeKey = key.replace(/\./g, " ").replace(/\s+/g, " ").trim();
+          sanitizedColorImages[safeKey] = val;
+        }
+      }
+      data.colorImages = sanitizedColorImages;
+    }
+    // Sanitize colorSwatches keys: MongoDB BSON keys cannot contain dots (.)
+    if (data.colorSwatches && typeof data.colorSwatches === "object") {
+      const sanitizedColorSwatches: Record<string, string> = {};
+      const entries = data.colorSwatches instanceof Map
+        ? Array.from(data.colorSwatches.entries())
+        : Object.entries(data.colorSwatches);
+      for (const [key, val] of entries) {
+        if (typeof val === "string") {
+          const safeKey = key.replace(/\./g, " ").replace(/\s+/g, " ").trim();
+          sanitizedColorSwatches[safeKey] = val;
+        }
+      }
+      data.colorSwatches = sanitizedColorSwatches;
+    }
+
+    if (Array.isArray(data.variants)) {
+      data.variants.forEach((v: any) => {
+        if (v.color && typeof v.color === "string" && v.color.includes(".")) {
+          v.color = v.color.replace(/\./g, " ").replace(/\s+/g, " ").trim();
+        }
+        if (v.attributes && typeof v.attributes === "object") {
+          const col = v.attributes.color || v.attributes.colour;
+          if (typeof col === "string" && col.includes(".")) {
+            const cleanCol = col.replace(/\./g, " ").replace(/\s+/g, " ").trim();
+            if (v.attributes.color) v.attributes.color = cleanCol;
+            if (v.attributes.colour) v.attributes.colour = cleanCol;
+          }
+        }
+      });
+    }
+
     const productData = { ...data, slug, categorySlugs, ...(categoryId ? { categoryId } : {}) };
     let product;
     try {
@@ -959,8 +1164,24 @@ export class ProductService {
   }
 
   static async updateProduct(id: string, data: Partial<IProduct>): Promise<IProduct> {
+    if (data.specialPriceFromDate !== undefined) {
+      data.specialPriceFromDate = parseDateOrNull(data.specialPriceFromDate) as any;
+    }
+    if (data.specialPriceToDate !== undefined) {
+      data.specialPriceToDate = parseDateOrNull(data.specialPriceToDate) as any;
+    }
+    // Resolve real document if id is slug, SKU, or ObjectId
+    let existingDoc = await ProductRepository.findById(id);
+    if (!existingDoc) {
+      existingDoc = await ProductRepository.findBySlug(id);
+    }
+    if (!existingDoc) {
+      throw new NotFoundError("Product");
+    }
+    const realId = String((existingDoc as any)._id);
+
     if (data.sku) {
-      const check = await this.checkSkuAvailability(data.sku, id);
+      const check = await this.checkSkuAvailability(data.sku, realId);
       if (!check.available && check.existingProduct) {
         throw new ConflictError(
           `A product with SKU "${data.sku}" already exists ("${check.existingProduct.name}"). SKU must be unique across the catalog.`
@@ -969,7 +1190,7 @@ export class ProductService {
     }
     if (data.slug) {
       data.slug = slugify(data.slug);
-      const slugCheck = await this.checkSlugAvailability(data.slug, id);
+      const slugCheck = await this.checkSlugAvailability(data.slug, realId);
       if (!slugCheck.available && slugCheck.existingProduct) {
         throw new ConflictError(
           `A product with URL Slug "${data.slug}" already exists ("${slugCheck.existingProduct.name}"). URL slug must be unique.`
@@ -1005,7 +1226,52 @@ export class ProductService {
 
     let product;
     try {
-      product = await ProductRepository.update(id, data);
+    // Sanitize colorImages keys: MongoDB BSON keys cannot contain dots (.)
+    if (data.colorImages && typeof data.colorImages === "object") {
+      const sanitizedColorImages: Record<string, string> = {};
+      const entries = data.colorImages instanceof Map
+        ? Array.from(data.colorImages.entries())
+        : Object.entries(data.colorImages);
+      for (const [key, val] of entries) {
+        if (typeof val === "string") {
+          const safeKey = key.replace(/\./g, " ").replace(/\s+/g, " ").trim();
+          sanitizedColorImages[safeKey] = val;
+        }
+      }
+      data.colorImages = sanitizedColorImages;
+    }
+    // Sanitize colorSwatches keys: MongoDB BSON keys cannot contain dots (.)
+    if (data.colorSwatches && typeof data.colorSwatches === "object") {
+      const sanitizedColorSwatches: Record<string, string> = {};
+      const entries = data.colorSwatches instanceof Map
+        ? Array.from(data.colorSwatches.entries())
+        : Object.entries(data.colorSwatches);
+      for (const [key, val] of entries) {
+        if (typeof val === "string") {
+          const safeKey = key.replace(/\./g, " ").replace(/\s+/g, " ").trim();
+          sanitizedColorSwatches[safeKey] = val;
+        }
+      }
+      data.colorSwatches = sanitizedColorSwatches;
+    }
+
+    if (Array.isArray(data.variants)) {
+      data.variants.forEach((v: any) => {
+        if (v.color && typeof v.color === "string" && v.color.includes(".")) {
+          v.color = v.color.replace(/\./g, " ").replace(/\s+/g, " ").trim();
+        }
+        if (v.attributes && typeof v.attributes === "object") {
+          const col = v.attributes.color || v.attributes.colour;
+          if (typeof col === "string" && col.includes(".")) {
+            const cleanCol = col.replace(/\./g, " ").replace(/\s+/g, " ").trim();
+            if (v.attributes.color) v.attributes.color = cleanCol;
+            if (v.attributes.colour) v.attributes.colour = cleanCol;
+          }
+        }
+      });
+    }
+
+    product = await ProductRepository.update(realId, data);
     } catch (err: any) {
       if (err.code === 11000) {
         if (err.keyPattern?.sku) {
@@ -1019,9 +1285,12 @@ export class ProductService {
     }
     if (!product) throw new NotFoundError("Product");
     
-    // Sync to search index & invalidate cache
+    // Sync to search index & invalidate cache for old slug and new slug
     await indexProduct(product);
-    await this.invalidateProductCache(product.slug);
+    await this.invalidateProductCache(existingDoc.slug);
+    if (product.slug && product.slug !== existingDoc.slug) {
+      await this.invalidateProductCache(product.slug);
+    }
     
     return product;
   }
@@ -1037,7 +1306,12 @@ export class ProductService {
   private static async invalidateProductCache(slug?: string) {
     if (slug) {
       await deleteCache(`product_slug_${slug}`);
+      await deleteCache(`product_slug_v2_${slug}`);
+      await deleteCache(`product_kit_v4_${slug}`);
+      await deleteCache(`product_upsell_v4_${slug}`);
+      await deleteCache(`product_crosssell_v3_${slug}`);
     }
+    await clearProductCaches();
   }
 
   static async bulkUpdateFromCsv(csvContent: string): Promise<{ successCount: number; errorRows: any[] }> {
@@ -1090,8 +1364,21 @@ export class ProductService {
               const rawQty = getCol(["qty", "stock", "quantity", "Qty", "Stock"]);
               const rawStockStatus = getCol(["is_in_stock", "stockStatus", "stock_status", "isInStock"]);
               const rawStatus = getCol(["status", "product_online"]);
-
               const updateData: any = {};
+              const rawColorSwatches = getCol(["color_swatches", "colorSwatches", "ColorSwatches"]);
+              if (rawColorSwatches !== undefined && typeof rawColorSwatches === "string" && rawColorSwatches.trim()) {
+                const parsedSwatches: Record<string, string> = {};
+                rawColorSwatches.split("|").forEach((item: string) => {
+                  const [col, hex] = item.split("=");
+                  if (col && hex) {
+                    const cleanKey = col.replace(/\./g, " ").replace(/\s+/g, " ").trim();
+                    parsedSwatches[cleanKey] = hex.trim();
+                  }
+                });
+                if (Object.keys(parsedSwatches).length > 0) {
+                  updateData.colorSwatches = parsedSwatches;
+                }
+              }
               if (rawPrice !== undefined) updateData.basePrice = Number(rawPrice);
               if (rawSpecialPrice !== undefined) {
                 updateData.specialPrice = rawSpecialPrice === "" || rawSpecialPrice === null ? undefined : Number(rawSpecialPrice);
@@ -1189,6 +1476,7 @@ export class ProductService {
       "base_image", "base_image_label",
       "additional_images", "additional_image_labels",
       "swatch_image", "swatch_image_label",
+      "color_swatches",
       "configurable_variations", "related_skus", "upsell_skus", "crosssell_skus", "size_chart", "gender",
       "country_of_manufacture", "attribute_set_code", "configurable_variation_labels", "free_shipping",
       "backorders", "meta_title", "meta_keyword", "meta_description"
@@ -1239,6 +1527,13 @@ export class ProductService {
         swatchAlt = p.variants[0].altText || p.variants[0].images?.[0]?.altText || "";
       }
 
+      // Extract colorSwatches formatted string
+      let colorSwatchesStr = "";
+      if (p.colorSwatches && typeof p.colorSwatches === "object") {
+        const sMap = p.colorSwatches instanceof Map ? Object.fromEntries(p.colorSwatches) : p.colorSwatches;
+        colorSwatchesStr = Object.entries(sMap).map(([col, hex]) => `${col}=${hex}`).join("|");
+      }
+
       const configurableVars = p.variants?.map((v: any) => {
         const attrs = Object.entries(v.attributes || {}).map(([k, val]) => `${k}=${val}`).join(",");
         const imgPart = v.imageUrl ? `,image=${v.imageUrl}` : "";
@@ -1272,6 +1567,7 @@ export class ProductService {
         additionalImgAlts,
         swatchImg,
         swatchAlt,
+        colorSwatchesStr,
         configurableVars,
         p.relatedSkus?.join(",") || "",
         p.upsellSkus?.join(",") || "",

@@ -14,9 +14,6 @@ export function useAdminShipments(params: GetShipmentsParams = {}) {
   return useQuery({
     queryKey: ["admin", "shipments", params],
     queryFn: async () => {
-      // In a real app, we would pass these query params. Currently the backend 
-      // might just have `GET /shipments/order/:orderId` or we might need to add `GET /admin/shipments`.
-      // Let's assume `GET /admin/shipments` exists or we pass params to `/shipments`.
       const searchParams = new URLSearchParams();
       if (params.page) searchParams.set("page", String(params.page));
       if (params.limit) searchParams.set("limit", String(params.limit));
@@ -40,9 +37,10 @@ export function useAdminShipmentById(id: string) {
     enabled: !!id,
   });
 }
+
 export function useShipmentRates() {
   return useMutation({
-    mutationFn: async (data: { orderId: string, weightKg: number, length?: number, breadth?: number, height?: number, isCod?: boolean }) => {
+    mutationFn: async (data: { orderId: string; weightKg: number; length?: number; breadth?: number; height?: number; isCod?: boolean }) => {
       const response = await apiClient.post(`/shipments/rates`, {
         orderId: data.orderId,
         weightKg: data.weightKg,
@@ -59,7 +57,7 @@ export function useShipmentRates() {
 export function useCreateShipment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { orderId: string, provider: string, warehouseId?: string, length?: number, breadth?: number, height?: number, weight?: number }) => {
+    mutationFn: async (data: { orderId: string; provider: string; warehouseId?: string; length?: number; breadth?: number; height?: number; weight?: number }) => {
       const response = await apiClient.post(`/shipments/admin`, data);
       return response.data.data as IShipment;
     },
@@ -70,10 +68,19 @@ export function useCreateShipment() {
   });
 }
 
+export interface PushToShiprocketPayload {
+  orderId: string;
+  warehouseId?: string;
+  weightKg?: number;
+  length?: number;
+  breadth?: number;
+  height?: number;
+}
+
 export function usePushToShiprocket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: string | { orderId: string; warehouseId?: string }) => {
+    mutationFn: async (data: string | PushToShiprocketPayload) => {
       const payload = typeof data === "string" ? { orderId: data } : data;
       const response = await apiClient.post(`/shipments/admin/push-shiprocket`, payload);
       return response.data.data as IShipment;

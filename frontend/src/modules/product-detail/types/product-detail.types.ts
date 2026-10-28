@@ -33,10 +33,17 @@ export interface ColorOption {
 
 export interface PDPData {
   id: string;
+  sku?: string;
   slug: string;
+  brand?: string;
+  brandSlug?: string;
+  brandLogo?: string;
+  productType?: string;
   category: string;
   categorySlug?: string;
   name: string;
+  price?: number;
+  originalPrice?: number;
   rating: number;
   reviewCount: number;
   originalPriceFormatted?: string;
@@ -47,14 +54,19 @@ export interface PDPData {
   sizeChart?: string;
   images: ProductImage[];
   colorImages?: Record<string, string>;
+  colorSwatches?: Record<string, string>;
   colors: ColorOption[];
   sizes: string[];
   sizeLabel?: string;
+  variantsByColor?: Record<string, string[]>;
   kitProducts: KitProduct[];
   storeReviews: ReviewData[];
   productReviews: ReviewData[];
   upSellProducts: KitProduct[];
+  crossSellProducts?: KitProduct[];
   rawVariants?: Array<{
+    id?: string;
+    _id?: string;
     sku: string;
     price: number;
     specialPrice?: number;

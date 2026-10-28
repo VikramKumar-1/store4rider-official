@@ -42,6 +42,8 @@ export class AuthService {
         lastName: user.lastName,
         name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
         role: user.role || "customer",
+        phone: user.phone || "",
+        addresses: user.addresses || [],
       }
     };
   }
@@ -77,6 +79,8 @@ export class AuthService {
         lastName: user.lastName,
         name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
         role: user.role || "customer",
+        phone: user.phone || "",
+        addresses: user.addresses || [],
       }
     };
   }

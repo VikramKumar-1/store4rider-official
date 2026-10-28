@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { IProduct } from "@store4riders/shared-types";
 
 interface ProductGalleryProps {
   images: any[]; // Assuming images match the product schema
@@ -18,7 +17,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
         {images?.[selectedImage] ? (
           <Image 
             src={images[selectedImage].url} 
-            alt={productName} 
+            alt={images[selectedImage].altText || `${productName} - Image ${selectedImage + 1}`} 
             fill 
             className="object-cover" 
           />
@@ -33,7 +32,12 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
             onClick={() => setSelectedImage(idx)}
             className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${selectedImage === idx ? 'border-brand' : 'border-transparent'}`}
           >
-            <Image src={img.url} alt="" fill className="object-cover" />
+            <Image 
+              src={img.url} 
+              alt={img.altText || `${productName} thumbnail ${idx + 1}`} 
+              fill 
+              className="object-cover" 
+            />
           </button>
         ))}
       </div>

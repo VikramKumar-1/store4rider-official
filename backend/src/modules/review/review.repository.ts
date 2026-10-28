@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { ReviewModel, StoreReviewModel } from "./review.model";
 import { IReview, IStoreReview } from "@store4riders/shared-types";
 
@@ -29,14 +30,34 @@ export class ReviewRepository {
     return { avgRating, reviewCount: reviews.length };
   }
 
-  static async getStoreReviews(limit: number = 20, random: boolean = false): Promise<IStoreReview[]> {
+  static async getStoreReviews(
+    limit: number = 20,
+    random: boolean = false,
+    excludeIds: string[] = []
+  ): Promise<IStoreReview[]> {
+    const matchConditions: any = { isActive: true };
+
+    if (excludeIds && excludeIds.length > 0) {
+      const validObjectIds = excludeIds
+        .filter((id) => Types.ObjectId.isValid(id))
+        .map((id) => new Types.ObjectId(id));
+
+      matchConditions.$and = [
+        ...(validObjectIds.length > 0 ? [{ _id: { $nin: validObjectIds } }] : []),
+        { externalId: { $nin: excludeIds } },
+      ];
+    }
+
     if (random) {
       return StoreReviewModel.aggregate([
-        { $match: { isActive: true } },
+        { $match: matchConditions },
+        { $sort: { createdAt: -1 } },
+        { $limit: 50 },
         { $sample: { size: limit } },
       ]).exec() as unknown as IStoreReview[];
     }
-    return StoreReviewModel.find({ isActive: true })
+
+    return StoreReviewModel.find(matchConditions)
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean()
@@ -49,7 +70,7 @@ export class ReviewRepository {
 
   static async saveStoreReviews(reviews: Partial<IStoreReview>[]): Promise<IStoreReview[]> {
     if (!reviews || reviews.length === 0) {
-      return this.getStoreReviews();
+      return this.getStoreReviews(100);
     }
 
     const operations = reviews.map((r, idx) => {
@@ -82,6 +103,6 @@ export class ReviewRepository {
     });
 
     await StoreReviewModel.bulkWrite(operations);
-    return this.getStoreReviews();
+    return this.getStoreReviews(100);
   }
 }

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useForgotPassword } from "@/core/hooks/useAuth";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 const forgotPasswordSchema = z.object({
@@ -14,9 +15,21 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordInputs = z.infer<typeof forgotPasswordSchema>;
 
 export default function ForgotPasswordForm() {
-  const { register, handleSubmit, formState: { errors } } = useForm<ForgotPasswordInputs>({
-    resolver: zodResolver(forgotPasswordSchema)
+  const searchParams = useSearchParams();
+  const queryEmail = searchParams?.get("email") || "";
+
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<ForgotPasswordInputs>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: queryEmail,
+    },
   });
+
+  useEffect(() => {
+    if (queryEmail) {
+      setValue("email", queryEmail);
+    }
+  }, [queryEmail, setValue]);
 
   const [submitted, setSubmitted] = useState(false);
   const forgotMutation = useForgotPassword();
@@ -34,7 +47,7 @@ export default function ForgotPasswordForm() {
       <div className="text-center">
         <h3 className="text-lg font-medium text-neutral-900 mb-2">Check your email</h3>
         <p className="text-sm text-neutral-600 mb-6">
-          We've sent a password reset link to your email address. Please check your inbox.
+          We&apos;ve sent a password reset link to your email address. Please check your inbox.
         </p>
         <Link href="/login" className="text-sm font-medium text-banner hover:text-orange-600">
           &larr; Back to login
@@ -67,7 +80,7 @@ export default function ForgotPasswordForm() {
         <button
           type="submit"
           disabled={forgotMutation.isPending}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-banner hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-banner disabled:opacity-70 transition-colors"
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-banner hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-banner disabled:opacity-70 transition-colors cursor-pointer"
         >
           {forgotMutation.isPending ? "Sending..." : "Send reset link"}
         </button>

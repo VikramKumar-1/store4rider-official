@@ -4,12 +4,14 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { 
   Sliders, X, ImageIcon, Check, Upload, Link as LinkIcon, 
-  Trash2, AlertCircle, Sparkles, RefreshCw, Eye 
+  Trash2, AlertCircle, Sparkles, RefreshCw, Eye, Star 
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import { compressImageToWebP, uploadImageToS3 } from "@/core/utils/imageCompressor";
+import { normalizeExternalImageUrl } from "@/core/utils/mediaUrlHelper";
 import { useProductFormContext } from "../ProductFormContext";
+import { parseColorToBackground } from "@/modules/product-detail/components/ProductDetailPageModule";
 import { COLOR_OPTIONS, SIZE_OPTIONS } from "../product-specs.constants";
 
 export function VariantSettingsModal() {
@@ -24,6 +26,8 @@ export function VariantSettingsModal() {
     weightUnit,
     applyToAllSameColor,
     setApplyToAllSameColor,
+    colorSwatches,
+    setColorSwatches,
   } = useProductFormContext();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,6 +42,7 @@ export function VariantSettingsModal() {
   const [visibilityInput, setVisibilityInput] = useState<string>("Catalog, Search");
   const [syncToParentGallery, setSyncToParentGallery] = useState<boolean>(true);
   const [applyToSameColor, setApplyToSameColor] = useState<boolean>(true);
+  const [isCoverImage, setIsCoverImage] = useState<boolean>(false);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [dragOver, setDragOver] = useState<boolean>(false);
   const [manualUrlInput, setManualUrlInput] = useState<string>("");
@@ -64,10 +69,18 @@ export function VariantSettingsModal() {
       setVisibilityInput(currentVariant.visibility || "Catalog, Search");
       setApplyToSameColor(applyToAllSameColor);
       setSyncToParentGallery(true);
-      setActivePhotoTab(existingImg ? "gallery" : "upload");
+
+      const isCurrentlyBase = Boolean(
+        existingImg &&
+        (images.some((img) => img.isBase && img.url === existingImg) ||
+         (!images.some((img) => img.isBase) && images[0]?.url === existingImg))
+      );
+      setIsCoverImage(isCurrentlyBase || images.length === 0);
+
+      setActivePhotoTab(existingImg ? "gallery" : (images && images.length > 0 ? "gallery" : "upload"));
       setManualUrlInput("");
     }
-  }, [variantImageModalIndex, currentVariant, name, applyToAllSameColor]);
+  }, [variantImageModalIndex, currentVariant, name, applyToAllSameColor, images]);
 
   if (variantImageModalIndex === null || !currentVariant) {
     return null;
@@ -116,7 +129,7 @@ export function VariantSettingsModal() {
       toast.error("Please enter an image URL");
       return;
     }
-    setImageUrl(manualUrlInput.trim());
+    setImageUrl(normalizeExternalImageUrl(manualUrlInput.trim()));
     if (!altText.trim()) {
       setAltText(generateSuggestedAlt());
     }
@@ -144,8 +157,23 @@ export function VariantSettingsModal() {
           (v.color || "").trim().toLowerCase() === targetColor.toLowerCase();
 
         if (isCurrent || isSameColor) {
+          // Dynamic SEO Alt Text: Ensure other sizes of the same color get their OWN size in alt text, not the current variant's size!
+          let variantAlt = trimmedAlt;
+          if (!isCurrent) {
+            if (sizeInput && v.size && trimmedAlt.toLowerCase().includes(`(${sizeInput.trim().toLowerCase()})`)) {
+              variantAlt = trimmedAlt.replace(
+                new RegExp(`\\(${sizeInput.trim()}\\)`, "i"),
+                `(${v.size})`
+              );
+            } else if (v.size) {
+              variantAlt = generateSuggestedAlt(targetColor, v.size);
+            } else {
+              variantAlt = trimmedAlt;
+            }
+          }
+
           const updatedImages = imageUrl
-            ? [{ id: crypto.randomUUID(), url: imageUrl, altText: trimmedAlt }]
+            ? [{ id: crypto.randomUUID(), url: imageUrl, altText: variantAlt }]
             : [];
 
           return {
@@ -156,7 +184,7 @@ export function VariantSettingsModal() {
             status: isCurrent ? statusInput : v.status,
             visibility: isCurrent ? visibilityInput : v.visibility,
             imageUrl: imageUrl || undefined,
-            altText: imageUrl ? trimmedAlt : undefined,
+            altText: imageUrl ? variantAlt : undefined,
             images: updatedImages,
           };
         }
@@ -164,25 +192,41 @@ export function VariantSettingsModal() {
       })
     );
 
-    // 2. Sync image into parent gallery if requested
-    if (syncToParentGallery && imageUrl) {
+    // 2. Sync image into parent gallery if requested (or if marked as catalog cover)
+    if (imageUrl && (syncToParentGallery || isCoverImage)) {
+      // In parent gallery, the photo represents the entire colorway (e.g. "Test Product 1 - Golden")
+      // Remove single size suffix like " (XS)" so the parent gallery photo has a clean, accurate alt label
+      const parentAltClean = sizeInput 
+        ? trimmedAlt.replace(new RegExp(`\\s*\\(${sizeInput.trim()}\\)`, "i"), "").trim()
+        : trimmedAlt;
+      const finalParentAlt = parentAltClean || generateSuggestedAlt(targetColor, "");
+
       setImages((prev) => {
         const alreadyExists = prev.some((img) => img.url === imageUrl);
         if (!alreadyExists) {
-          return [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              url: imageUrl,
-              altText: trimmedAlt || generateSuggestedAlt(targetColor, sizeInput),
-              isBase: prev.length === 0,
-            },
-          ];
+          const newImg = {
+            id: crypto.randomUUID(),
+            url: imageUrl,
+            altText: finalParentAlt,
+            isBase: isCoverImage || prev.length === 0,
+          };
+          if (isCoverImage) {
+            return [newImg, ...prev.map((img) => ({ ...img, isBase: false }))];
+          }
+          return [...prev, newImg];
         }
-        // Update alt text in parent gallery if it was missing or generic
-        return prev.map((img) =>
-          img.url === imageUrl && trimmedAlt ? { ...img, altText: trimmedAlt } : img
-        );
+
+        // Update alt text in parent gallery and update isBase flag
+        return prev.map((img) => {
+          if (img.url === imageUrl) {
+            return {
+              ...img,
+              altText: finalParentAlt,
+              ...(isCoverImage ? { isBase: true } : {}),
+            };
+          }
+          return isCoverImage ? { ...img, isBase: false } : img;
+        });
       });
     }
 
@@ -417,27 +461,42 @@ export function VariantSettingsModal() {
                         Click any image below to link it to this variant:
                       </p>
                       <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5 max-h-48 overflow-y-auto p-1">
-                        {images.map((img) => (
-                          <button
-                            key={img.id}
-                            type="button"
-                            onClick={() => {
-                              setImageUrl(img.url);
-                              setAltText(img.altText || generateSuggestedAlt());
-                              toast.success("Gallery photo linked!");
-                            }}
-                            className="relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 hover:border-brand transition-all cursor-pointer group"
-                            title={img.altText || "Gallery photo"}
-                          >
-                            <Image
-                              src={img.url}
-                              alt={img.altText || "Gallery"}
-                              fill
-                              sizes="80px"
-                              className="object-cover group-hover:scale-105 transition-transform"
-                            />
-                          </button>
-                        ))}
+                        {images.map((img) => {
+                          const isSelected = imageUrl === img.url;
+                          return (
+                            <button
+                              key={img.id}
+                              type="button"
+                              onClick={() => {
+                                setImageUrl(img.url);
+                                setAltText(img.altText || generateSuggestedAlt());
+                                toast.success("Gallery photo linked!");
+                              }}
+                              className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all cursor-pointer group ${
+                                isSelected ? "border-brand ring-2 ring-brand/30" : "border-slate-200 hover:border-brand"
+                              }`}
+                              title={img.altText || "Gallery photo"}
+                            >
+                              <Image
+                                src={img.url}
+                                alt={img.altText || "Gallery"}
+                                fill
+                                sizes="80px"
+                                className="object-cover group-hover:scale-105 transition-transform"
+                              />
+                              {img.isBase && (
+                                <div className="absolute top-1 left-1 bg-amber-500 text-slate-950 p-0.5 rounded-full shadow-xs" title="Catalog Front Cover">
+                                  <Star size={9} fill="currentColor" />
+                                </div>
+                              )}
+                              {isSelected && (
+                                <div className="absolute top-1 right-1 bg-brand text-white p-0.5 rounded-full shadow-xs">
+                                  <Check size={9} />
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -473,6 +532,25 @@ export function VariantSettingsModal() {
 
           {/* Sync & Batch Toggles */}
           <div className="space-y-2 pt-2 border-t border-slate-200/80">
+            {/* Set as Main Front Thumbnail Toggle */}
+            <label className="flex items-start gap-2.5 p-2.5 bg-amber-50/70 rounded-xl border border-amber-200 cursor-pointer hover:bg-amber-50 transition-colors">
+              <input
+                type="checkbox"
+                checked={isCoverImage}
+                onChange={(e) => setIsCoverImage(e.target.checked)}
+                className="w-4 h-4 mt-0.5 text-brand rounded border-slate-300 focus:ring-brand cursor-pointer"
+              />
+              <div>
+                <span className="text-xs font-bold text-amber-950 block flex items-center gap-1.5">
+                  <Star size={13} className={isCoverImage ? "text-amber-500 fill-amber-500" : "text-amber-500"} />
+                  Set as Main Catalog Cover (Front Thumbnail)
+                </span>
+                <span className="text-[11px] text-amber-800 block">
+                  Show this color&apos;s photo by default on the catalog cards, search results, and initial product hero image.
+                </span>
+              </div>
+            </label>
+
             {/* Sync to Parent Gallery Toggle */}
             <label className="flex items-start gap-2.5 p-2.5 bg-white rounded-xl border border-slate-200 cursor-pointer hover:border-slate-300 transition-colors">
               <input
@@ -525,21 +603,56 @@ export function VariantSettingsModal() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Color</label>
-              <input
-                type="text"
-                value={colorInput}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setColorInput(val);
-                  if (imageUrl && (!altText.trim() || altText === generateSuggestedAlt(colorInput, sizeInput))) {
-                    setAltText(generateSuggestedAlt(val, sizeInput));
-                  }
-                }}
-                list="color-presets"
-                placeholder="e.g. Matt Red"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-brand"
-              />
+              <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <span>Color Group</span>
+                {colorInput.trim() && (
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {colorSwatches[colorInput.trim()] || "Auto"}
+                  </span>
+                )}
+              </label>
+              <div className="flex items-center gap-2">
+                <label
+                  className="relative w-8 h-8 rounded-lg border-2 border-slate-300 shadow-sm cursor-pointer overflow-hidden flex items-center justify-center hover:scale-105 transition-transform shrink-0 ring-1 ring-black/5"
+                  style={{
+                    background: colorSwatches[colorInput.trim()] || parseColorToBackground(colorInput.trim() || "Standard") || "#111111",
+                  }}
+                  title={`Click to pick exact color for "${colorInput || "Standard"}"`}
+                >
+                  <input
+                    type="color"
+                    value={
+                      colorSwatches[colorInput.trim()] ||
+                      (parseColorToBackground(colorInput.trim() || "Standard").startsWith("#")
+                        ? parseColorToBackground(colorInput.trim() || "Standard")
+                        : "#111111")
+                    }
+                    onChange={(e) => {
+                      const val = e.target.value.toUpperCase();
+                      const colorKey = colorInput.trim() || "Standard";
+                      setColorSwatches((prev) => ({
+                        ...prev,
+                        [colorKey]: val,
+                      }));
+                    }}
+                    className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                  />
+                </label>
+                <input
+                  type="text"
+                  value={colorInput}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setColorInput(val);
+                    if (imageUrl && (!altText.trim() || altText === generateSuggestedAlt(colorInput, sizeInput))) {
+                      setAltText(generateSuggestedAlt(val, sizeInput));
+                    }
+                  }}
+                  list="color-presets"
+                  placeholder="e.g. Matt Red"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-brand"
+                />
+              </div>
             </div>
 
             <div>

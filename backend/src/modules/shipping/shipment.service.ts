@@ -20,7 +20,22 @@ export class ShipmentService {
    * open the order, select Pickup Location (Kolkata/Pune etc.), edit weight,
    * choose courier, and print labels.
    */
-  static async pushOrderToShiprocket(orderId: string, warehouseId?: string): Promise<any> {
+  static async pushOrderToShiprocket(
+    orderIdOrParams: string | {
+      orderId: string;
+      warehouseId?: string;
+      weightKg?: number;
+      length?: number;
+      breadth?: number;
+      height?: number;
+    },
+    warehouseIdLegacy?: string
+  ): Promise<any> {
+    const opts = typeof orderIdOrParams === "string"
+      ? { orderId: orderIdOrParams, warehouseId: warehouseIdLegacy }
+      : orderIdOrParams;
+
+    const { orderId, warehouseId, weightKg, length: customL, breadth: customB, height: customH } = opts;
     const order = await OrderModel.findById(orderId);
     if (!order) {
       throw new NotFoundError("Order");
@@ -35,8 +50,11 @@ export class ShipmentService {
       };
     }
 
-    // Calculate total weight from order products
+    // Determine total package weight: user-provided weightKg > product DB weights > fallback
     let totalWeight = 0;
+    if (weightKg !== undefined && weightKg !== null && Number(weightKg) > 0) {
+      totalWeight = Number(weightKg);
+    } else {
     try {
       const productIds = order.items.map((i: any) => i.productId);
       const products = await ProductModel.find({ _id: { $in: productIds } }).select("weight").lean().exec();
@@ -49,7 +67,12 @@ export class ShipmentService {
     } catch {
       totalWeight = order.items.length * 0.5;
     }
+    }
     if (totalWeight <= 0) totalWeight = 0.5;
+
+    const finalLength = (customL !== undefined && customL !== null && Number(customL) > 0) ? Number(customL) : 15;
+    const finalBreadth = (customB !== undefined && customB !== null && Number(customB) > 0) ? Number(customB) : 15;
+    const finalHeight = (customH !== undefined && customH !== null && Number(customH) > 0) ? Number(customH) : 10;
 
     // Resolve warehouse: explicitly passed > order.warehouseId > default warehouse
     let targetWarehouse: any = null;
@@ -85,9 +108,9 @@ export class ShipmentService {
         quantity: i.quantity,
         unitPrice: i.unitPrice,
       })),
-      length: 15,
-      breadth: 15,
-      height: 10,
+      length: finalLength,
+      breadth: finalBreadth,
+      height: finalHeight,
       weight: Number(totalWeight.toFixed(2)),
       warehouseId: targetWarehouse ? String(targetWarehouse._id) : undefined,
     };

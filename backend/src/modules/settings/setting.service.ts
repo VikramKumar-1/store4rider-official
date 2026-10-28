@@ -39,14 +39,24 @@ export class SettingService {
       metaTitle: settings.guidesMetaTitle || "",
       metaDescription: settings.guidesMetaDescription || "",
       metaKeywords: settings.guidesMetaKeywords || "",
+      heroTitle: settings.guidesHeroTitle || "Motorcycle Guides & Expert Advice",
+      heroDescription: settings.guidesHeroDescription || "Real-world gear tests, sizing walkthroughs, maintenance checklists, and touring preparation guides curated by riders for Indian roads and conditions.",
     };
   }
 
-  static async updateGuidesPageSeo(seo: { metaTitle?: string; metaDescription?: string; metaKeywords?: string }) {
+  static async updateGuidesPageSeo(seo: {
+    metaTitle?: string;
+    metaDescription?: string;
+    metaKeywords?: string;
+    heroTitle?: string;
+    heroDescription?: string;
+  }) {
     const updateData: any = {};
     if (seo.metaTitle !== undefined) updateData.guidesMetaTitle = seo.metaTitle;
     if (seo.metaDescription !== undefined) updateData.guidesMetaDescription = seo.metaDescription;
     if (seo.metaKeywords !== undefined) updateData.guidesMetaKeywords = seo.metaKeywords;
+    if (seo.heroTitle !== undefined) updateData.guidesHeroTitle = seo.heroTitle;
+    if (seo.heroDescription !== undefined) updateData.guidesHeroDescription = seo.heroDescription;
     return SettingRepository.updateSettings(updateData);
   }
 }

@@ -34,8 +34,12 @@ export class ReviewService {
     return ReviewRepository.findByProductId(productId);
   }
 
-  static async getStoreReviews(limit: number = 10, random: boolean = false): Promise<IStoreReview[]> {
-    let reviews = await ReviewRepository.getStoreReviews(limit, random);
+  static async getStoreReviews(
+    limit: number = 10,
+    random: boolean = false,
+    excludeIds: string[] = []
+  ): Promise<IStoreReview[]> {
+    let reviews = await ReviewRepository.getStoreReviews(limit, random, excludeIds);
     if (reviews.length === 0 && process.env.SERPAPI_KEY) {
       try {
         logger.info("Store reviews collection is empty in DB. Auto-syncing from Google via SerpApi...");
@@ -60,7 +64,7 @@ export class ReviewService {
     logger.info(`Fetching up to ${maxPages} page(s) of Google Reviews from SerpApi`);
 
     for (let p = 0; p < maxPages; p++) {
-      let url = `https://serpapi.com/search.json?engine=google_maps_reviews&data_id=0x3bc2c00d5a48819f:0xd4b529549919577c&api_key=${resolvedKey}&sort_by=newestFirst`;
+      let url = `https://serpapi.com/search.json?engine=google_maps_reviews&data_id=0x3bc2c00d5a48819f:0xd4b529549919577c&api_key=${resolvedKey}`;
       if (nextToken) {
         url += `&next_page_token=${encodeURIComponent(nextToken)}`;
       }
@@ -91,7 +95,7 @@ export class ReviewService {
       author: r.user?.name || "Customer",
       rating: typeof r.rating === "number" ? r.rating : 5,
       date: r.date || "Recently",
-      text: r.snippet || "",
+      text: r.snippet || r.extracted_snippet?.original || "",
       link: r.link || r.share_link || "https://www.google.com/search?q=Store4Riders+Pune#lrd=0x3bc2c00d5a48819f:0xd4b529549919577c,1,,,,",
       avatarUrl: r.user?.thumbnail || undefined,
       source: "google" as const,
@@ -103,4 +107,33 @@ export class ReviewService {
     logger.info(`Successfully saved ${saved.length} store reviews to database across ${maxPages} page(s)`);
     return saved;
   }
+
+  static async getAccountStatus(apiKey?: string): Promise<{
+    planName: string;
+    searchesPerMonth: number;
+    searchesLeft: number;
+    usageThisMonth: number;
+    renewalDate: string | null;
+  } | null> {
+    const resolvedKey = apiKey || process.env.SERPAPI_KEY;
+    if (!resolvedKey) return null;
+
+    try {
+      const res = await fetch(`https://serpapi.com/account.json?api_key=${resolvedKey}`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return {
+        planName: data.plan_name || "Free Plan",
+        searchesPerMonth: data.searches_per_month ?? 250,
+        searchesLeft: data.total_searches_left ?? data.plan_searches_left ?? 0,
+        usageThisMonth: data.this_month_usage ?? 0,
+        renewalDate: data.plan_renewal_date || null,
+      };
+    } catch {
+      return null;
+    }
+  }
+
 }

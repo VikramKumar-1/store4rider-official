@@ -21,6 +21,7 @@ const productSchema = new Schema<IProduct>(
     mapPrice: { type: Number },
     msrpPrice: { type: Number },
     weight: { type: Number },
+    weightUnit: { type: String, enum: ["kg", "g", "ml", "L"], default: "kg" },
     stockStatus: { type: Number, default: 1 },
     outOfStockQty: { type: Number },
     minCartQty: { type: Number },
@@ -45,7 +46,7 @@ const productSchema = new Schema<IProduct>(
     gender: { type: String },
     visibility: { type: String },
     attributes: { type: Map, of: String, default: new Map() },
-    countryOfManufacture: { type: String },
+    countryOfManufacture: { type: String, default: "India" },
     attributeSetCode: { type: String },
     configurableVariationLabels: { type: String },
     qty: { type: Number, default: 0 },
@@ -59,7 +60,8 @@ const productSchema = new Schema<IProduct>(
         altText: { type: String },
       },
     ],
-    colorImages: { type: Map, of: String },
+    colorImages: { type: Schema.Types.Mixed, default: {} },
+    colorSwatches: { type: Schema.Types.Mixed, default: {} },
     variants: [
       {
         id: { type: String },

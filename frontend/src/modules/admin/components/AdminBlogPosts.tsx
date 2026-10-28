@@ -41,10 +41,12 @@ export function AdminBlogPosts() {
   const [categorySlug, setCategorySlug] = useState<string>("");
   const [postToDelete, setPostToDelete] = useState<IBlogPost | null>(null);
 
-  // Parent /guides page SEO state
+  // Parent /guides page SEO & Content state
   const [isPageSeoModalOpen, setIsPageSeoModalOpen] = useState(false);
   const [isSavingPageSeo, setIsSavingPageSeo] = useState(false);
   const [pageSeo, setPageSeo] = useState({
+    heroTitle: "",
+    heroDescription: "",
     metaTitle: "",
     metaDescription: "",
     metaKeywords: "",
@@ -72,6 +74,8 @@ export function AdminBlogPosts() {
       .then((res) => {
         if (res.data?.data) {
           setPageSeo({
+            heroTitle: res.data.data.heroTitle || "",
+            heroDescription: res.data.data.heroDescription || "",
             metaTitle: res.data.data.metaTitle || "",
             metaDescription: res.data.data.metaDescription || "",
             metaKeywords: res.data.data.metaKeywords || "",
@@ -85,10 +89,10 @@ export function AdminBlogPosts() {
     try {
       setIsSavingPageSeo(true);
       await apiClient.put("/blog/page-seo", pageSeo);
-      toast.success("Blog homepage (/guides) SEO updated successfully!");
+      toast.success("Blog homepage (/guides) content & SEO updated successfully!");
       setIsPageSeoModalOpen(false);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to update page SEO");
+      toast.error(err.response?.data?.error || "Failed to update page content & SEO");
     } finally {
       setIsSavingPageSeo(false);
     }
@@ -160,7 +164,7 @@ export function AdminBlogPosts() {
         </div>
       </div>
 
-      {/* Blog & Guides Directory Page SEO Banner */}
+      {/* Blog & Guides Directory Page Content & SEO Banner */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-red-50 text-brand flex items-center justify-center shrink-0">
@@ -168,10 +172,10 @@ export function AdminBlogPosts() {
           </div>
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Blog & Guides Root Page SEO (<span className="text-brand font-mono">/guides</span>)
+              Blog & Guides Root Page (<span className="text-brand font-mono">/guides</span>)
             </h4>
             <p className="text-xs text-slate-500 mt-0.5 max-w-xl truncate">
-              {pageSeo.metaTitle ? pageSeo.metaTitle : "Default: Motorcycle Guides & Expert Advice | Store4Riders"}
+              {pageSeo.heroTitle || pageSeo.metaTitle || "Default: Motorcycle Guides & Expert Advice | Store4Riders"}
             </p>
           </div>
         </div>
@@ -182,7 +186,7 @@ export function AdminBlogPosts() {
           className="text-xs font-bold flex items-center gap-1.5 shrink-0"
         >
           <Edit2 size={13} />
-          <span>Edit /guides SEO</span>
+          <span>Edit Hero Title, Description & SEO</span>
         </Button>
       </div>
 
@@ -481,50 +485,84 @@ export function AdminBlogPosts() {
         </div>
       </Modal>
 
-      {/* Blog & Guides (/guides) Page SEO Modal */}
+      {/* Blog & Guides (/guides) Page Content & SEO Modal */}
       <Modal
         isOpen={isPageSeoModalOpen}
         onClose={() => setIsPageSeoModalOpen(false)}
-        title="Edit Blog & Guides Homepage SEO (/guides)"
+        title="Edit Guides Page Hero Banner & SEO (/guides)"
       >
-        <div className="space-y-4 pt-1">
-          <p className="text-xs text-slate-500">
-            Configure the search engine meta title, description, and keywords for the root <span className="font-semibold text-slate-700">/guides</span> blog hub page.
-          </p>
+        <div className="space-y-4 pt-1 max-h-[75vh] overflow-y-auto pr-1">
+          {/* Section 1: Hero Banner */}
+          <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-800 block">
+              🎨 1. Hero Section Content (Visible to Visitors)
+            </span>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-              Meta Title
-            </label>
-            <Input
-              value={pageSeo.metaTitle}
-              onChange={(e) => setPageSeo({ ...pageSeo, metaTitle: e.target.value })}
-              placeholder="e.g. Motorcycle Guides & Expert Advice | Store4Riders"
-            />
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Hero Title (Main Page Heading)
+              </label>
+              <Input
+                value={pageSeo.heroTitle}
+                onChange={(e) => setPageSeo({ ...pageSeo, heroTitle: e.target.value })}
+                placeholder="Default: Motorcycle Guides & Expert Advice"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Hero Description (Page Subtitle Paragraph)
+              </label>
+              <textarea
+                value={pageSeo.heroDescription}
+                onChange={(e) => setPageSeo({ ...pageSeo, heroDescription: e.target.value })}
+                rows={3}
+                placeholder="Default: Real-world gear tests, sizing walkthroughs, maintenance checklists, and touring preparation guides curated by riders for Indian roads and conditions."
+                className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:outline-hidden focus:border-brand focus:ring-1 focus:ring-brand"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-              Meta Description
-            </label>
-            <textarea
-              value={pageSeo.metaDescription}
-              onChange={(e) => setPageSeo({ ...pageSeo, metaDescription: e.target.value })}
-              rows={3}
-              placeholder="e.g. Comprehensive buying guides, gear care advice, maintenance checklists, and touring preparation tips by Store4Riders."
-              className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:outline-hidden focus:border-brand focus:ring-1 focus:ring-brand"
-            />
-          </div>
+          {/* Section 2: SEO Meta Tags */}
+          <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-800 block">
+              🔍 2. Search Engine Metadata (Google Snippets)
+            </span>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-              Meta Keywords
-            </label>
-            <Input
-              value={pageSeo.metaKeywords}
-              onChange={(e) => setPageSeo({ ...pageSeo, metaKeywords: e.target.value })}
-              placeholder="e.g. motorcycle guides, riding gear guides, helmet guide, chain maintenance, store4riders"
-            />
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Meta Title
+              </label>
+              <Input
+                value={pageSeo.metaTitle}
+                onChange={(e) => setPageSeo({ ...pageSeo, metaTitle: e.target.value })}
+                placeholder="e.g. Motorcycle Guides & Expert Advice | Store4Riders"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Meta Description
+              </label>
+              <textarea
+                value={pageSeo.metaDescription}
+                onChange={(e) => setPageSeo({ ...pageSeo, metaDescription: e.target.value })}
+                rows={2}
+                placeholder="e.g. Comprehensive buying guides, gear care advice, maintenance checklists, and touring preparation tips by Store4Riders."
+                className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:outline-hidden focus:border-brand focus:ring-1 focus:ring-brand"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Meta Keywords
+              </label>
+              <Input
+                value={pageSeo.metaKeywords}
+                onChange={(e) => setPageSeo({ ...pageSeo, metaKeywords: e.target.value })}
+                placeholder="e.g. motorcycle guides, riding gear guides, helmet guide, chain maintenance, store4riders"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100">
@@ -536,7 +574,7 @@ export function AdminBlogPosts() {
               onClick={handleSavePageSeo}
               className="bg-brand text-white font-bold"
             >
-              {isSavingPageSeo ? "Saving..." : "Save /guides SEO"}
+              {isSavingPageSeo ? "Saving..." : "Save Page Content & SEO"}
             </Button>
           </div>
         </div>

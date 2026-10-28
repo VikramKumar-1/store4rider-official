@@ -71,14 +71,71 @@ export class ProductRepository {
 
   static async findBySkus(skus: string[], inStockOnly = false): Promise<IProduct[]> {
     if (!skus || skus.length === 0) return [];
-    const query: Record<string, any> = { sku: { $in: skus } };
+
+    const cleanSkus = Array.from(
+      new Set(
+        skus
+          .map((s) => s?.trim())
+          .filter((s): s is string => Boolean(s && s.length > 0))
+      )
+    );
+    if (cleanSkus.length === 0) return [];
+
+    const escapeRegex = (str: string) => str.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+    const regexList = cleanSkus.map((s) => new RegExp(`^${escapeRegex(s)}$`, "i"));
+
+    const query: Record<string, any> = {
+      $or: [
+        { sku: { $in: regexList } },
+        { "variants.sku": { $in: regexList } },
+      ],
+    };
+
     if (inStockOnly) {
-      query.$or = [
-        { stockStatus: { $ne: 0 } },
-        { allowBackorders: true }
+      query.$and = [
+        {
+          $or: [
+            { stockStatus: { $ne: 0 } },
+            { allowBackorders: true },
+            { "variants.stock": { $gt: 0 } },
+          ],
+        },
       ];
     }
-    return ProductModel.find(query).lean().exec() as unknown as IProduct[];
+
+    const rawProducts = (await ProductModel.find(query)
+      .select("-description -configurableVariations -shortDescription -metaDescription -metaKeywords")
+      .lean()
+      .exec()) as unknown as IProduct[];
+
+    // Collect all parent products (visible products with variants)
+    const parentVariantSkus = new Set<string>();
+    for (const p of rawProducts) {
+      const isHidden = p.visibility === "1" || p.visibility === "Not Visible Individually";
+      if (!isHidden && Array.isArray(p.variants) && p.variants.length > 0) {
+        p.variants.forEach((v) => {
+          if (v.sku) {
+            parentVariantSkus.add(v.sku.trim().toLowerCase());
+          }
+        });
+      }
+    }
+
+    // Deduplicate and suppress standalone child documents IF their parent product is already in rawProducts
+    const uniqueMap = new Map<string, IProduct>();
+    for (const p of rawProducts) {
+      const isHidden = p.visibility === "1" || p.visibility === "Not Visible Individually";
+      const skuLower = (p.sku || "").trim().toLowerCase();
+      if (isHidden && parentVariantSkus.has(skuLower)) {
+        continue;
+      }
+      const pid = String((p as any)._id || p.sku);
+      if (!uniqueMap.has(pid)) {
+        uniqueMap.set(pid, p);
+      }
+    }
+
+    return Array.from(uniqueMap.values());
   }
 
   /**

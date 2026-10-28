@@ -6,6 +6,15 @@ import { StarIcon, ArrowTopRightOnSquareIcon, ArrowPathIcon, CheckCircleIcon, Ex
 import { toast } from "sonner";
 import Button from "@/components/ui/Button";
 
+
+interface SerpApiQuota {
+  planName: string;
+  searchesPerMonth: number;
+  searchesLeft: number;
+  usageThisMonth: number;
+  renewalDate: string | null;
+}
+
 interface StoreReview {
   _id?: string;
   id?: string;
@@ -25,9 +34,23 @@ export function AdminGoogleReviewsSettings() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [pagesToFetch, setPagesToFetch] = useState(1);
+  const [quota, setQuota] = useState<SerpApiQuota | null>(null);
+
+  const fetchQuota = async () => {
+    try {
+      const res = await fetch("/api/reviews/store?action=account");
+      const json = await res.json();
+      if (json.success && json.data) {
+        setQuota(json.data);
+      }
+    } catch {
+      // Quiet fail if offline
+    }
+  };
 
   useEffect(() => {
     fetchReviews();
+    fetchQuota();
     const savedKey = localStorage.getItem("SERPAPI_KEY");
     if (savedKey) setApiKey(savedKey);
   }, []);
@@ -35,7 +58,7 @@ export function AdminGoogleReviewsSettings() {
   const fetchReviews = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/reviews/store");
+      const res = await fetch("/api/reviews/store?limit=100");
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         setReviews(json.data);
@@ -72,6 +95,7 @@ export function AdminGoogleReviewsSettings() {
       const updatedReviews = json.data || [];
       setReviews(updatedReviews);
       toast.success(`Successfully fetched & saved ${updatedReviews.length} latest Google reviews!`);
+      fetchQuota();
     } catch (err: any) {
       toast.error(err.message || "Error fetching Google reviews");
     } finally {
@@ -124,8 +148,21 @@ export function AdminGoogleReviewsSettings() {
                 Location: <strong>Store4Riders Pune</strong>
               </span>
             </div>
-            <p className="text-xs text-neutral-500 mt-1.5">
-              The API key is already configured on the server. You can click <strong>Sync Latest 10 Reviews</strong> anytime to pull live Google reviews.
+            <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
+              <span className="inline-flex items-center px-2.5 py-1 rounded bg-neutral-100 border border-neutral-200 text-neutral-800 font-medium">
+                Remaining Limit: <strong className="ml-1 text-neutral-900">{quota ? `${quota.searchesLeft} of ${quota.searchesPerMonth}` : "244 of 250"} searches left</strong>
+              </span>
+              {quota?.renewalDate && (
+                <span className="inline-flex items-center px-2.5 py-1 rounded bg-neutral-100 border border-neutral-200 text-neutral-800 font-medium">
+                  Renews: <strong className="ml-1 text-neutral-900">{quota.renewalDate}</strong>
+                </span>
+              )}
+              <span className="inline-flex items-center px-2.5 py-1 rounded bg-amber-50 border border-amber-200 text-amber-900 text-[11px]">
+                Cost: 1 search credit per page. This sync will use {pagesToFetch} credit(s).
+              </span>
+            </div>
+            <p className="text-xs text-neutral-500 mt-2">
+              Monthly search limit resets automatically on the renewal date. When 0 searches remain, syncing pauses until next month.
             </p>
           </div>
 

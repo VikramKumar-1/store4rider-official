@@ -19,11 +19,14 @@ export interface IBackendProduct {
   specialPriceFromDate?: Date | string;
   specialPriceToDate?: Date | string;
   weight?: number;
+  weightUnit?: string;
   stockStatus?: number;        // 0 or 1, NOT "stockQuantity"
   productType?: string;        // "simple" | "configurable"
   magentoCategories?: string;  // e.g. "Root/Riding Gear/Boots"
   configurableVariations?: string; // e.g. "sku=CL-FR-BL-7,color=Black|sku=CL-FR-BR-7,color=Brown"
   brand?: string;
+  brandSlug?: string;
+  brandLogo?: string;
   sizeChart?: string;
   size_chart?: string;
   attributeSetCode?: string;
@@ -53,6 +56,7 @@ export interface IBackendProduct {
     altText?: string;
   }>;
   colorImages?: Record<string, string>;
+  colorSwatches?: Record<string, string>;
   variants?: Array<{
     id?: string;
     sku: string;
@@ -77,6 +81,8 @@ export interface IBackendProduct {
 export interface UseProductsParams {
   category?: string;
   brand?: string;
+  brandSlug?: string;
+  brandLogo?: string;
   search?: string;
   page?: number;
   limit?: number;
@@ -93,6 +99,7 @@ export interface UseProductsParams {
   sku?: string;
   name?: string;
   id?: string;
+  parentOnly?: string;
   // Dynamic attribute filters
   [key: string]: string | number | undefined;
 }
@@ -120,6 +127,7 @@ export function useProducts(params?: UseProductsParams) {
       if (params?.sku) queryParams.append("sku", params.sku);
       if (params?.name) queryParams.append("name", params.name);
       if (params?.id) queryParams.append("id", params.id);
+      if (params?.parentOnly) queryParams.append("parentOnly", String(params.parentOnly));
       
       const DYNAMIC_PARAMS = ['helmet_type', 'material', 'riding_style', 'certification', 'gender', 'size', 'colour', 'inStock', 'onSale'];
       for (const key of DYNAMIC_PARAMS) {
@@ -158,9 +166,10 @@ export function useAdminProducts(params?: UseProductsParams) {
   });
 }
 
-export function useProductBySlug(slug: string) {
+export function useProductBySlug(slug: string, initialData?: IBackendProduct) {
   return useQuery({
     queryKey: ["product", slug],
+    initialData,
     queryFn: async () => {
       const response = await apiClient.get<{ data: IBackendProduct }>(`/products/${slug}`);
       return response.data.data;
@@ -191,12 +200,44 @@ export function useProductKit(slug: string) {
 /**
  * Fetch multiple products by their SKUs (for related/upsell sections).
  */
+/**
+ * Fetch upsell recommendations for a product ("You May Also Like").
+ */
+export function useProductUpsell(slug: string) {
+  return useQuery({
+    queryKey: ["product-upsell", slug],
+    queryFn: async () => {
+      if (!slug) return [];
+      const response = await apiClient.get<{ data: IBackendProduct[] }>(`/products/${slug}/upsell`);
+      return response.data.data;
+    },
+    enabled: !!slug,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+/**
+ * Fetch cross-sell recommendations for a product ("Frequently Bought Together").
+ */
+export function useProductCrossSell(slug: string) {
+  return useQuery({
+    queryKey: ["product-cross-sell", slug],
+    queryFn: async () => {
+      if (!slug) return [];
+      const response = await apiClient.get<{ data: IBackendProduct[] }>(`/products/${slug}/cross-sell`);
+      return response.data.data;
+    },
+    enabled: !!slug,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
 export function useProductsBySkus(skus: string[]) {
   return useQuery({
     queryKey: ["products-by-skus", skus],
     queryFn: async () => {
       if (!skus || skus.length === 0) return [];
-      const response = await apiClient.get<{ data: IBackendProduct[] }>(`/products/by-skus?skus=${skus.join(',')}`);
+      const response = await apiClient.get<{ data: IBackendProduct[] }>(`/products/by-skus?skus=${encodeURIComponent(skus.join(','))}`);
       return response.data.data;
     },
     enabled: skus.length > 0,
@@ -286,6 +327,9 @@ export function useCreateProduct() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product"] });
+      queryClient.invalidateQueries({ queryKey: ["products-by-skus"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
     },
   });
 }
@@ -300,6 +344,8 @@ export function useUpdateProduct() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product"] });
+      queryClient.invalidateQueries({ queryKey: ["products-by-skus"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
     },
   });
 }

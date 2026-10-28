@@ -1,12 +1,14 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
-import { useProductBySlug, useProductsBySkus, useProductKit, useProductReviews, IBackendProduct } from "@/core/hooks/useProducts";
+import { Suspense, useEffect, useMemo } from "react";
+import { useProductBySlug, useProductKit, useProductUpsell, useProductCrossSell, useProductReviews, IBackendProduct } from "@/core/hooks/useProducts";
 import { ProductDetailModule } from "@/modules/product-detail";
+import { normalizeExternalImageUrl } from "@/core/utils/mediaUrlHelper";
 import { PDPData, KitProduct } from "@/modules/product-detail/types/product-detail.types";
 import { useRecentViewsStore } from "@/stores/useRecentViewsStore";
 import { useStoreReviews } from "@/core/hooks/useStoreReviews";
+import { useUIStore } from "@/stores/useUIStore";
 
 /**
  * Helper: Strip HTML tags for clean plain text.
@@ -165,11 +167,17 @@ const singleColorMap: Record<string, string> = {
   "flu. green": "#CCFF00",
   "flu.green": "#CCFF00",
   "fluorescent green": "#CCFF00",
+  "flu yellow": "#CCFF00",
+  "flu. yellow": "#CCFF00",
+  "flu.yellow": "#CCFF00",
+  "fluo yellow": "#CCFF00",
+  "fluo green": "#CCFF00",
   navy: "#1E3A8A",
   olive: "#556B2F",
   camo: "#4A5D4E",
   silver: "#C0C0C0",
   gold: "#D97706",
+  golden: "#D4AF37",
   beige: "#E5D3B3",
   sand: "#E5D3B3",
   khaki: "#C3B091",
@@ -239,10 +247,20 @@ export const parseColorToBackground = (colorName: string): string => {
   return "#4B5563";
 };
 
+export const normalizeColorKey = (c: string): string => {
+  if (!c) return "";
+  return c
+    .toLowerCase()
+    .replace(/\./g, " ")
+    .replace(/\s*\/\s*/g, "/")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
 const mapToKitProduct = (p: IBackendProduct): KitProduct => {
   const catParts = (p.magentoCategories || "").split(",")[0].split("/");
   const catName = catParts.filter(c => !c.toLowerCase().includes("root")).pop()?.trim() || "GEAR";
-  // Resolve price with fallbacks: basePrice → variant prices → specialPrice
+  // Resolve price with fallbacks: basePrice â†’ variant prices â†’ specialPrice
   let effectivePrice = p.basePrice || 0;
   if (effectivePrice === 0 && Array.isArray(p.variants) && p.variants.length > 0) {
     const vp = p.variants.map((v: any) => v.price).filter((pr: number) => pr > 0);
@@ -419,6 +437,7 @@ const mapProductToPDP = (
   product: IBackendProduct,
   kitProducts: KitProduct[],
   upSellProducts: KitProduct[],
+  crossSellProducts: KitProduct[],
   reviews: any[],
   storeReviews: any[]
 ): PDPData => {
@@ -428,6 +447,10 @@ const mapProductToPDP = (
   );
   
   const finalUpSellProducts = (upSellProducts || []).filter(
+    (p) => p.priceFormatted && p.priceFormatted !== "Contact for Price"
+  );
+
+  const finalCrossSellProducts = (crossSellProducts || []).filter(
     (p) => p.priceFormatted && p.priceFormatted !== "Contact for Price"
   );
 
@@ -505,14 +528,15 @@ const mapProductToPDP = (
     if (variantPrices.length > 0) {
       base = Math.min(...variantPrices);
     }
-    // Also check variant specialPrices
-    if (!special) {
-      const variantSpecials = rawVariants
-        .map((v: any) => v.specialPrice)
-        .filter((p: number | undefined) => p && p > 0);
-      if (variantSpecials.length > 0) {
-        special = Math.min(...(variantSpecials as number[]));
-      }
+  }
+
+  // Fallback 1b: If parent has no specialPrice, check variant specialPrices
+  if (!special && rawVariants && rawVariants.length > 0) {
+    const variantSpecials = rawVariants
+      .map((v: any) => v.specialPrice)
+      .filter((p: number | undefined) => p && p > 0);
+    if (variantSpecials.length > 0) {
+      special = Math.min(...(variantSpecials as number[]));
     }
   }
 
@@ -524,7 +548,7 @@ const mapProductToPDP = (
 
   // Fallback 3: If STILL 0, try to extract price from metaTitle (Legacy Magento fallback)
   if (!base && product.metaTitle) {
-    const match = product.metaTitle.match(/(?:rs\.?|inr|₹)\s*([0-9,]+)/i);
+    const match = product.metaTitle.match(/(?:rs\.?|inr|â‚¹)\s*([0-9,]+)/i);
     if (match && match[1]) {
       const parsed = parseFloat(match[1].replace(/,/g, ""));
       if (parsed > 0) {
@@ -542,16 +566,31 @@ const mapProductToPDP = (
     : undefined;
 
   const galleryMap = new Map<string, any>();
-  const normalizeUrlForMap = (url: string) => url ? url.split('?')[0].replace('http://', 'https://').trim().toLowerCase() : "";
+  const normalizeUrlForMap = (url: string) => {
+    if (!url) return "";
+    const clean = url.split("?")[0].replace("http://", "https://").trim().toLowerCase();
+    // Strip S3 upload timestamp prefix (e.g. /1793099414474-testhelmet.webp -> /testhelmet.webp) to prevent duplicate uploads of the same photo
+    return clean.replace(/\/\d{10,15}-([^\/]+)$/, "/$1");
+  };
   
-  // 1. Add Parent Images
+  // 1. Add Parent Images (with deduplication on base filename)
   if (product.images?.length > 0) {
-    product.images.forEach(img => {
+    product.images.forEach((img) => {
       if (!img.url) return;
-      galleryMap.set(normalizeUrlForMap(img.url), {
-        url: img.url,
-        altText: inferImageColorLabel(img.url, img.altText || "", product.name),
-      });
+      const norm = normalizeUrlForMap(img.url);
+      const alt = inferImageColorLabel(img.url, img.altText || "", product.name);
+      const cleanUrl = normalizeExternalImageUrl(img.url);
+      if (!galleryMap.has(norm)) {
+        galleryMap.set(norm, {
+          url: cleanUrl,
+          altText: alt,
+        });
+      } else {
+        const existing = galleryMap.get(norm);
+        if (existing && !existing.altText?.includes(" - ") && alt?.includes(" - ")) {
+          galleryMap.set(norm, { url: img.url, altText: alt });
+        }
+      }
     });
   }
 
@@ -565,15 +604,25 @@ const mapProductToPDP = (
       vImgs.forEach((vImg: any) => {
         if (vImg?.url && vImg.url !== "/no-image.svg") {
           const norm = normalizeUrlForMap(vImg.url);
+          let vColor = "";
+          const colorKey = Object.keys(v.attributes || {}).find((k) => k.toLowerCase().includes("color") || k.toLowerCase().includes("colour"));
+          if (colorKey) vColor = v.attributes[colorKey];
+          const alt = vImg.altText || (vColor ? `${product.name} - ${vColor}` : product.name);
+          
+          const cleanUrl = normalizeExternalImageUrl(vImg.url);
           if (!galleryMap.has(norm)) {
-            let vColor = "";
-            const colorKey = Object.keys(v.attributes || {}).find((k) => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
-            if (colorKey) vColor = v.attributes[colorKey];
-            
             galleryMap.set(norm, {
-              url: vImg.url,
-              altText: vImg.altText || (vColor ? `${product.name} - ${vColor}` : product.name),
+              url: cleanUrl,
+              altText: alt,
             });
+          } else {
+            const existing = galleryMap.get(norm);
+            if (existing && (!existing.altText?.includes(" - ") || vColor)) {
+              galleryMap.set(norm, {
+                url: vImg.url,
+                altText: alt,
+              });
+            }
           }
         }
       });
@@ -586,12 +635,12 @@ const mapProductToPDP = (
     Object.entries(cMap).forEach(([color, url]) => {
       if (typeof url === "string" && url && url !== "/no-image.svg") {
         const norm = normalizeUrlForMap(url);
-        if (!galleryMap.has(norm)) {
-          galleryMap.set(norm, {
-            url: url,
-            altText: `${product.name} - ${color}`,
-          });
-        }
+        const alt = `${product.name} - ${color}`;
+        // Prefer explicit colorImage url and color alt text over generic base image
+        galleryMap.set(norm, {
+          url: normalizeExternalImageUrl(url),
+          altText: alt,
+        });
       }
     });
   }
@@ -643,26 +692,27 @@ const mapProductToPDP = (
     sizeLabel = parsed.sizeLabel || "SIZE";
   }
 
+  const hasColor = (set: Set<string>, candidate: string) => {
+    const normCand = normalizeColorKey(candidate);
+    return Array.from(set).some((c) => normalizeColorKey(c) === normCand);
+  };
+
   // Add colors from colorImages map if any exist that weren't in variants
   if (product.colorImages) {
     const cMap = product.colorImages instanceof Map ? Object.fromEntries(product.colorImages) : product.colorImages;
     Object.keys(cMap).forEach(color => {
-      // Find if we already have this color case-insensitively
-      const existing = Array.from(colorSet).find(c => c.toLowerCase() === color.toLowerCase());
-      if (!existing) colorSet.add(color);
+      if (!hasColor(colorSet, color)) colorSet.add(color);
     });
   }
   
-  // Add colors inferred from gallery images if they have explicit alt text color mappings
-  if (product.images && Array.isArray(product.images)) {
+  // Add colors inferred from gallery images ONLY if no colors were found in variants or colorImages
+  if (colorSet.size === 0 && product.images && Array.isArray(product.images)) {
     product.images.forEach(img => {
       const alt = img.altText || "";
       if (alt.includes(" - ")) {
         const parts = alt.split(" - ");
         const inferredColor = parts[parts.length - 1].trim();
-        const existing = Array.from(colorSet).find(c => c.toLowerCase() === inferredColor.toLowerCase());
-        // Only add if it's a known rich color string, not random alt text
-        if (!existing && (inferredColor.includes("/") || Object.keys(singleColorMap).includes(inferredColor.toLowerCase()))) {
+        if (!hasColor(colorSet, inferredColor) && (inferredColor.includes("/") || Object.keys(singleColorMap).includes(inferredColor.toLowerCase()))) {
           colorSet.add(inferredColor);
         }
       }
@@ -677,19 +727,32 @@ const mapProductToPDP = (
         let imgUrl: string | undefined = undefined;
         if (product.colorImages) {
           const cMap = product.colorImages instanceof Map ? Object.fromEntries(product.colorImages) : product.colorImages;
-          const matchKey = Object.keys(cMap).find(k => k.trim().toLowerCase() === name.trim().toLowerCase());
+          const matchKey = Object.keys(cMap).find(k => normalizeColorKey(k) === normalizeColorKey(name));
           if (matchKey && cMap[matchKey]) imgUrl = cMap[matchKey];
         }
         if (!imgUrl && rawVariants) {
           const v = rawVariants.find((rv: any) => {
             const vc = rv.attributes?.color || rv.attributes?.colour;
-            return vc && String(vc).trim().toLowerCase() === name.trim().toLowerCase() && rv.imageUrl;
+            return vc && normalizeColorKey(String(vc)) === normalizeColorKey(name) && rv.imageUrl;
           });
           if (v) imgUrl = v.imageUrl;
+        if (imgUrl) imgUrl = normalizeExternalImageUrl(imgUrl);
+        }
+        const swatchMap = (product as any).colorSwatches
+          ? ((product as any).colorSwatches instanceof Map
+              ? Object.fromEntries((product as any).colorSwatches)
+              : (product as any).colorSwatches)
+          : {};
+        let swatchBg = swatchMap[name] || swatchMap[normalizeColorKey(name)];
+        if (swatchBg && swatchBg.includes(",") && !swatchBg.includes("gradient")) {
+          const parts = swatchBg.split(",").map((s: string) => s.trim());
+          if (parts.length === 2) {
+            swatchBg = `linear-gradient(135deg, ${parts[0]} 0%, ${parts[0]} 49.5%, ${parts[1]} 50.5%, ${parts[1]} 100%)`;
+          }
         }
         return {
           name,
-          background: parseColorToBackground(name),
+          background: swatchBg || parseColorToBackground(name),
           imageUrl: imgUrl,
         };
       })
@@ -707,12 +770,25 @@ const mapProductToPDP = (
     ? false 
     : ((product as any).isFreeShipping ?? (product as any).free_shipping ?? (displayPrice >= 999));
 
+  const rawBrand = product.brand || (product.attributes && ((product.attributes as any).brand || (product.attributes as any).Brand)) || "";
+  const brand = typeof rawBrand === "string" ? rawBrand.trim() : "";
+  const brandSlug = product.brandSlug || (brand ? brand.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") : undefined);
+  const brandLogo = product.brandLogo;
+
   return {
     id: product._id,
     slug: product.slug,
+    brand: brand || undefined,
+    brandSlug,
+    brandLogo,
     category,
     categorySlug,
     name: product.name,
+    sku: product.sku,
+    productType: product.productType,
+    price: displayPrice,
+    originalPrice: hasDiscount ? base : undefined,
+    variantsByColor: (product as any).variantsByColor || {},
     rating: avgRating,
     reviewCount: reviews ? reviews.length : 0,
     originalPriceFormatted,
@@ -723,6 +799,7 @@ const mapProductToPDP = (
     sizeChart: product.sizeChart || product.size_chart,
     images: gallery,
     colorImages: product.colorImages instanceof Map ? Object.fromEntries(product.colorImages) : (product.colorImages || {}),
+    colorSwatches: (product as any).colorSwatches || {},
     colors: mappedColors,
     sizes: sizes.length > 0 ? sizes : [],
     sizeLabel,
@@ -730,6 +807,7 @@ const mapProductToPDP = (
     storeReviews: storeReviews || [],
     productReviews: reviews || [],
     upSellProducts: finalUpSellProducts,
+    crossSellProducts: finalCrossSellProducts,
     rawVariants,
     isFreeShipping,
     stockStatus: product.stockStatus ?? 1,
@@ -742,9 +820,10 @@ const mapProductToPDP = (
 
 interface ProductDetailPageModuleProps {
   slug?: string;
+  initialProduct?: IBackendProduct | null;
 }
 
-export const ProductDetailPageModule = ({ slug: propSlug }: ProductDetailPageModuleProps = {}) => {
+export const ProductDetailPageModule = ({ slug: propSlug, initialProduct }: ProductDetailPageModuleProps = {}) => {
   const params = useParams();
   const rawCatSlug = params?.categorySlug;
   const lastCatSlug = Array.isArray(rawCatSlug)
@@ -754,19 +833,25 @@ export const ProductDetailPageModule = ({ slug: propSlug }: ProductDetailPageMod
     : "";
   const slug = propSlug || (params?.slug as string) || lastCatSlug || "";
 
-  const { data: product, isLoading, error } = useProductBySlug(slug);
+  const { data: product, isLoading, error } = useProductBySlug(slug, initialProduct || undefined);
 
   // These queries fire in PARALLEL once product is available (not waterfall).
-  // They won't block the page from rendering — the page shows immediately
+  // They won't block the page from rendering â€” the page shows immediately
   // with the main product data, and these sections fill in when ready.
   const upsellSkus = product?.upsellSkus || [];
   const productId = product?._id || "";
 
-  // Smart kit recommendations query (cross-category complementary gear)
+  // Smart recommendations (Kit, Upsell & Cross-sell)
   const { data: kitProducts } = useProductKit(slug);
-  const { data: upsellProducts } = useProductsBySkus(upsellSkus);
+  const { data: upsellProducts } = useProductUpsell(slug);
+  const { data: crossSellProducts } = useProductCrossSell(slug);
   const { data: reviewsData } = useProductReviews(productId);
-  const { data: storeReviewsData, fetchNextPage, hasNextPage, isFetchingNextPage } = useStoreReviews({ random: true });
+  const homepageReviewIds = useUIStore((state) => state.homepageReviewIds);
+  const { data: storeReviewsData, fetchNextPage, hasNextPage, isFetchingNextPage } = useStoreReviews({
+    random: true,
+    limit: 10,
+    excludeIds: homepageReviewIds,
+  });
 
   const addRecentView = useRecentViewsStore((state) => state.addRecentView);
 
@@ -809,6 +894,31 @@ export const ProductDetailPageModule = ({ slug: propSlug }: ProductDetailPageMod
     }
   }, [product, addRecentView]);
 
+  const mappedReviews = useMemo(() => {
+    return (reviewsData || []).map((r: any) => ({
+      id: r._id,
+      author: r.userName || (r.userId?.startsWith("guest:") ? "Rider" : "Verified Rider"),
+      city: r.city,
+      rating: r.rating,
+      title: r.title,
+      date: r.createdAt ? new Date(r.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Recently",
+      text: r.comment,
+      isVerified: Boolean(r.isVerified === true),
+    }));
+  }, [reviewsData]);
+
+  const mappedProduct = useMemo(() => {
+    if (!product) return null;
+    return mapProductToPDP(
+      product,
+      (kitProducts || []).map(mapToKitProduct),
+      (upsellProducts || []).map(mapToKitProduct),
+      (crossSellProducts || []).map(mapToKitProduct),
+      mappedReviews,
+      storeReviewsData?.pages.flatMap((p) => p.data) || []
+    );
+  }, [product, kitProducts, upsellProducts, crossSellProducts, mappedReviews, storeReviewsData]);
+
   // Show a lightweight skeleton instead of a blocking full-page spinner
   if (isLoading) {
     return (
@@ -822,7 +932,7 @@ export const ProductDetailPageModule = ({ slug: propSlug }: ProductDetailPageMod
             <div className="w-full lg:w-[40%]">
               <div className="aspect-square bg-neutral-100 rounded-md animate-pulse" />
               <div className="flex gap-2 mt-4">
-                {[1,2,3,4].map(i => (
+                {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="w-20 h-20 bg-neutral-100 rounded-sm animate-pulse" />
                 ))}
               </div>
@@ -840,26 +950,9 @@ export const ProductDetailPageModule = ({ slug: propSlug }: ProductDetailPageMod
     );
   }
 
-  if (error || !product) return <div className="text-center py-32 text-red-500 font-bold">Product not found</div>;
+  if (error || !product || !mappedProduct) {
+    return <div className="text-center py-32 text-red-500 font-bold">Product not found</div>;
+  }
 
-  const mappedReviews = (reviewsData || []).map((r: any) => ({
-    id: r._id,
-    author: r.userName || (r.userId?.startsWith("guest:") ? "Rider" : "Verified Rider"),
-    city: r.city,
-    rating: r.rating,
-    title: r.title,
-    date: r.createdAt ? new Date(r.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Recently",
-    text: r.comment,
-    isVerified: Boolean(r.isVerified === true),
-  }));
-
-  const mappedProduct = mapProductToPDP(
-    product,
-    (kitProducts || []).map(mapToKitProduct),
-    (upsellProducts || []).map(mapToKitProduct),
-    mappedReviews,
-    storeReviewsData?.pages.flatMap(p => p.data) || []
-  );
-
-  return <ProductDetailModule product={mappedProduct} />;
+    return <ProductDetailModule product={mappedProduct} />;
 };

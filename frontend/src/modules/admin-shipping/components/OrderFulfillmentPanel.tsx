@@ -12,12 +12,15 @@ import {
   CheckCircleIcon,
   ArrowPathIcon,
   ClipboardDocumentIcon,
-  PrinterIcon
+  PrinterIcon,
+  BuildingStorefrontIcon,
+  ScaleIcon
 } from "@heroicons/react/24/outline";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { formatPrice } from "@store4riders/shared-utils";
 import { useAdminOrderById } from "@/core/hooks/useOrderById";
+import { useWarehouses } from "@/core/hooks/useWarehouses";
 import { useCreateManualShipment, usePushToShiprocket } from "@/core/hooks/useAdminShipments";
 import { ShippingLabelModal } from "./ShippingLabelModal";
 import { AdminTrackingModal } from "./AdminTrackingModal";
@@ -66,36 +69,95 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
   }, []);
 
   const { data: order, isLoading: isOrderLoading } = useAdminOrderById(orderId);
+  const { data: warehouses = [], isLoading: isWarehousesLoading } = useWarehouses();
   const createManualMutation = useCreateManualShipment();
   const pushToShiprocketMutation = usePushToShiprocket();
 
   const [selectedCourierId, setSelectedCourierId] = useState<string>("shiprocket");
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>("");
+  const [packageWeight, setPackageWeight] = useState<string>("1.0");
+  const [dimensions, setDimensions] = useState({ length: 15, breadth: 15, height: 10 });
   const [awbNumber, setAwbNumber] = useState<string>("");
   const [createdShipment, setCreatedShipment] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showLabelModal, setShowLabelModal] = useState<boolean>(false);
   const [showTrackingModal, setShowTrackingModal] = useState<boolean>(false);
 
+  // Auto-select warehouse when loaded
+  useEffect(() => {
+    if (warehouses && warehouses.length > 0 && !selectedWarehouseId) {
+      const matchOrder = warehouses.find((w: any) => String(w._id || w.id) === String(order?.warehouseId));
+      if (matchOrder) {
+        setSelectedWarehouseId(String(matchOrder._id || matchOrder.id));
+      } else {
+        const defaultWh = warehouses.find((w: any) => w.isDefault) || warehouses[0];
+        if (defaultWh) {
+          setSelectedWarehouseId(String(defaultWh._id || defaultWh.id));
+        }
+      }
+    }
+  }, [warehouses, order?.warehouseId, selectedWarehouseId]);
+
+  // Pre-calculate weight from order items
+  useEffect(() => {
+    if (order?.items && order.items.length > 0) {
+      const totalUnits = order.items.reduce((sum: number, i: any) => sum + (i.quantity || 1), 0);
+      const estWeight = Math.max(0.5, Number((totalUnits * 0.5).toFixed(2)));
+      setPackageWeight(String(estWeight));
+    }
+  }, [order?.items]);
+
   const selectedCourier = COURIER_PARTNERS.find((c) => c.id === selectedCourierId) || COURIER_PARTNERS[0];
+
+  const numWeight = parseFloat(packageWeight) || 0.5;
+  const numLength = Number(dimensions.length) || 15;
+  const numBreadth = Number(dimensions.breadth) || 15;
+  const numHeight = Number(dimensions.height) || 10;
+  const volumetricWeight = Number(((numLength * numBreadth * numHeight) / 5000).toFixed(2));
+  const billableWeight = Number(Math.max(numWeight, volumetricWeight).toFixed(2));
 
   const handlePushToShiprocket = () => {
     setErrorMessage(null);
-    pushToShiprocketMutation.mutate(orderId, {
-      onSuccess: (data: any) => {
-        setCreatedShipment({
-          ...data,
-          courierName: data?.courierName || "Shiprocket",
-          provider: "shiprocket",
-          awb: data?.awb || null,
-          labelUrl: data?.labelUrl || null,
-          packedAt: new Date().toISOString(),
-        });
-        toast.success(data?.awb ? `AWB ${data.awb} generated and order dispatched via Shiprocket!` : "Order dispatched via Shiprocket!");
+    const weightVal = parseFloat(packageWeight);
+    if (isNaN(weightVal) || weightVal <= 0) {
+      const msg = "Please enter a valid package weight (e.g. 0.5 kg).";
+      setErrorMessage(msg);
+      toast.error(msg);
+      return;
+    }
+
+    pushToShiprocketMutation.mutate(
+      {
+        orderId,
+        warehouseId: selectedWarehouseId || undefined,
+        weightKg: weightVal,
+        length: numLength,
+        breadth: numBreadth,
+        height: numHeight,
       },
-      onError: (err: any) => {
-        setErrorMessage(err.response?.data?.message || err.message || "Failed to dispatch via Shiprocket");
+      {
+        onSuccess: (data: any) => {
+          setCreatedShipment({
+            ...data,
+            courierName: data?.courierName || "Shiprocket",
+            provider: "shiprocket",
+            awb: data?.awb || null,
+            labelUrl: data?.labelUrl || null,
+            packedAt: new Date().toISOString(),
+          });
+          toast.success(
+            data?.awb
+              ? `AWB ${data.awb} generated and order dispatched via Shiprocket!`
+              : "Order dispatched via Shiprocket!"
+          );
+        },
+        onError: (err: any) => {
+          setErrorMessage(
+            err.response?.data?.message || err.message || "Failed to dispatch via Shiprocket"
+          );
+        },
       }
-    });
+    );
   };
 
   const handleConfirmPacked = () => {
@@ -153,11 +215,11 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
       <div 
-        className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col my-auto animate-in fade-in zoom-in-95 duration-200"
+        className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col my-auto max-h-[92vh] animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-lg bg-brand/10 text-brand">
               <TruckIcon className="w-5 h-5" />
@@ -167,7 +229,7 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                 Pack &amp; Dispatch Order #{orderNum}
               </h2>
               <p className="text-xs text-slate-500">
-                Assign courier partner and confirm packaging for dispatch
+                Assign pickup warehouse, package dimensions, and courier partner for dispatch
               </p>
             </div>
           </div>
@@ -180,7 +242,7 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
         </div>
 
         {/* Content Body */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
           {isOrderLoading ? (
             <div className="space-y-4 py-8">
               <div className="h-20 bg-slate-100 w-full rounded-xl animate-pulse" />
@@ -356,7 +418,7 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                         </div>
                       </div>
 
-                      <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                      <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
                         {order.items?.map((item: any, idx: number) => {
                           const imgUrl = item.image || item.product?.images?.[0]?.url || item.product?.image || "/no-image.svg";
                           const qty = item.quantity || 1;
@@ -437,11 +499,140 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                 </div>
               </div>
 
-              {/* Step 2: AWB Tracking Barcode (Manual Couriers only) */}
+              {/* Step 2: Pickup Warehouse & Packaging Specifications */}
+              <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/70 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <BuildingStorefrontIcon className="w-4 h-4 text-brand" />
+                    <span>2. Pickup Warehouse &amp; Packaging Specs</span>
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-medium">Configured for Shiprocket &amp; Logistics</span>
+                </div>
+
+                {/* Warehouse Selector */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                    <span>Pickup Warehouse Location <span className="text-red-500">*</span></span>
+                    <span className="text-[10px] font-normal text-slate-500">Where courier will pick up parcel</span>
+                  </label>
+                  {isWarehousesLoading ? (
+                    <div className="h-9 bg-slate-200 animate-pulse rounded-lg" />
+                  ) : warehouses.length === 0 ? (
+                    <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                      No warehouses found. Please add a warehouse in Settings &gt; Logistics.
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedWarehouseId}
+                      onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 bg-white focus:outline-none focus:border-brand shadow-xs"
+                    >
+                      {warehouses.filter((w) => w.isActive !== false).map((w: any) => {
+                        const wId = String(w._id || w.id);
+                        const srNick = w.shiprocketLocationId ? ` • Shiprocket Nickname: "${w.shiprocketLocationId}"` : "";
+                        return (
+                          <option key={wId} value={wId}>
+                            {w.name} — {w.city}, {w.state} ({w.pincode}){w.isDefault ? " [Default]" : ""}{srNick}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  )}
+                  {(() => {
+                    const selectedWh = warehouses.find((w: any) => String(w._id || w.id) === selectedWarehouseId);
+                    if (selectedWh && !selectedWh.shiprocketLocationId && selectedCourierId === "shiprocket") {
+                      return (
+                        <p className="text-[11px] text-amber-600 font-medium">
+                          ⚠️ Note: &quot;{selectedWh.name}&quot; does not have a Shiprocket Location Nickname set. Shiprocket will fall back to your primary pickup address or pincode ({selectedWh.pincode}).
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+
+                {/* Dead Weight and Package Dimensions */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 block">
+                      Weight (kg) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.05"
+                      min="0.1"
+                      value={packageWeight}
+                      onChange={(e) => setPackageWeight(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900 bg-white focus:outline-none focus:border-brand shadow-xs"
+                      placeholder="1.0"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 block">
+                      Length (cm) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={dimensions.length}
+                      onChange={(e) => setDimensions({ ...dimensions, length: Math.max(1, Number(e.target.value) || 1) })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900 bg-white focus:outline-none focus:border-brand shadow-xs"
+                      placeholder="15"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 block">
+                      Breadth (cm) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={dimensions.breadth}
+                      onChange={(e) => setDimensions({ ...dimensions, breadth: Math.max(1, Number(e.target.value) || 1) })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900 bg-white focus:outline-none focus:border-brand shadow-xs"
+                      placeholder="15"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 block">
+                      Height (cm) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={dimensions.height}
+                      onChange={(e) => setDimensions({ ...dimensions, height: Math.max(1, Number(e.target.value) || 1) })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900 bg-white focus:outline-none focus:border-brand shadow-xs"
+                      placeholder="10"
+                    />
+                  </div>
+                </div>
+
+                {/* Volumetric & Billable Weight Banner */}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-white border border-slate-200 text-xs">
+                  <div className="flex items-center gap-2">
+                    <ScaleIcon className="w-4 h-4 text-slate-400" />
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Volumetric:</span>
+                    <span className="font-mono font-semibold text-slate-800">{volumetricWeight} kg</span>
+                    <span className="text-[10px] text-slate-400">((L×B×H)/5000)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Billable Weight:</span>
+                    <span className="font-mono font-black text-brand text-xs px-2 py-0.5 rounded bg-brand/10">
+                      {billableWeight} kg
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3: AWB Tracking Barcode (Manual Couriers only) */}
               {selectedCourierId !== "shiprocket" && (
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
-                    2. AWB Tracking Barcode <span className="text-red-500">*</span>
+                    3. AWB Tracking Barcode <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <input

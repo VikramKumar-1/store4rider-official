@@ -39,6 +39,8 @@ export interface ISetting extends Document {
   guidesMetaTitle?: string;
   guidesMetaDescription?: string;
   guidesMetaKeywords?: string;
+  guidesHeroTitle?: string;
+  guidesHeroDescription?: string;
 }
 
 const settingSchema = new Schema<ISetting>(
@@ -75,6 +77,8 @@ const settingSchema = new Schema<ISetting>(
     guidesMetaTitle: { type: String, default: "" },
     guidesMetaDescription: { type: String, default: "" },
     guidesMetaKeywords: { type: String, default: "" },
+    guidesHeroTitle: { type: String, default: "Motorcycle Guides & Expert Advice" },
+    guidesHeroDescription: { type: String, default: "Real-world gear tests, sizing walkthroughs, maintenance checklists, and touring preparation guides curated by riders for Indian roads and conditions." },
     packagePresets: { 
       type: [{ name: String, length: Number, breadth: Number, height: Number }], 
       default: [

@@ -79,6 +79,16 @@ export class ProductController {
     return ApiResponse.success(products, "Kit recommendations fetched successfully");
   }
 
+  static async getUpsell(req: NextRequest, slugOrId: string) {
+    const products = await ProductService.getUpsellRecommendations(slugOrId);
+    return ApiResponse.success(products, "Upsell recommendations fetched successfully");
+  }
+
+  static async getCrossSell(req: NextRequest, slugOrId: string) {
+    const products = await ProductService.getCrossSellRecommendations(slugOrId);
+    return ApiResponse.success(products, "Cross-sell recommendations fetched successfully");
+  }
+
   static async create(req: NextRequest) {
     const validatedData = await ProductValidator.validateCreate(req);
     const product = await ProductService.createProduct(validatedData as any);

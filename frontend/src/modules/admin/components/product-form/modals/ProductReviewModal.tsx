@@ -127,20 +127,31 @@ export function ProductReviewModal() {
                 ? `Required fields missing: ${missingFields.join(", ")}`
                 : "Confirm and save product"
             }
-            className={`font-semibold px-6 text-xs flex items-center gap-1.5 shadow-md transition-all ${
-              isFormValid && !createProduct.isPending && !updateProduct.isPending
+            className={`font-semibold px-6 text-xs flex items-center gap-2 shadow-md transition-all ${
+              createProduct.isPending || updateProduct.isPending
+                ? "bg-brand text-white opacity-95 cursor-wait shadow-sm"
+                : isFormValid
                 ? "bg-brand hover:bg-brand/90 text-white cursor-pointer"
-                : "bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none"
+                : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed shadow-none"
             }`}
           >
-            <Save size={14} />
-            <span>
-              {createProduct.isPending || updateProduct.isPending
-                ? "Saving..."
-                : mode === "create"
-                ? "Confirm & Publish Product"
-                : "Confirm & Save Changes"}
-            </span>
+            {createProduct.isPending || updateProduct.isPending ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                <span className="font-bold text-white">
+                  {mode === "create" ? "Publishing Product..." : "Updating Product..."}
+                </span>
+              </>
+            ) : (
+              <>
+                <Save size={14} />
+                <span>
+                  {mode === "create"
+                    ? "Confirm & Publish Product"
+                    : "Confirm & Save Changes"}
+                </span>
+              </>
+            )}
           </Button>
         </div>
       </div>

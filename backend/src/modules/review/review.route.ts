@@ -44,6 +44,10 @@ export async function reviewRouter(req: NextRequest, routePath: string[]): Promi
     return await ReviewController.getByProduct(req, routePath[1]);
   }
 
+  if (method === "GET" && pathLen === 2 && routePath[0] === "store" && routePath[1] === "account") {
+    return await ReviewController.getAccountStatus(req);
+  }
+
   if (method === "GET" && pathLen === 1 && routePath[0] === "store") {
     return await ReviewController.getStoreReviews(req);
   }

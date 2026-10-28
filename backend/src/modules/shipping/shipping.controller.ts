@@ -19,7 +19,14 @@ export class ShippingController {
     if (!body.orderId) {
       throw new AppError("orderId is required", 400);
     }
-    const result = await ShipmentService.pushOrderToShiprocket(body.orderId, body.warehouseId);
+    const result = await ShipmentService.pushOrderToShiprocket({
+      orderId: body.orderId,
+      warehouseId: body.warehouseId,
+      weightKg: body.weightKg !== undefined ? Number(body.weightKg) : (body.weight !== undefined ? Number(body.weight) : undefined),
+      length: body.length !== undefined ? Number(body.length) : undefined,
+      breadth: body.breadth !== undefined ? Number(body.breadth) : undefined,
+      height: body.height !== undefined ? Number(body.height) : undefined,
+    });
     return ApiResponse.success(result.shipment, result.message, 200);
   }
 

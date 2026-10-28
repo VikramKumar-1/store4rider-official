@@ -78,6 +78,15 @@ export const transformProductForSearch = (product: any) => {
  */
 export const initializeMeilisearch = async () => {
   try {
+    try {
+      await meiliClient.createIndex(INDEX_NAME, { primaryKey: "id" });
+    } catch {
+      try {
+        await meiliClient.index(INDEX_NAME).update({ primaryKey: "id" });
+      } catch {
+        // Index exists and primary key configured
+      }
+    }
     const index = meiliClient.index(INDEX_NAME);
     
     await index.updateSettings({
@@ -123,7 +132,7 @@ export const initializeMeilisearch = async () => {
 export const indexProduct = async (product: any) => {
   try {
     const doc = transformProductForSearch(product);
-    await meiliClient.index(INDEX_NAME).addDocuments([doc]);
+    await meiliClient.index(INDEX_NAME).addDocuments([doc], { primaryKey: "id" });
   } catch (err) {
     logger.error(err, "Meilisearch index error");
   }
@@ -156,7 +165,7 @@ export const syncAllProductsToMeilisearch = async () => {
       const BATCH_SIZE = 1000;
       for (let i = 0; i < documents.length; i += BATCH_SIZE) {
         const batch = documents.slice(i, i + BATCH_SIZE);
-        await meiliClient.index(INDEX_NAME).addDocuments(batch);
+        await meiliClient.index(INDEX_NAME).addDocuments(batch, { primaryKey: "id" });
       }
     }
     

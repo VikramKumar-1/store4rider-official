@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useMemo } from "react";
-import { Sliders, Plus, Trash2, Shield, Package, Wrench } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Sliders, Plus, Trash2, Shield, Package, Wrench, Check, X } from "lucide-react";
 import { SearchableSelect, Option } from "@/components/ui/SearchableSelect";
 import Button from "@/components/ui/Button";
 import { useProductFormContext } from "../ProductFormContext";
+
+const STANDARD_GENDER_OPTIONS = ["Men", "Women", "Unisex"];
 
 export function ProductSpecsTab() {
   const {
@@ -33,6 +35,37 @@ export function ProductSpecsTab() {
     setAttr,
     additionalCustomAttributes,
   } = useProductFormContext();
+
+  const [customGenderInput, setCustomGenderInput] = useState("");
+
+  const selectedGenders = useMemo(() => {
+    if (!gender) return [];
+    return gender
+      .split(",")
+      .map((g) => g.trim())
+      .filter(Boolean);
+  }, [gender]);
+
+  const toggleGender = (val: string) => {
+    const exists = selectedGenders.some((g) => g.toLowerCase() === val.toLowerCase());
+    let updated: string[];
+    if (exists) {
+      updated = selectedGenders.filter((g) => g.toLowerCase() !== val.toLowerCase());
+    } else {
+      updated = [...selectedGenders, val];
+    }
+    setGender(updated.join(", "));
+  };
+
+  const handleAddCustomGender = () => {
+    const trimmed = customGenderInput.trim();
+    if (!trimmed) return;
+    if (!selectedGenders.some((g) => g.toLowerCase() === trimmed.toLowerCase())) {
+      const updated = [...selectedGenders, trimmed];
+      setGender(updated.join(", "));
+    }
+    setCustomGenderInput("");
+  };
 
   const openNewBrandModal = () => {
     setNewBrandName("");
@@ -109,23 +142,107 @@ export function ProductSpecsTab() {
             <p className="text-[10px] text-slate-400 mt-1">Synced with Tab 1. Select from database brands.</p>
           </div>
 
-          {/* Rider Gender / Fit */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Gender / Rider Fit</label>
-            <SearchableSelect
-              options={[
-                { label: "-- Not Specified / General --", value: "" },
-                { label: "Men", value: "Men" },
-                { label: "Women", value: "Women" },
-                { label: "Unisex", value: "Unisex" },
-                { label: "Kids", value: "Kids" },
-              ]}
-              value={gender}
-              onChange={(val: string) => setGender(val)}
-              allowCustom
-              placeholder="Select Gender/Fit"
-            />
-            <p className="text-[10px] text-slate-400 mt-1">Rider fit classification</p>
+          {/* Rider Gender / Fit (Multi-Select) */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-700">
+                Gender / Rider Fit
+                {selectedGenders.length > 0 && (
+                  <span className="ml-1 text-[11px] font-bold text-brand">
+                    ({selectedGenders.length} selected)
+                  </span>
+                )}
+              </label>
+              {selectedGenders.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setGender("")}
+                  className="text-[10px] text-slate-400 hover:text-red-500 font-medium cursor-pointer"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+
+            {/* Quick multi-select toggle pills */}
+            <div className="flex flex-wrap gap-1.5">
+              {STANDARD_GENDER_OPTIONS.map((opt) => {
+                const isSelected = selectedGenders.some((g) => g.toLowerCase() === opt.toLowerCase());
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => toggleGender(opt)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer flex items-center gap-1.5 select-none ${
+                      isSelected
+                        ? "bg-brand text-white border-brand shadow-xs"
+                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400"
+                    }`}
+                  >
+                    {isSelected && <Check size={12} className="stroke-[3]" />}
+                    <span>{opt}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom tags if admin added any non-standard fits */}
+            {selectedGenders.some((g) => !STANDARD_GENDER_OPTIONS.some((opt) => opt.toLowerCase() === g.toLowerCase())) && (
+              <div className="flex flex-wrap gap-1 pt-0.5">
+                {selectedGenders
+                  .filter((g) => !STANDARD_GENDER_OPTIONS.some((opt) => opt.toLowerCase() === g.toLowerCase()))
+                  .map((customTag) => (
+                    <span
+                      key={customTag}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-brand/10 text-brand border border-brand/20"
+                    >
+                      <span>{customTag}</span>
+                      <button
+                        type="button"
+                        onClick={() => toggleGender(customTag)}
+                        className="hover:text-red-600 cursor-pointer p-0.5"
+                        title={`Remove ${customTag}`}
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  ))}
+              </div>
+            )}
+
+            {/* Optional Custom Fit Input */}
+            <div className="flex items-center gap-1 pt-0.5">
+              <input
+                type="text"
+                value={customGenderInput}
+                onChange={(e) => setCustomGenderInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCustomGender();
+                  }
+                }}
+                placeholder="+ Custom fit (e.g. Youth)"
+                className="w-full px-2.5 py-1 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-brand placeholder:text-slate-400"
+              />
+              {customGenderInput.trim() && (
+                <button
+                  type="button"
+                  onClick={handleAddCustomGender}
+                  className="px-2.5 py-1 bg-slate-800 hover:bg-black text-white rounded-lg text-xs font-semibold shrink-0 cursor-pointer transition-colors"
+                >
+                  Add
+                </button>
+              )}
+            </div>
+
+            <p className="text-[10px] text-slate-400">
+              {selectedGenders.length > 0 ? (
+                <span>Tagged: <strong className="text-slate-700">{selectedGenders.join(", ")}</strong></span>
+              ) : (
+                "Select one or more rider fits (e.g. Men, Women)"
+              )}
+            </p>
           </div>
 
           {/* Custom Shipping Fee Override */}

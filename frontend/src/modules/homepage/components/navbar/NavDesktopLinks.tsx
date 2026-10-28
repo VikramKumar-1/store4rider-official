@@ -39,7 +39,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
         return (
           <div
             key={item.id}
-            className={`group ${(item.megaMenuItems?.length ?? 0) <= 2 ? "relative" : "static"}`}
+            className={`group ${(item.megaMenuItems?.length ?? 0) <= 2 ? "relative" : "static"} ${hoveredMenuId === item.id ? "z-50" : "z-10"}`}
             onMouseEnter={() => onNavEnter(item.id, !!item.megaMenuItems)}
           >
             <Link
@@ -84,7 +84,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
                 className={`absolute ${
                   (item.megaMenuItems?.length ?? 0) <= 2 ? "top-full pt-3" : "top-full -mt-3 pt-3"
                 } z-50 ${
-                  hoveredMenuId === item.id ? "pointer-events-auto" : "pointer-events-none"
+                  hoveredMenuId === item.id ? "pointer-events-auto before:content-[''] before:absolute before:inset-x-0 before:-top-4 before:h-4 before:block" : "pointer-events-none"
                 } ${
                   item.id === "helmets"
                     ? "left-0"
@@ -92,6 +92,8 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
                     ? "right-0"
                     : "left-1/2 -translate-x-1/2"
                 }`}
+                onMouseEnter={() => onNavEnter(item.id, true)}
+                onMouseLeave={onNavLeave}
               >
                 <div
                   className={`${

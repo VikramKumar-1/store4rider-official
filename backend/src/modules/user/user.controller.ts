@@ -25,6 +25,12 @@ export class UserController {
     return ApiResponse.success(user, "Profile updated successfully");
   }
 
+  static async changePassword(req: NextRequest) {
+    const { userId, currentPassword, newPassword } = await UserValidator.validateChangePassword(req);
+    await UserService.changePassword(userId, currentPassword, newPassword);
+    return ApiResponse.success(null, "Password changed successfully");
+  }
+
   static async addAddress(req: NextRequest) {
     const { userId, data } = await UserValidator.validateAddAddress(req);
     const user = await UserService.addAddress(userId, data);

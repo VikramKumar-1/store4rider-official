@@ -85,25 +85,37 @@ npm install -g pnpm pm2
 pnpm install
 ```
 
-### Step 2: Build the Monorepo
+### Step 2: Start Redis & Meilisearch via Docker
+```bash
+# In the project root, start Redis and Meilisearch daemon containers:
+docker compose up -d
+
+# Sync MongoDB catalog into Meilisearch index:
+pnpm --filter backend exec tsx src/scripts/sync-meilisearch.ts
+```
+
+### Step 3: Build the Monorepo
 ```bash
 # This builds both frontend and backend packages
 pnpm build
 ```
 
-### Step 3: Run with PM2
+### Step 4: Run with PM2
 Start both applications in the background:
 ```bash
 # Start Backend on port 4000
 cd backend
 pm2 start pnpm --name "s4r-backend" -- start
 
+# Start BullMQ Background Worker (Email & Async Processing)
+pm2 start pnpm --name "s4r-worker" -- run worker
+
 # Start Frontend on port 3000
 cd ../frontend
 pm2 start pnpm --name "s4r-frontend" -- start
 ```
 
-### Step 4: Configure Nginx (Reverse Proxy)
+### Step 5: Configure Nginx (Reverse Proxy)
 Map your domains to the respective local ports. Example configuration:
 
 ```nginx

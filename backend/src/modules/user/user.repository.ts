@@ -11,6 +11,10 @@ export class UserRepository {
     return UserModel.findById(id).lean().exec() as unknown as IUser | null;
   }
 
+  static async findByIdWithPassword(id: string): Promise<any | null> {
+    return UserModel.findById(id).select("+password").lean().exec();
+  }
+
   static async findByEmail(email: string): Promise<IUser | null> {
     return UserModel.findOne({ email }).lean().exec() as unknown as IUser | null;
   }
@@ -24,7 +28,7 @@ export class UserRepository {
     return (await user.save()).toObject() as IUser;
   }
 
-  static async update(id: string, data: Partial<IUser>): Promise<IUser | null> {
+  static async update(id: string, data: Partial<IUser> & { password?: string }): Promise<IUser | null> {
     return UserModel.findByIdAndUpdate(id, { $set: data }, { new: true, strict: false }).lean().exec() as unknown as IUser | null;
   }
 

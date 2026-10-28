@@ -12,17 +12,24 @@ export interface IStoreReview {
   avatarUrl?: string;
 }
 
-export function useStoreReviews(options?: { random?: boolean; limit?: number }) {
+export function useStoreReviews(options?: {
+  random?: boolean;
+  limit?: number;
+  excludeIds?: string[];
+}) {
   const isRandom = options?.random ?? false;
   const limit = options?.limit ?? 10;
+  const excludeIds = options?.excludeIds ?? [];
+  const excludeKey = excludeIds.slice().sort().join(",");
 
   return useInfiniteQuery({
-    queryKey: ["store-reviews", { random: isRandom, limit }],
+    queryKey: ["store-reviews", { random: isRandom, limit, exclude: excludeKey }],
     queryFn: async ({ pageParam = "" }) => {
       const qParams = new URLSearchParams();
       if (pageParam) qParams.set("token", pageParam);
       if (isRandom) qParams.set("random", "true");
       if (limit) qParams.set("limit", String(limit));
+      if (excludeIds.length > 0) qParams.set("exclude", excludeIds.join(","));
       const qs = qParams.toString() ? `?${qParams.toString()}` : "";
 
       try {
@@ -52,6 +59,6 @@ export function useStoreReviews(options?: { random?: boolean; limit?: number }) 
     },
     getNextPageParam: (lastPage) => lastPage.nextToken || undefined,
     initialPageParam: "",
-    staleTime: isRandom ? 1000 * 60 * 5 : 1000 * 60 * 30, // Random cached for 5 mins, standard for 30 mins
+    staleTime: isRandom ? 0 : 1000 * 60 * 30, // Fresh random sampling on fresh visits
   });
 }

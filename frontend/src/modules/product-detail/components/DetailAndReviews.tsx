@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { ReviewData } from "../types/product-detail.types";
 import { WriteReviewModal } from "./WriteReviewModal";
 
@@ -105,7 +106,10 @@ export const DetailAndReviews: React.FC<{
   reviews: ReviewData[];
   productId?: string;
   productName?: string;
-}> = ({ fullDescription, reviews, productId, productName }) => {
+  brand?: string;
+  brandSlug?: string;
+  brandLogo?: string;
+}> = ({ fullDescription, reviews, productId, productName, brand, brandSlug, brandLogo }) => {
   const parsedDescription = React.useMemo(() => cleanHtml(fullDescription), [fullDescription]);
   const [isMobileDescExpanded, setIsMobileDescExpanded] = React.useState(false);
 
@@ -147,6 +151,37 @@ export const DetailAndReviews: React.FC<{
                 </p>
               </div>
             </div>
+
+            {/* Brand Banner with direct link to Brand Page */}
+            {brand && (
+              <div className="mb-5 p-3 sm:p-3.5 rounded-xl bg-neutral-50/80 border border-neutral-200/80 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-white border border-neutral-200/80 flex items-center justify-center text-neutral-800 font-black text-xs shrink-0 shadow-2xs">
+                    {brand.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <span className="text-[10px] sm:text-[11px] font-bold text-neutral-400 uppercase tracking-wider block">
+                      Brand
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-neutral-900 uppercase">
+                      {brand}
+                    </span>
+                  </div>
+                </div>
+
+                {brandSlug && (
+                  <Link
+                    href={`/brands/${brandSlug}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-neutral-300 hover:border-brand hover:text-brand text-xs font-bold text-neutral-700 transition-all shadow-2xs group"
+                  >
+                    <span>View all {brand} products</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-neutral-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all">
+                      <path fillRule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clipRule="evenodd" />
+                    </svg>
+                  </Link>
+                )}
+              </div>
+            )}
 
             {/* Render legacy Magento HTML exactly as it is without accordions */}
             <div className="magento-layout text-neutral-700 text-[13.5px] sm:text-[14.5px] leading-[1.8] sm:leading-[1.85]">

@@ -4,6 +4,7 @@ import { apiClient } from "@/core/api/client";
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 
 const ValidationItem = ({ isValid, text }: { isValid: boolean; text: string }) => (
   <div className="flex items-center gap-2 mb-1">
@@ -37,6 +38,10 @@ export function PostCheckoutRegisterForm({ email, name }: { email: string; name:
       {
         onSuccess: () => {
           setResetSent(true);
+          toast.success(`Password reset link sent to ${email}`);
+        },
+        onError: (err: any) => {
+          toast.error(err.response?.data?.error || "Failed to send reset link");
         },
       }
     );
@@ -145,17 +150,24 @@ export function PostCheckoutRegisterForm({ email, name }: { email: string; name:
         )}
 
         {resetSent && (
-          <div className="bg-emerald-50 border border-emerald-200 p-2 rounded text-emerald-800 text-[11px] leading-tight flex items-start gap-1.5">
-            <CheckCircleIcon className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold">Reset link sent!</span> Check your inbox at <strong>{email}</strong> or{" "}
-              <Link
-                href={`/forgot-password?email=${encodeURIComponent(email)}`}
-                className="underline font-semibold text-emerald-900"
-                target="_blank"
+          <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded text-emerald-900 text-[11px] leading-relaxed">
+            <div className="flex items-center gap-1.5 font-bold text-emerald-800 mb-0.5">
+              <CheckCircleIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Reset Link Sent Directly to Email!</span>
+            </div>
+            <p className="text-emerald-700">
+              We sent a password reset link to <strong>{email}</strong>. Check your inbox and click the button inside to set your password.
+            </p>
+            <div className="mt-1.5 pt-1 border-t border-emerald-100 flex items-center justify-between text-[10px]">
+              <span className="text-neutral-500">Didn&apos;t get the email?</span>
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={forgotMutation.isPending}
+                className="font-bold text-brand hover:underline cursor-pointer disabled:opacity-50"
               >
-                open reset page
-              </Link>.
+                {forgotMutation.isPending ? "Sending..." : "Resend Link"}
+              </button>
             </div>
           </div>
         )}

@@ -142,12 +142,23 @@ export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
     return null;
   }
 
-  // Render top 3 featured / sibling cards as requested for mobile hero section
-  const displayItems = subcategories.slice(0, 3);
+  // Render up to 5 featured / sibling cards as requested for mobile hero section
+  const displayItems = subcategories.slice(0, 5);
+  const count = displayItems.length;
+  const gridLayoutClass =
+    count === 5
+      ? "grid-cols-5 gap-1.5 min-[380px]:gap-2 sm:gap-3 max-w-2xl"
+      : count === 4
+      ? "grid-cols-4 gap-2 min-[380px]:gap-2.5 sm:gap-3.5 max-w-xl"
+      : count === 2
+      ? "grid-cols-2 gap-3 sm:gap-4 max-w-sm"
+      : count === 1
+      ? "grid-cols-1 max-w-[140px]"
+      : "grid-cols-3 gap-2.5 sm:gap-4 max-w-xl";
 
   return (
     <section className="w-full my-3 sm:my-5" aria-label="Category Navigation Cards">
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-4 max-w-xl mx-auto">
+      <div className={`grid ${gridLayoutClass} mx-auto w-full`}>
         {displayItems.map((item, index) => {
           const href = resolveCategoryHref(item, pathname);
           const rawImage = item.image || item.imageUrl || item.thumbnailUrl || item.bannerImage;
@@ -156,21 +167,21 @@ export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
             <Link
               key={item.id || item._id || item.slug || index}
               href={href}
-              className="group flex flex-col items-center select-none text-center"
+              className="group flex flex-col items-center select-none text-center min-w-0 w-full"
             >
               {/* Tile Image Card */}
-              <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-[#f5f5f5] border border-slate-200/80 shadow-2xs transition-all duration-300 group-hover:scale-105 group-hover:shadow-md group-hover:border-slate-300 will-change-transform flex items-center justify-center">
+              <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-[#f5f5f5] border border-slate-200/80 shadow-2xs transition-all duration-300 group-hover:scale-105 group-hover:shadow-md group-hover:border-slate-300 will-change-transform flex items-center justify-center">
                 {rawImage ? (
                   <Image
                     src={rawImage}
                     alt={item.name}
                     fill
-                    className="object-contain p-2 mix-blend-multiply transition-transform duration-500 group-hover:scale-110"
-                    sizes="(max-width: 768px) 33vw, 160px"
+                    className={`object-contain ${count >= 4 ? "p-1.5 min-[380px]:p-2" : "p-2"} mix-blend-multiply transition-transform duration-500 group-hover:scale-110`}
+                    sizes={count === 5 ? "(max-width: 768px) 20vw, 160px" : count === 4 ? "(max-width: 768px) 25vw, 160px" : "(max-width: 768px) 33vw, 160px"}
                   />
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-slate-400 bg-gradient-to-b from-slate-50 to-slate-100">
-                    <Folder size={28} className="text-slate-300 mb-1 transition-transform group-hover:scale-110" />
+                    <Folder size={count === 5 ? 20 : 28} className="text-slate-300 mb-0.5 sm:mb-1 transition-transform group-hover:scale-110" />
                     <span className="text-[8px] font-semibold text-slate-400 tracking-tight leading-tight">
                       {item.name}
                     </span>
@@ -180,7 +191,7 @@ export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
                 {/* Optional Badge inside Tile */}
                 {item.badge && (
                   <div className="absolute inset-x-1 bottom-1.5 z-10">
-                    <span className={`block truncate text-center text-[7px] min-[375px]:text-[8px] font-black uppercase tracking-wider text-white px-1 py-0.5 rounded shadow-xs ${item.badgeColor || "bg-brand"}`}>
+                    <span className={`block truncate text-center text-[6px] min-[375px]:text-[7px] sm:text-[8px] font-black uppercase tracking-wider text-white px-0.5 min-[375px]:px-1 py-0.5 rounded shadow-xs ${item.badgeColor || "bg-brand"}`}>
                       {item.badge}
                     </span>
                   </div>
@@ -188,7 +199,7 @@ export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
               </div>
 
               {/* Category Name Label below Tile */}
-              <span className="mt-2 text-[10px] min-[375px]:text-[11px] sm:text-xs font-bold text-slate-900 text-center leading-tight line-clamp-2 w-full group-hover:text-brand transition-colors">
+              <span className={`mt-1.5 sm:mt-2 ${count === 5 ? "text-[9px] min-[380px]:text-[10px]" : count === 4 ? "text-[9.5px] min-[380px]:text-[10.5px]" : "text-[10px] min-[375px]:text-[11px]"} sm:text-xs font-bold text-slate-900 text-center leading-tight line-clamp-2 w-full group-hover:text-brand transition-colors`}>
                 {item.name}
               </span>
             </Link>

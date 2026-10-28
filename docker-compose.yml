@@ -1,27 +1,30 @@
-version: '3.8'
-
 services:
-  # Redis for BullMQ Background Workers
+  # Redis for BullMQ Background Workers & Multi-Layer Caching
   redis:
     image: redis:alpine
     container_name: store4riders-redis
-    ports:
-      - "6379:6379"
     restart: unless-stopped
+    ports:
+      - "${REDIS_BIND_IP:-127.0.0.1}:6379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Meilisearch for Phase 3 (Search & Discovery)
+  # Meilisearch for Instant Autocomplete & Typo-Tolerant Search
   meilisearch:
     image: getmeili/meilisearch:v1.7
     container_name: store4riders-meilisearch
-    environment:
-      - MEILI_MASTER_KEY=store4riders_master_key_123
-      - MEILI_ENV=development
-    ports:
-      - "7700:7700"
     restart: unless-stopped
+    environment:
+      - MEILI_MASTER_KEY=${MEILISEARCH_KEY:-store4riders_master_key_123}
+      - MEILI_ENV=${MEILISEARCH_ENV:-development}
+    ports:
+      - "${MEILI_BIND_IP:-127.0.0.1}:7700:7700"
     volumes:
       - meilisearch_data:/meili_data
 

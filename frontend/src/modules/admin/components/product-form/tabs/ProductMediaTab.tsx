@@ -2,14 +2,16 @@
 
 import React from "react";
 import Image from "next/image";
-import { ImageIcon, Upload, Star, ChevronLeft, ChevronRight, Trash2, Eye } from "lucide-react";
+import { ImageIcon, Upload, Star, ChevronLeft, ChevronRight, Trash2, Eye, Sparkles, Play } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import { compressImageToWebP, uploadImageToS3 } from "@/core/utils/imageCompressor";
 import { StorefrontCardPreview } from "@/modules/admin/components/StorefrontCardPreview";
+import { normalizeExternalImageUrl, getVideoEmbedInfo } from "@/core/utils/mediaUrlHelper";
 import { useProductFormContext } from "../ProductFormContext";
 
 export function ProductMediaTab() {
+  const [isAdminVideoPlaying, setIsAdminVideoPlaying] = React.useState(false);
   const {
     name,
     brand,
@@ -30,6 +32,8 @@ export function ProductMediaTab() {
     compressionBadge,
     setCompressionBadge,
     setPrimaryImage,
+    productType,
+    handleTabChange,
   } = useProductFormContext();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,7 +82,8 @@ export function ProductMediaTab() {
   };
 
   const handleAddManualImage = () => {
-    if (!manualImageUrl.trim()) {
+    const cleanUrl = normalizeExternalImageUrl(manualImageUrl);
+    if (!cleanUrl) {
       toast.error("Please enter a valid image URL");
       return;
     }
@@ -86,14 +91,14 @@ export function ProductMediaTab() {
       ...prev,
       {
         id: crypto.randomUUID(),
-        url: manualImageUrl.trim(),
+        url: cleanUrl,
         altText: manualImageAlt.trim() || name,
         isBase: prev.length === 0,
       },
     ]);
     setManualImageUrl("");
     setManualImageAlt("");
-    toast.success("Image URL added to gallery");
+    toast.success("Image URL normalized & attached to gallery!");
   };
 
   const removeImage = (index: number) => {
@@ -129,6 +134,40 @@ export function ProductMediaTab() {
           </p>
         </div>
       </div>
+
+      {/* Smart Helper Banner for Configurable Products */}
+      {productType === "configurable" && (
+        <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 flex flex-col sm:flex-row items-start justify-between gap-4 shadow-2xs">
+          <div className="flex items-start gap-3">
+            <Sparkles className="text-sky-600 shrink-0 mt-0.5" size={18} />
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold text-sky-950 flex items-center gap-1.5">
+                <span>Configurable Product with Child Variants Detected</span>
+                <span className="text-[10px] bg-sky-200 text-sky-900 px-2 py-0.2 rounded-full font-semibold">Zero Duplicate Uploads</span>
+              </h4>
+              <p className="text-xs text-sky-800 leading-relaxed max-w-2xl">
+                Have different colors &amp; sizes (like Helmets or Jackets)? You do <strong>not</strong> need to upload photos twice:
+              </p>
+              <ul className="text-[11px] text-sky-900 space-y-1 pt-1 list-disc list-inside">
+                <li>
+                  <strong>Option A (Fastest):</strong> Skip this tab and go to <strong>Step 5 (Variants Matrix)</strong>. Upload 1 photo per color there, and simply click <span className="bg-white px-1.5 py-0.5 rounded border border-sky-300 font-semibold text-slate-800">★ Set as Front Thumbnail</span>. It will automatically become your catalog cover!
+                </li>
+                <li>
+                  <strong>Option B:</strong> Drop all your photos here right now. In Step 5, you can click any photo from your gallery to link it to its color in 1 second.
+                </li>
+              </ul>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleTabChange("variants")}
+            className="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs self-start sm:self-center"
+          >
+            <span>Skip to Step 5 (Variants)</span>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Upload Area */}
       <div className="border-2 border-dashed border-slate-200 hover:border-brand/50 rounded-xl p-8 text-center transition-colors bg-slate-50/50">
@@ -206,9 +245,11 @@ export function ProductMediaTab() {
               >
                 <div className="relative aspect-square w-full bg-slate-100">
                   <Image
-                    src={img.url}
+                    src={normalizeExternalImageUrl(img.url)}
                     alt={img.altText || "Product preview"}
                     fill
+                    unoptimized
+                    referrerPolicy="no-referrer"
                     sizes="200px"
                     className="object-cover"
                   />
@@ -298,15 +339,97 @@ export function ProductMediaTab() {
         )}
       </div>
 
-      <div className="border-t border-slate-100 pt-4">
-        <label className="block text-sm font-medium text-slate-700 mb-1">YouTube / Video Embed URL</label>
+      <div className="border-t border-slate-100 pt-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-medium text-slate-700">
+            YouTube / Video Embed URL
+          </label>
+          {videoUrl && (
+            <button
+              type="button"
+              onClick={() => setVideoUrl("")}
+              className="text-xs text-red-600 hover:text-red-700 font-semibold cursor-pointer"
+            >
+              Clear Video
+            </button>
+          )}
+        </div>
         <input
           type="text"
           value={videoUrl}
-          onChange={(e) => setVideoUrl(e.target.value)}
-          placeholder="e.g. https://www.youtube.com/watch?v=..."
+          onChange={(e) => {
+            setVideoUrl(e.target.value);
+            setIsAdminVideoPlaying(false);
+          }}
+          placeholder="e.g. https://www.youtube.com/watch?v=... or https://youtu.be/..."
           className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
         />
+        <p className="text-[11px] text-slate-500">
+          Supports YouTube (standard watch, shorts, live), Vimeo, and direct MP4/WebM video URLs. Renders directly on the customer product detail page.
+        </p>
+
+        {/* Live Admin Video Preview */}
+        {(() => {
+          if (!videoUrl || !videoUrl.trim()) return null;
+          const embed = getVideoEmbedInfo(videoUrl);
+          if (!embed) {
+            return (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 flex items-center gap-2">
+                <span>⚠️ Video link not recognized yet. Please paste a valid YouTube, Vimeo, or direct MP4 link.</span>
+              </div>
+            );
+          }
+          return (
+            <div className="mt-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Video Preview ({embed.type.toUpperCase()})
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  Ready for Storefront
+                </span>
+              </div>
+              <div className="aspect-video w-full max-w-md rounded-lg overflow-hidden bg-black shadow-sm border border-slate-200 relative group">
+                {isAdminVideoPlaying ? (
+                  embed.type === "youtube" || embed.type === "vimeo" || embed.type === "iframe" ? (
+                    <iframe
+                      src={`${embed.embedUrl}${embed.embedUrl.includes("?") ? "&" : "?"}autoplay=1`}
+                      title="Product Video Preview"
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video src={embed.embedUrl} controls autoPlay className="w-full h-full object-contain" />
+                  )
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsAdminVideoPlaying(true)}
+                    className="w-full h-full relative flex items-center justify-center cursor-pointer group focus:outline-none"
+                  >
+                    {embed.thumbnailUrl ? (
+                      <img
+                        src={embed.thumbnailUrl}
+                        alt="Video Preview"
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover opacity-80 group-hover:opacity-95 transition-opacity"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-slate-900" />
+                    )}
+                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
+                    <div className="relative z-10 flex items-center gap-1.5 bg-brand text-white px-3.5 py-1.5 rounded-full text-xs font-bold shadow-lg group-hover:scale-105 active:scale-95 transition-transform">
+                      <Play size={14} fill="currentColor" />
+                      <span>Test Video Player</span>
+                    </div>
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Live Customer Storefront Card & Swatches Preview inside Media Tab */}

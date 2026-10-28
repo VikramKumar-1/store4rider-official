@@ -80,7 +80,7 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
               <Link href="/" onClick={onClose}>
-                <div className="relative h-8 w-36">
+                <div className="relative h-[36.8px] w-40">
                   <Image
                     src="/Store4riders-Logo.jpg"
                     alt="Store4Riders"

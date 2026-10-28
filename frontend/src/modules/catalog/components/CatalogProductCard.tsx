@@ -60,11 +60,8 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
     }, 1500);
   };
 
-  const defaultColorMatch = product.colors?.find(c => c.imageUrl === imgSrc);
-  const activeColor = selectedColorName || (defaultColorMatch ? defaultColorMatch.name : null);
-
-  const dynamicHref = activeColor 
-    ? `/${product.rawSlug || product.productUrl.split("?")[0].split("/").pop()}?color=${encodeURIComponent(activeColor)}`
+  const dynamicHref = selectedColorName 
+    ? `/${product.rawSlug || product.productUrl.split("?")[0].split("/").pop()}?color=${encodeURIComponent(selectedColorName)}`
     : product.productUrl;
 
   return (
@@ -120,7 +117,7 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
                       ? "ring-2 ring-neutral-900 ring-offset-1 ring-offset-white scale-110 z-10"
                       : "hover:scale-105"
                   }`}
-                  style={{ background: parseColorToBackground(colorObj.name) }}
+                  style={{ background: colorObj.background || parseColorToBackground(colorObj.name) }}
                   title={colorObj.name}
                   aria-label={`View ${colorObj.name} variant`}
                 />
@@ -184,12 +181,12 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
                           ? "ring-2 ring-neutral-900 ring-offset-2 ring-offset-white scale-110 z-10 shadow-xs"
                           : "hover:border-neutral-500"
                       }`}
-                      style={{ background: parseColorToBackground(colorObj.name) }}
+                      style={{ background: colorObj.background || parseColorToBackground(colorObj.name) }}
                       aria-label={`View ${colorObj.name} variant`}
                     />
                     {/* Hover Tooltip */}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/swatch:flex flex-col items-center bg-white shadow-xl rounded-md p-1.5 z-50 border border-neutral-200 min-w-[95px] animate-in fade-in zoom-in-95 duration-200">
-                      <div className="w-full aspect-square mb-1.5 rounded-sm border border-neutral-200 shadow-2xs" style={{ background: parseColorToBackground(colorObj.name) }} />
+                      <div className="w-full aspect-square mb-1.5 rounded-sm border border-neutral-200 shadow-2xs" style={{ background: colorObj.background || parseColorToBackground(colorObj.name) }} />
                       <span className="text-[10px] text-center font-semibold text-neutral-800 truncate w-full px-1">{colorObj.name}</span>
                       <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-neutral-200 rotate-45" />
                     </div>

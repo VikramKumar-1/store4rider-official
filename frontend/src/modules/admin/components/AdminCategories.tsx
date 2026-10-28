@@ -416,7 +416,7 @@ export const AdminCategories = () => {
         <div>
           <h1 className="text-2xl font-black text-slate-900">Manage Categories</h1>
           <p className="text-slate-500 text-sm mt-1">
-            Organize hierarchy, subcategory cards (3-card mobile view), banner & SEO FAQs.
+            Organize hierarchy, subcategory cards (5-card mobile view), banner & SEO FAQs.
           </p>
         </div>
         <Button onClick={() => openModal()} className="flex items-center gap-2">
@@ -1020,27 +1020,27 @@ export const AdminCategories = () => {
             </div>
           </div>
 
-          {/* HERO SECTION FEATURED CARDS (3-CARD SHOWCASE) */}
+          {/* HERO SECTION FEATURED CARDS (5-CARD SHOWCASE) */}
           <div className="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200 space-y-2.5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider text-slate-600">
                   <Layers size={14} className="text-brand" />
-                  Mobile Hero Showcase Cards (3-Card Layout)
+                  Mobile Hero Showcase Cards (Up to 5 Cards)
                 </label>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  Pick up to 3 subcategories to showcase as tile cards on mobile when riders visit this page.
+                  Pick up to 5 subcategories to showcase as tile cards on mobile when riders visit this page.
                 </p>
                 </div>
               <span className="text-[11px] font-bold text-slate-600 bg-white border border-slate-200 px-2.5 py-0.5 rounded-full shrink-0 shadow-2xs">
-                {selectedHeroCategoryIds.length} / 3 Cards
+                {selectedHeroCategoryIds.length} / 5 Cards
               </span>
             </div>
 
             {/* Clear explanation callout so admin never gets confused where 3 photos come from */}
             <div className="p-2.5 bg-amber-50/90 border border-amber-200 rounded-lg text-[11px] text-slate-700 space-y-1">
               <span className="font-bold text-amber-900 flex items-center gap-1.5">
-                <span>💡</span> Where do the 3 card images come from? (You do not upload 3 images here)
+                <span>💡</span> Where do the card images come from? (You do not upload images here)
               </span>
               <span className="block text-slate-700 leading-relaxed text-[10.5px]">
                 Each card automatically displays the single thumbnail photo of that specific subcategory.
@@ -1050,7 +1050,7 @@ export const AdminCategories = () => {
               </span>
             </div>
 
-            {selectedHeroCategoryIds.length < 3 ? (
+            {selectedHeroCategoryIds.length < 5 ? (
               <SearchableSelect
                 options={heroCandidateOptions}
                 value=""
@@ -1064,7 +1064,7 @@ export const AdminCategories = () => {
               />
             ) : (
               <p className="text-[11px] text-amber-700 font-semibold bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
-                Maximum 3 hero cards reached. Remove one below to choose another.
+                Maximum 5 hero cards reached. Remove one below to choose another.
               </p>
             )}
 

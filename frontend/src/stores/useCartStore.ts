@@ -1,7 +1,14 @@
 import { create } from "zustand";
 import { ICartItem } from "@store4riders/shared-types";
 
-export interface LocalCartItem extends ICartItem {
+export interface LocalCartItem extends Omit<ICartItem, 'id'> {
+  id?: string;
+  sku?: string;
+  name?: string;
+  price?: number;
+  originalPrice?: number;
+  image?: string;
+  selectedAttributes?: Record<string, string>;
   product?: any;
 }
 

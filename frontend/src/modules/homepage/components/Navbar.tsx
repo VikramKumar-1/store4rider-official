@@ -42,6 +42,32 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [hoveredNavId, setHoveredNavId] = useState<string | null>(null);
   const [hoveredMenuId, setHoveredMenuId] = useState<string | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null!);
+  const navCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleNavEnter = (id: string, hasMega: boolean) => {
+    if (navCloseTimeoutRef.current) {
+      clearTimeout(navCloseTimeoutRef.current);
+      navCloseTimeoutRef.current = null;
+    }
+    setHoveredNavId(id);
+    setHoveredMenuId(hasMega ? id : null);
+  };
+
+  const handleNavLeave = () => {
+    if (navCloseTimeoutRef.current) {
+      clearTimeout(navCloseTimeoutRef.current);
+    }
+    navCloseTimeoutRef.current = setTimeout(() => {
+      setHoveredNavId(null);
+      setHoveredMenuId(null);
+    }, 200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (navCloseTimeoutRef.current) clearTimeout(navCloseTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -110,7 +136,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className={`items-center group transition-opacity duration-200 ${isMobileSearchOpen ? "opacity-0 pointer-events-none sm:flex sm:opacity-100 sm:pointer-events-auto" : "flex opacity-100"
               }`}
           >
-            <div className="relative h-6 w-28 sm:h-7 sm:w-32 md:h-7 md:w-32 lg:h-7 lg:w-32 xl:h-7.5 xl:w-36 2xl:w-44 transition-transform duration-300 group-hover:scale-105 will-change-transform">
+            <div className="relative h-[27.6px] w-[104px] sm:h-8 sm:w-[120px] md:h-9 md:w-[135px] lg:h-[42px] lg:w-[158px] xl:h-[45px] xl:w-[168px] 2xl:h-[48px] 2xl:w-[180px] transition-transform duration-300 group-hover:scale-105 will-change-transform">
               <Image
                 src="/Store4riders-Logo.jpg"
                 alt={logoText || "Store4Riders Logo"}
@@ -128,11 +154,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             isLight={isLight}
             hoveredNavId={hoveredNavId}
             hoveredMenuId={hoveredMenuId}
-            onNavEnter={(id, hasMega) => {
-              setHoveredNavId(id);
-              setHoveredMenuId(hasMega ? id : null);
-            }}
-            onNavLeave={() => { setHoveredNavId(null); setHoveredMenuId(null); }}
+            onNavEnter={handleNavEnter}
+            onNavLeave={handleNavLeave}
           />
 
           {/* Right actions (Fades out on mobile when search is open) */}

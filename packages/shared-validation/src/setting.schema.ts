@@ -41,6 +41,8 @@ export const updateSettingSchema = z.object({
   guidesMetaTitle: z.string().max(200).optional().or(z.literal("")),
   guidesMetaDescription: z.string().max(500).optional().or(z.literal("")),
   guidesMetaKeywords: z.string().max(500).optional().or(z.literal("")),
+  guidesHeroTitle: z.string().max(200).optional().or(z.literal("")),
+  guidesHeroDescription: z.string().max(1000).optional().or(z.literal("")),
 });
 
 export type UpdateSettingInput = z.infer<typeof updateSettingSchema>;

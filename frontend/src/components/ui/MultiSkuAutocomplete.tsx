@@ -43,7 +43,7 @@ export function MultiSkuAutocomplete({ value, onChange, placeholder }: MultiSkuA
     const fetchOptions = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/v1/products?search=${encodeURIComponent(search)}&limit=10`);
+        const res = await fetch(`/api/v1/products?search=${encodeURIComponent(search)}&limit=10&parentOnly=true`);
         const json = await res.json();
         if (json.success && json.data?.items) {
           setOptions(json.data.items.map((p: any) => ({
@@ -126,7 +126,7 @@ export function MultiSkuAutocomplete({ value, onChange, placeholder }: MultiSkuA
                   className={`w-full text-left p-2 flex items-center gap-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 ${isSelected ? 'bg-brand/5' : ''}`}
                 >
                   <div className="w-8 h-8 rounded bg-slate-100 flex-shrink-0 overflow-hidden relative">
-                    {opt.imageUrl && <img src={opt.imageUrl} alt="" className="w-full h-full object-cover" />}
+                    {opt.imageUrl && <img src={opt.imageUrl} alt={opt.name || opt.sku} className="w-full h-full object-cover" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-slate-900 truncate">{opt.sku}</p>

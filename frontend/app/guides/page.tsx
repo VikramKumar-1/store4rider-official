@@ -120,7 +120,10 @@ export default async function GuidesPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
-      <GuidesHubModule />
+      <GuidesHubModule
+        heroTitle={seo?.heroTitle}
+        heroDescription={seo?.heroDescription}
+      />
     </>
   );
 }

@@ -700,17 +700,56 @@ export function getCategoryBlueprint(catIdOrSlug: string, categories: any[] = []
 }
 
 export const COLOR_OPTIONS = [
-  { label: "Black", value: "Black" },
-  { label: "White", value: "White" },
-  { label: "Red", value: "Red" },
-  { label: "Blue", value: "Blue" },
-  { label: "Fluorescent Yellow", value: "Fluorescent Yellow" },
-  { label: "Grey", value: "Grey" },
-  { label: "Silver", value: "Silver" },
+  // Solid & Classic Finishes
   { label: "Matte Black", value: "Matte Black" },
   { label: "Gloss Black", value: "Gloss Black" },
+  { label: "Black", value: "Black" },
+  { label: "White", value: "White" },
+  { label: "Pearl White", value: "Pearl White" },
+  { label: "Grey", value: "Grey" },
+  { label: "Nardo Grey", value: "Nardo Grey" },
+  { label: "Titanium", value: "Titanium" },
+  { label: "Silver", value: "Silver" },
+  { label: "Golden", value: "Golden" },
+
+  // Fluorescent & Hi-Vis Safety Colors
+  { label: "Fluo Green", value: "Fluo Green" },
+  { label: "Fluo Yellow", value: "Fluo Yellow" },
+  { label: "Fluo Orange", value: "Fluo Orange" },
+  { label: "Hi-Vis Neon", value: "Hi-Vis Neon" },
+
+  // Dual-Tone & Racing Graphics Combos
+  { label: "Black/Red", value: "Black/Red" },
+  { label: "Black/Orange", value: "Black/Orange" },
+  { label: "Black/Fluo Yellow", value: "Black/Fluo Yellow" },
+  { label: "Black/Fluo Green", value: "Black/Fluo Green" },
+  { label: "Black/Grey", value: "Black/Grey" },
+  { label: "Black/White", value: "Black/White" },
+  { label: "Red/Black", value: "Red/Black" },
+  { label: "Fluo Yellow/Red", value: "Fluo Yellow/Red" },
+  { label: "White/Red/Blue", value: "White/Red/Blue" },
+  { label: "Blue/White", value: "Blue/White" },
+  { label: "Red/White", value: "Red/White" },
+  { label: "Red", value: "Red" },
+  { label: "Blue", value: "Blue" },
+
+  // Touring, Heritage & Leather
+  { label: "Vintage Brown", value: "Vintage Brown" },
+  { label: "Tobacco Brown", value: "Tobacco Brown" },
+  { label: "Tan", value: "Tan" },
+  { label: "Olive Green", value: "Olive Green" },
+  { label: "Military Camo", value: "Military Camo" },
+  { label: "Desert Khaki", value: "Desert Khaki" },
+  { label: "Navy Blue", value: "Navy Blue" },
+
+  // Visors & Accessories
   { label: "Clear", value: "Clear" },
-  { label: "Smoke", value: "Smoke" }
+  { label: "Smoke", value: "Smoke" },
+  { label: "Dark Smoke", value: "Dark Smoke" },
+  { label: "Iridium Silver", value: "Iridium Silver" },
+  { label: "Iridium Blue", value: "Iridium Blue" },
+  { label: "Iridium Gold", value: "Iridium Gold" },
+  { label: "Rainbow Aurora", value: "Rainbow Aurora" },
 ];
 
 export const SIZE_OPTIONS = [

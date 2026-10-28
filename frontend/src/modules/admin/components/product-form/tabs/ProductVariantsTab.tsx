@@ -1,26 +1,67 @@
 "use client";
 
+import { parseColorToBackground } from "@/modules/product-detail/components/ProductDetailPageModule";
+
 import React, { useState } from "react";
 import Image from "next/image";
-import { GitBranch, Plus, Check, Camera, Sliders, Trash2, Ruler, ChevronDown, ChevronUp } from "lucide-react";
+import { GitBranch, Plus, Check, Camera, Sliders, Trash2, Ruler, ChevronDown, ChevronUp, Lightbulb, Star } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import { useProductFormContext } from "../ProductFormContext";
 import { COLOR_OPTIONS, SIZE_OPTIONS } from "../product-specs.constants";
+import { ColorSwatchModal } from "../modals/ColorSwatchModal";
 
 export function ProductVariantsTab() {
+  const [editingColorSwatch, setEditingColorSwatch] = useState<string | null>(null);
   const [showSizeChartDrawer, setShowSizeChartDrawer] = useState(false);
   const {
     variants,
     setVariants,
+    colorSwatches,
+    setColorSwatches,
     sku,
     basePrice,
+    specialPrice,
     setVariantImageModalIndex,
     applySizePreset,
     activeBlueprint,
     sizeChart,
     setSizeChart,
+    images,
+    setImages,
+    name,
   } = useProductFormContext();
+
+  const getSwatchBg = (colorName: string) => {
+    if (!colorName) return "#111111";
+    const trimmed = colorName.trim();
+    if (colorSwatches[trimmed]) return colorSwatches[trimmed];
+    const norm = trimmed.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const matchKey = Object.keys(colorSwatches).find(
+      (k) => k.toLowerCase().replace(/[^a-z0-9]/g, "") === norm
+    );
+    if (matchKey && colorSwatches[matchKey]) return colorSwatches[matchKey];
+    return parseColorToBackground(trimmed) || "#111111";
+  };
+
+  const handleSetCoverFromColor = (colorName: string, photoUrl?: string, altText?: string) => {
+    if (!photoUrl) return;
+    setImages((prev) => {
+      const cleanAlt = altText || (name ? `${name} - ${colorName}` : colorName);
+      const exists = prev.some((img) => img.url === photoUrl);
+      if (!exists) {
+        return [
+          { id: crypto.randomUUID(), url: photoUrl, altText: cleanAlt, isBase: true },
+          ...prev.map((img) => ({ ...img, isBase: false })),
+        ];
+      }
+      return prev.map((img) => ({
+        ...img,
+        isBase: img.url === photoUrl,
+      }));
+    });
+    toast.success(`⭐ "${colorName}" photo set as Main Storefront Thumbnail!`);
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-6 space-y-6">
@@ -59,6 +100,9 @@ export function ProductVariantsTab() {
                 );
                 const photoUrl = existingColorPhoto?.imageUrl || existingColorPhoto?.images?.[0]?.url;
                 const photoAlt = existingColorPhoto?.altText || existingColorPhoto?.images?.[0]?.altText;
+                const cleanAltBase = photoAlt
+                  ? photoAlt.replace(/\s*\([^)]*\)$/, "").trim()
+                  : (currentColor ? currentColor : "Variant");
 
                 const newVariants = sizes.map((s: string) => ({
                   id: crypto.randomUUID(),
@@ -66,10 +110,11 @@ export function ProductVariantsTab() {
                   color: currentColor,
                   size: s,
                   price: basePrice || 0,
+                  specialPrice: (typeof specialPrice === "number" && specialPrice > 0 ? specialPrice : "") as number | "",
                   stock: 10,
                   imageUrl: photoUrl,
-                  altText: photoAlt,
-                  images: photoUrl ? [{ id: crypto.randomUUID(), url: photoUrl, altText: photoAlt || `${currentColor} (${s})` }] : [],
+                  altText: photoUrl ? `${cleanAltBase} (${s})` : undefined,
+                  images: photoUrl ? [{ id: crypto.randomUUID(), url: photoUrl, altText: `${cleanAltBase} (${s})` }] : [],
                 }));
                 setVariants((prev) => [...prev, ...newVariants]);
                 toast.success(`⚡ Added ${sizes.length} ${activeBlueprint.attributeSet} sizes`);
@@ -127,6 +172,7 @@ export function ProductVariantsTab() {
                   color: inheritedColor,
                   size: "",
                   price: basePrice || 0,
+                  specialPrice: (typeof specialPrice === "number" && specialPrice > 0 ? specialPrice : "") as number | "",
                   stock: 0,
                   imageUrl: photoUrl,
                   altText: photoAlt,
@@ -139,6 +185,36 @@ export function ProductVariantsTab() {
             <Plus size={14} />
             <span>+ Add Child Variant</span>
           </Button>
+        </div>
+      </div>
+
+      {/* Catalog Guide: Color Naming Rule */}
+      <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3.5 flex items-start gap-3 text-xs text-amber-900 shadow-2xs">
+        <Lightbulb size={18} className="text-amber-600 shrink-0 mt-0.5" />
+        <div className="space-y-1.5 w-full">
+          <div className="font-bold text-amber-950 flex items-center justify-between">
+            <span>💡 Color Naming Guide (When to use &quot;Standard&quot; vs Real Colors)</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-[11px] text-amber-900 leading-relaxed">
+            <div className="bg-white/85 border border-amber-200/70 rounded-lg p-2.5 shadow-2xs">
+              <strong className="text-amber-950 block mb-0.5 font-bold">
+                1. Leave as &quot;Standard&quot; (Single-Color / No Color Choice)
+              </strong>
+              <span>Use for products with <em>sizes or volumes only</em> (e.g. Chain Cleaner 150ml/400ml, Knee Protectors S/M/L, Bags 30L/50L).</span>
+              <span className="block text-emerald-700 font-semibold mt-1">
+                ✓ Storefront hides color selector completely — customer directly selects Size or Volume.
+              </span>
+            </div>
+            <div className="bg-white/85 border border-amber-200/70 rounded-lg p-2.5 shadow-2xs">
+              <strong className="text-amber-950 block mb-0.5 font-bold">
+                2. Change to Real Color (Helmets, Jackets, Gloves)
+              </strong>
+              <span>Type or select the actual color name (e.g. <em>Matte Black</em>, <em>Gloss Red</em>, <em>Golden</em>, <em>Flu. Green</em>).</span>
+              <span className="block text-brand font-semibold mt-1">
+                ✓ Storefront renders interactive Color Swatches &amp; switches photos when clicked.
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -168,10 +244,18 @@ export function ProductVariantsTab() {
               );
               const photoUrl = firstWithPhoto?.imageUrl || firstWithPhoto?.images?.[0]?.url;
 
+              const isCover = Boolean(
+                photoUrl &&
+                (images.some((img) => img.isBase && img.url === photoUrl) ||
+                 (!images.some((img) => img.isBase) && images[0]?.url === photoUrl))
+              );
+
               return (
                 <div
                   key={c}
-                  className="flex items-center gap-2 px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs shadow-2xs"
+                  className={`flex items-center gap-2 px-2.5 py-1 bg-white border rounded-lg text-xs shadow-2xs transition-all ${
+                    isCover ? "border-amber-400 ring-2 ring-amber-400/20 bg-amber-50/20" : "border-slate-200"
+                  }`}
                 >
                   {photoUrl ? (
                     <div className="relative w-5 h-5 rounded overflow-hidden border border-slate-200 shrink-0">
@@ -182,16 +266,69 @@ export function ProductVariantsTab() {
                   )}
                   <span className="font-bold text-slate-800">{c}</span>
                   <span className="text-[10px] text-slate-400">({vars.length} sizes)</span>
+                  <div className="flex items-center gap-1.5 ml-1 pl-1.5 border-l border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setEditingColorSwatch(c)}
+                        className="relative w-6 h-6 rounded-full border-2 border-slate-300 shadow-2xs hover:scale-110 active:scale-95 transition-all shrink-0 ring-1 ring-black/10 cursor-pointer overflow-hidden flex items-center justify-center group"
+                        style={{ background: getSwatchBg(c) }}
+                        title={`Click to customize swatch / hex code / split for "${c}"`}
+                      >
+                        <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[8px] font-bold text-white drop-shadow-md bg-black/60 w-full h-full flex items-center justify-center">
+                          ✎
+                        </span>
+                      </button>
+                      <span className="font-mono text-[9px] text-slate-500 font-semibold uppercase">
+                        {colorSwatches[c] ? "Custom" : "Auto"}
+                      </span>
+                      {colorSwatches[c] && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setColorSwatches((prev) => {
+                              const next = { ...prev };
+                              delete next[c];
+                              return next;
+                            });
+                            toast.info(`Swatch for "${c}" reset to Auto`);
+                          }}
+                          className="text-[10px] text-slate-400 hover:text-red-500 cursor-pointer font-bold ml-0.5"
+                          title="Reset to Auto Color"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+
                   {hasPhoto ? (
-                    <button
-                      type="button"
-                      onClick={() => setVariantImageModalIndex(firstIdx)}
-                      className="text-[10px] text-emerald-700 font-bold bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer transition-colors"
-                      title="Edit photo & alt text for this color"
-                    >
-                      <Check size={11} className="text-emerald-600" />
-                      <span>Photo & Alt Set</span>
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setVariantImageModalIndex(firstIdx)}
+                        className="text-[10px] text-emerald-700 font-bold bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer transition-colors"
+                        title="Edit photo & alt text for this color"
+                      >
+                        <Check size={11} className="text-emerald-600" />
+                        <span>Photo Set</span>
+                      </button>
+
+                      {isCover ? (
+                        <span className="text-[10px] bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                          <Star size={10} fill="currentColor" />
+                          <span>Front Cover</span>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSetCoverFromColor(c, photoUrl, firstWithPhoto?.altText)}
+                          className="text-[10px] text-slate-600 hover:text-amber-800 bg-white hover:bg-amber-50 border border-slate-200 hover:border-amber-300 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Set this color as the primary storefront catalog thumbnail"
+                        >
+                          <Star size={10} className="text-amber-500" />
+                          <span>Set Front</span>
+                        </button>
+                      )}
+                    </div>
                   ) : (
                     <button
                       type="button"
@@ -284,7 +421,10 @@ export function ProductVariantsTab() {
                 <tr className="bg-slate-50 text-slate-600 uppercase border-b border-slate-200">
                   <th className="p-3 min-w-[120px]">Photo & Alt Text</th>
                   <th className="p-3">Variant SKU</th>
-                  <th className="p-3">Color</th>
+                  <th className="p-3">
+                    <div>Color</div>
+                    <span className="text-[10px] text-slate-400 font-normal lowercase tracking-normal block">&quot;Standard&quot; if single color</span>
+                  </th>
                   <th className="p-3">Size / Volume (ml/L)</th>
                   <th className="p-3">Price (₹)</th>
                   <th className="p-3">Special Price (₹)</th>
@@ -346,19 +486,32 @@ export function ProductVariantsTab() {
                       />
                     </td>
                     <td className="p-2">
-                      <input
-                        type="text"
-                        value={v.color}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setVariants((prev) =>
-                            prev.map((item, i) => (i === idx ? { ...item, color: val } : item))
-                          );
-                        }}
-                        list="color-presets"
-                        placeholder="Select/Type Color"
-                        className="w-32 px-2 py-1.5 border border-slate-200 rounded focus:ring-2 focus:ring-brand"
-                      />
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditingColorSwatch((v.color || "Standard").trim())}
+                          className="relative w-7 h-7 rounded-full border-2 border-slate-300 shadow-2xs hover:scale-110 active:scale-95 transition-all shrink-0 ring-1 ring-black/10 cursor-pointer overflow-hidden flex items-center justify-center group"
+                          style={{ background: getSwatchBg(v.color || "Standard") }}
+                          title={`Click to pick exact color, type hex code, or configure 2-tone split for "${v.color || "Standard"}"`}
+                        >
+                          <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[9px] font-bold text-white drop-shadow-md bg-black/60 w-full h-full flex items-center justify-center">
+                            ✎
+                          </span>
+                        </button>
+                        <input
+                          type="text"
+                          value={v.color}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setVariants((prev) =>
+                              prev.map((item, i) => (i === idx ? { ...item, color: val } : item))
+                            );
+                          }}
+                          list="color-presets"
+                          placeholder="Color or Standard"
+                          className="w-28 sm:w-32 px-2 py-1.5 border border-slate-200 rounded focus:ring-2 focus:ring-brand font-medium text-xs"
+                        />
+                      </div>
                     </td>
                     <td className="p-2">
                       <input
@@ -394,7 +547,7 @@ export function ProductVariantsTab() {
                       <input
                         type="number"
                         min="0"
-                        value={v.specialPrice ?? ""}
+                        value={v.specialPrice !== undefined && v.specialPrice !== null ? v.specialPrice : ""}
                         onKeyDown={(e) => {
                           if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") e.preventDefault();
                         }}
@@ -451,6 +604,30 @@ export function ProductVariantsTab() {
             </table>
           </div>
         </div>
+      )}
+
+      {editingColorSwatch && (
+        <ColorSwatchModal
+          isOpen={Boolean(editingColorSwatch)}
+          colorName={editingColorSwatch}
+          currentSwatch={colorSwatches[editingColorSwatch]}
+          onClose={() => setEditingColorSwatch(null)}
+          onSave={(swatchValue) => {
+            setColorSwatches((prev) => ({
+              ...prev,
+              [editingColorSwatch]: swatchValue,
+            }));
+            toast.success(`Color swatch for "${editingColorSwatch}" saved!`);
+          }}
+          onReset={() => {
+            setColorSwatches((prev) => {
+              const next = { ...prev };
+              delete next[editingColorSwatch];
+              return next;
+            });
+            toast.info(`Color swatch for "${editingColorSwatch}" reset to auto.`);
+          }}
+        />
       )}
     </div>
   );

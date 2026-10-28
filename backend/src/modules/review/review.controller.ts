@@ -22,9 +22,13 @@ export class ReviewController {
 
   static async getStoreReviews(req: NextRequest) {
     const url = new URL(req.url);
-    const limit = Number(url.searchParams.get("limit")) || 10;
+    const limit = Number(url.searchParams.get("limit")) || 30;
     const isRandom = url.searchParams.get("random") === "true";
-    const reviews = await ReviewService.getStoreReviews(limit, isRandom);
+    const excludeParam = url.searchParams.get("exclude");
+    const excludeIds = excludeParam
+      ? excludeParam.split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+    const reviews = await ReviewService.getStoreReviews(limit, isRandom, excludeIds);
     return ApiResponse.success(reviews, "Store reviews fetched successfully");
   }
 
@@ -44,4 +48,12 @@ export class ReviewController {
     const reviews = await ReviewService.syncGoogleReviews(apiKey, pages);
     return ApiResponse.success(reviews, `Successfully fetched and saved ${reviews.length} Google reviews`, 200);
   }
+
+  static async getAccountStatus(req: NextRequest) {
+    const url = new URL(req.url);
+    const customKey = url.searchParams.get("apiKey") || undefined;
+    const status = await ReviewService.getAccountStatus(customKey);
+    return ApiResponse.success(status, "Account status fetched successfully");
+  }
+
 }

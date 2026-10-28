@@ -89,6 +89,7 @@ export function AddRelatedProductsModal({
     attributeSet: appliedFilters.attributeSet !== "All Attribute Sets" ? appliedFilters.attributeSet : undefined,
     status: appliedFilters.status !== "all" ? appliedFilters.status : undefined,
     productType: appliedFilters.productType !== "all" ? appliedFilters.productType : undefined,
+    parentOnly: "true",
   });
 
   const products = data?.items || [];

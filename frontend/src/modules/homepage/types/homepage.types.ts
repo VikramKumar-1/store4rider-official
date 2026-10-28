@@ -36,9 +36,9 @@ export type NavItem = NavLinkItem;
  */
 export interface TopBannerProps {
   /** Regular message text */
-  message: string;
+  message?: string;
   /** Highlighted bold text (e.g. ONLY FOR TODAY!!) */
-  highlightText: string;
+  highlightText?: string;
   /** Optional link if banner is clickable */
   bannerUrl?: string;
 }
@@ -48,7 +48,7 @@ export interface TopBannerProps {
  */
 export interface NavbarProps {
   /** Brand/Logo text to display (e.g. Store4Riders) */
-  logoText: string;
+  logoText?: string;
   /** List of navigation links */
   navItems?: NavLinkItem[];
   /** Callback triggered when user submits search */

@@ -73,7 +73,7 @@ export default async function Home() {
     const fetchUrl = baseUrl.includes('/v1') ? `${baseUrl}/products` : `${baseUrl}/v1/products`;
     const settingsUrl = baseUrl.includes('/v1') ? `${baseUrl}/settings/public` : `${baseUrl}/v1/settings/public`;
     const homepageUrl = baseUrl.includes('/v1') ? `${baseUrl}/homepage/public` : `${baseUrl}/v1/homepage/public`;
-    const reviewsUrl = baseUrl.includes('/v1') ? `${baseUrl}/reviews/store` : `${baseUrl}/v1/reviews/store`;
+    const reviewsUrl = baseUrl.includes('/v1') ? `${baseUrl}/reviews/store?random=true&limit=10` : `${baseUrl}/v1/reviews/store?random=true&limit=10`;
 
     const [prodResult, settingsResult, homepageResult, reviewsResult] = await Promise.allSettled([
       fetch(`${fetchUrl}?limit=50`, { 

@@ -50,6 +50,14 @@ export async function productRouter(req: NextRequest, routePath: string[]): Prom
     return await ProductController.getKit(req, routePath[0]);
   }
 
+  if (method === 'GET' && pathLen === 2 && routePath[1] === 'upsell') {
+    return await ProductController.getUpsell(req, routePath[0]);
+  }
+
+  if (method === 'GET' && pathLen === 2 && routePath[1] === 'cross-sell') {
+    return await ProductController.getCrossSell(req, routePath[0]);
+  }
+
   if (pathLen === 1) {
     const param = routePath[0];
 
