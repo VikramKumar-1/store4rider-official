@@ -78,35 +78,35 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = ({
           <div className="py-1 text-xs font-semibold uppercase tracking-wider text-neutral-700">
             {mounted && isAuthenticated ? (
               <>
-                <Link href="/account" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 hover:text-banner transition-colors">
+                <Link href="/account" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 hover:text-banner transition-colors cursor-pointer">
                   <UserCircleIcon className="w-4 h-4 text-neutral-500" />
                   <span>My Profile</span>
                 </Link>
-                <Link href="/account/orders" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 hover:text-banner transition-colors">
+                <Link href="/account/orders" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 hover:text-banner transition-colors cursor-pointer">
                   <OrdersIcon className="w-4 h-4 text-neutral-500" />
                   <span>My Orders</span>
                 </Link>
-                <Link href="/account/wishlist" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 hover:text-banner transition-colors">
+                <Link href="/account/wishlist" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 hover:text-banner transition-colors cursor-pointer">
                   <HeartIcon className="w-4 h-4 text-neutral-500" />
                   <span>Wishlist</span>
                 </Link>
                 <div className="border-t border-neutral-100 my-1" />
-                <button type="button" onClick={onLogout} suppressHydrationWarning className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors text-left">
+                <button type="button" onClick={onLogout} suppressHydrationWarning className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors text-left cursor-pointer">
                   <ArrowRightOnRectangleIcon className="w-4 h-4" />
                   <span>Log Out</span>
                 </button>
               </>
             ) : (
               <>
-                <Link href="/login" onClick={onClose} className="flex items-center justify-between px-4 py-2.5 bg-banner text-white font-bold hover:bg-orange-600 transition-colors mx-3 my-1 rounded-sm">
+                <Link href="/login" onClick={onClose} className="flex items-center justify-between px-4 py-2.5 bg-banner text-white font-bold hover:bg-orange-600 transition-colors mx-3 my-1 rounded-sm cursor-pointer">
                   <span>SIGN IN / LOGIN</span>
                   <ArrowRightOnRectangleIcon className="w-4 h-4" />
                 </Link>
-                <Link href="/register" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 hover:text-banner transition-colors">
+                <Link href="/register" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 hover:text-banner transition-colors cursor-pointer">
                   <UserCircleIcon className="w-4 h-4 text-neutral-500" />
                   <span>Create Account</span>
                 </Link>
-                <Link href="/account/orders" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 hover:text-banner transition-colors">
+                <Link href="/account/orders" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 hover:text-banner transition-colors cursor-pointer">
                   <OrdersIcon className="w-4 h-4 text-neutral-500" />
                   <span>Track Orders</span>
                 </Link>

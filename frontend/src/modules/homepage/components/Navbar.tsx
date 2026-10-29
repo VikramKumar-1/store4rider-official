@@ -134,7 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {/* Logo (Fades out on mobile when search is open) */}
           <Link
             href="/"
-            className={`shrink-0 items-center group transition-all duration-200 ${isMobileSearchOpen ? "opacity-0 pointer-events-none sm:flex sm:opacity-100 sm:pointer-events-auto" : "flex opacity-100"
+            className={`shrink-0 items-center group transition-all duration-200 cursor-pointer ${isMobileSearchOpen ? "opacity-0 pointer-events-none sm:flex sm:opacity-100 sm:pointer-events-auto" : "flex opacity-100"
               }`}
           >
             <div className="relative h-[27.6px] w-[104px] sm:h-8 sm:w-[120px] md:h-9 md:w-[135px] lg:h-[34px] lg:w-[128px] xl:h-[42px] xl:w-[158px] 2xl:h-[46px] 2xl:w-[175px] transition-transform duration-300 group-hover:scale-105 will-change-transform">

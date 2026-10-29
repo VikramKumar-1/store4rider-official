@@ -79,7 +79,7 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
           >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
-              <Link href="/" onClick={onClose}>
+              <Link href="/" onClick={onClose} className="cursor-pointer">
                 <div className="relative h-[36.8px] w-40">
                   <Image
                     src="/Store4riders-Logo.jpg"
@@ -92,7 +92,7 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
               </Link>
               <button
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-neutral-100 text-neutral-700 transition-colors"
+                className="p-2 rounded-full hover:bg-neutral-100 text-neutral-700 transition-colors cursor-pointer"
               >
                 <XMarkIcon className="w-5 h-5 stroke-[2]" />
               </button>
