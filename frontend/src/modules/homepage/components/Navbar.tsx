@@ -29,6 +29,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSearch,
   onAccountClick,
   theme = "light",
+  hasTopBanner = true,
 }) => {
   const items = useCartStore((state) => state.items);
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -116,7 +117,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <header
         className={`w-full z-50 ${theme === "light"
             ? "sticky top-0"
-            : `fixed left-0 right-0 transition-all duration-300 ${isScrolled ? "top-0" : "top-[32px]"}`
+            : `fixed left-0 right-0 transition-all duration-300 ${isScrolled ? "top-0" : hasTopBanner ? "top-[36px] sm:top-[40px]" : "top-0"}`
           }`}
       >
         {/* Glassmorphic backdrop */}
@@ -129,14 +130,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
         />
 
-        <nav className="relative z-10 w-full max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-2.5 xl:px-4 py-3 flex items-center justify-between">
-          {/* Logo (Fades out on mobile when search is open) */}
+        <nav className="relative z-10 w-full max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-3 xl:px-5 py-2 sm:py-2.5 xl:py-3 flex items-center justify-between gap-2 lg:gap-2.5 xl:gap-5 2xl:gap-6">
+                    {/* Logo (Fades out on mobile when search is open) */}
           <Link
             href="/"
-            className={`items-center group transition-opacity duration-200 ${isMobileSearchOpen ? "opacity-0 pointer-events-none sm:flex sm:opacity-100 sm:pointer-events-auto" : "flex opacity-100"
+            className={`shrink-0 items-center group transition-all duration-200 ${isMobileSearchOpen ? "opacity-0 pointer-events-none sm:flex sm:opacity-100 sm:pointer-events-auto" : "flex opacity-100"
               }`}
           >
-            <div className="relative h-[27.6px] w-[104px] sm:h-8 sm:w-[120px] md:h-9 md:w-[135px] lg:h-[42px] lg:w-[158px] xl:h-[45px] xl:w-[168px] 2xl:h-[48px] 2xl:w-[180px] transition-transform duration-300 group-hover:scale-105 will-change-transform">
+            <div className="relative h-[27.6px] w-[104px] sm:h-8 sm:w-[120px] md:h-9 md:w-[135px] lg:h-[34px] lg:w-[128px] xl:h-[42px] xl:w-[158px] 2xl:h-[46px] 2xl:w-[175px] transition-transform duration-300 group-hover:scale-105 will-change-transform">
               <Image
                 src="/Store4riders-Logo.jpg"
                 alt={logoText || "Store4Riders Logo"}
@@ -159,7 +160,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           />
 
           {/* Right actions (Fades out on mobile when search is open) */}
-          <div className={`flex items-center gap-1 sm:gap-1.5 lg:gap-1.5 xl:gap-2.5 shrink-0 transition-opacity duration-200 ${isMobileSearchOpen ? "opacity-0 pointer-events-none sm:opacity-100 sm:pointer-events-auto" : "opacity-100"
+          <div className={`flex items-center gap-1 sm:gap-1.5 lg:gap-1 xl:gap-2 shrink-0 transition-opacity duration-200 ${isMobileSearchOpen ? "opacity-0 pointer-events-none sm:opacity-100 sm:pointer-events-auto" : "opacity-100"
             }`}>
 
             {/* Desktop Search Input (Hidden on tablets/small laptops to save space) */}
@@ -175,7 +176,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               suppressHydrationWarning
               className={`sm:hidden p-2 rounded-full transition-all duration-200 cursor-pointer active:scale-90 ${isLight
                   ? "text-neutral-700 hover:text-neutral-950 hover:bg-neutral-900/[0.06]"
-                  : "text-white/80 hover:text-white hover:bg-white/10"
+                  : "text-white bg-black/45 backdrop-blur-md border border-white/20 hover:bg-black/70 shadow-md"
                 }`}
             >
               <MagnifyingGlassIcon className="w-5 h-5 stroke-[1.75]" />
@@ -187,7 +188,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               aria-label="Shopping Cart"
               className={`relative p-2 xl:p-2.5 rounded-full transition-all duration-200 cursor-pointer active:scale-95 ${isLight
                   ? "text-neutral-700 hover:text-neutral-950 hover:bg-neutral-900/[0.06]"
-                  : "text-white/80 hover:text-white hover:bg-white/10"
+                  : "text-white bg-black/45 backdrop-blur-md border border-white/20 hover:bg-black/70 shadow-md ring-1 ring-white/10"
                 }`}
             >
               <ShoppingBagIcon className="w-5 h-5 stroke-[1.75]" />
@@ -205,7 +206,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               suppressHydrationWarning
               className={`lg:hidden relative p-2 rounded-full transition-all duration-200 cursor-pointer active:scale-95 ${isLight
                   ? "text-neutral-700 hover:text-neutral-950 hover:bg-neutral-900/[0.06]"
-                  : "text-white/80 hover:text-white hover:bg-white/10"
+                  : "text-white bg-black/45 backdrop-blur-md border border-white/20 hover:bg-black/70 shadow-md"
                 }`}
             >
               <UserIcon className="w-5 h-5 stroke-[1.75]" />
@@ -242,7 +243,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               suppressHydrationWarning
               className={`lg:hidden p-2.5 rounded-full transition-all active:scale-95 ${isLight
                   ? "text-neutral-700 hover:bg-neutral-900/[0.06]"
-                  : "text-white/90 hover:bg-white/10"
+                  : "text-white bg-black/55 backdrop-blur-xl border border-white/20 hover:bg-black/70 shadow-md"
                 }`}
             >
               <Bars3Icon className="w-5 h-5 stroke-[2]" />

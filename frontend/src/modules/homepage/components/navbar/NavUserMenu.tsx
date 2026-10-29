@@ -44,10 +44,10 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = ({
         onClick={onToggle}
         aria-label="User Account"
         suppressHydrationWarning
-        className={`p-2.5 rounded-full transition-all duration-200 cursor-pointer flex items-center gap-1 active:scale-95 ${
+        className={`p-2 xl:p-2.5 rounded-full transition-all duration-200 cursor-pointer flex items-center gap-1 active:scale-95 ${
           isLight
             ? "text-neutral-700 hover:text-neutral-950 hover:bg-neutral-900/[0.06]"
-            : "text-white/80 hover:text-white hover:bg-white/10"
+            : "text-white bg-black/45 backdrop-blur-md border border-white/20 hover:bg-black/70 shadow-md ring-1 ring-white/10"
         }`}
       >
         <UserIcon className="w-5 h-5 stroke-[1.75]" />
@@ -57,7 +57,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-64 bg-white/85 backdrop-blur-2xl text-neutral-900 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] border border-white/80 py-2 z-50 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/[0.04] overflow-hidden">
+        <div className="absolute right-0 mt-3 w-64 bg-white text-neutral-900 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] border border-neutral-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5 overflow-hidden">
 
           <div className="px-4 py-3 border-b border-neutral-100 bg-neutral-50/70">
             {mounted && isAuthenticated && user ? (

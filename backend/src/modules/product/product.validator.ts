@@ -301,9 +301,10 @@ export class ProductValidator {
     if (brand) {
       const brandsList = brand.split(",").map(b => b.trim()).filter(Boolean);
       const makeBrandCondition = (b: string) => {
-        // Replace hyphens with a regex that allows both hyphen and space
-        // This ensures frontend slugs like "royal-enfield" match "Royal Enfield" in the DB.
-        const flexibleBrand = ProductValidator.escapeRegExp(b).replace(/-/g, '[\\s\\-]');
+        // Strip common suffixes from URLs if present
+        const stripped = b.replace(/-(?:riding-gear|adventure-boots-india|chain-sprocket-kits|lights|for-bike)$/i, '');
+        // Replace hyphens with a regex that allows both hyphen and space, and allow optional plural/singular
+        const flexibleBrand = ProductValidator.escapeRegExp(stripped).replace(/s\b/gi, 's?').replace(/-/g, '[\\s\\-]');
         
         const regex = b.toLowerCase() === "mt" 
           ? /\bmt\b|mt helmets/i 

@@ -18,24 +18,18 @@ export interface BrowseProductsSectionProps {
 /**
  * GridProductCard Component
  */
-const GridProductCard: React.FC<{ product: BrowseProductData; layout?: "scroll" | "grid" }> = ({ 
+const GridProductCard: React.FC<{ product: BrowseProductData }> = ({ 
   product, 
-  layout = "grid" 
 }) => {
-  // Balanced width matching 2-col on mobile and 4-col on desktop
-  const containerClass = layout === "scroll" 
-    ? "w-[165px] min-[375px]:w-[185px] sm:w-[220px] md:w-[260px] lg:w-[280px] flex-shrink-0" 
-    : "w-full";
-
   return (
-    <div className={`flex flex-col group cursor-pointer ${containerClass}`}>
+    <div className="flex flex-col group cursor-pointer w-full h-full">
       {/* Edge-to-edge Image Container */}
       <div className="relative aspect-square w-full bg-[#f4f4f4] overflow-hidden mb-2 md:mb-3 group/image flex items-center justify-center rounded-lg">
         <Image
           src={product.imageUrl}
           alt={product.name}
           fill
-          className="object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500 ease-out will-change-transform p-3 sm:p-4"
+          className="object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500 ease-out will-change-transform"
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
         
@@ -44,7 +38,7 @@ const GridProductCard: React.FC<{ product: BrowseProductData; layout?: "scroll" 
           <svg className="w-2 h-2 md:w-2.5 md:h-2.5 text-white fill-current" viewBox="0 0 20 20">
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
-          {product.rating.toFixed(2).replace(/\.?0+$/, '')}
+          {(Number(product.rating) || 4.8).toFixed(1)}
         </div>
 
         {/* Hover "Add to Cart" Button Overlay */}
@@ -106,7 +100,7 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
   const handleScroll = (direction: "left" | "right") => {
     const el = scrollContainerRef.current;
     if (!el) return;
-    const scrollAmount = Math.max(el.clientWidth * 0.75, 280);
+    const scrollAmount = el.clientWidth;
     el.scrollBy({
       left: direction === "left" ? -scrollAmount : scrollAmount,
       behavior: "smooth"
@@ -116,11 +110,11 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
   return (
     <section className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 py-8 md:py-14 bg-white">
       {/* Section Title */}
-      <div className="text-center mb-6 md:mb-12 px-4">
-        <h2 className="font-sans text-xl min-[375px]:text-2xl sm:text-3xl lg:text-[38px] xl:text-[40px] font-extrabold text-neutral-900 uppercase tracking-wide md:tracking-wider leading-tight">
+      <div className="text-center mb-6 md:mb-12 px-0 sm:px-4">
+        <h2 className="font-sans text-[14px] min-[360px]:text-[15.5px] min-[390px]:text-[17px] sm:text-2xl md:text-3xl lg:text-[38px] xl:text-[40px] font-extrabold text-neutral-900 uppercase tracking-tight sm:tracking-wide md:tracking-wider leading-tight">
           {title}
         </h2>
-        <div className="w-12 md:w-16 h-1 bg-banner mx-auto mt-2.5 md:mt-4 rounded-full" />
+        <div className="w-10 sm:w-12 md:w-16 h-0.5 sm:h-1 bg-banner mx-auto mt-2 sm:mt-2.5 md:mt-4 rounded-full" />
       </div>
 
       {/* Carousel / Grid Container */}
@@ -146,7 +140,7 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
           ref={scrollContainerRef}
           className={
             mobileLayout === "scroll"
-              ? "flex gap-3 sm:gap-4 md:gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 hide-scrollbar px-1"
+              ? "flex gap-3 sm:gap-4 md:gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 hide-scrollbar"
               : "grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6"
           }
         >
@@ -156,7 +150,7 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
                 key={`prod-skeleton-${i}`}
                 className={
                   mobileLayout === "scroll"
-                    ? "w-[165px] min-[375px]:w-[185px] sm:w-[220px] md:w-[260px] lg:w-[280px] flex-shrink-0"
+                    ? "w-[165px] min-[375px]:w-[185px] sm:w-[220px] md:w-[260px] lg:w-[calc((100%-3*1.5rem)/4)] flex-shrink-0"
                     : "w-full"
                 }
               >
@@ -170,9 +164,9 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
               <Link
                 key={product.id}
                 href={product.productUrl}
-                className={mobileLayout === "scroll" ? "block snap-start shrink-0" : "block w-full"}
+                className={mobileLayout === "scroll" ? "block snap-start shrink-0 w-[165px] min-[375px]:w-[185px] sm:w-[220px] md:w-[260px] lg:w-[calc((100%-3*1.5rem)/4)]" : "block w-full"}
               >
-                <GridProductCard product={product} layout={mobileLayout} />
+                <GridProductCard product={product} />
               </Link>
             ))
           )}

@@ -65,7 +65,7 @@ export const HomepageModule: React.FC<{
         return {
           id: p._id || `feat-${idx}`,
           title: p.name,
-          priceFormatted: `₹ ${displayPrice?.toLocaleString('en-IN') || '0'}`,
+          priceFormatted: `₹ ${Math.round(displayPrice)?.toLocaleString('en-IN') || '0'}`,
           imageUrl: (p.images && p.images.length > 0 && p.images[0].url) ? p.images[0].url : "/no-image.svg",
           ctaText: "SHOP NOW",
           ctaUrl: `/${p.slug || p._id}`,
@@ -219,9 +219,9 @@ export const HomepageModule: React.FC<{
           id: p._id || p.id || `grid-${idx}`,
           category: p.displayCategory || "RIDING GEAR",
           name: p.name,
-          priceFormatted: `₹ ${displayPrice?.toLocaleString('en-IN') || '0'}`,
+          priceFormatted: `₹ ${Math.round(displayPrice)?.toLocaleString('en-IN') || '0'}`,
           imageUrl: (p.images && p.images.length > 0 && p.images[0].url) ? p.images[0].url : "/no-image.svg",
-          rating: 4.85,
+          rating: 4.8,
           productUrl: `/${p.slug || p._id}`
         };
       })
@@ -241,7 +241,7 @@ export const HomepageModule: React.FC<{
             name: configured.name,
             priceFormatted: configured.priceFormatted || "₹ 0",
             imageUrl: configured.imageUrl || "/no-image.svg",
-            rating: configured.rating || 4.85,
+            rating: configured.rating || 4.8,
             productUrl: configured.productUrl || "/products",
           };
         }
@@ -287,11 +287,11 @@ export const HomepageModule: React.FC<{
           id: p._id || p.id || `tour-${idx}`,
           category: catName.toUpperCase(),
           name: p.name,
-          priceFormatted: `₹ ${displayPrice?.toLocaleString('en-IN') || '0'}`,
+          priceFormatted: `₹ ${Math.round(displayPrice)?.toLocaleString('en-IN') || '0'}`,
           imageUrl: (p.images && p.images.length > 0 && p.images[0].url) 
             ? p.images[0].url 
             : "/no-image.svg",
-          rating: 4.85,
+          rating: 4.8,
           productUrl: `/${p.slug || p._id}`
         };
       })
@@ -344,6 +344,7 @@ export const HomepageModule: React.FC<{
           <Navbar
             logoText="Store4Riders"
             theme="dark"
+            hasTopBanner={homepageConfig?.sections?.topBanner?.isEnabled !== false}
           />
 
           <HeroSection
@@ -377,7 +378,7 @@ export const HomepageModule: React.FC<{
           showSeeMore={true}
           seeMoreText={homepageConfig?.sections?.touringGear?.seeMoreText || "SEE MORE"}
           seeMoreLink={homepageConfig?.sections?.touringGear?.seeMoreLink || "/products?q=touring"}
-          mobileLayout="grid"
+          mobileLayout="scroll"
         />
 
         {/* 7. Social Media / Insta Reels Section */}

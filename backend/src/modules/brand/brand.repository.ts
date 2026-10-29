@@ -15,7 +15,13 @@ export class BrandRepository {
   }
 
   static async findBySlug(slug: string): Promise<IBrand | null> {
-    return BrandModel.findOne({ slug: slug.toLowerCase() }).lean().exec() as unknown as IBrand | null;
+    const clean = slug.toLowerCase();
+    return BrandModel.findOne({
+      $or: [
+        { slug: clean },
+        { aliases: clean }
+      ]
+    }).lean().exec() as unknown as IBrand | null;
   }
 
   static async create(data: Partial<IBrand>): Promise<IBrand> {

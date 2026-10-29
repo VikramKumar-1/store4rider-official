@@ -13,6 +13,17 @@ export function useBrands() {
   });
 }
 
+export function useBrand(slug: string) {
+  return useQuery({
+    queryKey: ["brand", slug],
+    queryFn: async () => {
+      const response = await apiClient.get(`/brands/${encodeURIComponent(slug)}`);
+      return response.data.data as IBrand;
+    },
+    enabled: Boolean(slug),
+  });
+}
+
 export function useCreateBrand() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -3,7 +3,6 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { NavItem } from "../../types/homepage.types";
 
@@ -30,9 +29,16 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
 }) => {
   return (
     <div
-      className="hidden lg:flex flex-1 items-center justify-start lg:pl-1 xl:pl-2 2xl:pl-4 gap-0 lg:gap-0 xl:gap-0.5 2xl:gap-1 pointer-events-auto whitespace-nowrap static"
+      className="hidden lg:flex flex-1 items-center justify-center lg:px-2 xl:px-4 pointer-events-auto whitespace-nowrap static min-w-0"
       onMouseLeave={onNavLeave}
     >
+      <div
+        className={`flex items-center gap-0 xl:gap-0.5 2xl:gap-1 transition-all duration-300 ${
+          isLight
+            ? ""
+            : "bg-black/45 backdrop-blur-md border border-white/20 shadow-[0_8px_30px_rgba(0,0,0,0.3)] rounded-full px-1 lg:px-1.5 xl:px-2.5 py-0.5 xl:py-1 ring-1 ring-white/10"
+        }`}
+      >
       {items.map((item, idx) => {
         const isHovered = hoveredNavId === item.id;
 
@@ -44,38 +50,28 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
           >
             <Link
               href={item.href}
-              className={`relative flex items-center gap-0.5 lg:gap-1 text-[9px] lg:text-[9.5px] xl:text-[10px] 2xl:text-[11.5px] font-sans font-bold tracking-tight lg:tracking-normal xl:tracking-wide 2xl:tracking-wider uppercase px-1 lg:px-1 xl:px-1.5 2xl:px-2.5 py-1.5 rounded-full transition-colors duration-200 z-10 ${
+              className={`relative flex items-center gap-0.5 text-[9px] lg:text-[9.5px] xl:text-[10px] 2xl:text-[11.5px] font-sans font-bold tracking-tight lg:tracking-normal xl:tracking-wide 2xl:tracking-wider uppercase px-1 lg:px-1 xl:px-1.5 2xl:px-2.5 py-1 rounded-full transition-all duration-150 z-10 ${
                 isLight
-                  ? isHovered ? "text-neutral-950" : "text-neutral-700 hover:text-neutral-950"
-                  : isHovered ? "text-white" : "text-white/90 hover:text-white drop-shadow-sm"
+                  ? isHovered
+                    ? "text-neutral-950 bg-neutral-900/[0.08]"
+                    : "text-neutral-700 hover:text-neutral-950 hover:bg-neutral-900/[0.05]"
+                  : isHovered
+                    ? "text-white bg-white/20 shadow-xs"
+                    : "text-white/90 hover:text-white hover:bg-white/10"
               }`}
             >
-              {isHovered && (
-                <motion.span
-                  layoutId="nav-liquid-pill"
-                  className={`absolute inset-0 rounded-full -z-10 pointer-events-none ${
-                    isLight
-                      ? "bg-gradient-to-b from-neutral-900/[0.06] to-neutral-900/[0.09] backdrop-blur-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_3px_10px_-2px_rgba(0,0,0,0.06)] border border-neutral-900/[0.07]"
-                      : "bg-gradient-to-b from-white/[0.18] to-white/[0.10] backdrop-blur-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_4px_14px_rgba(0,0,0,0.25)] border border-white/20"
+              <span>{item.label}</span>
+              {item.hasDropdown && (
+                <ChevronDownIcon
+                  className={`hidden xl:inline-block w-2.5 h-2.5 transition-transform duration-200 stroke-[2] ${
+                    hoveredMenuId === item.id
+                      ? `rotate-180 ${isLight ? "text-neutral-950" : "text-white"}`
+                      : isLight
+                      ? "text-neutral-400"
+                      : "text-white/70"
                   }`}
-                  transition={{ type: "spring", stiffness: 380, damping: 20, mass: 0.5 }}
                 />
               )}
-
-              <motion.span
-                animate={{ y: isHovered ? -1.5 : 0, scale: isHovered ? 1.03 : 1 }}
-                transition={{ type: "spring", stiffness: 450, damping: 22, mass: 0.4 }}
-                className="relative z-10 flex items-center gap-0.5 lg:gap-1"
-              >
-                <span>{item.label}</span>
-                {item.hasDropdown && (
-                  <ChevronDownIcon
-                    className={`w-2.5 h-2.5 transition-transform duration-300 stroke-[2] ${
-                      hoveredMenuId === item.id ? "rotate-180 text-neutral-900" : isLight ? "text-neutral-400" : "text-white/70"
-                    }`}
-                  />
-                )}
-              </motion.span>
             </Link>
 
             {/* Mega Menu Dropdown */}
@@ -106,7 +102,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
                       : item.megaMenuItems?.length === 2
                       ? "w-[540px] xl:w-[620px]" // 2 columns
                       : "w-[280px]" // 1 column
-                  } max-w-[calc(100vw-2rem)] bg-white/95 backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_-10px_rgba(0,0,0,0.12)] border border-neutral-200/80 transition-all duration-300 ease-out overflow-hidden transform ring-1 ring-black/[0.04] ${
+                  } max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] border border-neutral-200 transition-all duration-300 ease-out overflow-hidden transform ring-1 ring-black/5 ${
                     hoveredMenuId === item.id
                       ? "opacity-100 translate-y-0"
                       : "opacity-0 translate-y-2"
@@ -194,7 +190,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
 
                     {/* Right Side: Featured / Trending Products / Banner */}
                     {item.megaMenuFeatured && (
-                      <div className="w-[35%] p-6 bg-neutral-50/80 flex flex-col h-full">
+                      <div className="w-[35%] p-6 bg-neutral-50 flex flex-col h-full">
                         {item.megaMenuFeatured.title && (
                           <h4 className="text-xs font-bold text-neutral-900 uppercase tracking-widest mb-4 flex items-center gap-1.5 shrink-0">
                             <span className="w-1.5 h-1.5 rounded-full bg-banner" />
@@ -272,6 +268,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
           </div>
         );
       })}
+      </div>
     </div>
   );
 };

@@ -64,11 +64,11 @@ export const FeaturedCategories: React.FC<FeaturedCategoriesProps> = ({ title = 
   return (
     <section className="w-full max-w-[1400px] mx-auto px-4 md:px-6 py-8 md:py-14 bg-white overflow-hidden">
       {/* Section Title */}
-      <div className="text-center mb-6 md:mb-12 px-4">
-        <h2 className="font-sans text-xl min-[375px]:text-2xl sm:text-3xl lg:text-[38px] xl:text-[40px] font-extrabold text-neutral-900 uppercase tracking-wide md:tracking-wider leading-tight">
+      <div className="text-center mb-6 md:mb-12 px-0 sm:px-4">
+        <h2 className="font-sans text-[14px] min-[360px]:text-[15.5px] min-[390px]:text-[17px] sm:text-2xl md:text-3xl lg:text-[38px] xl:text-[40px] font-extrabold text-neutral-900 uppercase tracking-tight sm:tracking-wide md:tracking-wider leading-tight">
           {title}
         </h2>
-        <div className="w-12 md:w-16 h-1 bg-banner mx-auto mt-2.5 md:mt-4 rounded-full" />
+        <div className="w-10 sm:w-12 md:w-16 h-0.5 sm:h-1 bg-banner mx-auto mt-2 sm:mt-2.5 md:mt-4 rounded-full" />
       </div>
 
       {/* Asymmetric masonry grid — compact and unzoomed */}

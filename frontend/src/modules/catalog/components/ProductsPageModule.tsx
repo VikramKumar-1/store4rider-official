@@ -3,6 +3,7 @@
 import { useSearchParams, useParams } from "next/navigation";
 import { useProducts } from "@/core/hooks/useProducts";
 import { useCategoryTree } from "@/core/hooks/useCategories";
+import { useBrand } from "@/core/hooks/useBrands";
 import { CatalogModule } from "@/modules/catalog";
 import { CatalogProduct } from "@/modules/catalog/types/catalog.types";
 import { inferRichColorFromUrl } from "@/modules/product-detail/components/ProductDetailPageModule";
@@ -42,6 +43,7 @@ export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNod
   }
 
   const { data: catTreeData } = useCategoryTree();
+  const { data: brandData } = useBrand(brand && !category ? brand : "");
   let categoryNode = initialCategoryNode;
   if (!categoryNode && category && catTreeData) {
     const findNode = (nodes: any[]): any => {
@@ -55,6 +57,8 @@ export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNod
       return null;
     };
     categoryNode = findNode(catTreeData);
+  } else if (!categoryNode && brand && brandData) {
+    categoryNode = brandData;
   }
 
   const { data, isLoading, isFetching, error } = useProducts({ 

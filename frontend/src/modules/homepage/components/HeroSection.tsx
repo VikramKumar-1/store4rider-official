@@ -68,7 +68,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </div>
         ))}
 
-        {/* Mobile: stronger gradient for text legibility | Desktop: light overlay (original) */}
+        {/* Mobile: stronger gradient for text legibility | Desktop: light overlay */}
         <div className="absolute inset-0 pointer-events-none z-10
           bg-gradient-to-t from-black/65 via-black/20 to-transparent
           lg:bg-black/15 lg:mix-blend-multiply"
@@ -78,31 +78,34 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       {/* ── Hero Body — row on desktop, column on mobile ── */}
       <div className="relative z-10 flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 md:px-12
         flex flex-col lg:flex-row items-start lg:items-center justify-end lg:justify-between
-        pb-5 pt-20 lg:pt-40 lg:pb-24 gap-4 lg:gap-6"
+        pb-5 pt-20 lg:pt-36 lg:pb-24 gap-4 lg:gap-6"
       >
         {/* Left: Text */}
         <div className="flex-1 min-w-0 flex flex-col h-full justify-end">
           
-          {/* Desktop Text (Hidden on mobile) */}
-          <div className="hidden lg:block">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80 mb-2 drop-shadow-sm">
-              {subtitle}
-            </p>
-            <h1 className="font-sans text-5xl md:text-6xl font-black uppercase tracking-wide leading-[1.12] text-white drop-shadow-md">
+          {/* Modern Compact Glassmorphic Hero Text Card (Desktop) */}
+          <div className="hidden lg:flex flex-col max-w-sm xl:max-w-md w-fit bg-black/40 backdrop-blur-md border border-white/15 rounded-2xl p-4 sm:p-5 shadow-xl ring-1 ring-white/10">
+            {subtitle && (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm text-[10px] font-bold uppercase tracking-widest text-white/90 mb-2 self-start">
+                <span className="w-1.5 h-1.5 rounded-full bg-banner shadow-[0_0_6px_rgba(255,84,41,0.8)]" />
+                <span>{subtitle}</span>
+              </div>
+            )}
+            <h1 className="font-sans text-lg sm:text-xl xl:text-2xl font-bold uppercase tracking-tight leading-snug text-white">
               {title || "RIDING GEAR THAT KEEPS YOU SAFE"}
             </h1>
-          </div>
 
-          {/* Desktop Button (Hidden on mobile) */}
-          <Link
-            href={ctaLink || "/products"}
-            className="hidden lg:inline-flex mt-5 items-center gap-2 bg-banner text-white text-sm font-bold uppercase tracking-widest px-6 py-3 rounded-full shadow-lg hover:bg-orange-600 transition-colors self-start"
-          >
-            {ctaText || "Shop Now"}
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
+            {/* Desktop Button */}
+            <Link
+              href={ctaLink || "/products"}
+              className="mt-3.5 inline-flex items-center gap-1.5 bg-banner hover:bg-orange-600 text-white text-[11px] font-bold uppercase tracking-wider px-4 py-2 rounded-full shadow-md transition-all duration-200 hover:scale-[1.02] active:scale-95 group self-start"
+            >
+              <span>{ctaText || "Shop Now"}</span>
+              <svg className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
 
           {/* Mobile Button: Glassmorphism, small, left-aligned, pushed to bottom (Hidden on desktop) */}
           <Link

@@ -229,7 +229,7 @@ export function AdminHomepageSectionsModule() {
       imageUrl: existing?.imageUrl || "",
       category: existing?.category || "RIDING GEAR",
       productUrl: existing?.productUrl || "",
-      rating: existing?.rating || 4.85,
+      rating: existing?.rating || 4.8,
     };
   });
 
@@ -254,7 +254,7 @@ export function AdminHomepageSectionsModule() {
       imageUrl: "",
       category: "RIDING GEAR",
       productUrl: "",
-      rating: 4.85,
+      rating: 4.8,
     };
     setSectionsState((prev) => ({
       ...prev,
@@ -275,7 +275,7 @@ export function AdminHomepageSectionsModule() {
       imageUrl: "",
       category: "RIDING GEAR",
       productUrl: "",
-      rating: 4.85,
+      rating: 4.8,
     }));
     setSectionsState((prev) => ({
       ...prev,
@@ -298,7 +298,7 @@ export function AdminHomepageSectionsModule() {
       imageUrl: item.imageUrl || "",
       category: item.categoryName ? item.categoryName.toUpperCase() : "RIDING GEAR",
       productUrl: item.linkUrl,
-      rating: 4.85,
+      rating: 4.8,
     };
     setSectionsState((prev) => ({
       ...prev,
@@ -1373,23 +1373,22 @@ export function AdminHomepageSectionsModule() {
                       return (
                         <div
                           key={slot.id || idx}
-                          className="w-[140px] shrink-0 bg-white rounded-lg p-2.5 border border-slate-200 shadow-2xs flex flex-col space-y-1.5"
+                          className="w-[140px] shrink-0 flex flex-col space-y-1"
                         >
-                          <div className="relative aspect-square w-full bg-[#f4f4f4] rounded overflow-hidden flex items-center justify-center">
+                          <div className="relative aspect-square w-full bg-[#f4f4f4] rounded-lg overflow-hidden flex items-center justify-center">
                             <Image
                               src={image}
                               alt={title}
                               fill
                               className="object-contain p-2"
                             />
-                            <span className="absolute top-1 right-1 bg-[#FF5429] text-white text-[8px] font-bold px-1 rounded-full">
+                            <span className="absolute top-1.5 right-1.5 bg-[#FF5429] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-xs">
                               ★ 4.8
                             </span>
                           </div>
-                          <div>
-                            <span className="text-[8px] font-bold text-slate-500 uppercase">{category}</span>
-                            <p className="text-[11px] font-bold text-slate-900 truncate">{title}</p>
-                            <p className="text-[11px] font-semibold text-neutral-700">{price}</p>
+                          <div className="mt-1">
+                            <p className="text-[11px] font-bold text-slate-900 truncate leading-tight">{title}</p>
+                            <p className="text-[11px] font-semibold text-neutral-600 mt-0.5">{price}</p>
                           </div>
                         </div>
                       );

@@ -153,11 +153,11 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 md:px-8">
         
         {/* Centered Header */}
-        <div className="text-center mb-6 md:mb-10 px-4">
-          <h2 className="font-sans text-xl min-[375px]:text-2xl sm:text-3xl lg:text-[38px] xl:text-[40px] font-extrabold uppercase tracking-wide md:tracking-wider text-neutral-900 leading-tight">
+        <div className="text-center mb-6 md:mb-10 px-0 sm:px-4">
+          <h2 className="font-sans text-[14px] min-[360px]:text-[15.5px] min-[390px]:text-[17px] sm:text-2xl md:text-3xl lg:text-[38px] xl:text-[40px] font-extrabold uppercase tracking-tight sm:tracking-wide md:tracking-wider text-neutral-900 leading-tight">
             {title}
           </h2>
-          <div className="w-12 md:w-16 h-1 bg-banner mx-auto mt-2.5 md:mt-3.5 rounded-full" />
+          <div className="w-10 sm:w-12 md:w-16 h-0.5 sm:h-1 bg-banner mx-auto mt-2 sm:mt-2.5 md:mt-3.5 rounded-full" />
         </div>
 
         {/* Carousel Container with dedicated side gutters so arrow buttons NEVER sit on top of cards */}

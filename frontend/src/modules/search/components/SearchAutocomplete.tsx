@@ -308,14 +308,14 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   // -------------------------------------------------------------
   return (
     <div 
-      className="relative flex items-center group w-44 sm:w-52 md:w-60 lg:w-72 xl:w-80" 
+      className="relative flex items-center group w-36 sm:w-40 md:w-44 lg:w-32 xl:w-48 2xl:w-56" 
       ref={containerRef}
     >
       <form onSubmit={(e) => handleSubmit(e)} className="w-full">
         <div className={`relative flex items-center rounded-full transition-all duration-200 w-full ${
           isLight
             ? "border bg-neutral-100/90 border-neutral-200/90 shadow-2xs focus-within:bg-white focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-900/5"
-            : "border bg-black/40 backdrop-blur-xl border-white/25 shadow-md focus-within:bg-black/65 focus-within:border-white/50 focus-within:ring-2 focus-within:ring-white/20"
+            : "border bg-black/45 backdrop-blur-md border-white/20 shadow-md focus-within:bg-black/65 focus-within:border-white/50 focus-within:ring-2 focus-within:ring-white/20"
         }`}>
           {/* Search Icon */}
           <div className="pl-3 pr-1.5 pointer-events-none flex items-center">
@@ -330,7 +330,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
           <input
             type="search"
             enterKeyHint="search"
-            placeholder="Search helmets, gear, parts..."
+            placeholder="Search catalog..."
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);

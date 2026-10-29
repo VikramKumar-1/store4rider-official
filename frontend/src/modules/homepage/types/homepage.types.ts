@@ -57,6 +57,8 @@ export interface NavbarProps {
   onAccountClick?: () => void;
   /** Visual theme of the navbar */
   theme?: "light" | "dark";
+  /** Whether promotional announcement banner is active above navbar */
+  hasTopBanner?: boolean;
 }
 
 /**

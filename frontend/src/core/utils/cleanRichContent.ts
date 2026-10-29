@@ -16,8 +16,8 @@ export function cleanRichContent(rawHtml: string): string {
   clean = clean.replace(/<(script|iframe|embed|object)[^>]*>/gi, "");
   clean = clean.replace(/on\w+\s*=\s*["'][^"']*["']/gi, "");
 
-  // 1. Strip FAQs if accidentally embedded inside category description
-  const faqSplit = clean.split(/<h[23]>FAQs<\/h[23]>/i);
+  // 1. Strip FAQs if accidentally embedded inside category or brand description
+  const faqSplit = clean.split(/(?:<(?:h[1-6]|p)[^>]*>(?:<[^>]+>)*\s*(?:Frequently\s*asked\s*questions|faqs?)\b|<(?:p|div|h[1-6])[^>]*>(?:<[^>]+>)*\s*(?:Question|Q\d*)[\s:.]|\bFrequently\s+Asked\s+Questions\b)/i);
   if (faqSplit.length > 1) {
     clean = faqSplit[0];
   }

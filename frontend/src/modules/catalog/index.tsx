@@ -49,7 +49,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
     ? `RESULTS FOR "${searchQuery.toUpperCase()}"`
     : (categoryParam ? categoryParam.replace(/-/g, " ").toUpperCase() 
     
-        : (brandParam ? brandParam.replace(/-/g, " ").toUpperCase() : "ALL PRODUCTS")); 
+        : (brandParam ? (categoryNode?.name || brandParam.replace(/-/g, " ")).toUpperCase() : "ALL PRODUCTS")); 
 
 
 
@@ -81,7 +81,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
     breadcrumbItems.push({ label: categoryParam.replace(/-/g, " ").toUpperCase() });
   } else if (brandParam) {
     breadcrumbItems.push({ label: "BRANDS", href: "/brands" });
-    breadcrumbItems.push({ label: brandParam.replace(/-/g, " ").toUpperCase() });
+    breadcrumbItems.push({ label: (categoryNode?.name || brandParam.replace(/-/g, " ")).toUpperCase() });
   } else {
     breadcrumbItems.push({ label: "PRODUCTS" });
   }
@@ -154,7 +154,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
             items={[
               ...(categoryNode?.description ? [{
                 id: 'cat-desc',
-                title: 'Category Description',
+                title: categoryParam ? 'Category Description' : (brandParam ? 'Brand Description' : 'Description'),
                 content: <CategoryDescriptionBlock description={categoryNode.description} pageTitle={pageTitle} disableToggle={true} />
               }] : []),
               {
