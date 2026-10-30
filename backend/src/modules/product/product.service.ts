@@ -566,7 +566,17 @@ export class ProductService {
         regexConditions.push({ name: /\b(auxiliary\s*light|fog\s*light|driving\s*light|led\s*light|hazard\s*flash|flasher)\b/i });
         excludeConditions.push({ name: { $not: /\b(filter|filters|lens|lenses|clamp|clamps|mount|mounts|bracket|brackets|switch|switches|harness|wire|wiring)\b/i } });
       }
-      else if (c.includes("performance") || c.includes("air-filter")) regexConditions.push({ name: /\b(performance|filter|air.*filter|exhaust)\b/i });
+      else if (c.includes("exhaust")) {
+        regexConditions.push({ name: /\b(exhaust|silencer|db\s*killer|baffle)\b/i });
+        excludeConditions.push({ name: { $not: /\b(air\s*filter|oil\s*filter|spark\s*plug|brake)\b/i } });
+      }
+      else if (c.includes("air-filter") || (c.includes("filter") && !c.includes("light"))) {
+        regexConditions.push({ name: /\b(filter|air.*filter)\b/i });
+        excludeConditions.push({ name: { $not: /\b(exhaust|silencer|db\s*killer)\b/i } });
+      }
+      else if (c.includes("performance")) {
+        regexConditions.push({ name: /\b(performance|filter|air.*filter|exhaust)\b/i });
+      }
       else if (c.includes("cover")) regexConditions.push({ name: /\b(bike\s*cover|motorcycle\s*cover)\b/i });
       else if (c.includes("camera") || c.includes("gopro")) regexConditions.push({ name: /\b(camera|gopro|insta360|action\s*cam)\b/i });
       else if (c.includes("mount") && c.includes("mobile")) regexConditions.push({ name: /\b(mobile.*mount|phone.*mount|ram.*mount)\b/i });
@@ -652,11 +662,12 @@ export class ProductService {
     const sizesMap = new Map<string, Set<string>>();
     
     const dynamicAttrsMap = new Map<string, Map<string, Set<string>>>();
-    const TRACKED_ATTRS = ['material', 'riding_style', 'gender'];
+    const TRACKED_ATTRS = ['material', 'riding_style', 'gender', 'motorcycle_model'];
 
     const activeBrands = rawActiveFilters?.brand?.map((b: string) => b.toLowerCase()) || [];
     const activeColors = rawActiveFilters?.colour?.map((c: string) => c.toLowerCase()) || [];
     const activeSizes = rawActiveFilters?.size?.map((s: string) => s.toLowerCase()) || [];
+    const activeModels = rawActiveFilters?.motorcycle_model?.map((m: string) => m.toLowerCase()) || [];
 
     let overallMinPrice = Infinity;
     let overallMaxPrice = 0;
@@ -678,9 +689,11 @@ export class ProductService {
 
       let matchesColor = true;
       let matchesSize = true;
+      let matchesModel = true;
       
       const availableColors = new Set<string>();
       const availableSizes = new Set<string>();
+      const availableModels = new Set<string>();
       
       const getDynamicAttrLocal = (obj: any, keywords: string[]) => {
         if (!obj || typeof obj !== 'object') return undefined;
@@ -699,6 +712,10 @@ export class ProductService {
             if (vCol) availableColors.add(vCol.toLowerCase());
             const vSiz = getDynamicAttrLocal(v.attributes, ['size', 'eu_size', 'eu_size_for_boots']);
             if (vSiz) availableSizes.add(vSiz.toLowerCase());
+            const vMod = getDynamicAttrLocal(v.attributes, ['motorcycle_model', 'bike_compatibility']);
+            if (vMod) {
+              vMod.split(',').forEach((s: string) => availableModels.add(s.trim().toLowerCase()));
+            }
           }
         });
       } else if (p.configurableVariations) {
@@ -713,6 +730,9 @@ export class ProductService {
               if (kl === 'size' || kl === 'eu_size' || kl === 'eu_size_for_boots' || (kl.includes('size') && !kl.includes('chart'))) {
                 availableSizes.add(v.trim().toLowerCase());
               }
+              if (kl === 'motorcycle_model' || kl === 'bike_compatibility') {
+                v.trim().split(',').forEach((s: string) => availableModels.add(s.trim().toLowerCase()));
+              }
             }
           }
         }
@@ -722,18 +742,28 @@ export class ProductService {
         Object.keys(p.colorImages).forEach(c => availableColors.add(c.trim().toLowerCase()));
       }
 
+      if (p.attributes && typeof p.attributes === 'object') {
+        const topMod = getDynamicAttrLocal(p.attributes, ['motorcycle_model', 'bike_compatibility']);
+        if (topMod) {
+          topMod.split(',').forEach((s: string) => availableModels.add(s.trim().toLowerCase()));
+        }
+      }
+
       if (activeColors.length > 0) {
         matchesColor = activeColors.some((c: string) => availableColors.has(c));
       }
       if (activeSizes.length > 0) {
         matchesSize = activeSizes.some((s: string) => availableSizes.has(s));
       }
+      if (activeModels.length > 0) {
+        matchesModel = activeModels.some((m: string) => availableModels.has(m));
+      }
 
-      if (pBrand && matchesColor && matchesSize) {
+      if (pBrand && matchesColor && matchesSize && matchesModel) {
         brandsMap.set(pBrand, (brandsMap.get(pBrand) || 0) + 1);
       }
 
-      if (p.magentoCategories && matchesBrand && matchesColor && matchesSize) {
+      if (p.magentoCategories && matchesBrand && matchesColor && matchesSize && matchesModel) {
         const paths = p.magentoCategories.split(",");
         for (const path of paths) {
           const pathLower = path.toLowerCase();
@@ -809,7 +839,7 @@ export class ProductService {
           else vMatchesSize = matchesSize;
         }
         
-        if (matchesBrand && vMatchesSize && vColor) {
+        if (matchesBrand && vMatchesSize && matchesModel && vColor) {
           if (!colorsMap.has(vColor)) colorsMap.set(vColor, new Set());
           colorsMap.get(vColor)!.add(p._id.toString());
         }
@@ -820,36 +850,82 @@ export class ProductService {
           else vMatchesColor = matchesColor;
         }
         
-        if (matchesBrand && vMatchesColor && vSize) {
+        if (matchesBrand && vMatchesColor && matchesModel && vSize) {
           if (!sizesMap.has(vSize)) sizesMap.set(vSize, new Set());
           sizesMap.get(vSize)!.add(p._id.toString());
         }
       });
 
-      if (matchesBrand && matchesColor && matchesSize) {
-        TRACKED_ATTRS.forEach(attrName => {
-          let attrValue = '';
-          if (attrName === 'gender' && p.gender) {
-            attrValue = p.gender;
-          } else if (p.attributes && typeof p.attributes === 'object') {
-            const capName = attrName.charAt(0).toUpperCase() + attrName.slice(1);
-            const upperName = attrName.toUpperCase();
-            attrValue = p.attributes[attrName] || p.attributes[capName] || p.attributes[upperName];
+      TRACKED_ATTRS.forEach(attrName => {
+        let isEligible = false;
+        if (attrName === 'motorcycle_model') {
+          isEligible = matchesBrand && matchesColor && matchesSize;
+        } else {
+          isEligible = matchesBrand && matchesColor && matchesSize && matchesModel;
+        }
+
+        if (isEligible) {
+          const cleanVals: string[] = [];
+
+          if (attrName === 'motorcycle_model') {
+            if (p.attributes && typeof p.attributes === 'object') {
+              const topMod = getDynamicAttrLocal(p.attributes, ['motorcycle_model', 'bike_compatibility']);
+              if (topMod) {
+                topMod.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((s: string) => cleanVals.push(s));
+              }
+            }
+            if (p.variants && p.variants.length > 0) {
+              p.variants.forEach((v: any) => {
+                if (v.stock > 0 || p.allowBackorders) {
+                  const vMod = getDynamicAttrLocal(v.attributes, ['motorcycle_model', 'bike_compatibility']);
+                  if (vMod) {
+                    vMod.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((s: string) => cleanVals.push(s));
+                  }
+                }
+              });
+            } else if (p.configurableVariations) {
+              const vars = p.configurableVariations.split("|");
+              for (const variant of vars) {
+                const attrs = variant.split(",");
+                for (const attr of attrs) {
+                  const [k, v] = attr.split("=");
+                  if (k && v) {
+                    const kl = k.trim().toLowerCase();
+                    if (kl === 'motorcycle_model' || kl === 'bike_compatibility') {
+                      v.trim().split(',').map((s: string) => s.trim()).filter(Boolean).forEach((s: string) => cleanVals.push(s));
+                    }
+                  }
+                }
+              }
+            }
+          } else {
+            let attrValue = '';
+            if (attrName === 'gender' && p.gender) {
+              attrValue = p.gender;
+            } else if (p.attributes && typeof p.attributes === 'object') {
+              const capName = attrName.charAt(0).toUpperCase() + attrName.slice(1);
+              const upperName = attrName.toUpperCase();
+              attrValue = p.attributes[attrName] || p.attributes[capName] || p.attributes[upperName];
+            }
+
+            if (attrValue) {
+              attrValue.split(',').map(v => v.trim()).filter(Boolean).forEach(v => cleanVals.push(v));
+            }
           }
 
-          if (attrValue) {
-            const cleanVals = attrValue.split(',').map(v => v.trim()).filter(Boolean);
+          if (cleanVals.length > 0) {
             if (!dynamicAttrsMap.has(attrName)) dynamicAttrsMap.set(attrName, new Map());
             const valMap = dynamicAttrsMap.get(attrName)!;
-            cleanVals.forEach(cleanVal => {
+            const uniqueVals = Array.from(new Set(cleanVals));
+            uniqueVals.forEach(cleanVal => {
               if (!valMap.has(cleanVal)) valMap.set(cleanVal, new Set());
               valMap.get(cleanVal)!.add(p._id.toString());
             });
           }
-        });
-      }
+        }
+      });
 
-      if (matchesBrand && matchesColor && matchesSize) {
+      if (matchesBrand && matchesColor && matchesSize && matchesModel) {
         let pBase = p.basePrice || 0;
         let pSpecial = p.specialPrice;
 
@@ -895,7 +971,8 @@ export class ProductService {
     const isHelmetAccessory = ['visor', 'pinlock', 'spoiler', 'balaclava', 'communicator', 'intercom', 'helmet-cleaner', 'helmet-accessor'].some(kw => cat.includes(kw));
     const isLuggage = ['luggage', 'bag', 'tank-bag', 'saddle-bag', 'tail-bag', 'top-box', 'hydration', 'backpack', 'pannier'].some(kw => cat.includes(kw));
     const isConsumable = ['chain-care', 'chain-lube', 'oils-lube', 'motorcycle-care', 'cleaner', 'spray', 'polish'].some(kw => cat.includes(kw));
-    const isSpare = ['spare', 'sprocket', 'exhaust', 'radiator', 'brake', 'performance-part', 'air-filter', 'spark-plug', 'chain-sprocket'].some(kw => cat.includes(kw));
+    const isExhaust = cat.includes('exhaust');
+    const isSpare = !isExhaust && ['spare', 'sprocket', 'radiator', 'brake', 'performance-part', 'air-filter', 'spark-plug', 'chain-sprocket'].some(kw => cat.includes(kw));
     const isElectronics = ['gadget', 'phone-holder', 'mobile-holder', 'camera', 'gopro', 'usb', 'charger'].some(kw => cat.includes(kw));
     const isLightAccessory = ['auxiliary', 'light', 'filter', 'clamp', 'mount', 'harness', 'switch', 'flasher'].some(kw => cat.includes(kw));
     const isBikeCover = cat.includes('cover');
@@ -910,7 +987,7 @@ export class ProductService {
 
     // Determine allowed filter facets for this category
     const allowSize = (isClothingWearable || isHeadgear) && !isProtection;
-    const allowColor = (isClothingWearable || isHeadgear || isLuggage || isHelmetAccessory || isProtection) && !isPriceAndBrandOnly;
+    const allowColor = (isClothingWearable || isHeadgear || isLuggage || isHelmetAccessory || isProtection || isExhaust) && !isPriceAndBrandOnly;
     // Gender is strictly ONLY allowed for clothing/apparel, footwear, and gloves, and NEVER for protection/guards, headgear, luggage, spares, or women-only category
     const allowGender = isClothingWearable && !isWomenOnly && !isProtection;
     const allowMaterial = (isApparel || isGlove) && !isProtection;
@@ -921,9 +998,14 @@ export class ProductService {
     const hasCategoryContext = cat.length > 0;
 
     for (const [attrName, valMap] of dynamicAttrsMap.entries()) {
-      // Skip all dynamic attributes for categories that are price and brand only
-      if (hasCategoryContext && isPriceAndBrandOnly) {
+      // Skip all dynamic attributes for categories that are price and brand only (except exhausts)
+      if (hasCategoryContext && isPriceAndBrandOnly && !isExhaust) {
         continue;
+      }
+
+      // Skip motorcycle_model for non-bike categories
+      if (attrName === 'motorcycle_model') {
+        if (hasCategoryContext && !isExhaust) continue;
       }
 
       // Skip helmet_type for non-helmet categories
@@ -970,7 +1052,7 @@ export class ProductService {
     }
 
     // Suppress colors if this category family doesn't use them
-    if (hasCategoryContext && (!allowColor || isPriceAndBrandOnly)) {
+    if (hasCategoryContext && (!allowColor || (isPriceAndBrandOnly && !isExhaust))) {
       result.colors = [];
     }
 

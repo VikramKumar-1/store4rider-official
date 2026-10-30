@@ -35,6 +35,7 @@ export class SettingController {
       facebookUrl: settings.facebookUrl,
       instagramUrl: settings.instagramUrl,
       youtubeUrl: settings.youtubeUrl,
+      twitterUrl: settings.twitterUrl,
       returnWindowDays: settings.returnWindowDays || 7,
       snapmintMinOrderValue: settings.snapmintMinOrderValue ?? (Number(process.env.SNAPMINT_MIN_ORDER_VALUE) || 25000),
       brandsMetaTitle: settings.brandsMetaTitle || "",

@@ -1,93 +1,160 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
+import { Mail, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 
 /**
  * Footer Component
  * 
- * Renders the bottom footer section with real contact data from Admin Settings.
- * Uses the brand's solid banner background color.
+ * Clean, focused footer matching Store4Riders specifications:
+ * - EXCHANGE & REPLACEMENTS
+ * - SUPPORT AND SERVICES
+ * - SUBSCRIBE US
+ * No category/gear menu in the footer.
  */
 export const Footer: React.FC = () => {
-  const { data: settings } = usePublicSettings();
+  const [email, setEmail] = useState("");
 
-  const phone = settings?.whatsappNumber || settings?.supportPhone || "";
-  const email = settings?.supportEmail || "contact@store4riders.com";
-  const address = settings?.storeOriginAddress
-    ? `${settings.storeOriginAddress}, ${settings.storeOriginCity || "Pune"}, ${settings.storeOriginState || "Maharashtra"} - ${settings.storeOriginPincode || "411001"}`
-    : "Store4Riders, Pune, Maharashtra - 411001";
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed || !trimmed.includes("@")) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    toast.success("Thank you for subscribing to Store4Riders updates!");
+    setEmail("");
+  };
 
   return (
-    <footer className="w-full bg-banner text-white py-12 md:py-20">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-12 grid grid-cols-3 lg:grid-cols-4 gap-x-2 sm:gap-x-6 gap-y-10 lg:gap-8">
-        
-        {/* Column 1: Brand Logo & Contact (Full width on mobile) */}
-        <div className="col-span-3 lg:col-span-1 flex flex-col gap-5 sm:gap-6">
-          <div className="relative h-10 w-40 md:h-12 md:w-48 -ml-1 sm:-ml-2 mb-1 sm:mb-2 overflow-hidden rounded-sm">
-            <Image 
-              src="/Store4riders-Logo.jpg" 
-              alt="Store4Riders Logo" 
-              fill 
-              sizes="(max-width: 768px) 160px, 192px"
-              className="object-contain object-left" 
-            />
+    <footer className="w-full bg-black text-white pt-12 md:pt-16 pb-12 border-t border-neutral-900">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-16">
+          
+          {/* Column 1: Exchange & Replacements */}
+          <div className="flex flex-col">
+            <h3 className="text-xs sm:text-sm font-semibold tracking-wider text-white uppercase mb-4 sm:mb-6">
+              EXCHANGE &amp; REPLACEMENTS
+            </h3>
+            <ul className="flex flex-col gap-2.5 sm:gap-3 text-xs sm:text-sm text-neutral-400">
+              <li>
+                <Link href="/returns" className="hover:text-white transition-colors">
+                  Exchange &amp; Replacements
+                </Link>
+              </li>
+              <li>
+                <Link href="/warranty" className="hover:text-white transition-colors">
+                  Warranty
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="hover:text-white transition-colors">
+                  Conditions of Sale &amp; Use
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacy" className="hover:text-white transition-colors">
+                  Privacy and Cookie Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/legal" className="hover:text-white transition-colors">
+                  Legal
+                </Link>
+              </li>
+              <li>
+                <Link href="/shipping" className="hover:text-white transition-colors">
+                  Shipping Policies
+                </Link>
+              </li>
+              <li>
+                <Link href="/store-policies" className="hover:text-white transition-colors">
+                  Store Policies
+                </Link>
+              </li>
+            </ul>
           </div>
-          <div className="flex flex-col gap-2 sm:gap-3 text-[11px] sm:text-sm md:text-[15px] font-sans text-white/90">
-            {phone && (
-              <div className="grid grid-cols-[70px_1fr] sm:grid-cols-[80px_1fr] gap-2">
-                <span className="font-medium">Contact</span>
-                <span>: {phone}</span>
-              </div>
-            )}
-            <div className="grid grid-cols-[70px_1fr] sm:grid-cols-[80px_1fr] gap-2">
-              <span className="font-medium">Email</span>
-              <span className="break-all">: {email}</span>
-            </div>
-            <div className="grid grid-cols-[70px_1fr] sm:grid-cols-[80px_1fr] gap-2">
-              <span className="font-medium">Address</span>
-              <span className="leading-relaxed">
-                : {address}
-              </span>
-            </div>
+
+          {/* Column 2: Support and Services */}
+          <div className="flex flex-col">
+            <h3 className="text-xs sm:text-sm font-semibold tracking-wider text-white uppercase mb-4 sm:mb-6">
+              SUPPORT AND SERVICES
+            </h3>
+            <ul className="flex flex-col gap-2.5 sm:gap-3 text-xs sm:text-sm text-neutral-400">
+              <li>
+                <Link href="/about-us" className="hover:text-white transition-colors">
+                  About us
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact-us" className="hover:text-white transition-colors">
+                  Contact Us
+                </Link>
+              </li>
+              <li>
+                <Link href="/account" className="hover:text-white transition-colors">
+                  Your Account
+                </Link>
+              </li>
+              <li>
+                <Link href="/account/wishlist" className="hover:text-white transition-colors">
+                  Wish List
+                </Link>
+              </li>
+              <li>
+                <Link href="/rider-assist" className="hover:text-white transition-colors">
+                  Rider Assist
+                </Link>
+              </li>
+              <li>
+                <Link href="/cash-on-delivery" className="hover:text-white transition-colors">
+                  Cash on Delivery
+                </Link>
+              </li>
+              <li>
+                <Link href="/collaboration" className="hover:text-white transition-colors">
+                  Collaboration
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 3: Subscribe Us */}
+          <div className="flex flex-col sm:col-span-2 lg:col-span-1">
+            <h3 className="text-xs sm:text-sm font-semibold tracking-wider text-white uppercase mb-4 sm:mb-6">
+              SUBSCRIBE US
+            </h3>
+            <form onSubmit={handleSubscribe} className="relative flex items-center w-full max-w-md bg-[#4E5866] rounded-xs px-3.5 py-2.5 shadow-xs">
+              <Mail className="w-5 h-5 text-neutral-200 shrink-0 mr-3" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email address"
+                className="w-full bg-transparent text-white placeholder-neutral-300 text-xs sm:text-sm outline-none pr-8 font-sans"
+                required
+              />
+              <button
+                type="submit"
+                aria-label="Subscribe to newsletter"
+                className="absolute right-3 text-neutral-200 hover:text-white transition-colors flex items-center justify-center p-1 cursor-pointer"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
           </div>
         </div>
 
-        {/* Column 2: Categories Menu */}
-        <div className="col-span-1 flex flex-col gap-3 sm:gap-5 lg:ml-8">
-          <h3 className="text-[10px] min-[400px]:text-[11px] sm:text-lg font-semibold tracking-wide">Gear Menu</h3>
-          <ul className="flex flex-col gap-2 sm:gap-4 text-[9px] min-[400px]:text-[10px] sm:text-sm md:text-[15px] text-white/80">
-            <li><Link href="/motorcycle-helmets" className="hover:text-white transition-colors whitespace-nowrap">Helmets</Link></li>
-            <li><Link href="/riding-gear/riding-gloves" className="hover:text-white transition-colors whitespace-nowrap">Riding Gloves</Link></li>
-            <li><Link href="/riding-gear/riding-jackets" className="hover:text-white transition-colors whitespace-nowrap">Riding Jackets</Link></li>
-            <li><Link href="/riding-gear/riding-pants" className="hover:text-white transition-colors whitespace-nowrap">Riding Pants</Link></li>
-            <li><Link href="/riding-gear/motorcycle-riding-boots" className="hover:text-white transition-colors whitespace-nowrap">Riding Boots</Link></li>
-            <li><Link href="/motorcycle-bags-bike-luggage" className="hover:text-white transition-colors whitespace-nowrap">Motorcycle Luggage</Link></li>
-          </ul>
-        </div>
-
-        {/* Column 3: Get Help */}
-        <div className="col-span-1 flex flex-col gap-3 sm:gap-5">
-          <h3 className="text-[10px] min-[400px]:text-[11px] sm:text-lg font-semibold tracking-wide">Get Help</h3>
-          <ul className="flex flex-col gap-2 sm:gap-4 text-[9px] min-[400px]:text-[10px] sm:text-sm md:text-[15px] text-white/80">
-            <li><Link href="/faq" className="hover:text-white transition-colors whitespace-nowrap">FAQ</Link></li>
-            <li><Link href="/support" className="hover:text-white transition-colors whitespace-nowrap">Customer Service</Link></li>
-            <li><Link href="/returns" className="hover:text-white transition-colors whitespace-nowrap">Exchange Policy</Link></li>
-            <li><Link href="/terms" className="hover:text-white transition-colors whitespace-nowrap">Terms & Conditions</Link></li>
-            <li><Link href="/shipping" className="hover:text-white transition-colors whitespace-nowrap">Shipping</Link></li>
-          </ul>
-        </div>
-
-        {/* Column 4: Account */}
-        <div className="col-span-1 flex flex-col gap-3 sm:gap-5">
-          <h3 className="text-[10px] min-[400px]:text-[11px] sm:text-lg font-semibold tracking-wide">Account</h3>
-          <ul className="flex flex-col gap-2 sm:gap-4 text-[9px] min-[400px]:text-[10px] sm:text-sm md:text-[15px] text-white/80">
-            <li><Link href="/account" className="hover:text-white transition-colors whitespace-nowrap">My Account</Link></li>
-            <li><Link href="/account/orders" className="hover:text-white transition-colors whitespace-nowrap">My Orders</Link></li>
-            <li><Link href="/vouchers" className="hover:text-white transition-colors whitespace-nowrap">Vouchers & Discounts</Link></li>
-          </ul>
+        {/* Bottom Sub-Footer Bar */}
+        <div className="mt-12 md:mt-16 pt-6 border-t border-neutral-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
+          <p>&copy; {new Date().getFullYear()} MotoHive Media Pvt. Ltd. (Store4Riders). All rights reserved.</p>
+          <div className="flex items-center gap-6">
+            <Link href="/privacy" className="hover:text-neutral-300 transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-neutral-300 transition-colors">Terms of Service</Link>
+            <Link href="/returns" className="hover:text-neutral-300 transition-colors">Exchange Policy</Link>
+          </div>
         </div>
       </div>
     </footer>

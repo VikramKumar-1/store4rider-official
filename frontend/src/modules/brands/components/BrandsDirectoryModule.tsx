@@ -388,7 +388,7 @@ export const BrandsDirectoryModule: React.FC = () => {
       </main>
 
       {/* 5. Global Footer */}
-      <div className="bg-banner pb-20 lg:pb-0 w-full mt-auto">
+      <div className="bg-neutral-950 pb-20 lg:pb-0 w-full mt-auto">
         <Footer />
       </div>
     </div>

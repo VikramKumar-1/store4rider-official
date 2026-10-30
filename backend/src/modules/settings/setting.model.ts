@@ -30,6 +30,7 @@ export interface ISetting extends Document {
   facebookUrl?: string;
   instagramUrl?: string;
   youtubeUrl?: string;
+  twitterUrl?: string;
   returnWindowDays?: number;
   popularSearches?: string[];
   snapmintMinOrderValue?: number;
@@ -69,6 +70,7 @@ const settingSchema = new Schema<ISetting>(
     facebookUrl: { type: String, default: "https://www.facebook.com/store4riders/" },
     instagramUrl: { type: String, default: "https://www.instagram.com/store4riders/" },
     youtubeUrl: { type: String, default: "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg" },
+    twitterUrl: { type: String, default: "https://twitter.com/store4riders" },
     returnWindowDays: { type: Number, default: 7 },
     popularSearches: { type: [String], default: [] },
     brandsMetaTitle: { type: String, default: "" },

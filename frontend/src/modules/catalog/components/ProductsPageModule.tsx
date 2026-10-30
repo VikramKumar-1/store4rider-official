@@ -36,7 +36,7 @@ export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNod
 
   // Dynamic attribute filters
   const dynamicParams: Record<string, string> = {};
-  const DYNAMIC_FILTER_KEYS = ['helmet_type', 'material', 'riding_style', 'certification', 'gender', 'size', 'colour', 'inStock', 'onSale'];
+  const DYNAMIC_FILTER_KEYS = ['helmet_type', 'material', 'riding_style', 'certification', 'gender', 'size', 'colour', 'motorcycle_model', 'inStock', 'onSale'];
   for (const key of DYNAMIC_FILTER_KEYS) {
     const val = searchParams.get(key);
     if (val) dynamicParams[key] = val;

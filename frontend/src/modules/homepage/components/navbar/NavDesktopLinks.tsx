@@ -30,14 +30,14 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
 }) => {
   return (
     <div
-      className="hidden lg:flex flex-1 items-center justify-center lg:px-2 xl:px-4 pointer-events-auto whitespace-nowrap static min-w-0"
+      className="hidden lg:flex flex-1 items-center justify-center px-0.5 xl:px-1 pointer-events-auto whitespace-nowrap static min-w-0"
       onMouseLeave={onNavLeave}
     >
       <div
         className={`flex items-center gap-0 xl:gap-0.5 2xl:gap-1 transition-all duration-300 ${
           isLight
             ? ""
-            : "bg-black/45 backdrop-blur-md border border-white/20 shadow-[0_8px_30px_rgba(0,0,0,0.3)] rounded-full px-1 lg:px-1.5 xl:px-2.5 py-0.5 xl:py-1 ring-1 ring-white/10"
+            : "bg-black/45 backdrop-blur-md border border-white/20 shadow-[0_8px_30px_rgba(0,0,0,0.3)] rounded-full px-1 lg:px-1.5 xl:px-2 py-0.5 xl:py-1 ring-1 ring-white/10"
         }`}
       >
         {items.map((item) => {
@@ -54,7 +54,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
             >
               <Link
                 href={item.href}
-                className={`relative flex items-center gap-0.5 text-[9px] lg:text-[9.5px] xl:text-[10px] 2xl:text-[11.5px] font-sans font-bold tracking-tight lg:tracking-normal xl:tracking-wide 2xl:tracking-wider uppercase px-1 lg:px-1 xl:px-1.5 2xl:px-2.5 py-1 rounded-full transition-all duration-150 z-10 cursor-pointer select-none active:scale-95 ${
+                className={`relative flex items-center gap-0.5 text-[9px] lg:text-[9.5px] xl:text-[10px] 2xl:text-[11px] font-sans font-bold tracking-tight xl:tracking-normal 2xl:tracking-wide uppercase px-1 lg:px-1 xl:px-1.5 2xl:px-2 py-1 rounded-full transition-all duration-150 z-10 cursor-pointer select-none active:scale-95 ${
                   isLight
                     ? isHovered
                       ? "text-neutral-950 bg-neutral-900/[0.08]"
@@ -67,7 +67,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
                 <span>{item.label}</span>
                 {item.hasDropdown && (
                   <ChevronDownIcon
-                    className={`hidden xl:inline-block w-2.5 h-2.5 transition-transform duration-200 stroke-[2] pointer-events-none ${
+                    className={`hidden 2xl:inline-block w-2.5 h-2.5 transition-transform duration-200 stroke-[2] pointer-events-none ${
                       isMenuOpen
                         ? `rotate-180 ${isLight ? "text-neutral-950" : "text-white"}`
                         : isLight

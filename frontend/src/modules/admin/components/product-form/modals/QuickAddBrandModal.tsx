@@ -156,7 +156,7 @@ export function QuickAddBrandModal() {
                   "Helmet Brands",
                   "Riding Gear",
                   "Luggage & Accessories",
-                  "Parts & Tyres",
+                  "Parts & Performance",
                   "Care & Maintenance",
                   "Featured Brands",
                 ].map((grp) => (

@@ -131,6 +131,14 @@ export const CATEGORY_ALIAS_MAP: Record<string, string[]> = {
   "performance-air-filter-bike": ["performance-air-filters-for-bikes", "performance-air-filters", "performance-air-filter-bike"],
   "performance-air-filters-for-bikes": ["performance-air-filters", "performance-air-filters-for-bike"],
   "brake-pads": ["brake-pads", "brake-pad"],
+
+  // ── Exhausts ──
+  "bike-exhausts": ["bike-exhausts", "bike-exhaust", "exhausts", "exhaust"],
+  "bike-exhaust": ["bike-exhausts", "bike-exhaust", "exhausts", "exhaust"],
+  "exhausts": ["bike-exhausts", "bike-exhaust", "exhausts", "exhaust"],
+  "exhaust": ["bike-exhausts", "bike-exhaust", "exhausts", "exhaust"],
+  "exauts": ["exhausts", "exhaust", "bike-exhausts"],
+  "exaut": ["exhausts", "exhaust", "bike-exhausts"],
 };
 
 // ──────────────────────────────────────────────────────────────
@@ -193,6 +201,9 @@ export const CATEGORY_DOMAIN_GROUPS = {
     "iridium-spark-plugs", "iridium-spark-plug",
     "performance-air-filters", "performance-air-filter-bike", "performance-air-filters-for-bikes",
     "brake-pads",
+  ],
+  EXHAUSTS: [
+    "bike-exhausts", "bike-exhaust", "exhausts", "exhaust",
   ],
   GUARDS: [
     "knee-guards", "knee-guards-for-bikers", "knee-guards-bikers",
@@ -310,6 +321,10 @@ export const NAVBAR_TO_DB_SLUG_MAP: Record<string, string> = {
   "performance-air-filters": "performance-air-filters-for-bikes",
   "performance-air-filter-bike": "performance-air-filters-for-bikes",
   "brake-pads": "brake-pads",
+  "bike-exhausts": "exhausts",
+  "exhausts": "exhausts",
+  "exauts": "exhausts",
+  "exaut": "exhausts",
 };
 
 // ──────────────────────────────────────────────────────────────
@@ -446,9 +461,9 @@ export const MAGENTO_PATH_TO_NAVBAR_SLUG: Record<string, string> = {
   "off-beat accessories": "off-beat-motorcycle-accessories",
   "off-beat bike accessories online": "off-beat-motorcycle-accessories",
   "performance parts": "performance-parts",
-  "bike exhausts": "performance-parts",
-  "exhaust": "performance-parts",
-  "exhausts": "performance-parts",
+  "bike exhausts": "exhausts",
+  "exhaust": "exhausts",
+  "exhausts": "exhausts",
   "rally tower": "rally-tower",
   "rally towers / navigation tower": "rally-tower",
   "bike covers": "bike-covers",
@@ -530,6 +545,10 @@ export const LEAF_TO_PARENT_MAP: Record<string, string> = {
   "iridium-spark-plugs": "spares",
   "performance-air-filters": "spares",
   "brake-pads": "spares",
+  "bike-exhausts": "exhausts",
+  "exhausts": "exhausts",
+  "exauts": "exhausts",
+  "exaut": "exhausts",
 };
 
 /**

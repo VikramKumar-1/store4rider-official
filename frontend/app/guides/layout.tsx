@@ -27,7 +27,7 @@ export default function GuidesLayout({
       </div>
 
       {/* 3. Global Footer */}
-      <div className="bg-banner pb-32 lg:pb-0 w-full mt-auto">
+      <div className="bg-neutral-950 pb-32 lg:pb-0 w-full mt-auto">
         <Footer />
       </div>
     </div>

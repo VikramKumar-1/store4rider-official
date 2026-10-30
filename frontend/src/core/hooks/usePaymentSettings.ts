@@ -23,6 +23,7 @@ export interface IPublicSettings {
   facebookUrl?: string;
   instagramUrl?: string;
   youtubeUrl?: string;
+  twitterUrl?: string;
   returnWindowDays?: number;
   snapmintMinOrderValue?: number;
 }

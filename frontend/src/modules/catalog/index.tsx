@@ -155,7 +155,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
               ...(categoryNode?.description ? [{
                 id: 'cat-desc',
                 title: categoryParam ? 'Category Description' : (brandParam ? 'Brand Description' : 'Description'),
-                content: <CategoryDescriptionBlock description={categoryNode.description} pageTitle={pageTitle} disableToggle={true} />
+                content: <CategoryDescriptionBlock description={categoryNode.description} pageTitle={pageTitle} />
               }] : []),
               {
                 id: 'google-reviews',
@@ -270,7 +270,7 @@ export const CatalogModule: React.FC<CatalogProps> = ({ products, totalCount, is
       </div>
 
       {/* 4. Global Footer */}
-      <div className="bg-banner pb-32 lg:pb-0 w-full mt-auto"><Footer /></div>
+      <div className="bg-neutral-950 pb-32 lg:pb-0 w-full mt-auto"><Footer /></div>
     </div>
   );
 };

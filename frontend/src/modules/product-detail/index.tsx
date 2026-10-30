@@ -352,7 +352,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
       </main>
 
       {/* 4. Global Footer with extra bottom padding for sticky bar */}
-      <div className="bg-banner pb-32 md:pb-28">
+      <div className="bg-neutral-950 pb-32 md:pb-28">
         <Footer />
       </div>
 

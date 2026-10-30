@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { StarIcon } from "@heroicons/react/24/solid";
 import { ColorOption } from "../types/product-detail.types";
+import { cleanRichContent } from "@/core/utils/cleanRichContent";
 
 interface ProductInfoProps {
   id: string;
@@ -66,7 +67,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
   const [showReadMore, setShowReadMore] = useState(false);
   const [showSizeChart, setShowSizeChart] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const descRef = React.useRef<HTMLParagraphElement>(null);
+  const descRef = React.useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { data: wishlistIds = [] } = useWishlist();
 
@@ -311,12 +312,11 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
         {/* Short Description (Collapsible) */}
         {shortDescription && (
           <div className="mt-2 relative">
-            <p
+            <div
               ref={descRef}
               className={`text-neutral-500 text-xs md:text-sm leading-relaxed font-sans ${isDescExpanded ? "" : "line-clamp-3"}`}
-            >
-              {shortDescription}
-            </p>
+              dangerouslySetInnerHTML={{ __html: cleanRichContent(shortDescription) }}
+            />
             {showReadMore && (
               <div className="flex justify-center w-full mt-1.5">
                 <button

@@ -32,6 +32,7 @@ export const updateSettingSchema = z.object({
   facebookUrl: z.string().optional(),
   instagramUrl: z.string().optional(),
   youtubeUrl: z.string().optional(),
+  twitterUrl: z.string().optional(),
   returnWindowDays: z.number().min(0).max(365).optional(),
   popularSearches: z.array(z.string()).optional(),
   snapmintMinOrderValue: z.number().min(0).optional(),

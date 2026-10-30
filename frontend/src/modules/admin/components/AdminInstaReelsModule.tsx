@@ -47,7 +47,7 @@ export function AdminInstaReelsModule() {
 
   // Local state for social media section
   const [socialState, setSocialState] = useState<ISocialMediaSectionConfig>({
-    sectionTitle: "INSTA REELS",
+    sectionTitle: "Store4Riders on Insta",
     sectionSubtitle: "",
     instagramHandle: "store4riders",
     instagramProfileUrl: "https://www.instagram.com/store4riders/",
@@ -55,22 +55,22 @@ export function AdminInstaReelsModule() {
     lastSyncedAt: "",
     reelImages: [],
     bannerTop: {
-      imageUrl: "/banner-top.jpg",
-      linkUrl: "/motorcycle-helmets",
-      title: "",
-      subtitle: "",
-      description: "",
+      imageUrl: "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/f/o/forma-viper-urban-motorcycle-riding-boots-black.jpg",
+      linkUrl: "/riding-gear/motorcycle-riding-boots",
+      title: "RIDING BOOTS",
+      subtitle: "CE Certified Protection",
+      description: "Explore track, adventure, and urban riding boots from top brands.",
       buttonText: "SHOP NOW",
-      imagePosition: "top" as "top" | "center" | "bottom",
+      imagePosition: "center" as "top" | "center" | "bottom",
     },
     bannerBottom: {
-      imageUrl: "/banner-bottom.jpg",
-      linkUrl: "/products?category=accessories",
-      title: "ACCESSORIES",
-      subtitle: "Complete Your Kit",
-      description: "Up to 30% Off",
+      imageUrl: "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/b/b/bbg_hybrid_tail_bag.jpg",
+      linkUrl: "/motorcycle-bags-bike-luggage",
+      title: "MOTORCYCLE LUGGAGE",
+      subtitle: "Tail Bags, Saddlebags & Tank Bags",
+      description: "Heavy-duty waterproof luggage engineered for touring and daily rides.",
       buttonText: "EXPLORE NOW",
-      imagePosition: "top" as "top" | "center" | "bottom",
+      imagePosition: "center" as "top" | "center" | "bottom",
     },
   });
 
@@ -79,7 +79,7 @@ export function AdminInstaReelsModule() {
     if (config?.sections?.socialMedia) {
       const sm = config.sections.socialMedia;
       setSocialState({
-        sectionTitle: sm.sectionTitle || "INSTA REELS",
+        sectionTitle: sm.sectionTitle && sm.sectionTitle.toUpperCase() !== "INSTA REELS" ? sm.sectionTitle : "Store4Riders on Insta",
         sectionSubtitle: sm.sectionSubtitle || "",
         instagramHandle: sm.instagramHandle || "store4riders",
         instagramProfileUrl:
@@ -280,7 +280,7 @@ export function AdminInstaReelsModule() {
           if (data?.sections?.socialMedia) {
             const sm = data.sections.socialMedia;
             setSocialState({
-              sectionTitle: sm.sectionTitle || "INSTA REELS",
+              sectionTitle: sm.sectionTitle && sm.sectionTitle.toUpperCase() !== "INSTA REELS" ? sm.sectionTitle : "Store4Riders on Insta",
               sectionSubtitle: sm.sectionSubtitle || "",
               instagramHandle: sm.instagramHandle || "store4riders",
               instagramProfileUrl:
@@ -353,7 +353,7 @@ export function AdminInstaReelsModule() {
               <span>Homepage</span>
             </Link>
             <span>/</span>
-            <span className="font-semibold text-slate-700">Insta Reels</span>
+            <span className="font-semibold text-slate-700">Store4Riders on Insta</span>
           </div>
 
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
@@ -572,7 +572,7 @@ export function AdminInstaReelsModule() {
                   sectionTitle: e.target.value,
                 }))
               }
-              placeholder="e.g. INSTA REELS"
+              placeholder="e.g. Store4Riders on Insta"
               className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-3 py-2 rounded-md focus:outline-none focus:border-brand font-bold shadow-2xs"
             />
           </div>
@@ -894,7 +894,7 @@ export function AdminInstaReelsModule() {
                           bannerTop: { ...prev.bannerTop, title: e.target.value },
                         }))
                       }
-                      placeholder="e.g. TRACK READY HELMETS"
+                      placeholder="e.g. RIDING BOOTS"
                       className="w-full bg-white border border-slate-300 text-slate-800 text-xs px-3 py-2 rounded-md focus:outline-none focus:border-brand shadow-2xs font-semibold"
                     />
                   </div>
@@ -915,7 +915,7 @@ export function AdminInstaReelsModule() {
                           },
                         }))
                       }
-                      placeholder="e.g. ECE 22.06 & DOT Certified"
+                      placeholder="e.g. CE Certified Protection"
                       className="w-full bg-white border border-slate-300 text-slate-800 text-xs px-3 py-2 rounded-md focus:outline-none focus:border-brand shadow-2xs"
                     />
                   </div>
@@ -1044,7 +1044,7 @@ export function AdminInstaReelsModule() {
                           },
                         }))
                       }
-                      placeholder="e.g. ACCESSORIES"
+                      placeholder="e.g. MOTORCYCLE LUGGAGE"
                       className="w-full bg-white border border-slate-300 text-slate-800 text-xs px-3 py-2 rounded-md focus:outline-none focus:border-brand shadow-2xs font-semibold"
                     />
                   </div>
@@ -1065,7 +1065,7 @@ export function AdminInstaReelsModule() {
                           },
                         }))
                       }
-                      placeholder="e.g. Complete Your Kit"
+                      placeholder="e.g. Tail Bags, Saddlebags & Tank Bags"
                       className="w-full bg-white border border-slate-300 text-slate-800 text-xs px-3 py-2 rounded-md focus:outline-none focus:border-brand shadow-2xs"
                     />
                   </div>

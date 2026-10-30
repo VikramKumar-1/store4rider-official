@@ -34,14 +34,14 @@ export interface SocialMediaSectionProps {
 
 /**
  * SocialMediaSection:
- * - Left-aligned title ("INSTA REELS") with accent bar. No subtitle tagline.
+ * - Left-aligned title ("Store4Riders on Insta") with accent bar. No subtitle tagline.
  * - LEFT: Authentic Instagram mobile profile UI (avatar + story ring, stats, bio, action buttons, tabs, and 3x2 reels grid).
  * - RIGHT: 2 EQUAL-SIZED stacked cards with optional text cleanly positioned at the bottom of the card.
  * - Width set to max-w-[1180px] for balanced proportions.
  * - Fully connected to Admin Panel for both images and text.
  */
 export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
-  title = "INSTA REELS",
+  title = "Store4Riders on Insta",
   instagramHandle = "store4riders",
   instagramProfileUrl = "https://www.instagram.com/store4riders/",
   profileName,
@@ -111,15 +111,15 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
   }, [allActiveReels]);
 
   return (
-    <section className="w-full bg-white py-5 sm:py-7 md:py-8 overflow-hidden">
-      <div className="w-full max-w-[1180px] mx-auto px-4 sm:px-6">
+    <section className="w-full bg-white py-4 sm:py-5 md:py-6 overflow-hidden">
+      <div className="w-full max-w-[1080px] mx-auto px-4 sm:px-6">
         
         {/* Section Header — Left-Aligned */}
         <div className="text-left mb-3.5 sm:mb-4">
           <h2 className="font-sans text-lg sm:text-xl md:text-2xl font-black uppercase tracking-tight text-neutral-900 leading-tight">
             {title}
           </h2>
-          <div className="w-10 h-1 bg-[#FF5429] mt-1.5 rounded-full" />
+          <div className="w-10 h-1 bg-brand mt-1.5 rounded-full" />
         </div>
 
         {/* 2-Column Balanced Layout */}
@@ -129,8 +129,8 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
           {/* LEFT COLUMN: Instagram Profile Container                  */}
           {/* Sized cleanly like a smartphone screen                    */}
           {/* ========================================================= */}
-          <div className="w-full max-w-[420px] mx-auto lg:max-w-none lg:col-span-5 flex flex-col">
-            <div className="border-2 border-[#FF5429] bg-[#121212] rounded-2xl p-3 sm:p-3.5 shadow-sm text-white flex flex-col justify-between h-full overflow-hidden">
+          <div className="w-full max-w-[360px] mx-auto lg:max-w-none lg:col-span-5 flex flex-col">
+            <div className="rounded-2xl p-3 sm:p-3.5 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15),0_8px_10px_-6px_rgba(0,0,0,0.1)] ring-1 ring-black/[0.08] bg-[#121212] text-white flex flex-col justify-between h-full overflow-hidden">
               
               <div>
                 {/* 1. Instagram Profile Top Bar */}
@@ -342,7 +342,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
 
                           {/* Center Hover Play Icon */}
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-black/30 backdrop-blur-[1px]">
-                            <div className="w-7 h-7 rounded-full bg-[#FF5429] text-white flex items-center justify-center shadow-md transform group-hover:scale-110 transition-transform">
+                            <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
                               <PlayIcon className="w-3 h-3 ml-0.5 text-white" />
                             </div>
                           </div>
@@ -388,7 +388,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
           {/* BOTH CARDS ARE EQUAL SIZE (flex-1) with optional text     */}
           {/* cleanly rendered at the bottom (never in the middle)      */}
           {/* ========================================================= */}
-          <div className="w-full lg:col-span-7 flex flex-col gap-4 sm:gap-5 h-full">
+          <div className="w-full lg:col-span-7 flex flex-col gap-3 sm:gap-3.5 h-full">
             {/* Auto-focal alignment: defaults to top-alignment so faces, heads & helmets are NEVER cropped */}
             {(() => {
               const topPositionClass =
@@ -408,40 +408,44 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
               return (
                 <>
                   {/* Top Card: image 1 (Equal Size Promotional Banner Card) */}
-                  <div className="flex-1 min-h-[220px] sm:min-h-[235px] md:min-h-[240px] rounded-2xl overflow-hidden shadow-sm bg-neutral-900 group relative">
+                  <div className="h-[135px] sm:h-[150px] md:h-[165px] lg:h-full lg:flex-1 rounded-2xl overflow-hidden shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15),0_8px_10px_-6px_rgba(0,0,0,0.1)] ring-1 ring-black/[0.08] bg-neutral-900 group relative">
                     <Link
-                      href={bannerTop?.linkUrl || "/products"}
+                      href={bannerTop?.linkUrl || "/riding-gear/motorcycle-riding-boots"}
                       className="absolute inset-0 block w-full h-full"
                     >
                       <Image
-                        src={bannerTop?.imageUrl || "/heropic2.jpg"}
+                        src={bannerTop?.imageUrl || "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/f/o/forma-viper-urban-motorcycle-riding-boots-black.jpg"}
                         alt={bannerTop?.title || "Store4Riders Promotional Banner"}
                         fill
+                        unoptimized={true}
+                        priority
                         className={`object-cover ${topPositionClass} group-hover:scale-105 transition-transform duration-500`}
                         sizes="(max-width: 1024px) 100vw, 55vw"
                       />
                       
-                      {/* Text & CTA Button at Bottom */}
+                      {/* Bottom Layout: Glassmorphic Text Capsule (Text Only) + Soft Muted Orange CTA */}
                       {(bannerTop?.title || bannerTop?.description || bannerTop?.subtitle || bannerTop?.buttonText) ? (
-                        <div className="absolute inset-x-0 bottom-0 p-3.5 sm:p-5 bg-gradient-to-t from-black/95 via-black/75 to-transparent flex flex-col sm:flex-row sm:items-end justify-between gap-2.5 sm:gap-4 pointer-events-none">
-                          <div className="min-w-0 flex-1 space-y-0.5">
-                            {bannerTop.title && (
-                              <h3 className="font-sans text-sm min-[400px]:text-base sm:text-lg font-black uppercase tracking-wide text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] leading-tight">
-                                {bannerTop.title}
-                              </h3>
-                            )}
-                            {(bannerTop.description || bannerTop.subtitle) && (
-                              <p className="text-xs sm:text-[13px] text-neutral-200 font-semibold leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] line-clamp-2">
-                                {bannerTop.description || bannerTop.subtitle}
-                              </p>
-                            )}
-                          </div>
+                        <div className="absolute inset-x-2.5 bottom-2.5 sm:inset-x-3.5 sm:bottom-3.5 flex items-end justify-between gap-2 pointer-events-none">
+                          {(bannerTop?.title || bannerTop?.description || bannerTop?.subtitle) && (
+                            <div className="min-w-0 max-w-[70%] sm:max-w-[74%] px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-black/55 backdrop-blur-md border border-white/15 shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
+                              {bannerTop.title && (
+                                <h3 className="font-sans text-[11px] min-[380px]:text-xs sm:text-[13px] font-bold uppercase tracking-wider text-white drop-shadow-sm leading-tight line-clamp-1">
+                                  {bannerTop.title}
+                                </h3>
+                              )}
+                              {(bannerTop.description || bannerTop.subtitle) && (
+                                <p className="text-[9px] min-[380px]:text-[9.5px] sm:text-[10.5px] text-neutral-200 font-normal leading-tight drop-shadow-xs line-clamp-1 mt-0.5">
+                                  {bannerTop.description || bannerTop.subtitle}
+                                </p>
+                              )}
+                            </div>
+                          )}
 
                           {bannerTop.buttonText && (
-                            <div className="shrink-0 self-start sm:self-end">
-                              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FF5429] hover:bg-[#e0451d] text-white text-[11px] sm:text-xs font-black uppercase tracking-wider shadow-lg shadow-[#FF5429]/30 group-hover:scale-105 transition-all duration-300">
+                            <div className="shrink-0">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1 rounded-full bg-[#ea580c]/90 hover:bg-[#ea580c] active:scale-95 text-white text-[8.5px] min-[380px]:text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow-[0_3px_10px_rgba(234,88,12,0.3)] border border-white/20 group-hover:scale-105 transition-all duration-200 pointer-events-auto">
                                 <span>{bannerTop.buttonText}</span>
-                                <svg className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <svg className="w-2.5 h-2.5 text-white transform group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                                 </svg>
                               </span>
@@ -455,40 +459,44 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                   </div>
 
                   {/* Bottom Card: image 2 (Equal Size Promotional Banner Card) */}
-                  <div className="flex-1 min-h-[220px] sm:min-h-[235px] md:min-h-[240px] rounded-2xl overflow-hidden shadow-sm bg-neutral-900 group relative">
+                  <div className="h-[135px] sm:h-[150px] md:h-[165px] lg:h-full lg:flex-1 rounded-2xl overflow-hidden shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15),0_8px_10px_-6px_rgba(0,0,0,0.1)] ring-1 ring-black/[0.08] bg-neutral-900 group relative">
                     <Link
-                      href={bannerBottom?.linkUrl || "/products"}
+                      href={bannerBottom?.linkUrl || "/motorcycle-bags-bike-luggage"}
                       className="absolute inset-0 block w-full h-full"
                     >
                       <Image
-                        src={bannerBottom?.imageUrl || "/heropic1.jpg"}
+                        src={bannerBottom?.imageUrl || "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/b/b/bbg_hybrid_tail_bag.jpg"}
                         alt={bannerBottom?.title || "Store4Riders Promotional Banner"}
                         fill
+                        unoptimized={true}
+                        priority
                         className={`object-cover ${bottomPositionClass} group-hover:scale-105 transition-transform duration-500`}
                         sizes="(max-width: 1024px) 100vw, 55vw"
                       />
                 
-                      {/* Text & CTA Button at Bottom */}
+                      {/* Bottom Layout: Glassmorphic Text Capsule (Text Only) + Soft Muted Orange CTA */}
                       {(bannerBottom?.title || bannerBottom?.description || bannerBottom?.subtitle || bannerBottom?.buttonText) ? (
-                        <div className="absolute inset-x-0 bottom-0 p-3.5 sm:p-5 bg-gradient-to-t from-black/95 via-black/75 to-transparent flex flex-col sm:flex-row sm:items-end justify-between gap-2.5 sm:gap-4 pointer-events-none">
-                          <div className="min-w-0 flex-1 space-y-0.5">
+                        <div className="absolute inset-x-2.5 bottom-2.5 sm:inset-x-3.5 sm:bottom-3.5 flex items-end justify-between gap-2 pointer-events-none">
+                          {(bannerBottom?.title || bannerBottom?.description || bannerBottom?.subtitle) && (
+                            <div className="min-w-0 max-w-[70%] sm:max-w-[74%] px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-black/55 backdrop-blur-md border border-white/15 shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
                             {bannerBottom.title && (
-                              <h3 className="font-sans text-sm min-[400px]:text-base sm:text-lg font-black uppercase tracking-wide text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] leading-tight">
+                              <h3 className="font-sans text-[11px] min-[380px]:text-xs sm:text-[13px] font-bold uppercase tracking-wider text-white drop-shadow-sm leading-tight line-clamp-1">
                                 {bannerBottom.title}
                               </h3>
                             )}
                             {(bannerBottom.description || bannerBottom.subtitle) && (
-                              <p className="text-xs sm:text-[13px] text-neutral-200 font-semibold leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] line-clamp-2">
+                              <p className="text-[9px] min-[380px]:text-[9.5px] sm:text-[10.5px] text-neutral-200 font-normal leading-tight drop-shadow-xs line-clamp-1 mt-0.5">
                                 {bannerBottom.description || bannerBottom.subtitle}
                               </p>
                             )}
                           </div>
+                        )}
 
                           {bannerBottom.buttonText && (
-                            <div className="shrink-0 self-start sm:self-end">
-                              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FF5429] hover:bg-[#e0451d] text-white text-[11px] sm:text-xs font-black uppercase tracking-wider shadow-lg shadow-[#FF5429]/30 group-hover:scale-105 transition-all duration-300">
+                            <div className="shrink-0">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1 rounded-full bg-[#ea580c]/90 hover:bg-[#ea580c] active:scale-95 text-white text-[8.5px] min-[380px]:text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow-[0_3px_10px_rgba(234,88,12,0.3)] border border-white/20 group-hover:scale-105 transition-all duration-200 pointer-events-auto">
                                 <span>{bannerBottom.buttonText}</span>
-                                <svg className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <svg className="w-2.5 h-2.5 text-white transform group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                                 </svg>
                               </span>

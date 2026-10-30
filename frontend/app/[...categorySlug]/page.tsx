@@ -50,7 +50,7 @@ async function getCategoryNode(categorySlug: string) {
         return null;
       };
       const node = findCategory(data?.data || []);
-      if (node && node.description) return node;
+      if (node) return node;
     }
 
     const singleUrl = baseUrl.includes("/v1")

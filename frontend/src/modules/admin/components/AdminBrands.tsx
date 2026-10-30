@@ -20,7 +20,7 @@ const PRESET_MENU_GROUPS = [
   "Helmet Brands",
   "Riding Gear",
   "Luggage & Accessories",
-  "Parts & Tyres",
+  "Parts & Performance",
   "Care & Maintenance",
   "Featured Brands"
 ];

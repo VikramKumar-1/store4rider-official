@@ -11,6 +11,16 @@ export function cleanRichContent(rawHtml: string): string {
   if (!rawHtml) return "";
   let clean = rawHtml;
 
+  // 0a. Decode escaped HTML entities if content contains escaped tags (e.g. &lt;p&gt; from CSV export)
+  if (/&lt;[a-z\/][\s\S]*?&gt;/i.test(clean)) {
+    clean = clean
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, '&');
+  }
+
   // 0. Security: Strip dangerous executable tags & event handlers before rendering on storefront
   clean = clean.replace(/<(script|style|object|embed|iframe|applet)[\s\S]*?<\/\1>/gi, "");
   clean = clean.replace(/<(script|iframe|embed|object)[^>]*>/gi, "");

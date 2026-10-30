@@ -106,7 +106,7 @@ export const HomepageModule: React.FC<{
     }
   };
 
-  // Define diverse riding gear categories to represent in BROWSE RIDING GEAR CATEGORIES
+  // Define diverse riding gear categories to represent in BROWSE RIDING GEAR
   const categoryRules = [
     {
       label: 'RIDING BOOTS',
@@ -366,7 +366,12 @@ export const HomepageModule: React.FC<{
 
         {/* 5. Browse Products Section (Scrollable Carousel with Arrows) */}
         <BrowseProductsSection
-          title={homepageConfig?.sections?.browseCategories?.sectionTitle || "BROWSE RIDING GEAR CATEGORIES"}
+          title={
+            homepageConfig?.sections?.browseCategories?.sectionTitle &&
+            homepageConfig.sections.browseCategories.sectionTitle !== "BROWSE RIDING GEAR CATEGORIES"
+              ? homepageConfig.sections.browseCategories.sectionTitle
+              : "BROWSE RIDING GEAR"
+          }
           products={finalBrowseProducts}
           mobileLayout="scroll"
         />
@@ -381,9 +386,14 @@ export const HomepageModule: React.FC<{
           mobileLayout="scroll"
         />
 
-        {/* 7. Social Media / Insta Reels Section */}
+        {/* 7. Social Media / Store4Riders on Insta Section */}
         <SocialMediaSection
-          title={homepageConfig?.sections?.socialMedia?.sectionTitle || "INSTA REELS"}
+          title={
+            homepageConfig?.sections?.socialMedia?.sectionTitle &&
+            homepageConfig.sections.socialMedia.sectionTitle.toUpperCase() !== "INSTA REELS"
+              ? homepageConfig.sections.socialMedia.sectionTitle
+              : "Store4Riders on Insta"
+          }
           subtitle={homepageConfig?.sections?.socialMedia?.sectionSubtitle}
           instagramHandle={homepageConfig?.sections?.socialMedia?.instagramHandle}
           instagramProfileUrl={homepageConfig?.sections?.socialMedia?.instagramProfileUrl}

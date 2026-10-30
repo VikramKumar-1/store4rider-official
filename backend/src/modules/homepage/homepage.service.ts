@@ -555,7 +555,7 @@ export class HomepageService {
 
     const updatedSocial: ISocialMediaSectionConfig = {
       ...existingSocial,
-      sectionTitle: existingSocial.sectionTitle || "INSTA REELS",
+      sectionTitle: existingSocial.sectionTitle && existingSocial.sectionTitle.toUpperCase() !== "INSTA REELS" ? existingSocial.sectionTitle : "Store4Riders on Insta",
       instagramHandle: username || existingSocial.instagramHandle || "store4riders",
       instagramProfileUrl: `https://www.instagram.com/${username}/`,
       profileName: profileName ?? existingSocial.profileName,

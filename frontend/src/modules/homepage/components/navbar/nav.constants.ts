@@ -125,12 +125,52 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         items: [
           { label: "Off-Beat Accessories", href: "/motorcycle-accessories-online/off-beat-motorcycle-accessories" },
           { label: "Performance Parts", href: "/motorcycle-accessories-online/performance-parts" },
+          { label: "Exhausts", href: "/exhausts" },
           { label: "Rally Towers / Navigation Tower", href: "/motorcycle-accessories-online/rally-tower" },
           { label: "Bike Covers", href: "/motorcycle-accessories-online/bike-covers" },
           { label: "Chain Care", href: "/motorcycle-accessories-online/chain-care" },
         ],
       }
     ],
+  },
+  { 
+    id: "spares", 
+    label: "Spares", 
+    href: "/bike-spares", 
+    hasDropdown: true,
+    megaMenuItems: [
+      {
+        group: "Spares & Parts",
+        groupHref: "/bike-spares",
+        items: [
+          { label: "Chain Sprocket Kits", href: "/bike-spares/chain-sprocket-kits" },
+          { label: "Iridium Spark Plugs", href: "/bike-spares/iridium-spark-plug" },
+          { label: "Performance Air Filters", href: "/bike-spares/performance-air-filter-bike" },
+          { label: "Brake Pads", href: "/bike-spares/brake-pads" },
+          { label: "Exhausts", href: "/exhausts" },
+        ],
+      },
+    ],
+  },
+  { 
+    id: "exhausts", 
+    label: "Exhausts", 
+    href: "/exhausts", 
+  },
+  { 
+    id: "gadgets", 
+    label: "Gadgets", 
+    href: "/gadgets", 
+    hasDropdown: true,
+    megaMenuItems: [
+      {
+        group: "Gadgets",
+        items: [
+          { label: "Bike Phone Holders", href: "/gadgets/bike-phone-holders" },
+          { label: "Communicators", href: "/gadgets/communicators" },
+        ],
+      }
+    ]
   },
   {
     id: "shop-by-brand",
@@ -190,39 +230,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         ],
       }
     ],
-  },
-  { 
-    id: "spares", 
-    label: "Spares", 
-    href: "/bike-spares", 
-    hasDropdown: true,
-    megaMenuItems: [
-      {
-        group: "Spares & Parts",
-        groupHref: "/bike-spares",
-        items: [
-          { label: "Chain Sprocket Kits", href: "/bike-spares/chain-sprocket-kits" },
-          { label: "Iridium Spark Plugs", href: "/bike-spares/iridium-spark-plug" },
-          { label: "Performance Air Filters", href: "/bike-spares/performance-air-filter-bike" },
-          { label: "Brake Pads", href: "/bike-spares/brake-pads" },
-        ],
-      },
-    ],
-  },
-  { 
-    id: "gadgets", 
-    label: "Gadgets", 
-    href: "/gadgets", 
-    hasDropdown: true,
-    megaMenuItems: [
-      {
-        group: "Gadgets",
-        items: [
-          { label: "Bike Phone Holders", href: "/gadgets/bike-phone-holders" },
-          { label: "Communicators", href: "/gadgets/communicators" },
-        ],
-      }
-    ]
   },
   {
     id: "guides",

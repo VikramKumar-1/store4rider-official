@@ -42,6 +42,11 @@ const CORE_PRODUCT_PARENTS: Record<string, { name: string; slug: string; linkUrl
     slug: "spares",
     linkUrl: "/spares",
   },
+  exhausts: {
+    name: "Exhausts",
+    slug: "exhausts",
+    linkUrl: "/exhausts",
+  },
   gadgets: {
     name: "Gadgets",
     slug: "gadgets",

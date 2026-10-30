@@ -205,9 +205,9 @@ export function getCategoryRegexRule(categorySlug: string): any {
     regexRule = {
       $or: [{ magentoCategories: /off-beat|off beat/i }, { name: /off-beat|off beat/i }]
     };
-  } else if (cleanSlug.includes("performance-parts") || cleanSlug.includes("performance")) {
+  } else if (cleanSlug.includes("performance-parts") || cleanSlug.includes("performance") || cleanSlug.includes("exhaust")) {
     regexRule = {
-      $or: [{ magentoCategories: /performance/i }, { name: /performance|exhaust|air filter/i }]
+      $or: [{ magentoCategories: /performance|exhaust/i }, { name: /performance|exhaust|air filter/i }]
     };
   } else if (cleanSlug.includes("rally-tower") || cleanSlug.includes("navigation-tower")) {
     regexRule = {

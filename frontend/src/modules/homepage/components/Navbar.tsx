@@ -130,7 +130,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
         />
 
-        <nav className="relative z-10 w-full max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-3 xl:px-5 py-2 sm:py-2.5 xl:py-3 flex items-center justify-between gap-2 lg:gap-2.5 xl:gap-5 2xl:gap-6">
+        <nav className="relative z-10 w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto px-3 sm:px-4 lg:px-2.5 xl:px-4 2xl:px-6 py-2 sm:py-2.5 xl:py-3 flex items-center justify-between gap-1.5 lg:gap-2 xl:gap-3 2xl:gap-5">
                     {/* Logo (Fades out on mobile when search is open) */}
           <Link
             href="/"

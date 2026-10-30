@@ -66,6 +66,7 @@ export function SidebarFilters() {
     riding_style: searchParams.get("riding_style") || undefined,
     certification: searchParams.get("certification") || undefined,
     gender: searchParams.get("gender") || undefined,
+    motorcycle_model: searchParams.get("motorcycle_model") || undefined,
   });
 
   const CATEGORIES = aggregations?.categories 
@@ -125,6 +126,7 @@ export function SidebarFilters() {
       let label = code.replace(/_/g, " ").toUpperCase();
       if (code === 'helmet_type') label = 'HELMET TYPE';
       if (code === 'riding_style') label = 'RIDING STYLE';
+      if (code === 'motorcycle_model') label = 'MOTORCYCLE MODEL';
       return { code, label, values };
     });
   }, [aggregations?.dynamicAttributes]);
@@ -193,7 +195,35 @@ export function SidebarFilters() {
     }
   };
 
+  const handleSingleSelectFilter = (paramName: string, value: string) => {
+    const currentVal = searchParams.get(paramName);
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
+
+    if (currentVal === value) {
+      params.delete(paramName);
+      setOptimisticParams(prev => {
+        const next = { ...prev };
+        delete next[paramName];
+        return next;
+      });
+    } else {
+      params.set(paramName, value);
+      setOptimisticParams(prev => ({
+        ...prev,
+        [paramName]: [value]
+      }));
+    }
+
+    params.set("page", "1");
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : '/products';
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
   const toggleArrayParam = (paramName: string, value: string) => {
+    if (paramName === 'motorcycle_model') {
+      handleSingleSelectFilter(paramName, value);
+      return;
+    }
     // Instant 0ms optimistic visual toggle
     setOptimisticParams(prev => {
       const current = prev[paramName] || (
@@ -355,13 +385,23 @@ export function SidebarFilters() {
           const isGenderForbidden = isProtectionCat || isNonApparelCat;
           const isPriceAndBrandOnlyCat = ['chain-care', 'chain-lube', 'oils-lube', 'cleaner', 'spare', 'sprocket', 'brake', 'gadget', 'phone', 'holder', 'cover', 'light', 'filter', 'clamp', 'mount', 'harness', 'flasher'].some(kw => catLower.includes(kw));
 
-          const baseConfig = aggregations?.filterConfig || [
-            { code: "category", label: "Category" },
-            { code: "price", label: "Price" },
-            { code: "size", label: "Size" },
-            { code: "brand", label: "Brand" },
-            { code: "color", label: "Color" }
-          ];
+          const baseConfig = aggregations?.filterConfig || (
+            catLower.includes('exhaust')
+              ? [
+                  { code: "category", label: "Category" },
+                  { code: "price", label: "Price" },
+                  { code: "motorcycle_model", label: "Motorcycle Model" },
+                  { code: "brand", label: "Brand" },
+                  { code: "color", label: "Color" }
+                ]
+              : [
+                  { code: "category", label: "Category" },
+                  { code: "price", label: "Price" },
+                  { code: "size", label: "Size" },
+                  { code: "brand", label: "Brand" },
+                  { code: "color", label: "Color" }
+                ]
+          );
           
           const fullConfig = [...baseConfig].filter(c => {
             if (c.code === 'category') return false; // Hide category entirely
@@ -556,17 +596,37 @@ export function SidebarFilters() {
             );
           }
 
-          // 6. Dynamic Filter Attributes (helmet_type, gender, material, etc)
+          // 6. Dynamic Filter Attributes (helmet_type, gender, material, motorcycle_model, etc)
           const dynamicFilter = DYNAMIC_FILTERS.find((df: any) => df.code === config.code);
           if (dynamicFilter && dynamicFilter.values.length > 0) {
+            const isSingleSelect = dynamicFilter.code === 'motorcycle_model';
             const paramValue = searchParams.get(dynamicFilter.code) || "";
             const activeValues = Array.from(new Set(paramValue ? paramValue.split(",").map((v) => v.trim()) : []));
             
             return (
               <AccordionSection key={dynamicFilter.code} title={dynamicFilter.label} defaultOpen={false}>
-                <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-2">
+                <div className="flex flex-col gap-2 max-h-72 overflow-y-auto scrollbar-thin pr-2">
                   {dynamicFilter.values.map((val: any) => {
                     const active = isParamActive(dynamicFilter.code, val.name, activeValues);
+
+                    if (isSingleSelect) {
+                      return (
+                        <button
+                          key={val.name}
+                          type="button"
+                          onClick={() => handleSingleSelectFilter(dynamicFilter.code, val.name)}
+                          className="flex items-center justify-between text-left group py-1 transition-colors w-full"
+                        >
+                          <span className={`text-[14px] transition-colors ${active ? "text-banner font-bold" : "text-neutral-700 group-hover:text-banner"}`}>
+                            {val.name}
+                          </span>
+                          <span className="text-[11px] text-neutral-400">
+                            ({val.count})
+                          </span>
+                        </button>
+                      );
+                    }
+
                     return (
                       <label key={val.name} className="flex items-center justify-between cursor-pointer group">
                         <div className="flex items-center gap-2.5">

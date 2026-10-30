@@ -13,6 +13,7 @@ import {
   Instagram,
   Facebook,
   Youtube,
+  Twitter,
   RotateCcw,
   Building,
   CheckCircle2,
@@ -30,6 +31,7 @@ interface IContactSettingsData {
   facebookUrl?: string;
   instagramUrl?: string;
   youtubeUrl?: string;
+  twitterUrl?: string;
   returnWindowDays?: number;
   [key: string]: any;
 }
@@ -46,6 +48,7 @@ export function AdminContactSettings() {
     facebookUrl: "https://www.facebook.com/store4riders/",
     instagramUrl: "https://www.instagram.com/store4riders/",
     youtubeUrl: "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg",
+    twitterUrl: "https://twitter.com/store4riders",
     returnWindowDays: 7,
   });
   const [loading, setLoading] = useState(true);
@@ -286,6 +289,20 @@ export function AdminContactSettings() {
                 value={settings.facebookUrl || ""}
                 onChange={(e) => setSettings({ ...settings, facebookUrl: e.target.value })}
                 placeholder="https://www.facebook.com/store4riders/"
+                className="w-full text-sm border border-neutral-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <Twitter className="w-3.5 h-3.5 text-sky-500" />
+                X / Twitter URL
+              </label>
+              <input
+                type="url"
+                value={settings.twitterUrl || ""}
+                onChange={(e) => setSettings({ ...settings, twitterUrl: e.target.value })}
+                placeholder="https://twitter.com/store4riders"
                 className="w-full text-sm border border-neutral-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </div>

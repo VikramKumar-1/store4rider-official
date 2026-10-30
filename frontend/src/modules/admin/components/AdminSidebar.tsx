@@ -91,7 +91,7 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Hero & SEO", href: "/admin/homepage/hero-seo", icon: Globe },
       { name: "Section Edit", href: "/admin/homepage/sections", icon: Layers },
-      { name: "Insta Reels", href: "/admin/homepage/reels", icon: Instagram },
+      { name: "Store4Riders on Insta", href: "/admin/homepage/reels", icon: Instagram },
     ],
   },
   // Remaining items

@@ -58,6 +58,15 @@ describe('cleanRichContent Utility', () => {
     // External link has nofollow and target="_blank"
     expect(cleaned).toContain('href="https://youtube.com/watch?v=123" target="_blank" rel="nofollow noopener noreferrer"');
   });
+
+  it('should decode escaped HTML entities like &lt;p&gt; into proper HTML tags', () => {
+    const escaped = '&lt;p&gt;High quality silencer for &lt;strong&gt;Interceptor 650&lt;/strong&gt;&lt;/p&gt;';
+    const cleaned = cleanRichContent(escaped);
+
+    expect(cleaned).toContain('<p>');
+    expect(cleaned).toContain('<strong>Interceptor 650</strong>');
+    expect(cleaned).not.toContain('&lt;');
+  });
 });
 
 describe('stripHtml Utility', () => {

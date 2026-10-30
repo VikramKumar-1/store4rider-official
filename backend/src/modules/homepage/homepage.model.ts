@@ -140,7 +140,7 @@ const browseProductItemSchema = new Schema(
 
 const browseCategoriesSectionSchema = new Schema(
   {
-    sectionTitle: { type: String, default: "BROWSE RIDING GEAR CATEGORIES" },
+    sectionTitle: { type: String, default: "BROWSE RIDING GEAR" },
     items: {
       type: [browseProductItemSchema],
       default: [],
@@ -178,7 +178,7 @@ const instagramReelSchema = new Schema(
 
 const socialMediaSectionSchema = new Schema(
   {
-    sectionTitle: { type: String, default: "INSTA REELS" },
+    sectionTitle: { type: String, default: "Store4Riders on Insta" },
     sectionSubtitle: {
       type: String,
       default: "Catch our latest rides, gear reviews, and track days in action.",
@@ -213,29 +213,29 @@ const socialMediaSectionSchema = new Schema(
     bannerTop: {
       imageUrl: {
         type: String,
-        default: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80",
+        default: "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/f/o/forma-viper-urban-motorcycle-riding-boots-black.jpg",
       },
-      linkUrl: { type: String, default: "/products" },
-      title: { type: String, default: "" },
-      subtitle: { type: String, default: "" },
-      description: { type: String, default: "" },
-      buttonText: { type: String, default: "" },
-      imagePosition: { type: String, enum: ["top", "center", "bottom"], default: "top" },
+      linkUrl: { type: String, default: "/riding-gear/motorcycle-riding-boots" },
+      title: { type: String, default: "RIDING BOOTS" },
+      subtitle: { type: String, default: "CE Certified Protection" },
+      description: { type: String, default: "Explore track, adventure, and urban riding boots from top brands." },
+      buttonText: { type: String, default: "SHOP NOW" },
+      imagePosition: { type: String, enum: ["top", "center", "bottom"], default: "center" },
     },
     bannerBottom: {
       imageUrl: {
         type: String,
-        default: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=800&q=80",
+        default: "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/b/b/bbg_hybrid_tail_bag.jpg",
       },
-      linkUrl: { type: String, default: "/products" },
-      title: { type: String, default: "New Arrivals" },
-      subtitle: { type: String, default: "Explore Now" },
+      linkUrl: { type: String, default: "/motorcycle-bags-bike-luggage" },
+      title: { type: String, default: "MOTORCYCLE LUGGAGE" },
+      subtitle: { type: String, default: "Tail Bags, Saddlebags & Tank Bags" },
       description: {
         type: String,
-        default: "Check out the latest riding gear and premium accessories designed for your next adventure.",
+        default: "Heavy-duty waterproof luggage engineered for touring and daily rides.",
       },
-      buttonText: { type: String, default: "" },
-      imagePosition: { type: String, enum: ["top", "center", "bottom"], default: "top" },
+      buttonText: { type: String, default: "EXPLORE NOW" },
+      imagePosition: { type: String, enum: ["top", "center", "bottom"], default: "center" },
     },
     lastSyncedAt: { type: String, default: "" },
   },

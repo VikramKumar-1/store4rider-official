@@ -282,7 +282,17 @@ export class ProductValidator {
         regexConditions.push({ name: /\b(auxiliary\s*light|fog\s*light|driving\s*light|led\s*light|hazard\s*flash|flasher)\b/i });
         excludeConditions.push({ name: { $not: /\b(filter|filters|lens|lenses|clamp|clamps|mount|mounts|bracket|brackets|switch|switches|harness|wire|wiring)\b/i } });
       }
-      else if (c.includes("performance") || c.includes("air-filter")) regexConditions.push({ name: /\b(performance|filter|air.*filter|exhaust)\b/i });
+      else if (c.includes("exhaust")) {
+        regexConditions.push({ name: /\b(exhaust|silencer|db\s*killer|baffle)\b/i });
+        excludeConditions.push({ name: { $not: /\b(air\s*filter|oil\s*filter|spark\s*plug|brake)\b/i } });
+      }
+      else if (c.includes("air-filter") || (c.includes("filter") && !c.includes("light"))) {
+        regexConditions.push({ name: /\b(filter|air.*filter)\b/i });
+        excludeConditions.push({ name: { $not: /\b(exhaust|silencer|db\s*killer)\b/i } });
+      }
+      else if (c.includes("performance")) {
+        regexConditions.push({ name: /\b(performance|filter|air.*filter|exhaust)\b/i });
+      }
       else if (c.includes("cover")) regexConditions.push({ name: /\b(bike\s*cover|motorcycle\s*cover)\b/i });
       else if (c.includes("camera") || c.includes("gopro")) regexConditions.push({ name: /\b(camera|gopro|insta360|action\s*cam)\b/i });
       else if (c.includes("mount") && c.includes("mobile")) regexConditions.push({ name: /\b(mobile.*mount|phone.*mount|ram.*mount)\b/i });
@@ -382,6 +392,8 @@ export class ProductValidator {
       const configVarRegexes = sizes.map(s => new RegExp(`(?:size|eu_size|eu_size_for_boots)=${ProductValidator.escapeRegExp(s)}(\\||,|$)`, "i"));
       const exactRegexes = sizes.map(s => new RegExp(`^${ProductValidator.escapeRegExp(s)}$`, "i"));
       const skuSizeRegexes = sizes.map(s => new RegExp(`[-_]${ProductValidator.escapeRegExp(s)}(?:[-_]|$)`, "i"));
+
+      // Standard size existence matching (9 conditions)
       andConditions.push({
         $or: [
           {
@@ -400,6 +412,39 @@ export class ProductValidator {
           { "variants.sku": { $in: skuSizeRegexes } }
         ],
       });
+
+      // On storefront, strictly enforce that the selected size is in stock (or product allows backorders)
+      if (!isAdmin) {
+        andConditions.push({
+          $or: [
+            { allowBackorders: true },
+            {
+              variants: {
+                $elemMatch: {
+                  $and: [
+                    {
+                      $or: [
+                        { "attributes.size": { $in: exactRegexes } },
+                        { "attributes.eu_size": { $in: exactRegexes } },
+                        { "attributes.eu_size_for_boots": { $in: exactRegexes } },
+                        { sku: { $in: skuSizeRegexes } },
+                      ]
+                    },
+                    { stock: { $gt: 0 } }
+                  ]
+                }
+              }
+            },
+            {
+              $and: [
+                { "variants.0": { $exists: false } },
+                { stockStatus: { $ne: 0 } },
+                { qty: { $gt: 0 } }
+              ]
+            }
+          ]
+        });
+      }
     }
 
     const colour = searchParams.get("colour") || searchParams.get("color");
@@ -409,6 +454,16 @@ export class ProductValidator {
       const sizeExact = sizes.map(s => new RegExp(`^${ProductValidator.escapeRegExp(s)}$`, "i"));
       const colourExact = colours.map(c => new RegExp(`^${ProductValidator.escapeRegExp(c)}$`, "i"));
 
+      const sizeMatchConditions = [
+        { "attributes.size": { $in: sizeExact } },
+        { "attributes.eu_size": { $in: sizeExact } },
+        { "attributes.eu_size_for_boots": { $in: sizeExact } },
+      ];
+      const colourMatchConditions = [
+        { "attributes.color": { $in: colourExact } },
+        { "attributes.colour": { $in: colourExact } },
+      ];
+
       // For multi-variant products, require at least ONE variant to match BOTH size & color
       andConditions.push({
         $or: [
@@ -416,25 +471,16 @@ export class ProductValidator {
             variants: {
               $elemMatch: {
                 $and: [
-                  {
-                    $or: [
-                      { "attributes.size": { $in: sizeExact } },
-                      { "attributes.eu_size": { $in: sizeExact } },
-                      { "attributes.eu_size_for_boots": { $in: sizeExact } },
-                    ]
-                  },
-                  {
-                    $or: [
-                      { "attributes.color": { $in: colourExact } },
-                      { "attributes.colour": { $in: colourExact } },
-                    ]
-                  }
+                  { $or: sizeMatchConditions },
+                  { $or: colourMatchConditions },
+                  ...(!isAdmin ? [{ stock: { $gt: 0 } }] : [])
                 ]
               }
             }
           },
           // Standalone / simple product without variants array
-          { "variants.0": { $exists: false } }
+          { "variants.0": { $exists: false } },
+          ...(!isAdmin ? [{ allowBackorders: true }] : [])
         ]
       });
     }
@@ -459,6 +505,8 @@ export class ProductValidator {
           { [`colorImages.${title}`]: { $exists: true } }
         ];
       });
+
+      // Standard color matching (15 conditions)
       andConditions.push({
         $or: [
           {
@@ -476,6 +524,96 @@ export class ProductValidator {
           ...colorImageConditions
         ],
       });
+
+      // On storefront, strictly enforce that the selected color is in stock (or product allows backorders)
+      if (!isAdmin) {
+        andConditions.push({
+          $or: [
+            { allowBackorders: true },
+            {
+              variants: {
+                $elemMatch: {
+                  $and: [
+                    {
+                      $or: [
+                        { "attributes.color": { $in: exactRegexes } },
+                        { "attributes.colour": { $in: exactRegexes } },
+                        { sku: { $in: skuColorRegexes } }
+                      ]
+                    },
+                    { stock: { $gt: 0 } }
+                  ]
+                }
+              }
+            },
+            {
+              $and: [
+                { "variants.0": { $exists: false } },
+                { stockStatus: { $ne: 0 } },
+                { qty: { $gt: 0 } }
+              ]
+            }
+          ]
+        });
+      }
+    }
+
+    const motorcycleModel = searchParams.get("motorcycle_model");
+    if (motorcycleModel) {
+      const models = motorcycleModel.split(',').map(m => m.trim()).filter(Boolean);
+      const exactRegexes = models.map(m => new RegExp(`^${ProductValidator.escapeRegExp(m)}$`, "i"));
+      const wordRegexes = models.map(m => new RegExp(`\\b${ProductValidator.escapeRegExp(m)}\\b`, "i"));
+
+      andConditions.push({
+        $or: [
+          { "attributes.motorcycle_model": { $in: exactRegexes } },
+          { "attributes.motorcycle_model": { $in: wordRegexes } },
+          { "attributes.bike_compatibility": { $in: exactRegexes } },
+          { "attributes.bike_compatibility": { $in: wordRegexes } },
+          { "variants.attributes.motorcycle_model": { $in: exactRegexes } },
+          { "variants.attributes.bike_compatibility": { $in: exactRegexes } }
+        ]
+      });
+
+      if (!isAdmin) {
+        andConditions.push({
+          $or: [
+            { allowBackorders: true },
+            {
+              variants: {
+                $elemMatch: {
+                  $and: [
+                    {
+                      $or: [
+                        { "attributes.motorcycle_model": { $in: exactRegexes } },
+                        { "attributes.motorcycle_model": { $in: wordRegexes } },
+                        { "attributes.bike_compatibility": { $in: exactRegexes } },
+                        { "attributes.bike_compatibility": { $in: wordRegexes } }
+                      ]
+                    },
+                    { stock: { $gt: 0 } }
+                  ]
+                }
+              }
+            },
+            {
+              $and: [
+                { "variants.0": { $exists: false } },
+                {
+                  $or: [
+                    { "attributes.motorcycle_model": { $in: exactRegexes } },
+                    { "attributes.motorcycle_model": { $in: wordRegexes } },
+                    { "attributes.bike_compatibility": { $in: exactRegexes } },
+                    { "attributes.bike_compatibility": { $in: wordRegexes } }
+                  ]
+                },
+                { stockStatus: { $ne: 0 } },
+                { qty: { $gt: 0 } }
+              ]
+            }
+          ]
+        });
+      }
     }
 
     // Dynamic attribute filters (helmet_type, material, riding_style, certification, gender)
@@ -526,6 +664,8 @@ export class ProductValidator {
               { brand: { $regex: searchRegex } },
               { sku: { $regex: searchRegex } },
               { magentoCategories: { $regex: searchRegex } },
+              { "variants.attributes.motorcycle_model": { $regex: searchRegex } },
+              { configurableVariations: { $regex: searchRegex } },
             ]),
           };
         });

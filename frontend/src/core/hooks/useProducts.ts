@@ -129,7 +129,7 @@ export function useProducts(params?: UseProductsParams) {
       if (params?.id) queryParams.append("id", params.id);
       if (params?.parentOnly) queryParams.append("parentOnly", String(params.parentOnly));
       
-      const DYNAMIC_PARAMS = ['helmet_type', 'material', 'riding_style', 'certification', 'gender', 'size', 'colour', 'inStock', 'onSale'];
+      const DYNAMIC_PARAMS = ['helmet_type', 'material', 'riding_style', 'certification', 'gender', 'size', 'colour', 'motorcycle_model', 'inStock', 'onSale'];
       for (const key of DYNAMIC_PARAMS) {
         if (params?.[key]) queryParams.append(key, String(params[key]));
       }

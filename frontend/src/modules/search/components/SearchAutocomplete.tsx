@@ -308,7 +308,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   // -------------------------------------------------------------
   return (
     <div 
-      className="relative flex items-center group w-36 sm:w-40 md:w-44 lg:w-32 xl:w-48 2xl:w-56" 
+      className="relative flex items-center group w-36 sm:w-40 md:w-44 lg:w-28 xl:w-36 2xl:w-48 focus-within:lg:w-40 focus-within:xl:w-48 focus-within:2xl:w-56 transition-all duration-200" 
       ref={containerRef}
     >
       <form onSubmit={(e) => handleSubmit(e)} className="w-full">

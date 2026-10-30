@@ -63,7 +63,7 @@ export function AdminHomepageSectionsModule() {
     }
   }, [tabParam]);
 
-  // Section 2: Browse Riding Gear Categories Modal & Edit State
+  // Section 2: Browse Riding Gear Modal & Edit State
   const [pickerSlotIdx, setPickerSlotIdx] = useState<number | null>(null);
   const [editingSlotIdx, setEditingSlotIdx] = useState<number | null>(null);
 
@@ -98,7 +98,7 @@ export function AdminHomepageSectionsModule() {
       },
     },
     browseCategories: {
-      sectionTitle: "BROWSE RIDING GEAR CATEGORIES",
+      sectionTitle: "BROWSE RIDING GEAR",
       items: [],
     },
     touringGear: {
@@ -107,7 +107,7 @@ export function AdminHomepageSectionsModule() {
       seeMoreLink: "/products?q=touring",
     },
     socialMedia: {
-      sectionTitle: "INSTA REELS",
+      sectionTitle: "Store4Riders on Insta",
       sectionSubtitle: "",
       instagramHandle: "store4riders",
       instagramProfileUrl: "https://www.instagram.com/store4riders/",
@@ -122,22 +122,22 @@ export function AdminHomepageSectionsModule() {
         "/reel-6.jpg",
       ],
       bannerTop: {
-        imageUrl: "/banner-top.jpg",
-        linkUrl: "/motorcycle-helmets",
-        title: "",
-        subtitle: "",
-        description: "",
+        imageUrl: "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/f/o/forma-viper-urban-motorcycle-riding-boots-black.jpg",
+        linkUrl: "/riding-gear/motorcycle-riding-boots",
+        title: "RIDING BOOTS",
+        subtitle: "CE Certified Protection",
+        description: "Explore track, adventure, and urban riding boots from top brands.",
         buttonText: "SHOP NOW",
-        imagePosition: "top" as "top" | "center" | "bottom",
+        imagePosition: "center" as "top" | "center" | "bottom",
       },
       bannerBottom: {
-        imageUrl: "/banner-bottom.jpg",
-        linkUrl: "/products?category=accessories",
-        title: "ACCESSORIES",
-        subtitle: "Complete Your Kit",
-        description: "Up to 30% Off",
+        imageUrl: "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/b/b/bbg_hybrid_tail_bag.jpg",
+        linkUrl: "/motorcycle-bags-bike-luggage",
+        title: "MOTORCYCLE LUGGAGE",
+        subtitle: "Tail Bags, Saddlebags & Tank Bags",
+        description: "Heavy-duty waterproof luggage engineered for touring and daily rides.",
         buttonText: "EXPLORE NOW",
-        imagePosition: "top" as "top" | "center" | "bottom",
+        imagePosition: "center" as "top" | "center" | "bottom",
       },
     },
     testimonials: {
@@ -219,7 +219,7 @@ export function AdminHomepageSectionsModule() {
     }
   }, [config]);
 
-  // 8 slots for Browse Riding Gear Categories
+  // 8 slots for Browse Riding Gear
   const currentBrowseItems: IBrowseProductItem[] = Array.from({ length: 8 }, (_, idx) => {
     const existing = sectionsState.browseCategories.items?.[idx];
     return {
@@ -453,7 +453,7 @@ export function AdminHomepageSectionsModule() {
     { id: "featuredCategories", name: "Shop By Category", icon: FolderTree, desc: "Masonry category tiles" },
     { id: "browseCategories", name: "Browse Riding Gear", icon: Compass, desc: "Scrollable gear carousel" },
     { id: "touringGear", name: "Best Gear for Touring", icon: Luggage, desc: "Touring gear & See More" },
-    { id: "socialMedia", name: "Insta Reels & Banners", icon: Instagram, desc: "Reels grid & promo cards" },
+    { id: "socialMedia", name: "Store4Riders on Insta", icon: Instagram, desc: "Reels grid & promo cards" },
     { id: "testimonials", name: "Customer Reviews", icon: MessageSquareQuote, desc: "Testimonial section title" },
     { id: "topBanner", name: "Top Announcement Bar", icon: Megaphone, desc: "Header discount marquee" },
   ];
@@ -1027,7 +1027,7 @@ export function AdminHomepageSectionsModule() {
           )}
 
           {/* ========================================================= */}
-          {/* SECTION 2: BROWSE RIDING GEAR CATEGORIES */}
+          {/* SECTION 2: BROWSE RIDING GEAR */}
           {/* ========================================================= */}
           {activeSection === "browseCategories" && (
             <div className="space-y-4">
@@ -1036,7 +1036,7 @@ export function AdminHomepageSectionsModule() {
                   <div>
                     <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                       <Compass className="w-4 h-4 text-brand" />
-                      Browse Riding Gear Categories (8 Featured Products)
+                      Browse Riding Gear (8 Featured Products)
                     </h2>
                     <p className="text-[11px] text-slate-500 mt-0.5">
                       Select and assign 8 products for the scrollable carousel on the storefront, or upload custom images and details.
@@ -1072,7 +1072,7 @@ export function AdminHomepageSectionsModule() {
                         },
                       }))
                     }
-                    placeholder="e.g. BROWSE RIDING GEAR CATEGORIES"
+                    placeholder="e.g. BROWSE RIDING GEAR"
                     className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-3 py-1.5 rounded-md focus:outline-none focus:border-brand font-semibold shadow-2xs"
                   />
                 </div>
@@ -1358,7 +1358,7 @@ export function AdminHomepageSectionsModule() {
                 <div className="bg-neutral-100 p-4 rounded-lg border border-slate-200">
                   <div className="text-center mb-3">
                     <h3 className="text-sm font-extrabold text-neutral-900 uppercase">
-                      {sectionsState.browseCategories.sectionTitle || "BROWSE RIDING GEAR CATEGORIES"}
+                      {sectionsState.browseCategories.sectionTitle || "BROWSE RIDING GEAR"}
                     </h3>
                     <div className="w-10 h-0.5 bg-brand mx-auto mt-1 rounded-full" />
                   </div>
@@ -1488,14 +1488,14 @@ export function AdminHomepageSectionsModule() {
           )}
 
           {/* ========================================================= */}
-          {/* SECTION 4: INSTA REELS & PROMO BANNERS */}
+          {/* SECTION 4: STORE4RIDERS ON INSTA & PROMO BANNERS */}
           {/* ========================================================= */}
           {activeSection === "socialMedia" && (
             <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-4">
               <div className="border-b border-slate-100 pb-2">
                 <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                   <Instagram className="w-4 h-4 text-brand" />
-                  Insta Reels & Side Promo Banners
+                  Store4Riders on Insta & Side Promo Banners
                 </h2>
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   Upload vertical reel images (converts to WebP) and configure the 2 right-side promotional banners.
@@ -1994,7 +1994,7 @@ export function AdminHomepageSectionsModule() {
                                   },
                                 }))
                               }
-                              placeholder="e.g. TRACK READY HELMETS"
+                              placeholder="e.g. RIDING BOOTS"
                               className="w-full bg-white border border-slate-300 text-slate-800 text-xs px-3 py-2 rounded-md focus:outline-none focus:border-brand shadow-2xs font-semibold"
                             />
                           </div>
@@ -2014,7 +2014,7 @@ export function AdminHomepageSectionsModule() {
                                   },
                                 }))
                               }
-                              placeholder="e.g. ECE 22.06 & DOT Certified Helmets"
+                              placeholder="e.g. CE Certified Protection"
                               className="w-full bg-white border border-slate-300 text-slate-800 text-xs px-3 py-2 rounded-md focus:outline-none focus:border-brand shadow-2xs"
                             />
                           </div>
