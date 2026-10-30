@@ -95,10 +95,19 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
     return false;
   }, [allowBackorders, hasColors, hasSizes, activeColor, activeSize, disabledColors, disabledSizes, stockStatus]);
 
+  const setIsPDP = useUIStore((state) => state.setIsPDP);
+  useEffect(() => {
+    setIsPDP(true);
+    return () => setIsPDP(false);
+  }, [setIsPDP]);
+
   return (
-    <div className={`fixed bottom-0 left-0 w-full z-40 bg-white/95 supports-[backdrop-filter]:bg-white/90 backdrop-blur-2xl border-t border-neutral-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transform-gpu will-change-transform transition-all duration-300 pb-safe ${
-      openDropdown || showSizeChart ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
-    }`}>
+    <div
+      id="pdp-sticky-bar"
+      className={`fixed bottom-0 left-0 w-full z-40 bg-white/95 supports-[backdrop-filter]:bg-white/90 backdrop-blur-2xl border-t border-neutral-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transform-gpu will-change-transform transition-all duration-300 pb-safe ${
+        openDropdown || showSizeChart ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
+      }`}
+    >
       
       {/* Top Floating Mini-Bar (Google Reviews - Matching Category Page) */}
       <div className="w-full bg-white border-b border-neutral-200/80 py-2.5 px-4 shadow-[0_-4px_15px_rgba(0,0,0,0.02)]">
@@ -417,13 +426,15 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                   <span>COLOR:</span>
                   <span className="text-neutral-900 font-extrabold">{activeColor || "Select"}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5" suppressHydrationWarning>
                   {colors.map((colorObj, idx) => {
                     const isSelected = activeColor === colorObj.name;
                     const isDisabled = disabledColors.includes(colorObj.name);
                     return (
                       <button
                         key={`sticky-color-${idx}-${colorObj.name}`}
+                        type="button"
+                        suppressHydrationWarning
                         onClick={() => handleColorClick(colorObj.name)}
                         disabled={isDisabled}
                         className={`w-7 h-7 rounded-full border-2 transition-all duration-150 relative ${
@@ -453,6 +464,8 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                   <span className="text-[9px] uppercase font-bold tracking-wider text-neutral-500">{sizeLabel}</span>
                   {sizeChart && (
                     <button 
+                      type="button"
+                      suppressHydrationWarning
                       onClick={() => setShowSizeChart(true)}
                       className="flex items-center gap-1 hover:opacity-80 transition-opacity"
                     >
@@ -467,13 +480,15 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                     </button>
                   )}
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1" suppressHydrationWarning>
                   {sizes.map(size => {
                     const isSelected = activeSize === size;
                     const isDisabled = disabledSizes.includes(size);
                     return (
                       <button
                         key={`sticky-size-${size}`}
+                        type="button"
+                        suppressHydrationWarning
                         onClick={() => handleSizeClick(size)}
                         disabled={isDisabled}
                         className={`min-w-[32px] h-8 px-2 text-xs font-bold rounded-lg border transition-all duration-150 ${
@@ -496,6 +511,8 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
             <div className="flex items-center gap-2 ml-4 shrink-0">
               {hasAdded ? (
                 <button 
+                  type="button"
+                  suppressHydrationWarning
                   onClick={() => router.push("/cart")} 
                   className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-8 py-3 rounded-xl font-black tracking-wider text-sm flex items-center gap-2 shadow-md transition-all whitespace-nowrap active:scale-95 animate-in zoom-in-95 duration-200"
                 >
@@ -505,6 +522,8 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
                 </button>
               ) : (
                 <button 
+                  type="button"
+                  suppressHydrationWarning
                   onClick={handleAddToCartClick}
                   disabled={isOutOfStock || priceFormatted === "Contact for Price"}
                   className={`${

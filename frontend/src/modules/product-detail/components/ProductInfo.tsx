@@ -83,6 +83,18 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     }
   }, [shortDescription]);
 
+  const handleScrollToDetailedDescription = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("expand-product-detail-description"));
+      const el =
+        document.getElementById("product-detail-description") ||
+        document.getElementById("product-description-card");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  };
+
   return (
     <>
       <div className="flex flex-col gap-1.5">
@@ -318,16 +330,26 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
               className={`text-neutral-500 text-xs md:text-sm leading-relaxed font-sans [&_a]:text-blue-600 [&_a]:underline hover:[&_a]:text-blue-800 [&_a]:font-medium ${isDescExpanded ? "" : "line-clamp-3"}`}
               dangerouslySetInnerHTML={{ __html: cleanRichContent(shortDescription) }}
             />
-            {showReadMore && (
-              <div className="flex justify-center w-full mt-1.5">
+            <div className="flex items-center justify-between w-full mt-1.5">
+              {showReadMore ? (
                 <button
+                  type="button"
                   onClick={() => setIsDescExpanded(!isDescExpanded)}
-                  className="text-[11px] font-extrabold text-[#ab1509] hover:text-[#8a1107] uppercase tracking-wider hover:underline transition-all flex items-center gap-1 py-0.5 px-2"
+                  className="text-[11px] font-extrabold text-[#ab1509] hover:text-[#8a1107] uppercase tracking-wider hover:underline transition-all flex items-center gap-1 py-0.5 cursor-pointer text-left"
                 >
                   {isDescExpanded ? "READ LESS" : "READ MORE"}
                 </button>
-              </div>
-            )}
+              ) : (
+                <div />
+              )}
+              <button
+                type="button"
+                onClick={handleScrollToDetailedDescription}
+                className="text-[11px] font-extrabold text-[#ab1509] hover:text-[#8a1107] uppercase tracking-wider hover:underline transition-all flex items-center gap-1 py-0.5 cursor-pointer text-right ml-auto"
+              >
+                Detailed Description
+              </button>
+            </div>
           </div>
         )}
 

@@ -133,11 +133,17 @@ export const DetailAndReviews: React.FC<{
   const parsedDescription = React.useMemo(() => cleanHtml(fullDescription), [fullDescription]);
   const [isMobileDescExpanded, setIsMobileDescExpanded] = React.useState(false);
 
+  React.useEffect(() => {
+    const handleExpand = () => setIsMobileDescExpanded(true);
+    window.addEventListener("expand-product-detail-description", handleExpand);
+    return () => window.removeEventListener("expand-product-detail-description", handleExpand);
+  }, []);
+
   return (
     <div className="w-full">
 
       {/* ── Section Header Bar ── */}
-      <div className="w-full bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950 py-2.5 sm:py-3.5 px-4 sm:px-8 rounded-xl shadow-xs">
+      <div id="product-detail-description" className="w-full bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950 py-2.5 sm:py-3.5 px-4 sm:px-8 rounded-xl shadow-xs scroll-mt-20">
         <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-12">
           <h2 className="font-sans text-[11px] sm:text-sm md:text-base font-bold uppercase tracking-wider sm:tracking-[0.2em] text-white flex items-center justify-center lg:justify-start gap-2 sm:gap-3 whitespace-nowrap overflow-hidden">
             <span className="w-4 sm:w-6 md:w-8 h-[2px] bg-[#ab1509] shrink-0" />
@@ -156,7 +162,7 @@ export const DetailAndReviews: React.FC<{
         <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-12 items-start">
 
           {/* ─── LEFT: Product Details Card ─── */}
-          <div id="product-description-card" className="bg-white border border-neutral-200/90 rounded-2xl p-3.5 sm:p-7 shadow-xs">
+          <div id="product-description-card" className="bg-white border border-neutral-200/90 rounded-2xl p-3.5 sm:p-7 shadow-xs scroll-mt-20">
             {/* Inner Header - Hidden on mobile to prevent duplicate heading */}
             <div className="hidden md:flex items-center gap-3 pb-4 mb-6 border-b border-neutral-100">
               <span className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-100/80 flex items-center justify-center text-[#ab1509]">

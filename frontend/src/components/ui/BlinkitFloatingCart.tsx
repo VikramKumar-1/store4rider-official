@@ -61,7 +61,7 @@ export const BlinkitFloatingCart: React.FC = () => {
       {items.length > 0 && (
         <aside 
           aria-label="Quick Cart Widget" 
-          className={`fixed ${isPDP ? 'bottom-[170px] lg:bottom-[100px]' : 'bottom-[100px] lg:bottom-6'} right-4 sm:right-6 z-[50] transition-all duration-300 ${
+          className={`fixed ${isPDP ? 'bottom-[196px] lg:bottom-[100px]' : 'bottom-[116px] lg:bottom-6'} right-4 sm:right-6 z-[50] transition-all duration-300 ${
             isBottomModalOpen ? "translate-y-[20px] opacity-0 pointer-events-none" : "translate-y-0 opacity-100 pointer-events-auto"
           }`}
         >

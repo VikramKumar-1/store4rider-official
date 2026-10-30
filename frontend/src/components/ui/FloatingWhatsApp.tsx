@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
+import { useCartStore } from "@/stores/useCartStore";
+import { useUIStore } from "@/stores/useUIStore";
 
 /**
  * Static storefront routes that DO NOT have a sticky bottom bar on mobile.
@@ -53,14 +55,10 @@ const ROUTES_WITHOUT_BOTTOM_BAR = [
 export const FloatingWhatsApp: React.FC = () => {
   const pathname = usePathname();
   const { data: settings } = usePublicSettings();
-  const [mounted, setMounted] = useState(false);
+  const cartItemCount = useCartStore((state) => state.items.length);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Do not render on Admin routes or before hydration
-  if (!mounted || !pathname || pathname.startsWith("/admin") || pathname.startsWith("/api")) {
+  // Do not render on Admin or API routes
+  if (!pathname || pathname.startsWith("/admin") || pathname.startsWith("/api")) {
     return null;
   }
 
@@ -97,12 +95,34 @@ export const FloatingWhatsApp: React.FC = () => {
   );
   const hasStickyBottomBar = !isMarketingPage;
 
+  // Check if Blinkit floating cart is active on this page
+  const isProductPage =
+    pathname === "/products" ||
+    pathname?.startsWith("/products/") ||
+    pathname?.startsWith("/search");
+  const hasBlinkitCart = cartItemCount > 0 && isProductPage;
+
+  const isPDP = useUIStore((state) => state.isPDP);
+
+  // Calculate mobile bottom position to prevent overlapping with:
+  // 1. "See all reviews" in PDP & Catalog sticky bars (~184px high)
+  // 2. Blinkit floating cart widget when active (~196px high)
+  const mobileBottomClass = hasStickyBottomBar
+    ? hasBlinkitCart
+      ? "bottom-[256px]"
+      : "bottom-[196px]"
+    : "bottom-6";
+
+  // Calculate desktop/tablet bottom position:
+  // On PDP, sticky footer bar with "SEE ALL REVIEWS >" is ~125px high, so WhatsApp floats above it at 144px.
+  // On other pages, WhatsApp rests at standard bottom-6 (24px).
+  const desktopBottomClass = isPDP ? "md:bottom-[144px]" : "md:bottom-6";
+
   return (
     <div
       aria-label="WhatsApp Chat Support"
-      className={`fixed ${
-        hasStickyBottomBar ? "bottom-[126px]" : "bottom-6"
-      } md:bottom-6 right-3.5 md:right-7 z-40 flex items-center print:hidden select-none transition-all duration-300`}
+      suppressHydrationWarning
+      className={`fixed ${mobileBottomClass} ${desktopBottomClass} right-3.5 md:right-7 z-40 flex items-center print:hidden select-none`}
     >
       {/* Clean WhatsApp Floating Action Button (compact 46px on mobile, 56px on desktop) */}
       <a
