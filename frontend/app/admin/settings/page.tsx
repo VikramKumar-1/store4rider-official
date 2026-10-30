@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import AdminSettingsDashboard from "@/modules/admin/components/AdminSettingsDashboard";
 
 export const metadata = {
@@ -5,5 +6,9 @@ export const metadata = {
 };
 
 export default function AdminSettingsPage() {
-  return <AdminSettingsDashboard />;
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-neutral-500">Loading settings...</div>}>
+      <AdminSettingsDashboard />
+    </Suspense>
+  );
 }

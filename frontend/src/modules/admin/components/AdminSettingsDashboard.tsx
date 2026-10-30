@@ -1,17 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { AdminPaymentSettings } from "@/modules/admin/components/AdminPaymentSettings";
 import { AdminShippingSettings } from "@/modules/admin/components/AdminShippingSettings";
 import { AdminGoogleReviewsSettings } from "@/modules/admin/components/AdminGoogleReviewsSettings";
 import { AdminGstSettings } from "@/modules/admin/components/AdminGstSettings";
 import { AdminContactSettings } from "@/modules/admin/components/AdminContactSettings";
 import { AdminSearchSettings } from "@/modules/admin/components/AdminSearchSettings";
+import { AdminFooterSettings } from "@/modules/admin/components/AdminFooterSettings";
 
-type SettingsTab = "contact" | "shipping" | "payments" | "gst" | "search" | "google-reviews";
+type SettingsTab = "contact" | "shipping" | "payments" | "gst" | "search" | "google-reviews" | "footer";
 
 export default function AdminSettingsDashboard() {
+  const searchParams = useSearchParams();
+  const tabQuery = searchParams.get("tab") as SettingsTab | null;
   const [activeTab, setActiveTab] = useState<SettingsTab>("contact");
+
+  useEffect(() => {
+    if (tabQuery && ["contact", "footer", "shipping", "payments", "gst", "search", "google-reviews"].includes(tabQuery)) {
+      setActiveTab(tabQuery);
+    }
+  }, [tabQuery]);
 
   return (
     <div className="p-6">
@@ -19,7 +29,7 @@ export default function AdminSettingsDashboard() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Store Settings</h1>
           <p className="text-xs text-slate-500 mt-1">
-            Configure global store rules including shipping rates, free shipping thresholds, partial COD, payments, and SEO in one place.
+            Configure global store rules including footer navigation, shipping rates, free shipping thresholds, partial COD, payments, and SEO in one place.
           </p>
         </div>
       </div>
@@ -36,6 +46,20 @@ export default function AdminSettingsDashboard() {
           <span>Store Contact & SEO</span>
           <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded uppercase">
             Schema
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("footer")}
+          className={`px-6 py-3 font-bold text-sm uppercase tracking-wide transition-all border-b-2 flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+            activeTab === "footer"
+              ? "text-brand border-brand"
+              : "text-neutral-500 border-transparent hover:text-neutral-800"
+          }`}
+        >
+          <span>Footer Navigation</span>
+          <span className="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-1.5 py-0.5 rounded uppercase">
+            Links
           </span>
         </button>
 
@@ -111,6 +135,7 @@ export default function AdminSettingsDashboard() {
       </div>
 
       {activeTab === "contact" && <AdminContactSettings />}
+      {activeTab === "footer" && <AdminFooterSettings />}
       {activeTab === "shipping" && <AdminShippingSettings />}
       {activeTab === "payments" && <AdminPaymentSettings />}
       {activeTab === "gst" && <AdminGstSettings />}

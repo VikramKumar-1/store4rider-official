@@ -7,6 +7,30 @@ export interface IPackagePreset {
 
 export type GstPricingMode = "inclusive" | "exclusive";
 
+export interface IFooterLink {
+  label: string;
+  url: string;
+  openInNewTab?: boolean;
+}
+
+export interface IFooterConfig {
+  aboutText?: string;
+  showContact?: boolean;
+  contactPhone?: string;
+  contactEmail?: string;
+  contactAddress?: string;
+  showSocialLinks?: boolean;
+  column1Title?: string;
+  column1Links?: IFooterLink[];
+  column2Title?: string;
+  column2Links?: IFooterLink[];
+  newsletterTitle?: string;
+  newsletterSubtitle?: string;
+  newsletterPlaceholder?: string;
+  copyrightText?: string;
+  bottomLinks?: IFooterLink[];
+}
+
 export interface ISetting {
   taxRate: number;
   freeShippingThreshold: number;
@@ -32,8 +56,10 @@ export interface ISetting {
   facebookUrl?: string;
   instagramUrl?: string;
   youtubeUrl?: string;
+  twitterUrl?: string;
   returnWindowDays?: number;
   popularSearches?: string[];
+  footerConfig?: IFooterConfig;
 }
 
 export interface IPublicSettings {
@@ -59,6 +85,8 @@ export interface IPublicSettings {
   facebookUrl?: string;
   instagramUrl?: string;
   youtubeUrl?: string;
+  twitterUrl?: string;
   returnWindowDays?: number;
   packagePresets?: IPackagePreset[];
+  footerConfig?: IFooterConfig;
 }

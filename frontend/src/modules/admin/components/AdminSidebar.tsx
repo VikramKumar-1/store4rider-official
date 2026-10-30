@@ -28,6 +28,9 @@ import {
   Plus,
   BookOpen,
   FileText,
+  CreditCard,
+  Receipt,
+  Star,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
@@ -148,9 +151,17 @@ const navItems: NavItem[] = [
   },
   { 
     name: "Settings", 
-    href: "/admin/settings", 
     icon: Settings, 
-    allowedRoles: ["super_admin", "admin"] 
+    allowedRoles: ["super_admin", "admin"],
+    subItems: [
+      { name: "Store Contact & SEO", href: "/admin/settings?tab=contact", icon: Globe },
+      { name: "Footer Navigation", href: "/admin/settings?tab=footer", icon: Layers },
+      { name: "Shipping & Delivery", href: "/admin/settings?tab=shipping", icon: Truck },
+      { name: "Payment & COD", href: "/admin/settings?tab=payments", icon: CreditCard },
+      { name: "Tax & GST", href: "/admin/settings?tab=gst", icon: Receipt },
+      { name: "Search & Discovery", href: "/admin/settings?tab=search", icon: Search },
+      { name: "Google Reviews", href: "/admin/settings?tab=google-reviews", icon: Star },
+    ]
   },
 ];
 
@@ -182,6 +193,7 @@ export function AdminSidebar() {
     Blog: pathname.startsWith("/admin/blog"),
     Homepage: pathname.startsWith("/admin/homepage"),
     Users: pathname.startsWith("/admin/users"),
+    Settings: pathname.startsWith("/admin/settings"),
   });
 
   useEffect(() => {
@@ -196,6 +208,9 @@ export function AdminSidebar() {
     }
     if (pathname.startsWith("/admin/users")) {
       setOpenMenus(prev => ({ ...prev, Users: true }));
+    }
+    if (pathname.startsWith("/admin/settings")) {
+      setOpenMenus(prev => ({ ...prev, Settings: true }));
     }
   }, [pathname]);
 

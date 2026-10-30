@@ -177,29 +177,29 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
 
           {/* Right Product Grid (2 columns on mobile with dark gradient name & price overlay) */}
           <section className="flex-1 w-full min-w-0">
-            {/* Sort & Count Header on Desktop */}
-            <div className="hidden sm:flex items-center justify-between pb-4 border-b border-neutral-100 mb-6">
-              <div className="flex items-center gap-2.5">
-                <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
-                  Products Overview
+            {/* Sort & Count Header (Responsive: Visible on both Mobile & Desktop) */}
+            <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-neutral-100 mb-4 sm:mb-6">
+              <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                <span className="text-[11px] sm:text-xs font-bold text-neutral-400 uppercase tracking-wider truncate">
+                  {totalCount !== undefined ? `${totalCount.toLocaleString()} ${totalCount === 1 ? "Product" : "Products"}` : "Products Overview"}
                 </span>
                 {isFetching && (
-                  <span className="flex items-center gap-1.5 text-xs text-neutral-500 font-medium">
-                    <span className="w-3 h-3 border-2 border-neutral-300 border-t-[#FF5429] rounded-full animate-spin" />
-                    <span className="text-[11px] font-semibold text-neutral-500 tracking-normal">Filtering...</span>
+                  <span className="flex items-center gap-1.5 text-xs text-neutral-500 font-medium shrink-0">
+                    <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 border-2 border-neutral-300 border-t-[#FF5429] rounded-full animate-spin" />
+                    <span className="hidden min-[420px]:inline text-[10px] sm:text-[11px] font-semibold text-neutral-500 tracking-normal">Filtering...</span>
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
-                <label htmlFor="catalog-sort" className="text-xs font-bold uppercase tracking-wider text-neutral-500 whitespace-nowrap">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <label htmlFor="catalog-sort" className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-neutral-500 whitespace-nowrap">
                   Sort by:
                 </label>
                 <select
                   id="catalog-sort"
                   value={sortParam}
                   onChange={(e) => handleSortChange(e.target.value)}
-                  className="text-xs font-semibold bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-md py-1.5 px-2.5 focus:outline-none focus:border-neutral-400 cursor-pointer text-neutral-800 shadow-xs transition-colors"
+                  className="text-[11px] sm:text-xs font-semibold bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-md py-1.5 px-2 sm:px-2.5 focus:outline-none focus:border-neutral-400 cursor-pointer text-neutral-800 shadow-xs transition-colors"
                 >
                   <option value="">Featured</option>
                   <option value="newest">Newest First</option>
@@ -208,8 +208,8 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
                   <option value="price-desc">Price: High to Low</option>
                   <option value="rating">Top Rated</option>
                 </select>
-        </div>
-        </div>
+              </div>
+            </div>
 
             <CatalogGrid 
               products={products} 

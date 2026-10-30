@@ -1,172 +1,184 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeftRight, CheckCircle2, AlertCircle, Clock, ShieldCheck, HelpCircle } from "lucide-react";
-import { buildBreadcrumbSchema, buildFAQSchema } from "@/core/utils/seo-schema";
+import { buildFAQSchema } from "@/core/utils/seo-schema";
+import { PolicyPageLayout } from "@/components/layout/PolicyPageLayout";
 
 export const metadata: Metadata = {
-  title: "Exchange Policy | Store4Riders",
-  description: "Store4Riders 7-day hassle-free size and gear exchange policy for riding jackets, helmets, boots, gloves, and accessories.",
+  title: "Exchange & Replacement Policy | Store4Riders",
+  description:
+    "Store4Riders 7-day hassle-free size and gear exchange policy for riding jackets, helmets, boots, gloves, and accessories.",
   alternates: {
     canonical: "https://store4riders.com/returns",
   },
 };
 
 export default function ExchangePolicyPage() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
-
-  const breadcrumbSchema = buildBreadcrumbSchema(
-    [
-      { name: "Home", url: "/" },
-      { name: "Exchange Policy", url: "/returns" },
-    ],
-    siteUrl
-  );
-
   const faqSchema = buildFAQSchema([
     {
       question: "What is the Store4Riders exchange window?",
-      answer: "We offer a dedicated 7-day size and gear replacement exchange window from the confirmed date of delivery.",
+      answer:
+        "We offer a dedicated 7-day size and gear replacement exchange window from the confirmed date of delivery.",
     },
     {
       question: "What products qualify for exchange?",
-      answer: "Riding jackets, pants, boots, helmets, and gloves must be unused, unwashed, and in pristine condition with all manufacturer tags, armor inserts, and original packaging intact. Helmet visor protective peels must remain unpeeled.",
+      answer:
+        "Riding jackets, pants, boots, helmets, and gloves must be unused, unwashed, and in pristine condition with all manufacturer tags, armor inserts, and original packaging intact. Helmet visor protective peels must remain unpeeled.",
     },
     {
       question: "How do I request an exchange?",
-      answer: "Visit My Account > My Orders and select the delivered order, or email our support team at support@store4riders.com with photos of the gear and your desired replacement size.",
+      answer:
+        "Visit My Account > My Orders and select the delivered order, or email our support team at support@store4riders.com with photos of the gear and your desired replacement size.",
     },
     {
       question: "Is doorstep reverse pickup provided?",
-      answer: "Yes, our courier logistics partners arrange reverse doorstep pickup directly from your delivery address upon QC authorization.",
+      answer:
+        "Yes, our courier logistics partners arrange reverse doorstep pickup directly from your delivery address upon QC authorization.",
     },
   ]);
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
       {faqSchema && (
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
         />
       )}
-      <div className="min-h-screen bg-slate-50 text-slate-900 pt-28 sm:pt-32 pb-20 px-4 sm:px-6">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header Hero */}
-        <div className="bg-white rounded-2xl p-6 sm:p-10 shadow-sm border border-slate-200/80">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FF5429]/10 text-[#FF5429] text-xs font-bold tracking-wide uppercase mb-4">
-            <ArrowLeftRight size={14} />
-            Exchange Policy
+
+      <PolicyPageLayout
+        title="Exchange & Replacement Policy"
+        subtitle="Because motorcycle safety depends on a precise, secure fit, Store4Riders provides a dedicated 7-Day Size & Gear Exchange on all eligible riding essentials."
+        badge="7-Day Fit Guarantee"
+        badgeIcon={<ArrowLeftRight size={14} className="text-brand shrink-0" />}
+        lastUpdated="October 2026"
+        currentSlug="/returns"
+        summaryAlert={{
+          type: "warning",
+          title: "Strict Exchange-Only Policy",
+          text: (
+            <span>
+              Store4Riders operates exclusively on a size and variant replacement basis. We do not provide monetary cash refunds. If your requested replacement size is temporarily out of stock with the manufacturer, store credit with lifetime validity will be issued.
+            </span>
+          ),
+        }}
+      >
+        <section>
+          <h2>1. Three Core Pillars of Our Exchange Policy</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200/80 flex flex-col items-center text-center">
+              <div className="w-10 h-10 rounded-full bg-brand/10 text-brand flex items-center justify-center mb-3">
+                <Clock size={20} className="text-brand" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-1 mt-0">
+                7-Day Window
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed mb-0">
+                Request your exchange within 7 days from the confirmed date of delivery.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200/80 flex flex-col items-center text-center">
+              <div className="w-10 h-10 rounded-full bg-brand/10 text-brand flex items-center justify-center mb-3">
+                <ShieldCheck size={20} className="text-brand" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-1 mt-0">
+                Unworn &amp; Tags Intact
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed mb-0">
+                Gear must be unused and unwashed with all tags, armor, and box intact.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200/80 flex flex-col items-center text-center">
+              <div className="w-10 h-10 rounded-full bg-brand/10 text-brand flex items-center justify-center mb-3">
+                <ArrowLeftRight size={20} className="text-brand" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-1 mt-0">
+                Doorstep Pickup
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed mb-0">
+                Courier partners arrange reverse pickup directly from your address.
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900 mb-3">
-            Hassle-Free Exchange Policy
-          </h1>
-          <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-            At Store4Riders, we want you to ride with gear that fits you perfectly. 
-            Because riding safety depends on accurate sizing and gear fitment, we offer a dedicated 
-            <strong className="text-slate-900"> 7-Day Size & Gear Exchange</strong> on all eligible riding essentials.
+        </section>
+
+        <section>
+          <h2>2. Exchange Eligibility Criteria</h2>
+          <p>
+            To qualify for a hassle-free size or color variant exchange, the returned gear must satisfy our quality-control parameters:
           </p>
+          <ul>
+            <li>
+              The exchange request must be initiated within <strong>7 days</strong> of the confirmed delivery date.
+            </li>
+            <li>
+              <strong>Helmets:</strong> Must have the original factory visor protective peel completely intact and unpeeled. Zero scuffs, scratches, hair, or forehead sweat marks.
+            </li>
+            <li>
+              <strong>Jackets &amp; Pants:</strong> Must include all original brand tags, CE armor inserts, and removable thermal/waterproof liners.
+            </li>
+            <li>
+              <strong>Boots &amp; Shoes:</strong> Must be tried on indoors on clean surfaces only; outsoles must be free of road dust, pebbles, or pedal teeth marks.
+            </li>
+            <li>
+              Items showing signs of outdoor road use, motorcycle mounting, cosmetic odors, or wash cycles cannot be accepted.
+            </li>
+            <li>
+              Electrical accessories, Bluetooth intercoms (once packaging seal is broken), and clearance/final-sale items are non-exchangeable unless functionally defective upon initial delivery.
+            </li>
+          </ul>
+        </section>
 
-          <div className="mt-6 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3 text-amber-900 text-xs sm:text-sm">
-            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold">Strict Exchange-Only Policy:</span> Store4Riders operates exclusively on a size and variant replacement basis. We do not provide monetary refunds or direct returns. In the event your requested replacement size is out of stock, store credit with lifetime validity will be issued.
+        <section>
+          <h2>3. Step-by-Step: How to Request an Exchange</h2>
+          <div className="space-y-4 my-6">
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-start gap-3.5">
+              <span className="w-7 h-7 rounded-full bg-brand text-white font-bold text-xs flex items-center justify-center shrink-0">
+                1
+              </span>
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm">Initiate Online</h4>
+                <p className="text-xs text-slate-600 mt-1">
+                  Visit <Link href="/account" className="text-brand font-bold hover:underline">My Account &gt; Order History</Link>, select your delivered order, and click <em>Request Size Exchange</em>, or email our support desk at <strong className="text-brand">support@store4riders.com</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-start gap-3.5">
+              <span className="w-7 h-7 rounded-full bg-brand text-white font-bold text-xs flex items-center justify-center shrink-0">
+                2
+              </span>
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm">Provide Fit Photos</h4>
+                <p className="text-xs text-slate-600 mt-1">
+                  Share quick photos showing the gear with tags intact and your desired replacement size. Our team confirms availability within 24 hours.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-start gap-3.5">
+              <span className="w-7 h-7 rounded-full bg-brand text-white font-bold text-xs flex items-center justify-center shrink-0">
+                3
+              </span>
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm">Doorstep Reverse Pickup &amp; Replacement</h4>
+                <p className="text-xs text-slate-600 mt-1">
+                  Our courier arranges reverse doorstep pickup. Upon receipt and quick QC at our central warehouse in Pune, your replacement size is dispatched immediately.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* 3 Core Pillars */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-6 rounded-xl border border-slate-200/80 shadow-xs flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-brand mb-4">
-              <Clock size={22} className="text-[#FF5429]" />
-            </div>
-            <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider mb-2">7 Days Window</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Request your exchange within 7 days from the confirmed date of delivery.
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl border border-slate-200/80 shadow-xs flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-brand mb-4">
-              <ShieldCheck size={22} className="text-[#FF5429]" />
-            </div>
-            <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider mb-2">Unworn & Original Tags</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Gear must be unused, unwashed, and in pristine condition with all manufacturer tags and packaging intact.
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl border border-slate-200/80 shadow-xs flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-brand mb-4">
-              <ArrowLeftRight size={22} className="text-[#FF5429]" />
-            </div>
-            <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider mb-2">Doorstep Pickup</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Our courier partners will arrange reverse pickup directly from your delivery address upon approval.
-            </p>
-          </div>
-        </div>
-
-        {/* Detailed Guidelines */}
-        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6 text-sm text-slate-700">
-          <section>
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 uppercase tracking-wide mb-3 flex items-center gap-2">
-              <CheckCircle2 size={18} className="text-emerald-600" />
-              1. Exchange Eligibility Criteria
-            </h2>
-            <ul className="space-y-2 list-disc pl-5 text-xs sm:text-sm text-slate-600">
-              <li>The item must be reported for exchange within <strong>7 days</strong> of delivery.</li>
-              <li>Helmets must have the original visor protective peel intact and show zero scuffs, scratches, or visor marks.</li>
-              <li>Riding jackets, pants, boots, and gloves must have all original brand tags, armor pads, thermal liners, and packaging.</li>
-              <li>Items showing signs of outdoor road use, dirt, perfume, sweat, or installation on a motorcycle will not qualify for exchange.</li>
-              <li>Electrical accessories, intercoms, clearance/final-sale items, and customized merchandise are non-exchangeable unless defective upon initial delivery.</li>
-            </ul>
-          </section>
-
-          <section className="border-t border-slate-100 pt-6">
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 uppercase tracking-wide mb-3 flex items-center gap-2">
-              <ArrowLeftRight size={18} className="text-brand" />
-              2. How to Request an Exchange
-            </h2>
-            <div className="space-y-3 text-xs sm:text-sm text-slate-600">
-              <p>
-                <strong>Step 1:</strong> Visit <Link href="/account" className="text-blue-600 hover:text-blue-800 font-semibold underline hover:underline">My Account &gt; My Orders</Link> and select the delivered order to initiate an exchange request, or email our support team at <a href="mailto:support@store4riders.com" className="text-blue-600 hover:text-blue-800 font-semibold underline hover:underline">support@store4riders.com</a>.
-              </p>
-              <p>
-                <strong>Step 2:</strong> Provide clear photos of the product, including tags and intact packaging, along with your desired replacement size.
-              </p>
-              <p>
-                <strong>Step 3:</strong> Once verified by our QC team, reverse pickup is scheduled. Upon receipt and inspection at our central warehouse, the replacement size will be dispatched immediately.
-              </p>
-            </div>
-          </section>
-
-          <section className="border-t border-slate-100 pt-6">
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 uppercase tracking-wide mb-3 flex items-center gap-2">
-              <HelpCircle size={18} className="text-slate-700" />
-              3. Questions & Assistance
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600">
-              Need assistance determining your sizing before dispatch? Reach out to our riding gear specialists directly through <Link href="/support" className="text-blue-600 hover:text-blue-800 font-semibold underline hover:underline">Customer Support</Link> or WhatsApp. We are here to help you get the right fit on your first ride!
-            </p>
-          </section>
-        </div>
-
-        {/* Footer Navigation CTA */}
-        <div className="text-center pt-2">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 bg-[#FF5429] hover:bg-[#e0451d] text-white font-bold text-sm px-8 py-3 rounded-xl shadow-sm transition-all"
-          >
-            Continue Shopping
-          </Link>
-        </div>
-      </div>
-    </div>
+        <section>
+          <h2>4. Sizing Consultation Before Exchange</h2>
+          <p>
+            Unsure whether to size up or down? Connect directly with our riding gear specialists on WhatsApp or call our support helpline before requesting your swap. We are dedicated to ensuring you get the exact fit for safe, comfortable riding.
+          </p>
+        </section>
+      </PolicyPageLayout>
     </>
   );
 }

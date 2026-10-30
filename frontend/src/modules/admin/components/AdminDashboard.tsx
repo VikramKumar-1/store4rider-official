@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -39,6 +39,10 @@ export function AdminDashboard() {
     setMounted(true);
   }, []);
 
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const isCustomerCareTab = tabParam === "inquiries" || tabParam === "orders";
+
   const isLogisticRole = user?.role === "logistic";
   const isCustomerCareRole = user?.role === "customer_care" || user?.role === "customer_support";
 
@@ -49,9 +53,9 @@ export function AdminDashboard() {
     }
   }, [mounted, isLogisticRole, router]);
 
-  const { data: stats, isLoading: statsLoading } = useAdminStats({ enabled: !isCustomerCareRole });
-  const { data: chartData, isLoading: chartLoading } = useAdminRevenueChart({ enabled: !isCustomerCareRole });
-  const { data: recentOrders, isLoading: ordersLoading } = useAdminRecentOrders({ enabled: !isCustomerCareRole });
+  const { data: stats, isLoading: statsLoading } = useAdminStats({ enabled: !isCustomerCareRole && !isCustomerCareTab });
+  const { data: chartData, isLoading: chartLoading } = useAdminRevenueChart({ enabled: !isCustomerCareRole && !isCustomerCareTab });
+  const { data: recentOrders, isLoading: ordersLoading } = useAdminRecentOrders({ enabled: !isCustomerCareRole && !isCustomerCareTab });
 
   if (!mounted || isLogisticRole) {
     if (isLogisticRole) return null;
@@ -70,7 +74,7 @@ export function AdminDashboard() {
   }
 
   // Pure dedicated Customer Care console: shows only Contact Us issues and Order Search/Assistance
-  if (isCustomerCareRole) {
+  if (isCustomerCareRole || isCustomerCareTab) {
     return <AdminCustomerCareDashboard />;
   }
 

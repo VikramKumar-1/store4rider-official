@@ -302,6 +302,8 @@ export function useBulkUpdateProducts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product_aggregations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
     },
   });
 }
@@ -330,6 +332,7 @@ export function useCreateProduct() {
       queryClient.invalidateQueries({ queryKey: ["product"] });
       queryClient.invalidateQueries({ queryKey: ["products-by-skus"] });
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["product_aggregations"] });
     },
   });
 }
@@ -346,6 +349,7 @@ export function useUpdateProduct() {
       queryClient.invalidateQueries({ queryKey: ["product"] });
       queryClient.invalidateQueries({ queryKey: ["products-by-skus"] });
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["product_aggregations"] });
     },
   });
 }
@@ -359,6 +363,8 @@ export function useDeleteProduct() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product_aggregations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
     },
   });
 }

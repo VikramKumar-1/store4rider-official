@@ -7,6 +7,30 @@ export const packagePresetSchema = z.object({
   height: z.number().min(1),
 });
 
+export const footerLinkSchema = z.object({
+  label: z.string().min(1, "Label is required"),
+  url: z.string().min(1, "URL is required"),
+  openInNewTab: z.boolean().optional(),
+});
+
+export const footerConfigSchema = z.object({
+  aboutText: z.string().max(1000).optional().or(z.literal("")),
+  showContact: z.boolean().optional(),
+  contactPhone: z.string().max(50).optional().or(z.literal("")),
+  contactEmail: z.string().max(100).optional().or(z.literal("")),
+  contactAddress: z.string().max(300).optional().or(z.literal("")),
+  showSocialLinks: z.boolean().optional(),
+  column1Title: z.string().max(100).optional().or(z.literal("")),
+  column1Links: z.array(footerLinkSchema).optional(),
+  column2Title: z.string().max(100).optional().or(z.literal("")),
+  column2Links: z.array(footerLinkSchema).optional(),
+  newsletterTitle: z.string().max(100).optional().or(z.literal("")),
+  newsletterSubtitle: z.string().max(300).optional().or(z.literal("")),
+  newsletterPlaceholder: z.string().max(100).optional().or(z.literal("")),
+  copyrightText: z.string().max(300).optional().or(z.literal("")),
+  bottomLinks: z.array(footerLinkSchema).optional(),
+});
+
 export const updateSettingSchema = z.object({
   taxRate: z.number().min(0).max(100).optional(),
   freeShippingThreshold: z.number().min(0).optional(),
@@ -44,6 +68,7 @@ export const updateSettingSchema = z.object({
   guidesMetaKeywords: z.string().max(500).optional().or(z.literal("")),
   guidesHeroTitle: z.string().max(200).optional().or(z.literal("")),
   guidesHeroDescription: z.string().max(1000).optional().or(z.literal("")),
+  footerConfig: footerConfigSchema.optional(),
 });
 
 export type UpdateSettingInput = z.infer<typeof updateSettingSchema>;

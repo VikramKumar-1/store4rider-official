@@ -106,7 +106,7 @@ export const deleteCache = async (key: string) => {
 export const clearProductCaches = async () => {
   const keysToDelete = [];
   for (const key of memoryCache.keys()) {
-    if (key.startsWith('products_') || key.startsWith('product_')) {
+    if (key.startsWith('products_') || key.startsWith('product_') || key.startsWith('aggs_')) {
       keysToDelete.push(key);
     }
   }
@@ -116,7 +116,8 @@ export const clearProductCaches = async () => {
     try {
       const keys = await redisClient.keys('products_*');
       const slugKeys = await redisClient.keys('product_*');
-      const allKeys = [...keys, ...slugKeys];
+      const aggsKeys = await redisClient.keys('aggs_*');
+      const allKeys = [...keys, ...slugKeys, ...aggsKeys];
       if (allKeys.length > 0) {
         await redisClient.del(...allKeys);
       }

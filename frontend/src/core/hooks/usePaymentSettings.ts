@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../api/client";
+import { IFooterConfig } from "@store4riders/shared-types";
 
 export interface IPublicSettings {
   enabledGateways: string[];
@@ -26,6 +27,7 @@ export interface IPublicSettings {
   twitterUrl?: string;
   returnWindowDays?: number;
   snapmintMinOrderValue?: number;
+  footerConfig?: IFooterConfig;
 }
 
 export function usePublicSettings() {

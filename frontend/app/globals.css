@@ -340,3 +340,114 @@ textarea {
   will-change: transform;
 }
 
+/* ==========================================
+ * POLICY PROSE & UNBREAKABLE CONTENT STYLING
+ * Ensures that any text, tables, lists, or HTML input by admin renders cleanly
+ * and never overflows or breaks the page layout.
+ * ==========================================*/
+.policy-prose {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.policy-prose h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin-top: 2rem;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.policy-prose h2:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.policy-prose h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-top: 1.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.policy-prose p {
+  color: #475569;
+  line-height: 1.7;
+  margin-bottom: 1.15rem;
+}
+
+.policy-prose ul {
+  list-style-type: disc;
+  padding-left: 1.35rem;
+  margin-bottom: 1.25rem;
+  color: #475569;
+}
+
+.policy-prose ol {
+  list-style-type: decimal;
+  padding-left: 1.35rem;
+  margin-bottom: 1.25rem;
+  color: #475569;
+}
+
+.policy-prose li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.policy-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  display: block;
+  overflow-x: auto;
+}
+
+.policy-prose th {
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-weight: 700;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.policy-prose td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #475569;
+}
+
+.policy-prose tr:last-child td {
+  border-bottom: none;
+}
+
+.policy-prose blockquote {
+  border-left: 4px solid #AB1509;
+  background-color: #fdf2f2;
+  padding: 1rem 1.25rem;
+  border-radius: 0 0.75rem 0.75rem 0;
+  color: #7f1d1d;
+  font-style: italic;
+  margin: 1.5rem 0;
+}
+
+.policy-prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  margin: 1.5rem 0;
+}
+
+

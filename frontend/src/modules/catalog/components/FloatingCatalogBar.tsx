@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { StarIcon } from "@heroicons/react/24/solid";
 import { FunnelIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { SidebarFilters } from "./SidebarFilters";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 interface FloatingCatalogBarProps {
   totalCount?: number;
@@ -20,12 +20,26 @@ export const FloatingCatalogBar: React.FC<FloatingCatalogBarProps> = ({
   isFetching = false,
 }) => {
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const sortParam = searchParams.get("sort") || "";
 
   // Count active filters from URL
   const activeFiltersCount = Array.from(searchParams.entries()).filter(
     ([k]) => !["sort", "page"].includes(k)
   ).length;
+
+  const handleSortChange = (newSort: string) => {
+    const current = new URLSearchParams(Array.from(searchParams.entries()));
+    if (newSort) {
+      current.set("sort", newSort);
+    } else {
+      current.delete("sort");
+    }
+    current.set("page", "1");
+    const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+    router.push(`${pathname}?${current.toString()}`, { scroll: false });
+  };
 
   // Prevent background scroll when mobile filter drawer is open
   useEffect(() => {
@@ -98,7 +112,7 @@ export const FloatingCatalogBar: React.FC<FloatingCatalogBarProps> = ({
             ) : (
               <FunnelIcon className="w-5 h-5 text-[#FF5429] stroke-[2.5]" />
             )}
-            <span>{isFetching ? "UPDATING PRODUCTS..." : "CATEGORY FILTER"}</span>
+            <span>{isFetching ? "UPDATING PRODUCTS..." : "FILTER & SORT"}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -146,6 +160,37 @@ export const FloatingCatalogBar: React.FC<FloatingCatalogBarProps> = ({
 
             {/* Drawer Body with Filters */}
             <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
+              {/* Mobile Drawer Sort By */}
+              <div className="mb-4 pb-3.5 border-b border-neutral-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-bold text-[13px] uppercase tracking-wide text-neutral-900">
+                    Sort By
+                  </span>
+                  {sortParam && (
+                    <button
+                      type="button"
+                      onClick={() => handleSortChange("")}
+                      className="text-[11px] font-semibold text-[#FF5429] hover:underline cursor-pointer"
+                    >
+                      Reset to Featured
+                    </button>
+                  )}
+                </div>
+                <select
+                  id="mobile-drawer-sort"
+                  value={sortParam}
+                  onChange={(e) => handleSortChange(e.target.value)}
+                  className="w-full text-xs font-semibold bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-lg py-2.5 px-3 focus:outline-none focus:border-neutral-400 cursor-pointer text-neutral-800 shadow-xs transition-colors"
+                >
+                  <option value="">Featured</option>
+                  <option value="newest">Newest First</option>
+                  <option value="bestselling">Bestselling</option>
+                  <option value="price-asc">Price: Low to High</option>
+                  <option value="price-desc">Price: High to Low</option>
+                  <option value="rating">Top Rated</option>
+                </select>
+              </div>
+
               <SidebarFilters isFetching={isFetching} />
             </div>
 

@@ -4,6 +4,7 @@
  * Stores global configurations controlled by the Admin panel.
  */
 import mongoose, { Schema, Document } from "mongoose";
+import { IFooterConfig } from "@store4riders/shared-types";
 
 export interface ISetting extends Document {
   taxRate: number;
@@ -42,7 +43,73 @@ export interface ISetting extends Document {
   guidesMetaKeywords?: string;
   guidesHeroTitle?: string;
   guidesHeroDescription?: string;
+  footerConfig?: IFooterConfig;
 }
+
+const footerLinkMongooseSchema = new Schema(
+  {
+    label: { type: String, required: true },
+    url: { type: String, required: true },
+    openInNewTab: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
+const footerConfigMongooseSchema = new Schema(
+  {
+    aboutText: { type: String, default: "" },
+    showContact: { type: Boolean, default: true },
+    contactPhone: { type: String, default: "" },
+    contactEmail: { type: String, default: "" },
+    contactAddress: { type: String, default: "" },
+    showSocialLinks: { type: Boolean, default: true },
+    column1Title: { type: String, default: "EXCHANGE & REPLACEMENTS" },
+    column1Links: {
+      type: [footerLinkMongooseSchema],
+      default: [
+        { label: "Exchange & Replacements", url: "/returns", openInNewTab: false },
+        { label: "Warranty", url: "/warranty", openInNewTab: false },
+        { label: "Conditions of Sale & Use", url: "/terms", openInNewTab: false },
+        { label: "Privacy and Cookie Policy", url: "/privacy", openInNewTab: false },
+        { label: "Legal", url: "/legal", openInNewTab: false },
+        { label: "Shipping Policies", url: "/shipping", openInNewTab: false },
+        { label: "Store Policies", url: "/store-policies", openInNewTab: false },
+      ],
+    },
+    column2Title: { type: String, default: "SUPPORT AND SERVICES" },
+    column2Links: {
+      type: [footerLinkMongooseSchema],
+      default: [
+        { label: "About us", url: "/about-us", openInNewTab: false },
+        { label: "Contact Us", url: "/contact-us", openInNewTab: false },
+        { label: "Your Account", url: "/account", openInNewTab: false },
+        { label: "Wish List", url: "/account/wishlist", openInNewTab: false },
+        { label: "Rider Assist", url: "/rider-assist", openInNewTab: false },
+        { label: "Cash on Delivery", url: "/cash-on-delivery", openInNewTab: false },
+        { label: "Collaboration", url: "/collaboration", openInNewTab: false },
+      ],
+    },
+    newsletterTitle: { type: String, default: "SUBSCRIBE US" },
+    newsletterSubtitle: {
+      type: String,
+      default: "Get updates on new riding gear arrivals, exclusive discount coupons, and offers.",
+    },
+    newsletterPlaceholder: { type: String, default: "Enter your email address" },
+    copyrightText: {
+      type: String,
+      default: "© {year} MotoHive Media Pvt. Ltd. (Store4Riders). All rights reserved.",
+    },
+    bottomLinks: {
+      type: [footerLinkMongooseSchema],
+      default: [
+        { label: "Privacy Policy", url: "/privacy", openInNewTab: false },
+        { label: "Terms of Service", url: "/terms", openInNewTab: false },
+        { label: "Exchange Policy", url: "/returns", openInNewTab: false },
+      ],
+    },
+  },
+  { _id: false }
+);
 
 const settingSchema = new Schema<ISetting>(
   {
@@ -81,6 +148,10 @@ const settingSchema = new Schema<ISetting>(
     guidesMetaKeywords: { type: String, default: "" },
     guidesHeroTitle: { type: String, default: "Motorcycle Guides & Expert Advice" },
     guidesHeroDescription: { type: String, default: "Real-world gear tests, sizing walkthroughs, maintenance checklists, and touring preparation guides curated by riders for Indian roads and conditions." },
+    footerConfig: {
+      type: footerConfigMongooseSchema,
+      default: () => ({}),
+    },
     packagePresets: { 
       type: [{ name: String, length: Number, breadth: Number, height: Number }], 
       default: [

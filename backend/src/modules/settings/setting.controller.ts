@@ -44,6 +44,7 @@ export class SettingController {
       guidesMetaTitle: settings.guidesMetaTitle || "",
       guidesMetaDescription: settings.guidesMetaDescription || "",
       guidesMetaKeywords: settings.guidesMetaKeywords || "",
+      footerConfig: settings.footerConfig,
     };
     return ApiResponse.success(publicData, "Public settings retrieved successfully");
   }
