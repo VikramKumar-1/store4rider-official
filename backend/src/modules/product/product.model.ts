@@ -123,5 +123,15 @@ productSchema.index({ "variants.attributes.color": 1 });
 productSchema.index({ "variants.attributes.size": 1 });
 productSchema.index({ "variants.stock": 1 });
 
+// High-performance compound indexes for category filtering and sorting
+productSchema.index({ categorySlugs: 1, status: 1, stockStatus: 1 });
+productSchema.index({ categorySlugs: 1, brand: 1, status: 1 });
+productSchema.index({ categorySlugs: 1, isFeatured: -1, createdAt: -1, _id: -1 });
+productSchema.index({ categorySlugs: 1, basePrice: 1, _id: -1 });
+productSchema.index({ categorySlugs: 1, basePrice: -1, _id: -1 });
+productSchema.index({ brand: 1, status: 1, stockStatus: 1 });
+productSchema.index({ "variants.attributes.color": 1, "variants.stock": 1 });
+productSchema.index({ "variants.attributes.size": 1, "variants.stock": 1 });
+
 // Prevent Mongoose from re-compiling the model during Next.js hot reloads
 export const ProductModel = mongoose.models.Product || mongoose.model<IProduct>("Product", productSchema);

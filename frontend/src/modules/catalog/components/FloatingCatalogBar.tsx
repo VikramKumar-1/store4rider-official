@@ -10,12 +10,14 @@ interface FloatingCatalogBarProps {
   totalCount?: number;
   reviewCount?: string | number;
   averageRating?: number;
+  isFetching?: boolean;
 }
 
 export const FloatingCatalogBar: React.FC<FloatingCatalogBarProps> = ({
   totalCount,
   reviewCount = "800+",
   averageRating = 4.8,
+  isFetching = false,
 }) => {
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   const searchParams = useSearchParams();
@@ -91,8 +93,12 @@ export const FloatingCatalogBar: React.FC<FloatingCatalogBarProps> = ({
           className="pointer-events-auto w-full bg-neutral-950 text-white font-black text-[13px] uppercase tracking-wider py-4 px-5 flex items-center justify-between border-t border-neutral-800 active:bg-neutral-900 transition-all cursor-pointer rounded-none pb-safe"
         >
           <div className="flex items-center gap-2.5">
-            <FunnelIcon className="w-5 h-5 text-[#FF5429] stroke-[2.5]" />
-            <span>CATEGORY FILTER</span>
+            {isFetching ? (
+              <div className="w-5 h-5 border-2 border-[#FF5429] border-t-transparent rounded-full animate-spin shrink-0" />
+            ) : (
+              <FunnelIcon className="w-5 h-5 text-[#FF5429] stroke-[2.5]" />
+            )}
+            <span>{isFetching ? "UPDATING PRODUCTS..." : "CATEGORY FILTER"}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -140,7 +146,7 @@ export const FloatingCatalogBar: React.FC<FloatingCatalogBarProps> = ({
 
             {/* Drawer Body with Filters */}
             <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
-              <SidebarFilters />
+              <SidebarFilters isFetching={isFetching} />
             </div>
 
             {/* Drawer Footer Action */}
@@ -148,9 +154,16 @@ export const FloatingCatalogBar: React.FC<FloatingCatalogBarProps> = ({
               <button
                 type="button"
                 onClick={() => setIsFilterDrawerOpen(false)}
-                className="w-full bg-[#FF5429] hover:bg-orange-600 text-white font-extrabold text-xs uppercase tracking-wider py-3 rounded-full transition-colors active:scale-95"
+                className="w-full bg-[#FF5429] hover:bg-orange-600 text-white font-extrabold text-xs uppercase tracking-wider py-3 rounded-full transition-colors active:scale-95 flex items-center justify-center gap-2"
               >
-                Apply Filters {totalCount ? `(${totalCount} Products)` : ""}
+                {isFetching ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Loading Products...</span>
+                  </>
+                ) : (
+                  <span>Apply Filters {totalCount ? `(${totalCount} Products)` : ""}</span>
+                )}
               </button>
             </div>
           </div>

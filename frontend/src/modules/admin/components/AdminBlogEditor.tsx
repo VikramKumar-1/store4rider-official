@@ -1360,7 +1360,7 @@ export function AdminBlogEditor({ id }: AdminBlogEditorProps) {
 
           {/* Rendered HTML */}
           <div
-            className="prose prose-slate prose-sm sm:prose-base max-w-none leading-relaxed"
+            className="prose prose-slate prose-sm sm:prose-base max-w-none leading-relaxed prose-a:text-blue-600 hover:prose-a:text-blue-800 prose-a:underline prose-a:font-medium"
             dangerouslySetInnerHTML={{ __html: contentValue || "<p class='text-slate-400 italic'>No content written yet.</p>" }}
           />
         </div>

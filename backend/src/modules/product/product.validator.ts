@@ -391,6 +391,8 @@ export class ProductValidator {
       // Match "size=X", "eu_size=X", or "eu_size_for_boots=X" inside configurableVariations
       const configVarRegexes = sizes.map(s => new RegExp(`(?:size|eu_size|eu_size_for_boots)=${ProductValidator.escapeRegExp(s)}(\\||,|$)`, "i"));
       const exactRegexes = sizes.map(s => new RegExp(`^${ProductValidator.escapeRegExp(s)}$`, "i"));
+      const exactStrings = sizes.flatMap(s => [s, s.toLowerCase(), s.toUpperCase()]);
+      const sizeExactMatch = [...new Set([...exactStrings, ...exactRegexes])];
       const skuSizeRegexes = sizes.map(s => new RegExp(`[-_]${ProductValidator.escapeRegExp(s)}(?:[-_]|$)`, "i"));
 
       // Standard size existence matching (9 conditions)
@@ -402,12 +404,12 @@ export class ProductValidator {
               { configurableVariations: { $in: configVarRegexes } }
             ]
           },
-          { "variants.attributes.size": { $in: exactRegexes } },
-          { "variants.attributes.eu_size": { $in: exactRegexes } },
-          { "variants.attributes.eu_size_for_boots": { $in: exactRegexes } },
-          { "attributes.size": { $in: exactRegexes } },
-          { "attributes.eu_size": { $in: exactRegexes } },
-          { "attributes.eu_size_for_boots": { $in: exactRegexes } },
+          { "variants.attributes.size": { $in: sizeExactMatch } },
+          { "variants.attributes.eu_size": { $in: sizeExactMatch } },
+          { "variants.attributes.eu_size_for_boots": { $in: sizeExactMatch } },
+          { "attributes.size": { $in: sizeExactMatch } },
+          { "attributes.eu_size": { $in: sizeExactMatch } },
+          { "attributes.eu_size_for_boots": { $in: sizeExactMatch } },
           { sku: { $in: skuSizeRegexes } },
           { "variants.sku": { $in: skuSizeRegexes } }
         ],
@@ -424,9 +426,9 @@ export class ProductValidator {
                   $and: [
                     {
                       $or: [
-                        { "attributes.size": { $in: exactRegexes } },
-                        { "attributes.eu_size": { $in: exactRegexes } },
-                        { "attributes.eu_size_for_boots": { $in: exactRegexes } },
+                        { "attributes.size": { $in: sizeExactMatch } },
+                        { "attributes.eu_size": { $in: sizeExactMatch } },
+                        { "attributes.eu_size_for_boots": { $in: sizeExactMatch } },
                         { sku: { $in: skuSizeRegexes } },
                       ]
                     },
@@ -490,6 +492,13 @@ export class ProductValidator {
       const configVarRegexes = colours.map(c => new RegExp(`color=${ProductValidator.escapeRegExp(c)}(\\||,|$)`, "i"));
       // Match exact value in structured variants.attributes
       const exactRegexes = colours.map(c => new RegExp(`^${ProductValidator.escapeRegExp(c)}$`, "i"));
+      const exactStrings = colours.flatMap(c => [
+        c,
+        c.toLowerCase(),
+        c.toUpperCase(),
+        c.charAt(0).toUpperCase() + c.slice(1).toLowerCase()
+      ]);
+      const colourExactMatch = [...new Set([...exactStrings, ...exactRegexes])];
       const nameColorRegexes = colours.map(c => new RegExp(`\\b${ProductValidator.escapeRegExp(c)}\\b`, "i"));
       const skuColorRegexes = colours.map(c => new RegExp(`[-_]${ProductValidator.escapeRegExp(c)}[-_]`, "i"));
       
@@ -515,10 +524,10 @@ export class ProductValidator {
               { configurableVariations: { $in: configVarRegexes } }
             ]
           },
-          { "variants.attributes.color": { $in: exactRegexes } },
-          { "variants.attributes.colour": { $in: exactRegexes } },
-          { "attributes.color": { $in: exactRegexes } },
-          { "attributes.colour": { $in: exactRegexes } },
+          { "variants.attributes.color": { $in: colourExactMatch } },
+          { "variants.attributes.colour": { $in: colourExactMatch } },
+          { "attributes.color": { $in: colourExactMatch } },
+          { "attributes.colour": { $in: colourExactMatch } },
           { name: { $in: nameColorRegexes } },
           { sku: { $in: skuColorRegexes } },
           ...colorImageConditions
@@ -536,8 +545,8 @@ export class ProductValidator {
                   $and: [
                     {
                       $or: [
-                        { "attributes.color": { $in: exactRegexes } },
-                        { "attributes.colour": { $in: exactRegexes } },
+                        { "attributes.color": { $in: colourExactMatch } },
+                        { "attributes.colour": { $in: colourExactMatch } },
                         { sku: { $in: skuColorRegexes } }
                       ]
                     },

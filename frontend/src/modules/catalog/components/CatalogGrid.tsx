@@ -60,8 +60,27 @@ export const CatalogGrid: React.FC<CatalogGridProps> = ({
   const paginationRange = getPaginationRange();
 
   return (
-    <div className="flex flex-col w-full">
+    <div className="flex flex-col w-full relative">
       
+      {/* 1. Ultra-thin Flush Laser Loading Bar */}
+      <div 
+        className={`w-full h-0.5 bg-neutral-100 overflow-hidden mb-5 transition-opacity duration-300 ${
+          isFetching ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        aria-hidden="true"
+      >
+        <div className="h-full bg-gradient-to-r from-transparent via-[#FF5429] to-transparent w-2/3 animate-progress-fast" />
+      </div>
+
+      {/* 2. Professional Frosted Minimalist Center Spinner (Tier-1 Luxury E-commerce Style) */}
+      {isFetching && (
+        <div className="absolute inset-0 z-20 flex items-start justify-center pt-24 sm:pt-36 pointer-events-none">
+          <div className="sticky top-44 flex items-center justify-center w-12 h-12 rounded-full bg-white/95 shadow-[0_6px_25px_rgba(0,0,0,0.08)] border border-neutral-100 backdrop-blur-md transition-all animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-5 h-5 border-[2.5px] border-neutral-200 border-t-[#FF5429] rounded-full animate-spin" />
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-6 md:gap-8">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
@@ -74,8 +93,8 @@ export const CatalogGrid: React.FC<CatalogGridProps> = ({
         </div>
       ) : (
         <div
-          className={`grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-6 md:gap-8 transition-opacity duration-200 ${
-            isFetching ? "opacity-60 pointer-events-none" : "opacity-100"
+          className={`grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-6 md:gap-8 transition-opacity duration-300 ${
+            isFetching ? "opacity-40 pointer-events-none select-none" : "opacity-100"
           }`}
         >
           {products.map((product) => (
@@ -166,7 +185,7 @@ export const CatalogGrid: React.FC<CatalogGridProps> = ({
         </div>
       )}
       
-      {!isLoading && products.length === 0 && (
+      {!isLoading && !isFetching && products.length === 0 && (
         <div className="w-full py-20 flex flex-col items-center justify-center text-neutral-400">
           <p className="text-lg mb-2">No products found matching your criteria.</p>
           <button onClick={() => router.push('/products', { scroll: false })} className="text-banner hover:underline text-sm font-bold tracking-wider cursor-pointer">

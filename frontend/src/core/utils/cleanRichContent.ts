@@ -79,6 +79,13 @@ export function cleanRichContent(rawHtml: string): string {
     }
   );
 
+  // 4b. Ensure hyperlinks in rich content are styled blue instead of red brand color
+  clean = clean.replace(/<a\b[^>]*>/gi, (aTag) => {
+    return aTag
+      .replace(/\bhover:text-brand(?:\/\d+)?\b/gi, 'hover:text-blue-800')
+      .replace(/\btext-brand(?:\/\d+)?\b/gi, 'text-blue-600');
+  });
+
   // 5. Force tables to be responsive with smooth scroll container without overflowing page
   clean = clean.replace(/<div class="[^"]*overflow-[^"]*">\s*<table/gi, "<table");
   clean = clean.replace(/<\/table>\s*<\/div>/gi, "</table>");
@@ -130,10 +137,16 @@ export function handleRichTextClick(e: React.MouseEvent<HTMLElement>, router: { 
   const hrefAttr = link.getAttribute("href") || link.href;
   if (!hrefAttr) return;
 
+  // Let browser natively handle mailto/tel protocols
+  if (hrefAttr.startsWith("mailto:") || hrefAttr.startsWith("tel:")) {
+    return;
+  }
+
   // Check if it's an internal link or old store4riders link
   const isInternal =
     hrefAttr.startsWith("/") ||
     hrefAttr.startsWith("#") ||
+    !hrefAttr.includes("://") ||
     link.hostname === window.location.hostname ||
     link.hostname.includes("store4riders.com");
 
@@ -153,12 +166,17 @@ export function handleRichTextClick(e: React.MouseEvent<HTMLElement>, router: { 
       const elem = document.querySelector(targetPath);
       if (elem) elem.scrollIntoView({ behavior: "smooth" });
     } else {
+      if (!targetPath.startsWith("/") && !targetPath.startsWith("http")) {
+        targetPath = `/${targetPath}`;
+      }
       router.push(targetPath);
     }
     return;
   }
 
-  // External link (e.g. YouTube, external sites): open in new tab
-  link.setAttribute("target", "_blank");
-  link.setAttribute("rel", "noopener noreferrer");
+  // External link (e.g. YouTube, external sites): ensure opens in new tab securely
+  if (!link.getAttribute("target")) {
+    link.setAttribute("target", "_blank");
+    link.setAttribute("rel", "noopener noreferrer");
+  }
 }

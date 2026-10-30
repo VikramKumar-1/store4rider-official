@@ -1395,7 +1395,7 @@ export const AdminCategories = () => {
                             Storefront Live Preview
                           </div>
                           <div
-                            className="text-xs text-neutral-800 leading-relaxed prose prose-sm prose-neutral prose-table:w-full prose-table:table-fixed prose-table:border-collapse prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:p-1.5 prose-td:border prose-td:border-slate-300 prose-td:p-1.5 max-w-none"
+                            className="text-xs text-neutral-800 leading-relaxed prose prose-sm prose-neutral prose-a:text-blue-600 hover:prose-a:text-blue-800 prose-a:underline prose-a:font-medium prose-table:w-full prose-table:table-fixed prose-table:border-collapse prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:p-1.5 prose-td:border prose-td:border-slate-300 prose-td:p-1.5 max-w-none"
                             dangerouslySetInnerHTML={{ __html: cleanRichContent(faq.answer || "<em>No content entered yet</em>") }}
                           />
                         </div>

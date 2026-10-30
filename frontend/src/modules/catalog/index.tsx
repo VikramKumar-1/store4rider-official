@@ -172,16 +172,24 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
           
           {/* Left Sidebar Filters — Desktop only (On mobile, accessed via bottom floating bar) */}
           <aside className="hidden lg:block w-64 xl:w-72 shrink-0 lg:sticky lg:top-[90px] self-start max-h-[calc(100vh-120px)] overflow-y-auto hide-scrollbar">
-            <SidebarFilters />
+            <SidebarFilters isFetching={isFetching} />
           </aside>
 
           {/* Right Product Grid (2 columns on mobile with dark gradient name & price overlay) */}
           <section className="flex-1 w-full min-w-0">
             {/* Sort & Count Header on Desktop */}
             <div className="hidden sm:flex items-center justify-between pb-4 border-b border-neutral-100 mb-6">
-              <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
-                Products Overview
-              </span>
+              <div className="flex items-center gap-2.5">
+                <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
+                  Products Overview
+                </span>
+                {isFetching && (
+                  <span className="flex items-center gap-1.5 text-xs text-neutral-500 font-medium">
+                    <span className="w-3 h-3 border-2 border-neutral-300 border-t-[#FF5429] rounded-full animate-spin" />
+                    <span className="text-[11px] font-semibold text-neutral-500 tracking-normal">Filtering...</span>
+                  </span>
+                )}
+              </div>
 
               <div className="flex items-center gap-2">
                 <label htmlFor="catalog-sort" className="text-xs font-bold uppercase tracking-wider text-neutral-500 whitespace-nowrap">
@@ -231,7 +239,7 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
 
 
         {/* 7. Floating Reviews & Category Filter Bar (Mobile only) */}
-        <FloatingCatalogBar totalCount={totalCount} />
+        <FloatingCatalogBar totalCount={totalCount} isFetching={isFetching} />
       </main>
     </>
   );

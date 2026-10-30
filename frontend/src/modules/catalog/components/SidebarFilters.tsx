@@ -39,10 +39,12 @@ function AccordionSection({ title, children, defaultOpen = true }: { title: stri
   );
 }
 
-export function SidebarFilters() {
+export function SidebarFilters({ isFetching = false }: { isFetching?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const params = useParams();
+  const [isPending, startTransition] = React.useTransition();
+  const isUpdating = isFetching || isPending;
   
   let currentCategory = searchParams.get("category") || "";
   if (!currentCategory && params?.categorySlug) {
@@ -55,18 +57,13 @@ export function SidebarFilters() {
   const currentBrandParam = searchParams.get("brand") || (params?.brandSlug as string) || "";
   const currentSearch = searchParams.get("search") || searchParams.get("q") || "";
   
+  // Scope aggregations to the base context (category, search, or dedicated brand page).
+  // Do NOT pass dynamic filter toggles (color, size, etc.) here — keeping base facets cached prevents
+  // heavy un-paginated DB aggregations from firing on every single checkbox click!
   const { data: aggregations, isLoading } = useProductAggregations({
     category: currentCategory || undefined,
     search: currentSearch || undefined,
-    brand: currentBrandParam || undefined,
-    colour: searchParams.get("colour") || searchParams.get("color") || undefined,
-    size: searchParams.get("size") || undefined,
-    helmet_type: searchParams.get("helmet_type") || undefined,
-    material: searchParams.get("material") || undefined,
-    riding_style: searchParams.get("riding_style") || undefined,
-    certification: searchParams.get("certification") || undefined,
-    gender: searchParams.get("gender") || undefined,
-    motorcycle_model: searchParams.get("motorcycle_model") || undefined,
+    brand: isBrandPage ? currentBrandParam : undefined,
   });
 
   const CATEGORIES = aggregations?.categories 
@@ -179,19 +176,25 @@ export function SidebarFilters() {
         queryParams.set("category", slug);
       }
       const qs = queryParams.toString() ? `?${queryParams.toString()}` : '';
-      router.push(`/brands/${currentBrandParam}${qs}`, { scroll: false });
+      startTransition(() => {
+        router.push(`/brands/${currentBrandParam}${qs}`, { scroll: false });
+      });
       return;
     }
 
     queryParams.delete("category"); // Clean it up from search params just in case
     // If they uncheck the category, they go back to all products
     if (!slug) {
-      router.push(`/products?${queryParams.toString()}`, { scroll: false });
+      startTransition(() => {
+        router.push(`/products?${queryParams.toString()}`, { scroll: false });
+      });
     } else {
       // Use the beautiful nested URL
       const path = fullSlug ? `/${fullSlug}` : `/${slug}`;
       const qs = queryParams.toString() ? `?${queryParams.toString()}` : '';
-      router.push(`${path}${qs}`, { scroll: false });
+      startTransition(() => {
+        router.push(`${path}${qs}`, { scroll: false });
+      });
     }
   };
 
@@ -216,7 +219,9 @@ export function SidebarFilters() {
 
     params.set("page", "1");
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '/products';
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    startTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    });
   };
 
   const toggleArrayParam = (paramName: string, value: string) => {
@@ -252,7 +257,9 @@ export function SidebarFilters() {
     
     params.set("page", "1");
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '/products';
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    startTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    });
   };
 
   const handleBrandToggle = (brandName: string) => toggleArrayParam("brand", brandName);
@@ -273,7 +280,9 @@ export function SidebarFilters() {
     }
     params.set("page", "1");
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '/products';
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    startTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    });
   };
 
   const removeArrayParamItem = (paramName: string, value: string) => {
@@ -296,7 +305,9 @@ export function SidebarFilters() {
     });
     params.set("page", "1");
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '/products';
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    startTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    });
   };
 
   // Build active pills list for "Now Shopping By"
@@ -338,11 +349,19 @@ export function SidebarFilters() {
         <h3 className="text-[20px] text-neutral-800 font-medium mb-3">Shop By</h3>
         <div className="border-t-2 border-neutral-900 w-10 mb-4"></div>
         <div className="flex items-center justify-between">
-          <h4 className="text-[13px] font-bold uppercase text-neutral-900 tracking-wide">SHOPPING OPTIONS</h4>
+          <div className="flex items-center gap-2">
+            <h4 className="text-[13px] font-bold uppercase text-neutral-900 tracking-wide">SHOPPING OPTIONS</h4>
+            {isUpdating && (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 text-[10px] font-bold">
+                <span className="w-2.5 h-2.5 border-2 border-neutral-300 border-t-[#FF5429] rounded-full animate-spin" />
+                <span>Updating...</span>
+              </span>
+            )}
+          </div>
           {activePills.length > 0 && (
             <button 
               onClick={clearAllFilters}
-              className="text-[11px] font-bold text-banner hover:text-red-700 uppercase tracking-wider"
+              className="text-[11px] font-bold text-banner hover:text-red-700 uppercase tracking-wider cursor-pointer"
             >
               Clear All
             </button>

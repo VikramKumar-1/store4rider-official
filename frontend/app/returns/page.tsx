@@ -134,7 +134,7 @@ export default function ExchangePolicyPage() {
             </h2>
             <div className="space-y-3 text-xs sm:text-sm text-slate-600">
               <p>
-                <strong>Step 1:</strong> Visit <Link href="/account" className="text-brand font-semibold hover:underline">My Account &gt; My Orders</Link> and select the delivered order to initiate an exchange request, or email our support team at <a href="mailto:support@store4riders.com" className="text-brand font-semibold hover:underline">support@store4riders.com</a>.
+                <strong>Step 1:</strong> Visit <Link href="/account" className="text-blue-600 hover:text-blue-800 font-semibold underline hover:underline">My Account &gt; My Orders</Link> and select the delivered order to initiate an exchange request, or email our support team at <a href="mailto:support@store4riders.com" className="text-blue-600 hover:text-blue-800 font-semibold underline hover:underline">support@store4riders.com</a>.
               </p>
               <p>
                 <strong>Step 2:</strong> Provide clear photos of the product, including tags and intact packaging, along with your desired replacement size.
@@ -151,7 +151,7 @@ export default function ExchangePolicyPage() {
               3. Questions & Assistance
             </h2>
             <p className="text-xs sm:text-sm text-slate-600">
-              Need assistance determining your sizing before dispatch? Reach out to our riding gear specialists directly through <Link href="/support" className="text-brand font-semibold hover:underline">Customer Support</Link> or WhatsApp. We are here to help you get the right fit on your first ride!
+              Need assistance determining your sizing before dispatch? Reach out to our riding gear specialists directly through <Link href="/support" className="text-blue-600 hover:text-blue-800 font-semibold underline hover:underline">Customer Support</Link> or WhatsApp. We are here to help you get the right fit on your first ride!
             </p>
           </section>
         </div>

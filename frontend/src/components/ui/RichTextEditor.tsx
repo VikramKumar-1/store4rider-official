@@ -74,7 +74,7 @@ function markdownToHtml(md: string): string {
   text = text.replace(/_(.*?)_/g, '<em>$1</em>');
 
   // 6. Process Links [text](url)
-  text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-brand underline hover:text-brand/80 font-medium">$1</a>');
+  text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline hover:text-blue-800 font-medium">$1</a>');
 
   // 7. Process Unordered Lists (- or *)
   text = text.replace(/(?:^|\n)[-*] (.*(?:\r?\n[-*] .*)*)/g, (match: string) => {
@@ -906,7 +906,7 @@ export function RichTextEditor({
     const relStr = relAttr ? ` ${relAttr}` : "";
     const targetStr = targetAttr ? ` ${targetAttr}` : "";
 
-    const html = `<a href="${linkUrl.trim()}"${targetStr}${relStr} class="text-brand underline hover:text-brand/80 font-medium">${text}</a> `;
+    const html = `<a href="${linkUrl.trim()}"${targetStr}${relStr} class="text-blue-600 underline hover:text-blue-800 font-medium">${text}</a> `;
 
     if (savedSelectionRef.current) {
       const sel = window.getSelection();
@@ -1336,7 +1336,7 @@ export function RichTextEditor({
           onSelect={updateSelectionAndFloatingToolbar}
           style={{ minHeight }}
           data-placeholder={placeholder}
-          className="p-5 prose max-w-none focus:outline-none text-sm text-slate-800 leading-relaxed overflow-y-auto cursor-text empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 empty:before:pointer-events-none prose-headings:font-bold prose-headings:text-slate-900 prose-table:w-full prose-table:border-collapse prose-table:text-xs sm:prose-table:text-sm prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:p-2 prose-td:border prose-td:border-slate-300 prose-td:p-2"
+          className="p-5 prose max-w-none focus:outline-none text-sm text-slate-800 leading-relaxed overflow-y-auto cursor-text empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 empty:before:pointer-events-none prose-headings:font-bold prose-headings:text-slate-900 prose-a:text-blue-600 hover:prose-a:text-blue-800 prose-a:underline prose-table:w-full prose-table:border-collapse prose-table:text-xs sm:prose-table:text-sm prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:p-2 prose-td:border prose-td:border-slate-300 prose-td:p-2"
         />
       )}
 

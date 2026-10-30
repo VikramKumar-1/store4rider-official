@@ -2,6 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { handleRichTextClick } from "@/core/utils/cleanRichContent";
 import { ReviewData } from "../types/product-detail.types";
 import { WriteReviewModal } from "./WriteReviewModal";
 
@@ -63,7 +65,7 @@ interface DescriptionSection {
 
 const cleanHtml = (html: string): string => {
   if (!html) return "";
-  return html
+  let clean = html
     // 1. Handle Magento {{media url=&quot;wysiwyg/path.jpg&quot;}}
     .replace(
       /\{\{media\s+url=(?:&quot;|"|')?(.*?)(?:&quot;|"|')?\}\}/gi,
@@ -84,6 +86,23 @@ const cleanHtml = (html: string): string => {
     .replace(/(<br\s*\/?>\s*){3,}/gi, "<br/><br/>")
     .replace(/(<p>\s*(&nbsp;|\s)*<\/p>\s*)+$/gi, "")
     .trim();
+
+  // 3. Rewrite legacy URLs to Next.js routes
+  clean = clean.replace(/href=["']https?:\/\/(?:www\.)?store4riders\.com\/?([^"']*)["']/gi, (_match, path) => {
+    const cleanPath = path ? `/${path.replace(/\.html(\?.*)?$/i, "$1")}` : "/";
+    return `href="${cleanPath}"`;
+  });
+  clean = clean.replace(/href=["']\/([^"']+)\.html(\?[^"']*)?(#[^"']*)?["']/gi, 'href="/$1$2$3"');
+  clean = clean.replace(/href=["']([^"'\/][^"']+)\.html(\?[^"']*)?(#[^"']*)?["']/gi, 'href="/$1$2$3"');
+
+  // 4. Ensure hyperlinks are styled blue instead of red brand color
+  clean = clean.replace(/<a\b[^>]*>/gi, (aTag) => {
+    return aTag
+      .replace(/\bhover:text-brand(?:\/\d+)?\b/gi, 'hover:text-blue-800')
+      .replace(/\btext-brand(?:\/\d+)?\b/gi, 'text-blue-600');
+  });
+
+  return clean;
 };
 
 const formatFeatureTitle = (rawText: string): string => {
@@ -110,6 +129,7 @@ export const DetailAndReviews: React.FC<{
   brandSlug?: string;
   brandLogo?: string;
 }> = ({ fullDescription, reviews, productId, productName, brand, brandSlug, brandLogo }) => {
+  const router = useRouter();
   const parsedDescription = React.useMemo(() => cleanHtml(fullDescription), [fullDescription]);
   const [isMobileDescExpanded, setIsMobileDescExpanded] = React.useState(false);
 
@@ -184,7 +204,10 @@ export const DetailAndReviews: React.FC<{
             )}
 
             {/* Render legacy Magento HTML exactly as it is without accordions */}
-            <div className="magento-layout text-neutral-700 text-[13.5px] sm:text-[14.5px] leading-[1.8] sm:leading-[1.85]">
+            <div
+              onClick={(e) => handleRichTextClick(e, router)}
+              className="magento-layout text-neutral-700 text-[13.5px] sm:text-[14.5px] leading-[1.8] sm:leading-[1.85]"
+            >
                 <div
                   className={!isMobileDescExpanded ? "max-h-[250px] sm:max-h-[350px] overflow-hidden relative" : ""}
                   dangerouslySetInnerHTML={{

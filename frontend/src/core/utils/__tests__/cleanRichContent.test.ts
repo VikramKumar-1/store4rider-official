@@ -59,6 +59,14 @@ describe('cleanRichContent Utility', () => {
     expect(cleaned).toContain('href="https://youtube.com/watch?v=123" target="_blank" rel="nofollow noopener noreferrer"');
   });
 
+  it('should convert red brand hyperlinks to blue color classes', () => {
+    const raw = '<p>Check out our <a href="/riding-jackets" class="text-brand underline hover:text-brand/80 font-medium">Jacket Guide</a></p>';
+    const cleaned = cleanRichContent(raw);
+
+    expect(cleaned).toContain('class="text-blue-600 underline hover:text-blue-800 font-medium"');
+    expect(cleaned).not.toContain('text-brand');
+  });
+
   it('should decode escaped HTML entities like &lt;p&gt; into proper HTML tags', () => {
     const escaped = '&lt;p&gt;High quality silencer for &lt;strong&gt;Interceptor 650&lt;/strong&gt;&lt;/p&gt;';
     const cleaned = cleanRichContent(escaped);

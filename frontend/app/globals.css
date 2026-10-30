@@ -287,6 +287,26 @@ textarea {
 /* ==========================================
  * MEGA MENU ANIMATION — High performance GPU ease-out
  * ==========================================*/
+/* ==========================================
+ * HYPERLINK STYLING — Descriptions, FAQs, Rich Text
+ * Standard high-visibility blue for all internal & external content links
+ * ==========================================*/
+.magento-layout a,
+.magento-layout-accordion a,
+.prose a {
+  color: #2563eb;
+  text-decoration: underline;
+  font-weight: 500;
+  transition: color 0.15s ease-in-out;
+}
+
+.magento-layout a:hover,
+.magento-layout-accordion a:hover,
+.prose a:hover {
+  color: #1e40af;
+  text-decoration: underline;
+}
+
 @keyframes megaMenuFadeIn {
   from {
     opacity: 0;
@@ -302,3 +322,21 @@ textarea {
   animation: megaMenuFadeIn 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: opacity, transform;
 }
+
+@keyframes progressIndeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(40%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.animate-progress-fast {
+  animation: progressIndeterminate 1.2s ease-in-out infinite;
+  will-change: transform;
+}
+

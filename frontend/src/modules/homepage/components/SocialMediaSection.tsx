@@ -129,7 +129,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
           {/* LEFT COLUMN: Instagram Profile Container                  */}
           {/* Sized cleanly like a smartphone screen                    */}
           {/* ========================================================= */}
-          <div className="w-full max-w-[360px] mx-auto lg:max-w-none lg:col-span-5 flex flex-col">
+          <div className="w-full max-w-[380px] sm:max-w-[420px] mx-auto lg:max-w-none lg:col-span-5 flex flex-col">
             <div className="rounded-2xl p-3 sm:p-3.5 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15),0_8px_10px_-6px_rgba(0,0,0,0.1)] ring-1 ring-black/[0.08] bg-[#121212] text-white flex flex-col justify-between h-full overflow-hidden">
               
               <div>
@@ -388,7 +388,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
           {/* BOTH CARDS ARE EQUAL SIZE (flex-1) with optional text     */}
           {/* cleanly rendered at the bottom (never in the middle)      */}
           {/* ========================================================= */}
-          <div className="w-full lg:col-span-7 flex flex-col gap-3 sm:gap-3.5 h-full">
+          <div className="w-full max-w-[380px] sm:max-w-[420px] mx-auto lg:max-w-none lg:col-span-7 flex flex-col gap-3 sm:gap-3.5 h-full">
             {/* Auto-focal alignment: defaults to top-alignment so faces, heads & helmets are NEVER cropped */}
             {(() => {
               const topPositionClass =
@@ -408,7 +408,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
               return (
                 <>
                   {/* Top Card: image 1 (Equal Size Promotional Banner Card) */}
-                  <div className="h-[135px] sm:h-[150px] md:h-[165px] lg:h-full lg:flex-1 rounded-2xl overflow-hidden shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15),0_8px_10px_-6px_rgba(0,0,0,0.1)] ring-1 ring-black/[0.08] bg-neutral-900 group relative">
+                  <div className="h-[210px] sm:h-[235px] md:h-[250px] lg:h-full lg:flex-1 rounded-2xl overflow-hidden shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15),0_8px_10px_-6px_rgba(0,0,0,0.1)] ring-1 ring-black/[0.08] bg-neutral-900 group relative">
                     <Link
                       href={bannerTop?.linkUrl || "/riding-gear/motorcycle-riding-boots"}
                       className="absolute inset-0 block w-full h-full"
@@ -459,7 +459,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                   </div>
 
                   {/* Bottom Card: image 2 (Equal Size Promotional Banner Card) */}
-                  <div className="h-[135px] sm:h-[150px] md:h-[165px] lg:h-full lg:flex-1 rounded-2xl overflow-hidden shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15),0_8px_10px_-6px_rgba(0,0,0,0.1)] ring-1 ring-black/[0.08] bg-neutral-900 group relative">
+                  <div className="h-[210px] sm:h-[235px] md:h-[250px] lg:h-full lg:flex-1 rounded-2xl overflow-hidden shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15),0_8px_10px_-6px_rgba(0,0,0,0.1)] ring-1 ring-black/[0.08] bg-neutral-900 group relative">
                     <Link
                       href={bannerBottom?.linkUrl || "/motorcycle-bags-bike-luggage"}
                       className="absolute inset-0 block w-full h-full"

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { StarIcon } from "@heroicons/react/24/solid";
 import { ColorOption } from "../types/product-detail.types";
-import { cleanRichContent } from "@/core/utils/cleanRichContent";
+import { cleanRichContent, handleRichTextClick } from "@/core/utils/cleanRichContent";
 
 interface ProductInfoProps {
   id: string;
@@ -314,7 +314,8 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
           <div className="mt-2 relative">
             <div
               ref={descRef}
-              className={`text-neutral-500 text-xs md:text-sm leading-relaxed font-sans ${isDescExpanded ? "" : "line-clamp-3"}`}
+              onClick={(e) => handleRichTextClick(e, router)}
+              className={`text-neutral-500 text-xs md:text-sm leading-relaxed font-sans [&_a]:text-blue-600 [&_a]:underline hover:[&_a]:text-blue-800 [&_a]:font-medium ${isDescExpanded ? "" : "line-clamp-3"}`}
               dangerouslySetInnerHTML={{ __html: cleanRichContent(shortDescription) }}
             />
             {showReadMore && (

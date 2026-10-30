@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
+import { handleRichTextClick } from "@/core/utils/cleanRichContent";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { getGuideBySlug, getRelatedGuides } from "../data/guides-data";
 import { getVideoEmbedInfo } from "../utils/video";
@@ -24,6 +25,7 @@ interface GuideDetailModuleProps {
 }
 
 export const GuideDetailModule: React.FC<GuideDetailModuleProps> = ({ slug, initialPost }) => {
+  const router = useRouter();
   const post = initialPost || getGuideBySlug(slug);
   const videoEmbed = getVideoEmbedInfo(post?.videoUrl);
   const [copied, setCopied] = useState(false);
@@ -210,6 +212,7 @@ export const GuideDetailModule: React.FC<GuideDetailModuleProps> = ({ slug, init
         {/* Article Body - CSS Selector matched in speakable spec */}
         <div className="bg-white rounded-2xl p-6 sm:p-10 lg:p-12 border border-neutral-200/80 shadow-sm mb-12">
           <div
+            onClick={(e) => handleRichTextClick(e, router)}
             className="guide-article-body prose prose-neutral sm:prose-lg max-w-none 
               prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-neutral-950
               prose-h1:text-2xl sm:prose-h1:text-3xl prose-h1:mb-4
@@ -218,7 +221,7 @@ export const GuideDetailModule: React.FC<GuideDetailModuleProps> = ({ slug, init
               prose-ul:my-4 prose-ul:list-disc prose-ul:pl-6 prose-li:text-neutral-700 prose-li:my-1
               prose-ol:my-4 prose-ol:list-decimal prose-ol:pl-6 prose-li:text-neutral-700
               prose-strong:text-neutral-900 prose-strong:font-bold
-              prose-a:text-brand prose-a:no-underline hover:prose-a:underline
+              prose-a:text-blue-600 hover:prose-a:text-blue-800 prose-a:underline prose-a:font-medium
               prose-img:rounded-xl prose-img:shadow-md"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
