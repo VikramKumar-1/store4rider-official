@@ -43,6 +43,9 @@ export interface PDPData {
   productType?: string;
   category: string;
   categorySlug?: string;
+  subCategory?: string;
+  subCategorySlug?: string;
+  categoryHierarchy?: Array<{ name: string; slug: string }>;
   name: string;
   price?: number;
   originalPrice?: number;

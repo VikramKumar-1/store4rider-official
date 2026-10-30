@@ -6,6 +6,7 @@ import { Providers } from "@/lib/providers";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { BlinkitFloatingCart } from "@/components/ui/BlinkitFloatingCart";
 import { CartDrawer } from "@/components/ui/CartDrawer";
+import { FloatingWhatsApp } from "@/components/ui/FloatingWhatsApp";
 import { buildWebSiteSchema, buildOrganizationSchema } from "@/core/utils/seo-schema";
 
 export const viewport: Viewport = {
@@ -87,7 +88,7 @@ export default function RootLayout({
       buildWebSiteSchema(siteUrl),
       buildOrganizationSchema({
         siteUrl,
-        phone: process.env.NEXT_PUBLIC_STORE_PHONE,
+        phone: process.env.NEXT_PUBLIC_STORE_PHONE || "+91 - 7263007788",
         email: "contact@store4riders.com",
         returnWindowDays: 7,
       }),
@@ -169,6 +170,7 @@ fbq('track', 'PageView');`,
           </div>
           <BlinkitFloatingCart />
           <CartDrawer />
+          <FloatingWhatsApp />
         </Providers>
       </body>
     </html>

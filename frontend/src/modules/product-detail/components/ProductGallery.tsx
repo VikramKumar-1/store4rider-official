@@ -94,7 +94,9 @@ export const ProductGallery: React.FC<{
 }) => {
   const knownColorNames = useMemo(() => (colors || []).map((c) => c.name), [colors]);
 
-  // Filter gallery images to only show the selected color (+ common uncolored images)
+  // Arrange gallery images: selected color images first (+ common uncolored images), followed by other color images.
+  // This guarantees ALL uploaded product pictures are visible in the thumbnail gallery,
+  // with the selected color's images prioritized at the beginning.
   const displayedImages = useMemo(() => {
     if (!images || images.length === 0) return [];
 
@@ -111,8 +113,13 @@ export const ProductGallery: React.FC<{
         return !imgColor;
       });
 
-      if (matchingColorImages.length > 0) {
-        return [...matchingColorImages, ...commonImages];
+      const otherColorImages = images.filter((img) => {
+        const imgColor = img.detectedColor || detectImageColor(img, knownColorNames);
+        return imgColor && normalizeForCompare(imgColor) !== normSelected;
+      });
+
+      if (matchingColorImages.length > 0 || otherColorImages.length > 0) {
+        return [...matchingColorImages, ...commonImages, ...otherColorImages];
       }
     }
 
@@ -121,7 +128,7 @@ export const ProductGallery: React.FC<{
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [mainSrc, setMainSrc] = useState(
-    normalizeExternalImageUrl(displayedImages?.[0]?.url || images?.[0]?.url) || FALLBACK_IMAGE
+    normalizeExternalImageUrl(activeVariantImageUrl || displayedImages?.[0]?.url || images?.[0]?.url) || FALLBACK_IMAGE
   );
   const [isVideoActive, setIsVideoActive] = useState(false);
   const [isIframeLoading, setIsIframeLoading] = useState(true);
@@ -134,12 +141,23 @@ export const ProductGallery: React.FC<{
 
   const videoEmbed = useMemo(() => getVideoEmbedInfo(videoUrl), [videoUrl]);
 
-  // When selectedColor changes, immediately reset to Angle 1 of that color
+  // Sync main image when activeVariantImageUrl changes (e.g. variant size/color change)
+  useEffect(() => {
+    if (activeVariantImageUrl) {
+      const clean = normalizeExternalImageUrl(activeVariantImageUrl);
+      if (clean) setMainSrc(clean);
+    }
+  }, [activeVariantImageUrl]);
+
+  // When selectedColor changes, immediately reset to Angle 1 of that color (index 0 in displayedImages)
   useEffect(() => {
     setIsVideoActive(false);
     setActiveIndex(0);
     if (displayedImages.length > 0) {
-      setMainSrc(normalizeExternalImageUrl(displayedImages[0].url) || FALLBACK_IMAGE);
+      const targetUrl = normalizeExternalImageUrl(displayedImages[0].url);
+      if (targetUrl) {
+        setMainSrc(targetUrl);
+      }
     }
   }, [selectedColor, displayedImages]);
 
@@ -148,7 +166,10 @@ export const ProductGallery: React.FC<{
       setIsVideoActive(false);
       setActiveIndex(idx);
       const clickedImg = displayedImages[idx];
-      setMainSrc(normalizeExternalImageUrl(clickedImg?.url) || FALLBACK_IMAGE);
+      const targetUrl = normalizeExternalImageUrl(clickedImg?.url);
+      if (targetUrl) {
+        setMainSrc(targetUrl);
+      }
 
       // Dynamically detect and switch color when a thumbnail is clicked
       if (onColorChange && clickedImg) {
@@ -293,7 +314,14 @@ export const ProductGallery: React.FC<{
               className="object-contain mix-blend-multiply transition-opacity duration-150"
               priority
               sizes="(max-width: 768px) 100vw, 50vw"
-              onError={() => setMainSrc(FALLBACK_IMAGE)}
+              onError={() => {
+                const firstImg = displayedImages[0]?.url ? normalizeExternalImageUrl(displayedImages[0].url) : "";
+                if (firstImg && mainSrc !== firstImg) {
+                  setMainSrc(firstImg);
+                } else {
+                  setMainSrc(FALLBACK_IMAGE);
+                }
+              }}
             />
 
             {/* 120 FPS GPU Magnifier: zero React re-renders while moving mouse */}

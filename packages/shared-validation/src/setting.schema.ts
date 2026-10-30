@@ -31,6 +31,19 @@ export const footerConfigSchema = z.object({
   bottomLinks: z.array(footerLinkSchema).optional(),
 });
 
+export const policyPageSchema = z.object({
+  slug: z.string().min(1, "Slug is required"),
+  title: z.string().min(1, "Title is required"),
+  subtitle: z.string().optional().or(z.literal("")),
+  badge: z.string().optional().or(z.literal("")),
+  lastUpdated: z.string().optional().or(z.literal("")),
+  summaryAlertTitle: z.string().optional().or(z.literal("")),
+  summaryAlertText: z.string().optional().or(z.literal("")),
+  summaryAlertType: z.enum(["info", "warning", "success", "brand"]).optional(),
+  contentHtml: z.string(),
+  isActive: z.boolean().optional(),
+});
+
 export const updateSettingSchema = z.object({
   taxRate: z.number().min(0).max(100).optional(),
   freeShippingThreshold: z.number().min(0).optional(),
@@ -53,6 +66,8 @@ export const updateSettingSchema = z.object({
   supportPhone: z.string().optional(),
   supportEmail: z.string().optional(),
   whatsappNumber: z.string().optional(),
+  whatsappChatEnabled: z.boolean().optional(),
+  whatsappDefaultMessage: z.string().max(500).optional().or(z.literal("")),
   facebookUrl: z.string().optional(),
   instagramUrl: z.string().optional(),
   youtubeUrl: z.string().optional(),
@@ -69,6 +84,7 @@ export const updateSettingSchema = z.object({
   guidesHeroTitle: z.string().max(200).optional().or(z.literal("")),
   guidesHeroDescription: z.string().max(1000).optional().or(z.literal("")),
   footerConfig: footerConfigSchema.optional(),
+  policyPages: z.array(policyPageSchema).optional(),
 });
 
 export type UpdateSettingInput = z.infer<typeof updateSettingSchema>;

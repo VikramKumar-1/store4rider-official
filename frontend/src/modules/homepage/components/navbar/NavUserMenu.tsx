@@ -106,10 +106,6 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = ({
                   <UserCircleIcon className="w-4 h-4 text-neutral-500" />
                   <span>Create Account</span>
                 </Link>
-                <Link href="/account/orders" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 hover:text-banner transition-colors cursor-pointer">
-                  <OrdersIcon className="w-4 h-4 text-neutral-500" />
-                  <span>Track Orders</span>
-                </Link>
               </>
             )}
           </div>

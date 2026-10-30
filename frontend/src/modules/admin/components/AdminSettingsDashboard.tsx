@@ -9,8 +9,9 @@ import { AdminGstSettings } from "@/modules/admin/components/AdminGstSettings";
 import { AdminContactSettings } from "@/modules/admin/components/AdminContactSettings";
 import { AdminSearchSettings } from "@/modules/admin/components/AdminSearchSettings";
 import { AdminFooterSettings } from "@/modules/admin/components/AdminFooterSettings";
+import { AdminPolicyPagesSettings } from "@/modules/admin/components/AdminPolicyPagesSettings";
 
-type SettingsTab = "contact" | "shipping" | "payments" | "gst" | "search" | "google-reviews" | "footer";
+type SettingsTab = "contact" | "footer" | "policies" | "shipping" | "payments" | "gst" | "search" | "google-reviews";
 
 export default function AdminSettingsDashboard() {
   const searchParams = useSearchParams();
@@ -18,7 +19,7 @@ export default function AdminSettingsDashboard() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("contact");
 
   useEffect(() => {
-    if (tabQuery && ["contact", "footer", "shipping", "payments", "gst", "search", "google-reviews"].includes(tabQuery)) {
+    if (tabQuery && ["contact", "footer", "policies", "shipping", "payments", "gst", "search", "google-reviews"].includes(tabQuery)) {
       setActiveTab(tabQuery);
     }
   }, [tabQuery]);
@@ -60,6 +61,20 @@ export default function AdminSettingsDashboard() {
           <span>Footer Navigation</span>
           <span className="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-1.5 py-0.5 rounded uppercase">
             Links
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("policies")}
+          className={`px-6 py-3 font-bold text-sm uppercase tracking-wide transition-all border-b-2 flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+            activeTab === "policies"
+              ? "text-brand border-brand"
+              : "text-neutral-500 border-transparent hover:text-neutral-800"
+          }`}
+        >
+          <span>Policy Pages Content</span>
+          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded uppercase">
+            CMS
           </span>
         </button>
 
@@ -136,6 +151,7 @@ export default function AdminSettingsDashboard() {
 
       {activeTab === "contact" && <AdminContactSettings />}
       {activeTab === "footer" && <AdminFooterSettings />}
+      {activeTab === "policies" && <AdminPolicyPagesSettings />}
       {activeTab === "shipping" && <AdminShippingSettings />}
       {activeTab === "payments" && <AdminPaymentSettings />}
       {activeTab === "gst" && <AdminGstSettings />}

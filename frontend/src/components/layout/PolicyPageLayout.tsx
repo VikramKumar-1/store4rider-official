@@ -29,6 +29,9 @@ import {
 } from "lucide-react";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 import { buildBreadcrumbSchema } from "@/core/utils/seo-schema";
+import { TopBanner } from "@/modules/homepage/components/TopBanner";
+import { Navbar } from "@/modules/homepage/components/Navbar";
+import { Footer } from "@/modules/homepage/components/Footer";
 
 export interface PolicyNavGroup {
   groupTitle: string;
@@ -155,6 +158,32 @@ export function PolicyPageLayout({
   const { data: settings } = usePublicSettings();
   const breadcrumbId = useId();
 
+  // Check if admin has customized this page in database settings
+  const cleanSlug = (currentSlug || pathname || "").replace(/^\/+/, "");
+  const customPage = settings?.policyPages?.find(
+    (p) => p.slug === cleanSlug && p.isActive !== false
+  );
+
+  const displayTitle = customPage?.title || title;
+  const displaySubtitle =
+    customPage?.subtitle !== undefined && customPage?.subtitle !== ""
+      ? customPage.subtitle
+      : subtitle;
+  const displayBadge = customPage?.badge || badge;
+  const displayLastUpdated = customPage?.lastUpdated || lastUpdated;
+
+  const displaySummaryAlert = customPage?.summaryAlertText
+    ? {
+        type: (customPage.summaryAlertType || "info") as "info" | "warning" | "success" | "brand",
+        title: customPage.summaryAlertTitle,
+        text: customPage.summaryAlertText,
+      }
+    : summaryAlert;
+
+  const hasCustomContent = Boolean(
+    customPage?.contentHtml && customPage.contentHtml.trim().length > 0
+  );
+
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
@@ -164,15 +193,16 @@ export function PolicyPageLayout({
     [
       { name: "Home", url: "/" },
       { name: "Support & Policies", url: "/store-policies" },
-      { name: title, url: activePath },
+      { name: displayTitle, url: activePath },
     ],
     siteUrl
   );
 
-  const supportPhone = settings?.supportPhone || "+91 91751 77777";
+  const supportPhone = settings?.supportPhone || "+91 - 7263007788";
   const supportEmail = settings?.supportEmail || "contact@store4riders.com";
-  const whatsappNumber =
-    settings?.whatsappNumber || settings?.supportPhone?.replace(/[^0-9]/g, "") || "919175177777";
+  const rawWhatsapp = settings?.whatsappNumber || settings?.supportPhone || "7263007788";
+  const digits = rawWhatsapp.replace(/\D/g, "");
+  const whatsappNumber = digits.length === 10 ? `91${digits}` : digits;
 
   return (
     <>
@@ -182,8 +212,18 @@ export function PolicyPageLayout({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
 
-      <div className="min-h-screen bg-slate-50 text-slate-900 pt-28 sm:pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+      <div className="w-full min-h-screen flex flex-col font-sans bg-slate-50 text-slate-900 selection:bg-brand selection:text-white">
+        {/* Top Announcement Bar */}
+        <header className="w-full">
+          <TopBanner />
+          <div className="w-full bg-white relative z-40 border-b border-zinc-200 shadow-2xs sticky top-0">
+            <Navbar logoText="Store4Riders" theme="light" />
+          </div>
+        </header>
+
+        {/* Main Content Body */}
+        <div className="flex-1 w-full py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
           {/* Breadcrumb Header Bar */}
           <nav
             aria-label="Breadcrumb"
@@ -204,7 +244,7 @@ export function PolicyPageLayout({
             </Link>
             <ChevronRight size={14} className="text-slate-400 shrink-0" />
             <span className="text-slate-900 font-semibold truncate">
-              {title}
+              {displayTitle}
             </span>
           </nav>
 
@@ -213,51 +253,51 @@ export function PolicyPageLayout({
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand/10 text-brand text-xs font-bold tracking-wide uppercase">
                 {badgeIcon || <Sparkles size={14} className="text-brand shrink-0" />}
-                <span>{badge}</span>
+                <span>{displayBadge}</span>
               </div>
               <div className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
                 <Clock size={12} className="text-slate-400" />
-                <span>Last Updated: {lastUpdated}</span>
+                <span>Last Updated: {displayLastUpdated}</span>
               </div>
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-slate-900 mb-3">
-              {title}
+              {displayTitle}
             </h1>
 
-            {subtitle && (
+            {displaySubtitle && (
               <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-4xl">
-                {subtitle}
+                {displaySubtitle}
               </p>
             )}
 
             {/* Optional Summary Alert Note */}
-            {summaryAlert && (
+            {displaySummaryAlert && (
               <div
                 className={`mt-6 p-4 sm:p-5 rounded-xl border flex items-start gap-3.5 text-xs sm:text-sm ${
-                  summaryAlert.type === "warning"
+                  displaySummaryAlert.type === "warning"
                     ? "bg-amber-50 border-amber-200 text-amber-900"
-                    : summaryAlert.type === "brand"
+                    : displaySummaryAlert.type === "brand"
                     ? "bg-brand/5 border-brand/20 text-brand-dark"
-                    : summaryAlert.type === "success"
+                    : displaySummaryAlert.type === "success"
                     ? "bg-emerald-50 border-emerald-200 text-emerald-900"
                     : "bg-blue-50 border-blue-200 text-blue-900"
                 }`}
               >
-                {summaryAlert.type === "warning" ? (
+                {displaySummaryAlert.type === "warning" ? (
                   <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                ) : summaryAlert.type === "success" ? (
+                ) : displaySummaryAlert.type === "success" ? (
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                 ) : (
                   <Info className="w-5 h-5 text-brand shrink-0 mt-0.5" />
                 )}
                 <div className="space-y-1">
-                  {summaryAlert.title && (
+                  {displaySummaryAlert.title && (
                     <div className="font-bold tracking-tight">
-                      {summaryAlert.title}
+                      {displaySummaryAlert.title}
                     </div>
                   )}
-                  <div className="leading-relaxed">{summaryAlert.text}</div>
+                  <div className="leading-relaxed">{displaySummaryAlert.text}</div>
                 </div>
               </div>
             )}
@@ -421,7 +461,11 @@ export function PolicyPageLayout({
               {/* Robust Content Card (Never breaks or overflows) */}
               <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 sm:p-10 min-w-0 max-w-full overflow-hidden">
                 <article className="policy-prose break-words max-w-none text-slate-700 leading-relaxed text-sm sm:text-base space-y-6">
-                  {children}
+                  {hasCustomContent ? (
+                    <div dangerouslySetInnerHTML={{ __html: customPage!.contentHtml }} />
+                  ) : (
+                    children
+                  )}
                 </article>
 
                 {/* Bottom Assistance & Trust Banner */}
@@ -500,6 +544,12 @@ export function PolicyPageLayout({
           </div>
         </div>
       </div>
-    </>
-  );
+
+      {/* Global Store Footer */}
+      <div className="bg-neutral-950 pb-32 lg:pb-0 w-full mt-auto">
+        <Footer />
+      </div>
+    </div>
+  </>
+);
 }

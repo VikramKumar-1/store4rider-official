@@ -4,7 +4,7 @@
  * Stores global configurations controlled by the Admin panel.
  */
 import mongoose, { Schema, Document } from "mongoose";
-import { IFooterConfig } from "@store4riders/shared-types";
+import { IFooterConfig, IPolicyPageConfig } from "@store4riders/shared-types";
 
 export interface ISetting extends Document {
   taxRate: number;
@@ -28,6 +28,8 @@ export interface ISetting extends Document {
   supportPhone?: string;
   supportEmail?: string;
   whatsappNumber?: string;
+  whatsappChatEnabled?: boolean;
+  whatsappDefaultMessage?: string;
   facebookUrl?: string;
   instagramUrl?: string;
   youtubeUrl?: string;
@@ -44,7 +46,24 @@ export interface ISetting extends Document {
   guidesHeroTitle?: string;
   guidesHeroDescription?: string;
   footerConfig?: IFooterConfig;
+  policyPages?: IPolicyPageConfig[];
 }
+
+const policyPageMongooseSchema = new Schema(
+  {
+    slug: { type: String, required: true },
+    title: { type: String, required: true },
+    subtitle: { type: String, default: "" },
+    badge: { type: String, default: "" },
+    lastUpdated: { type: String, default: "" },
+    summaryAlertTitle: { type: String, default: "" },
+    summaryAlertText: { type: String, default: "" },
+    summaryAlertType: { type: String, default: "info", enum: ["info", "warning", "success", "brand"] },
+    contentHtml: { type: String, default: "" },
+    isActive: { type: Boolean, default: true },
+  },
+  { _id: false }
+);
 
 const footerLinkMongooseSchema = new Schema(
   {
@@ -133,7 +152,9 @@ const settingSchema = new Schema<ISetting>(
     allowB2bGstin: { type: Boolean, default: true },
     supportPhone: { type: String, default: "" },
     supportEmail: { type: String, default: "contact@store4riders.com" },
-    whatsappNumber: { type: String, default: "" },
+    whatsappNumber: { type: String, default: "+91 - 7263007788" },
+    whatsappChatEnabled: { type: Boolean, default: true },
+    whatsappDefaultMessage: { type: String, default: "Hi Store4Riders, I have a query regarding products/order." },
     facebookUrl: { type: String, default: "https://www.facebook.com/store4riders/" },
     instagramUrl: { type: String, default: "https://www.instagram.com/store4riders/" },
     youtubeUrl: { type: String, default: "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg" },
@@ -151,6 +172,10 @@ const settingSchema = new Schema<ISetting>(
     footerConfig: {
       type: footerConfigMongooseSchema,
       default: () => ({}),
+    },
+    policyPages: {
+      type: [policyPageMongooseSchema],
+      default: [],
     },
     packagePresets: { 
       type: [{ name: String, length: Number, breadth: Number, height: Number }], 

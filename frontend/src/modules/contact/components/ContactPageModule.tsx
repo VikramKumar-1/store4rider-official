@@ -17,6 +17,9 @@ import {
 } from "@heroicons/react/24/outline";
 import { toast } from "sonner";
 import Link from "next/link";
+import { TopBanner } from "@/modules/homepage/components/TopBanner";
+import { Navbar } from "@/modules/homepage/components/Navbar";
+import { Footer } from "@/modules/homepage/components/Footer";
 
 export function ContactPageModule() {
   const [submittedTicket, setSubmittedTicket] = useState<{ ticketId: string; email: string } | null>(null);
@@ -61,8 +64,18 @@ export function ContactPageModule() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pt-28 sm:pt-32 pb-20 px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto space-y-10">
+    <div className="w-full min-h-screen flex flex-col font-sans bg-slate-50 text-slate-900 selection:bg-brand selection:text-white">
+      {/* Top Announcement Bar & Sticky Header */}
+      <header className="w-full">
+        <TopBanner />
+        <div className="w-full bg-white relative z-40 border-b border-zinc-200 shadow-2xs sticky top-0">
+          <Navbar logoText="Store4Riders" theme="light" />
+        </div>
+      </header>
+
+      {/* Main Content Body */}
+      <main className="flex-1 w-full py-8 sm:py-12 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto space-y-10">
         
         {/* Header Hero */}
         <div className="bg-white rounded-3xl p-6 sm:p-12 shadow-xs border border-slate-200/80 text-center relative overflow-hidden">
@@ -374,6 +387,12 @@ export function ContactPageModule() {
           </div>
         </div>
       </div>
+    </main>
+
+    {/* Global Store Footer */}
+    <div className="bg-neutral-950 pb-32 lg:pb-0 w-full mt-auto">
+      <Footer />
     </div>
-  );
+  </div>
+);
 }

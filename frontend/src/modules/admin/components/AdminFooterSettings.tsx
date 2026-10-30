@@ -21,6 +21,25 @@ import {
 } from "lucide-react";
 import { IFooterConfig, IFooterLink } from "@store4riders/shared-types";
 
+export const STORE_ROUTE_PRESETS = [
+  { label: "Exchange & Replacements", url: "/returns" },
+  { label: "Warranty", url: "/warranty" },
+  { label: "Conditions of Sale & Use", url: "/terms" },
+  { label: "Privacy and Cookie Policy", url: "/privacy" },
+  { label: "Legal Information", url: "/legal" },
+  { label: "Shipping Policies", url: "/shipping" },
+  { label: "Store Policies", url: "/store-policies" },
+  { label: "About us", url: "/about-us" },
+  { label: "Contact Us", url: "/contact-us" },
+  { label: "Your Account", url: "/account" },
+  { label: "Wish List", url: "/account/wishlist" },
+  { label: "Rider Assist", url: "/rider-assist" },
+  { label: "Cash on Delivery", url: "/cash-on-delivery" },
+  { label: "Collaboration", url: "/collaboration" },
+  { label: "Gear Care Guide", url: "/care" },
+  { label: "Sale & Offers", url: "/sale" },
+];
+
 const INITIAL_DEFAULTS: IFooterConfig = {
   aboutText: "",
   showContact: true,
@@ -482,14 +501,45 @@ export function AdminFooterSettings() {
                   className="w-full text-xs p-2 bg-white border border-neutral-200 rounded focus:outline-none focus:border-brand"
                 />
 
-                {/* URL Input */}
-                <input
-                  type="text"
-                  value={link.url}
-                  onChange={(e) => updateLink("column1Links", idx, "url", e.target.value)}
-                  placeholder="e.g. /warranty"
-                  className="w-full text-xs p-2 bg-white border border-neutral-200 rounded font-mono focus:outline-none focus:border-brand"
-                />
+                {/* URL Input with Safe Preset Selector */}
+                <div className="space-y-1">
+                  <div className="flex gap-1.5 items-center">
+                    <select
+                      value={STORE_ROUTE_PRESETS.some((p) => p.url === link.url) ? link.url : "custom"}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val !== "custom") {
+                          updateLink("column1Links", idx, "url", val);
+                          const matched = STORE_ROUTE_PRESETS.find((p) => p.url === val);
+                          if (matched && (!link.label || link.label === "New Link" || STORE_ROUTE_PRESETS.some((p) => p.label === link.label))) {
+                            updateLink("column1Links", idx, "label", matched.label);
+                          }
+                        }
+                      }}
+                      className="text-[10px] py-1 px-1.5 bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 rounded font-medium text-neutral-700 focus:outline-none focus:border-brand cursor-pointer shrink-0 max-w-[125px] truncate"
+                    >
+                      <option value="custom">Preset Page ▾</option>
+                      {STORE_ROUTE_PRESETS.map((p) => (
+                        <option key={p.url} value={p.url}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      type="text"
+                      value={link.url}
+                      onChange={(e) => updateLink("column1Links", idx, "url", e.target.value)}
+                      placeholder="e.g. /warranty"
+                      className="w-full text-xs p-1.5 bg-white border border-neutral-200 rounded font-mono focus:outline-none focus:border-brand"
+                    />
+                  </div>
+                  {link.url && !link.url.startsWith("http") && !STORE_ROUTE_PRESETS.some((p) => p.url === link.url) && (
+                    <span className="text-[10px] text-amber-600 block pl-0.5 font-medium">
+                      ⚠️ Custom path (verify page exists)
+                    </span>
+                  )}
+                </div>
 
                 {/* Open In New Tab */}
                 <div className="flex justify-center">
@@ -597,14 +647,45 @@ export function AdminFooterSettings() {
                   className="w-full text-xs p-2 bg-white border border-neutral-200 rounded focus:outline-none focus:border-brand"
                 />
 
-                {/* URL Input */}
-                <input
-                  type="text"
-                  value={link.url}
-                  onChange={(e) => updateLink("column2Links", idx, "url", e.target.value)}
-                  placeholder="e.g. /about-us"
-                  className="w-full text-xs p-2 bg-white border border-neutral-200 rounded font-mono focus:outline-none focus:border-brand"
-                />
+                {/* URL Input with Safe Preset Selector */}
+                <div className="space-y-1">
+                  <div className="flex gap-1.5 items-center">
+                    <select
+                      value={STORE_ROUTE_PRESETS.some((p) => p.url === link.url) ? link.url : "custom"}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val !== "custom") {
+                          updateLink("column2Links", idx, "url", val);
+                          const matched = STORE_ROUTE_PRESETS.find((p) => p.url === val);
+                          if (matched && (!link.label || link.label === "New Link" || STORE_ROUTE_PRESETS.some((p) => p.label === link.label))) {
+                            updateLink("column2Links", idx, "label", matched.label);
+                          }
+                        }
+                      }}
+                      className="text-[10px] py-1 px-1.5 bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 rounded font-medium text-neutral-700 focus:outline-none focus:border-brand cursor-pointer shrink-0 max-w-[125px] truncate"
+                    >
+                      <option value="custom">Preset Page ▾</option>
+                      {STORE_ROUTE_PRESETS.map((p) => (
+                        <option key={p.url} value={p.url}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      type="text"
+                      value={link.url}
+                      onChange={(e) => updateLink("column2Links", idx, "url", e.target.value)}
+                      placeholder="e.g. /about-us"
+                      className="w-full text-xs p-1.5 bg-white border border-neutral-200 rounded font-mono focus:outline-none focus:border-brand"
+                    />
+                  </div>
+                  {link.url && !link.url.startsWith("http") && !STORE_ROUTE_PRESETS.some((p) => p.url === link.url) && (
+                    <span className="text-[10px] text-amber-600 block pl-0.5 font-medium">
+                      ⚠️ Custom path (verify page exists)
+                    </span>
+                  )}
+                </div>
 
                 {/* Open In New Tab */}
                 <div className="flex justify-center">
@@ -762,14 +843,45 @@ export function AdminFooterSettings() {
                   className="w-full text-xs p-2 bg-white border border-neutral-200 rounded focus:outline-none focus:border-brand"
                 />
 
-                {/* URL Input */}
-                <input
-                  type="text"
-                  value={link.url}
-                  onChange={(e) => updateLink("bottomLinks", idx, "url", e.target.value)}
-                  placeholder="e.g. /privacy"
-                  className="w-full text-xs p-2 bg-white border border-neutral-200 rounded font-mono focus:outline-none focus:border-brand"
-                />
+                {/* URL Input with Safe Preset Selector */}
+                <div className="space-y-1">
+                  <div className="flex gap-1.5 items-center">
+                    <select
+                      value={STORE_ROUTE_PRESETS.some((p) => p.url === link.url) ? link.url : "custom"}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val !== "custom") {
+                          updateLink("bottomLinks", idx, "url", val);
+                          const matched = STORE_ROUTE_PRESETS.find((p) => p.url === val);
+                          if (matched && (!link.label || link.label === "New Link" || STORE_ROUTE_PRESETS.some((p) => p.label === link.label))) {
+                            updateLink("bottomLinks", idx, "label", matched.label);
+                          }
+                        }
+                      }}
+                      className="text-[10px] py-1 px-1.5 bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 rounded font-medium text-neutral-700 focus:outline-none focus:border-brand cursor-pointer shrink-0 max-w-[125px] truncate"
+                    >
+                      <option value="custom">Preset Page ▾</option>
+                      {STORE_ROUTE_PRESETS.map((p) => (
+                        <option key={p.url} value={p.url}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      type="text"
+                      value={link.url}
+                      onChange={(e) => updateLink("bottomLinks", idx, "url", e.target.value)}
+                      placeholder="e.g. /privacy"
+                      className="w-full text-xs p-1.5 bg-white border border-neutral-200 rounded font-mono focus:outline-none focus:border-brand"
+                    />
+                  </div>
+                  {link.url && !link.url.startsWith("http") && !STORE_ROUTE_PRESETS.some((p) => p.url === link.url) && (
+                    <span className="text-[10px] text-amber-600 block pl-0.5 font-medium">
+                      ⚠️ Custom path (verify page exists)
+                    </span>
+                  )}
+                </div>
 
                 {/* Open In New Tab */}
                 <div className="flex justify-center">

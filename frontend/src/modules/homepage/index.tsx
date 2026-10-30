@@ -376,14 +376,14 @@ export const HomepageModule: React.FC<{
           mobileLayout="scroll"
         />
 
-        {/* 6. Touring Gear Section */}
+        {/* 6. Touring Gear Section - 2x2 vertical grid on mobile, horizontal row on desktop */}
         <BrowseProductsSection
           title={homepageConfig?.sections?.touringGear?.sectionTitle || "BEST GEAR FOR TOURING"}
           products={touringProducts}
           showSeeMore={true}
           seeMoreText={homepageConfig?.sections?.touringGear?.seeMoreText || "SEE MORE"}
           seeMoreLink={homepageConfig?.sections?.touringGear?.seeMoreLink || "/products?q=touring"}
-          mobileLayout="scroll"
+          mobileLayout="grid"
         />
 
         {/* 7. Social Media / Store4Riders on Insta Section */}

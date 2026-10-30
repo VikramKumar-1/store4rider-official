@@ -156,6 +156,7 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Store Contact & SEO", href: "/admin/settings?tab=contact", icon: Globe },
       { name: "Footer Navigation", href: "/admin/settings?tab=footer", icon: Layers },
+      { name: "Policy & Page Content", href: "/admin/settings?tab=policies", icon: FileText },
       { name: "Shipping & Delivery", href: "/admin/settings?tab=shipping", icon: Truck },
       { name: "Payment & COD", href: "/admin/settings?tab=payments", icon: CreditCard },
       { name: "Tax & GST", href: "/admin/settings?tab=gst", icon: Receipt },

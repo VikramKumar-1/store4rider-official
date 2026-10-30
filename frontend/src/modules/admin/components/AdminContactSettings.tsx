@@ -23,6 +23,8 @@ import {
 interface IContactSettingsData {
   supportPhone?: string;
   whatsappNumber?: string;
+  whatsappChatEnabled?: boolean;
+  whatsappDefaultMessage?: string;
   supportEmail?: string;
   storeOriginAddress?: string;
   storeOriginCity?: string;
@@ -39,7 +41,9 @@ interface IContactSettingsData {
 export function AdminContactSettings() {
   const [settings, setSettings] = useState<IContactSettingsData>({
     supportPhone: "",
-    whatsappNumber: "",
+    whatsappNumber: "+91 - 7263007788",
+    whatsappChatEnabled: true,
+    whatsappDefaultMessage: "Hi Store4Riders, I have a query regarding products/order.",
     supportEmail: "contact@store4riders.com",
     storeOriginAddress: "Store4Riders Warehouse",
     storeOriginCity: "Pune",
@@ -65,6 +69,9 @@ export function AdminContactSettings() {
         setSettings((prev) => ({
           ...prev,
           ...res.data.data,
+          whatsappNumber: res.data.data.whatsappNumber || "+91 - 7263007788",
+          whatsappChatEnabled: res.data.data.whatsappChatEnabled !== false,
+          whatsappDefaultMessage: res.data.data.whatsappDefaultMessage || "Hi Store4Riders, I have a query regarding products/order.",
           supportEmail: res.data.data.supportEmail || "contact@store4riders.com",
           returnWindowDays: res.data.data.returnWindowDays ?? 7,
         }));
@@ -141,19 +148,81 @@ export function AdminContactSettings() {
               <p className="text-[11px] text-neutral-400 mt-1">Displayed in website footer and Google OnlineStore schema contact points.</p>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />
-                WhatsApp Support Number
-              </label>
-              <input
-                type="text"
-                value={settings.whatsappNumber || ""}
-                onChange={(e) => setSettings({ ...settings, whatsappNumber: e.target.value })}
-                placeholder="+91 98765 43210"
-                className="w-full text-sm border border-neutral-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-              />
-              <p className="text-[11px] text-neutral-400 mt-1">Used for direct WhatsApp chat support across the storefront.</p>
+            <div className="bg-emerald-50/50 border border-emerald-200/80 rounded-xl p-4 space-y-3.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                  Storefront Floating WhatsApp Chat
+                </label>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.whatsappChatEnabled !== false}
+                    onChange={(e) => setSettings({ ...settings, whatsappChatEnabled: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-neutral-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                  <span className="ml-2 text-xs font-semibold text-neutral-700">
+                    {settings.whatsappChatEnabled !== false ? "Active" : "Disabled"}
+                  </span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                  WhatsApp Support Number
+                </label>
+                <input
+                  type="text"
+                  value={settings.whatsappNumber || ""}
+                  onChange={(e) => setSettings({ ...settings, whatsappNumber: e.target.value })}
+                  placeholder="+91 - 7263007788"
+                  className="w-full text-sm border border-neutral-300 rounded-lg px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                />
+                <p className="text-[11px] text-neutral-500 mt-1">
+                  Primary WhatsApp number riders chat with. E.g. <span className="font-mono font-medium text-emerald-700">+91 - 7263007788</span>
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                  Default Pre-filled Chat Message
+                </label>
+                <input
+                  type="text"
+                  value={settings.whatsappDefaultMessage || ""}
+                  onChange={(e) => setSettings({ ...settings, whatsappDefaultMessage: e.target.value })}
+                  placeholder="Hi Store4Riders, I have a query regarding products/order."
+                  className="w-full text-sm border border-neutral-300 rounded-lg px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                />
+                <p className="text-[11px] text-neutral-500 mt-1">
+                  Pre-filled greeting message opened in WhatsApp web / mobile app.
+                </p>
+              </div>
+
+              {/* Live Preview & Direct Test */}
+              <div className="pt-2 border-t border-emerald-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-1.5 text-emerald-800">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="font-medium">Target:</span>
+                  <span className="font-mono text-[11px] text-neutral-600 truncate max-w-[200px]">
+                    {settings.whatsappNumber ? settings.whatsappNumber.replace(/\D/g, "") : "Not set"}
+                  </span>
+                </div>
+                {settings.whatsappNumber && (
+                  <a
+                    href={`https://wa.me/${(() => {
+                      const d = (settings.whatsappNumber || "").replace(/\D/g, "");
+                      return d.length === 10 ? `91${d}` : d;
+                    })()}?text=${encodeURIComponent(settings.whatsappDefaultMessage || "Hi Store4Riders, I have a query regarding products/order.")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-800 font-semibold underline underline-offset-2"
+                  >
+                    Test WhatsApp Link &rarr;
+                  </a>
+                )}
+              </div>
             </div>
 
             <div>

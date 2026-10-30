@@ -13,6 +13,7 @@ export interface BrowseProductsSectionProps {
   seeMoreText?: string;
   seeMoreLink?: string;
   mobileLayout?: "scroll" | "grid";
+  layout?: "scroll" | "grid";
 }
 
 /**
@@ -71,11 +72,14 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
   showSeeMore = false,
   seeMoreText = "SEE MORE",
   seeMoreLink = "/products?q=touring",
-  mobileLayout = "grid"
+  mobileLayout = "grid",
+  layout,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const isScroll = layout === "scroll" || mobileLayout === "scroll";
 
   const checkScroll = useCallback(() => {
     const el = scrollContainerRef.current;
@@ -85,7 +89,7 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
   }, []);
 
   useEffect(() => {
-    if (mobileLayout !== "scroll") return;
+    if (!isScroll) return;
     const el = scrollContainerRef.current;
     if (!el) return;
     checkScroll();
@@ -95,7 +99,7 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
       el.removeEventListener("scroll", checkScroll);
       window.removeEventListener("resize", checkScroll);
     };
-  }, [checkScroll, mobileLayout, products]);
+  }, [checkScroll, isScroll, products]);
 
   const handleScroll = (direction: "left" | "right") => {
     const el = scrollContainerRef.current;
@@ -120,7 +124,7 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
       {/* Carousel / Grid Container */}
       <div className="relative">
         {/* Left Scroll Arrow */}
-        {mobileLayout === "scroll" && (
+        {isScroll && (
           <button
             onClick={() => handleScroll("left")}
             disabled={!canScrollLeft}
@@ -139,7 +143,7 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
         <div
           ref={scrollContainerRef}
           className={
-            mobileLayout === "scroll"
+            isScroll
               ? "flex gap-3 sm:gap-4 md:gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 hide-scrollbar"
               : "grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6"
           }
@@ -149,7 +153,7 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
               <div
                 key={`prod-skeleton-${i}`}
                 className={
-                  mobileLayout === "scroll"
+                  isScroll
                     ? "w-[165px] min-[375px]:w-[185px] sm:w-[220px] md:w-[260px] lg:w-[calc((100%-3*1.5rem)/4)] flex-shrink-0"
                     : "w-full"
                 }
@@ -164,7 +168,11 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
               <Link
                 key={product.id}
                 href={product.productUrl}
-                className={mobileLayout === "scroll" ? "block snap-start shrink-0 w-[165px] min-[375px]:w-[185px] sm:w-[220px] md:w-[260px] lg:w-[calc((100%-3*1.5rem)/4)]" : "block w-full"}
+                className={
+                  isScroll
+                    ? "block snap-start shrink-0 w-[165px] min-[375px]:w-[185px] sm:w-[220px] md:w-[260px] lg:w-[calc((100%-3*1.5rem)/4)]"
+                    : "block w-full"
+                }
               >
                 <GridProductCard product={product} />
               </Link>
@@ -173,7 +181,7 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
         </div>
 
         {/* Right Scroll Arrow */}
-        {mobileLayout === "scroll" && (
+        {isScroll && (
           <button
             onClick={() => handleScroll("right")}
             disabled={!canScrollRight}

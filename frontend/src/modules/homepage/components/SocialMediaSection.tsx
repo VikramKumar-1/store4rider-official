@@ -111,7 +111,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
   }, [allActiveReels]);
 
   return (
-    <section className="w-full bg-white py-4 sm:py-5 md:py-6 overflow-hidden">
+    <section className="w-full max-w-[1400px] mx-auto bg-white py-4 sm:py-5 md:py-6 overflow-hidden">
       <div className="w-full max-w-[1080px] mx-auto px-4 sm:px-6">
         
         {/* Section Header — Left-Aligned */}
@@ -127,9 +127,8 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
           
           {/* ========================================================= */}
           {/* LEFT COLUMN: Instagram Profile Container                  */}
-          {/* Sized cleanly like a smartphone screen                    */}
           {/* ========================================================= */}
-          <div className="w-full max-w-[380px] sm:max-w-[420px] mx-auto lg:max-w-none lg:col-span-5 flex flex-col">
+          <div className="w-full max-w-[420px] mx-auto lg:max-w-none lg:col-span-5 flex flex-col">
             <div className="rounded-2xl p-3 sm:p-3.5 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15),0_8px_10px_-6px_rgba(0,0,0,0.1)] ring-1 ring-black/[0.08] bg-[#121212] text-white flex flex-col justify-between h-full overflow-hidden">
               
               <div>
@@ -388,7 +387,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
           {/* BOTH CARDS ARE EQUAL SIZE (flex-1) with optional text     */}
           {/* cleanly rendered at the bottom (never in the middle)      */}
           {/* ========================================================= */}
-          <div className="w-full max-w-[380px] sm:max-w-[420px] mx-auto lg:max-w-none lg:col-span-7 flex flex-col gap-3 sm:gap-3.5 h-full">
+          <div className="w-full max-w-[420px] mx-auto lg:max-w-none lg:col-span-7 flex flex-col gap-3.5 sm:gap-4 h-full">
             {/* Auto-focal alignment: defaults to top-alignment so faces, heads & helmets are NEVER cropped */}
             {(() => {
               const topPositionClass =

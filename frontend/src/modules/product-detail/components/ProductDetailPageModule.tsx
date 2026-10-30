@@ -32,12 +32,28 @@ const formatINR = (amount: number): string => {
 };
 
 /**
- * Helper: Extract the last meaningful category name and slug from magentoCategories or categorySlugs.
- * Handles escaped forward slashes in Magento category names (e.g. "Chain\/Sprocket kits").
+ * Helper: Extract meaningful category name, subcategory name, and slugs.
+ * Priority:
+ * 1. Explicit backend-resolved category & subCategory fields
+ * 2. DB categorySlugs array
+ * 3. Legacy Magento magentoCategories string
  */
-const extractCategoryInfo = (product: IBackendProduct): { categoryName: string; categorySlug: string } => {
+const extractCategoryInfo = (
+  product: IBackendProduct
+): { categoryName: string; categorySlug: string; subCategoryName?: string; subCategorySlug?: string } => {
+  if (product.category) {
+    return {
+      categoryName: product.category,
+      categorySlug: product.categorySlug || product.category.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+      subCategoryName: product.subCategory,
+      subCategorySlug: product.subCategorySlug,
+    };
+  }
+
   let categoryName = "GEAR";
   let categorySlug = "";
+  let subCategoryName: string | undefined = undefined;
+  let subCategorySlug: string | undefined = undefined;
 
   if (product.magentoCategories) {
     const firstCat = product.magentoCategories.split(",")[0];
@@ -58,11 +74,24 @@ const extractCategoryInfo = (product: IBackendProduct): { categoryName: string; 
 
   const categorySlugs = (product as any).categorySlugs;
   if (categorySlugs && Array.isArray(categorySlugs) && categorySlugs.length > 0) {
-    const norm = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-    const matched = categorySlugs.find((s: string) => s === norm || s.includes(norm) || norm.includes(s));
-    categorySlug = matched || categorySlugs[categorySlugs.length - 1];
-    if (categoryName === "GEAR") {
-      categoryName = categorySlug.replace(/-/g, " ").toUpperCase();
+    if (categorySlugs.length >= 2) {
+      const leafSlug = categorySlugs[0];
+      const parentSlug = categorySlugs[1];
+      if (!subCategoryName) {
+        subCategorySlug = `${parentSlug}/${leafSlug}`;
+        subCategoryName = leafSlug.replace(/-/g, " ").toUpperCase();
+      }
+      if (categoryName === "GEAR" || !categorySlug) {
+        categorySlug = parentSlug;
+        categoryName = parentSlug.replace(/-/g, " ").toUpperCase();
+      }
+    } else {
+      const norm = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const matched = categorySlugs.find((s: string) => s === norm || s.includes(norm) || norm.includes(s));
+      categorySlug = matched || categorySlugs[categorySlugs.length - 1];
+      if (categoryName === "GEAR") {
+        categoryName = categorySlug.replace(/-/g, " ").toUpperCase();
+      }
     }
   }
 
@@ -70,7 +99,7 @@ const extractCategoryInfo = (product: IBackendProduct): { categoryName: string; 
     categorySlug = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
   }
 
-  return { categoryName, categorySlug };
+  return { categoryName, categorySlug, subCategoryName, subCategorySlug };
 };
 
 const extractCategoryName = (product: IBackendProduct): string => {
@@ -576,6 +605,24 @@ const mapProductToPDP = (
     });
   }
 
+  // 2b. Add variant images if any exist that weren't already represented
+  if (rawVariants && rawVariants.length > 0) {
+    rawVariants.forEach((v: any) => {
+      const vUrl = v.imageUrl || v.images?.[0]?.url;
+      const vColor = v.attributes?.color || v.attributes?.colour;
+      if (vUrl && vUrl !== "/no-image.svg") {
+        const cleanUrl = normalizeExternalImageUrl(vUrl);
+        const alreadyIn = rawGalleryImages.some((img) => img.url === cleanUrl);
+        if (!alreadyIn) {
+          rawGalleryImages.push({
+            url: cleanUrl,
+            altText: vColor ? `${product.name} - ${vColor}` : (v.altText || product.name),
+          });
+        }
+      }
+    });
+  }
+
   // 3. Deduplicate images by (color, angle) and sequence angles 1, 2, 3...
   const gallery = rawGalleryImages.length > 0 
     ? deduplicateProductImages(rawGalleryImages, colorNames, product.name)
@@ -644,14 +691,24 @@ const mapProductToPDP = (
   const brandSlug = product.brandSlug || (brand ? brand.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") : undefined);
   const brandLogo = product.brandLogo;
 
+  const catInfo = extractCategoryInfo(product);
+  const category = (product as any).category || catInfo.categoryName || "";
+  const categorySlug = (product as any).categorySlug || catInfo.categorySlug || "";
+  const subCategory = (product as any).subCategory || catInfo.subCategoryName || undefined;
+  const subCategorySlug = (product as any).subCategorySlug || catInfo.subCategorySlug || undefined;
+  const categoryHierarchy = (product as any).categoryHierarchy || [];
+
   return {
     id: product._id,
     slug: product.slug,
     brand: brand || undefined,
     brandSlug,
     brandLogo,
-    category: (product as any).category || (product as any).categoryName || "",
-    categorySlug: (product as any).categorySlug || "",
+    category,
+    categorySlug,
+    subCategory,
+    subCategorySlug,
+    categoryHierarchy,
     name: product.name,
     sku: product.sku,
     productType: product.productType,

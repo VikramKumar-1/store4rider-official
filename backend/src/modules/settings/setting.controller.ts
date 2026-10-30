@@ -31,7 +31,9 @@ export class SettingController {
       storeOriginPhone: settings.storeOriginPhone,
       supportPhone: settings.supportPhone || settings.storeOriginPhone,
       supportEmail: settings.supportEmail || "contact@store4riders.com",
-      whatsappNumber: settings.whatsappNumber,
+      whatsappNumber: settings.whatsappNumber || "+91 - 7263007788",
+      whatsappChatEnabled: settings.whatsappChatEnabled !== false,
+      whatsappDefaultMessage: settings.whatsappDefaultMessage || "Hi Store4Riders, I have a query regarding products/order.",
       facebookUrl: settings.facebookUrl,
       instagramUrl: settings.instagramUrl,
       youtubeUrl: settings.youtubeUrl,
@@ -45,6 +47,7 @@ export class SettingController {
       guidesMetaDescription: settings.guidesMetaDescription || "",
       guidesMetaKeywords: settings.guidesMetaKeywords || "",
       footerConfig: settings.footerConfig,
+      policyPages: settings.policyPages || [],
     };
     return ApiResponse.success(publicData, "Public settings retrieved successfully");
   }

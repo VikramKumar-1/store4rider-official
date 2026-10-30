@@ -209,29 +209,45 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://store4riders.com";
     const productSchema = buildProductSchema(product, siteUrl);
-    const breadcrumbSchema = buildBreadcrumbSchema(
-      [
-        { name: "Home", url: "/" },
-        ...(product.categorySlugs?.[0]
-          ? [
-              {
-                name: product.categorySlugs[0].replace(/[-_]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
-                url: `/${product.categorySlugs[0]}`,
-              },
-            ]
-          : [{ name: "Products", url: "/products" }]),
-        ...(product.brand
-          ? [
-              {
-                name: product.brand,
-                url: `/brands/${product.brandSlug || product.brand.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`,
-              },
-            ]
-          : []),
-        { name: product.name, url: `/${candidateSlug}` },
-      ],
-      siteUrl
-    );
+
+    const schemaBreadcrumbItems = [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/products" },
+      ...(product.category
+        ? [
+            {
+              name: product.category,
+              url: product.categorySlug ? (product.categorySlug.startsWith("/") ? product.categorySlug : `/${product.categorySlug}`) : `/${product.category.toLowerCase().replace(/\s+/g, "-")}`,
+            },
+          ]
+        : product.categorySlugs?.[0]
+        ? [
+            {
+              name: product.categorySlugs[0].replace(/[-_]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
+              url: `/${product.categorySlugs[0]}`,
+            },
+          ]
+        : []),
+      ...(product.subCategory
+        ? [
+            {
+              name: product.subCategory,
+              url: product.subCategorySlug ? (product.subCategorySlug.startsWith("/") ? product.subCategorySlug : `/${product.subCategorySlug}`) : `/${product.subCategory.toLowerCase().replace(/\s+/g, "-")}`,
+            },
+          ]
+        : []),
+      ...(product.brand
+        ? [
+            {
+              name: product.brand,
+              url: `/brands/${product.brandSlug || product.brand.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`,
+            },
+          ]
+        : []),
+      { name: product.name, url: `/${candidateSlug}` },
+    ];
+
+    const breadcrumbSchema = buildBreadcrumbSchema(schemaBreadcrumbItems, siteUrl);
     const faqSchema = buildFAQSchema(product.faqs);
 
     return (

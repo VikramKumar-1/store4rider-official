@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../api/client";
-import { IFooterConfig } from "@store4riders/shared-types";
+import { IFooterConfig, IPolicyPageConfig } from "@store4riders/shared-types";
 
 export interface IPublicSettings {
   enabledGateways: string[];
@@ -21,6 +21,8 @@ export interface IPublicSettings {
   supportPhone?: string;
   supportEmail?: string;
   whatsappNumber?: string;
+  whatsappChatEnabled?: boolean;
+  whatsappDefaultMessage?: string;
   facebookUrl?: string;
   instagramUrl?: string;
   youtubeUrl?: string;
@@ -28,6 +30,7 @@ export interface IPublicSettings {
   returnWindowDays?: number;
   snapmintMinOrderValue?: number;
   footerConfig?: IFooterConfig;
+  policyPages?: IPolicyPageConfig[];
 }
 
 export function usePublicSettings() {

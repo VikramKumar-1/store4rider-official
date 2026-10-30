@@ -323,30 +323,20 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2">
-                  <div className="flex gap-2">
-                    <Link
-                      href="/login"
-                      onClick={onClose}
-                      className="flex-1 text-center py-2.5 bg-banner text-white text-sm font-bold rounded-xl hover:bg-orange-600 transition-colors shadow-sm"
-                    >
-                      Sign In
-                    </Link>
-                    <Link
-                      href="/register"
-                      onClick={onClose}
-                      className="flex-1 text-center py-2.5 border border-neutral-300 bg-white text-neutral-700 text-sm font-bold rounded-xl hover:bg-neutral-100 transition-colors"
-                    >
-                      Register
-                    </Link>
-                  </div>
+                <div className="flex gap-2">
                   <Link
-                    href="/account/orders"
+                    href="/login"
                     onClick={onClose}
-                    className="flex items-center justify-center gap-2 py-2 text-xs font-bold text-neutral-700 hover:text-brand transition-colors bg-white border border-neutral-200 rounded-xl"
+                    className="flex-1 text-center py-2.5 bg-banner text-white text-sm font-bold rounded-xl hover:bg-orange-600 transition-colors shadow-sm"
                   >
-                    <OrdersIcon className="w-4 h-4 text-neutral-400" />
-                    <span>Track Your Order</span>
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={onClose}
+                    className="flex-1 text-center py-2.5 border border-neutral-300 bg-white text-neutral-700 text-sm font-bold rounded-xl hover:bg-neutral-100 transition-colors"
+                  >
+                    Register
                   </Link>
                 </div>
               )}

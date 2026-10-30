@@ -31,6 +31,19 @@ export interface IFooterConfig {
   bottomLinks?: IFooterLink[];
 }
 
+export interface IPolicyPageConfig {
+  slug: string;
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  lastUpdated?: string;
+  summaryAlertTitle?: string;
+  summaryAlertText?: string;
+  summaryAlertType?: "info" | "warning" | "success" | "brand";
+  contentHtml: string;
+  isActive?: boolean;
+}
+
 export interface ISetting {
   taxRate: number;
   freeShippingThreshold: number;
@@ -53,6 +66,8 @@ export interface ISetting {
   supportPhone?: string;
   supportEmail?: string;
   whatsappNumber?: string;
+  whatsappChatEnabled?: boolean;
+  whatsappDefaultMessage?: string;
   facebookUrl?: string;
   instagramUrl?: string;
   youtubeUrl?: string;
@@ -60,6 +75,7 @@ export interface ISetting {
   returnWindowDays?: number;
   popularSearches?: string[];
   footerConfig?: IFooterConfig;
+  policyPages?: IPolicyPageConfig[];
 }
 
 export interface IPublicSettings {
@@ -82,6 +98,8 @@ export interface IPublicSettings {
   supportPhone?: string;
   supportEmail?: string;
   whatsappNumber?: string;
+  whatsappChatEnabled?: boolean;
+  whatsappDefaultMessage?: string;
   facebookUrl?: string;
   instagramUrl?: string;
   youtubeUrl?: string;
@@ -89,4 +107,5 @@ export interface IPublicSettings {
   returnWindowDays?: number;
   packagePresets?: IPackagePreset[];
   footerConfig?: IFooterConfig;
+  policyPages?: IPolicyPageConfig[];
 }

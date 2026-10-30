@@ -229,8 +229,12 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         { label: "HOME", href: "/" },
         { label: "PRODUCTS", href: "/products" },
         ...(product.category ? [{ 
-          label: product.category, 
-          href: product.categorySlug ? `/${product.categorySlug}` : `/${product.category.toLowerCase().replace(/\s+/g, '-')}` 
+          label: product.category.toUpperCase(), 
+          href: product.categorySlug ? (product.categorySlug.startsWith("/") ? product.categorySlug : `/${product.categorySlug}`) : `/${product.category.toLowerCase().replace(/\s+/g, '-')}` 
+        }] : []),
+        ...(product.subCategory ? [{ 
+          label: product.subCategory.toUpperCase(), 
+          href: product.subCategorySlug ? (product.subCategorySlug.startsWith("/") ? product.subCategorySlug : `/${product.subCategorySlug}`) : `/${product.subCategory.toLowerCase().replace(/\s+/g, '-')}` 
         }] : []),
         ...(product.brand && product.brandSlug ? [{ 
           label: product.brand.toUpperCase(), 
@@ -252,6 +256,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
               activeVariantImageUrl={activeVariant?.imageUrl}
               colorImages={product.colorImages}
               colors={product.colors}
+              productTitle={product.name}
               videoUrl={product.videoUrl}
               onColorChange={setSelectedColor}
             />

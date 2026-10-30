@@ -72,7 +72,7 @@ export class ProductService {
   }
 
   static async getProductBySlug(slug: string): Promise<IProduct> {
-    const cacheKey = `product_slug_v3_${slug}`;
+    const cacheKey = `product_slug_v4_${slug}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -295,6 +295,121 @@ export class ProductService {
     if (brandName) product.brand = String(brandName).trim();
     if (brandSlug) product.brandSlug = brandSlug;
     if (brandLogo) product.brandLogo = brandLogo;
+
+    // DYNAMIC CATEGORY & SUBCATEGORY RESOLUTION
+    let categoryName = (product as any).category || "";
+    let categorySlug = (product as any).categorySlug || "";
+    let subCategoryName = (product as any).subCategory || "";
+    let subCategorySlug = (product as any).subCategorySlug || "";
+    const categoryHierarchy: Array<{ name: string; slug: string }> = [];
+
+    try {
+      const { CategoryModel } = await import("../category/category.model");
+      const { LEAF_TO_PARENT_MAP } = await import("./product.category-constants");
+      const mongoose = await import("mongoose");
+      const candidateSlugs = [
+        product.categoryId,
+        ...(Array.isArray(product.categorySlugs) ? product.categorySlugs : []),
+      ].filter((s): s is string => typeof s === "string" && s.trim().length > 0);
+
+      const orConditions: any[] = [];
+      if (candidateSlugs.length > 0) {
+        orConditions.push({ slug: { $in: candidateSlugs } });
+      }
+      if (product.categoryId && mongoose.default.isValidObjectId(product.categoryId)) {
+        orConditions.push({ _id: product.categoryId });
+      }
+
+      let matchedCats: any[] = [];
+      if (orConditions.length > 0) {
+        matchedCats = await CategoryModel.find({ $or: orConditions }).lean().exec();
+      }
+
+      if (matchedCats.length > 0) {
+        // Find if any matched category has a parentId (meaning it's a subcategory)
+        const subCat = matchedCats.find((c) => c.parentId && String(c.parentId).trim() !== "");
+        if (subCat) {
+          subCategoryName = subCat.name;
+          subCategorySlug = subCat.slug;
+
+          // Find its parent category (either already in matchedCats or by parentId / slug)
+          let parentCat = matchedCats.find(
+            (c) =>
+              c._id?.toString() === subCat.parentId ||
+              c.slug === subCat.parentId ||
+              (LEAF_TO_PARENT_MAP[subCat.slug] && c.slug === LEAF_TO_PARENT_MAP[subCat.slug])
+          );
+
+          if (!parentCat && mongoose.default.isValidObjectId(subCat.parentId)) {
+            parentCat = await CategoryModel.findById(subCat.parentId).lean().exec();
+          }
+          if (!parentCat && LEAF_TO_PARENT_MAP[subCat.slug]) {
+            parentCat = await CategoryModel.findOne({ slug: LEAF_TO_PARENT_MAP[subCat.slug] }).lean().exec();
+          }
+
+          if (parentCat) {
+            categoryName = parentCat.name;
+            categorySlug = parentCat.slug;
+            subCategorySlug = `${parentCat.slug}/${subCat.slug}`;
+          } else if (LEAF_TO_PARENT_MAP[subCat.slug]) {
+            const pSlug = LEAF_TO_PARENT_MAP[subCat.slug];
+            categorySlug = pSlug;
+            categoryName = pSlug.replace(/[-_]/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+            subCategorySlug = `${pSlug}/${subCat.slug}`;
+          }
+        } else {
+          // All matched are top-level or primary
+          const primaryCat = matchedCats[0];
+          categoryName = primaryCat.name;
+          categorySlug = primaryCat.slug;
+        }
+      }
+
+      // If not resolved from DB categories, check LEAF_TO_PARENT_MAP
+      if (!categoryName && product.categoryId && LEAF_TO_PARENT_MAP[product.categoryId]) {
+        const parentSlugCandidate = LEAF_TO_PARENT_MAP[product.categoryId];
+        categorySlug = parentSlugCandidate;
+        categoryName = parentSlugCandidate.replace(/[-_]/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+        subCategorySlug = `${parentSlugCandidate}/${product.categoryId}`;
+        subCategoryName = product.categoryId.replace(/[-_]/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+      }
+
+      // If still not resolved, check legacy magentoCategories
+      if (!categoryName && product.magentoCategories) {
+        const firstCat = product.magentoCategories.split(",")[0];
+        const token = "__ESC_SLASH__";
+        const parts = firstCat
+          .replace(/\\\/|\\\//g, token)
+          .split("/")
+          .map((p) => p.replace(new RegExp(token, "g"), "/").trim())
+          .filter((p) => p && !p.toLowerCase().includes("root") && !p.toLowerCase().includes("default"));
+
+        if (parts.length >= 2) {
+          categoryName = parts[0];
+          categorySlug = slugify(parts[0]);
+          subCategoryName = parts[parts.length - 1];
+          subCategorySlug = `${categorySlug}/${slugify(parts[parts.length - 1])}`;
+        } else if (parts.length === 1) {
+          categoryName = parts[0];
+          categorySlug = slugify(parts[0]);
+        }
+      }
+
+      if (categoryName) {
+        categoryHierarchy.push({ name: categoryName, slug: categorySlug });
+      }
+      if (subCategoryName) {
+        categoryHierarchy.push({ name: subCategoryName, slug: subCategorySlug });
+      }
+    } catch {
+      // Non-blocking fallback
+    }
+
+    if (categoryName) (product as any).category = categoryName;
+    if (categorySlug) (product as any).categorySlug = categorySlug;
+    if (subCategoryName) (product as any).subCategory = subCategoryName;
+    if (subCategorySlug) (product as any).subCategorySlug = subCategorySlug;
+    if (categoryHierarchy.length > 0) (product as any).categoryHierarchy = categoryHierarchy;
 
     await setCache(cacheKey, product, PRODUCT_DETAIL_TTL);
     return product;

@@ -9,6 +9,11 @@ export interface IProduct {
   slug: string;
   sku: string;
   categoryId?: string; // made optional for migration
+  category?: string;
+  categorySlug?: string;
+  subCategory?: string;
+  subCategorySlug?: string;
+  categoryHierarchy?: Array<{ name: string; slug: string }>;
   basePrice: number;
   specialPrice?: number | null;
   specialPriceFromDate?: Date | string | null;

@@ -14,6 +14,11 @@ export interface IBackendProduct {
   description: string;
   shortDescription?: string;
   categoryId?: string;
+  category?: string;
+  categorySlug?: string;
+  subCategory?: string;
+  subCategorySlug?: string;
+  categoryHierarchy?: Array<{ name: string; slug: string }>;
   basePrice: number;
   specialPrice?: number;       // NOT "salePrice"
   specialPriceFromDate?: Date | string;
