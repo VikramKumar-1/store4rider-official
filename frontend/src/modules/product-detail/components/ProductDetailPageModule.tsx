@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { Suspense, useEffect, useMemo } from "react";
 import { useProductBySlug, useProductKit, useProductUpsell, useProductCrossSell, useProductReviews, IBackendProduct } from "@/core/hooks/useProducts";
 import { ProductDetailModule } from "@/modules/product-detail";
-import { normalizeExternalImageUrl } from "@/core/utils/mediaUrlHelper";
+import { normalizeExternalImageUrl, deduplicateProductImages } from "@/core/utils/mediaUrlHelper";
 import { PDPData, KitProduct } from "@/modules/product-detail/types/product-detail.types";
 import { useRecentViewsStore } from "@/stores/useRecentViewsStore";
 import { useStoreReviews } from "@/core/hooks/useStoreReviews";
@@ -279,87 +279,6 @@ const mapToKitProduct = (p: IBackendProduct): KitProduct => {
   };
 };
 
-export const filenameToColorMap: Record<string, string> = {
-  // SMK Typhoon
-  "_gl186_": "Green/Black/White",
-  // Clan SNKR Stealth Edition
-  "snkr--se-_9": "Black/Grey",
-  "snkr--se-_25": "Black/Red",
-  "snkr--se-_14": "Black/Blue",
-  "snkr--se-_10": "Black/Orange",
-  // Clan FRML 1.0 Formal Shoes
-  "frml-1-_5_.jpg": "Black",
-  "frml-1-_1_.jpg": "Black",
-  "frml-1-_2_.jpg": "Black",
-  "frml-1-_3_.jpg": "Black",
-  "frml-1-_4_.jpg": "Black",
-  "frml-1-_5__1.jpg": "Brown",
-  "frml-1-_1__1.jpg": "Brown",
-  "frml-1-_2__1.jpg": "Brown",
-  "frml-1-_3__1.jpg": "Brown",
-  "frml-1-_4__1.jpg": "Brown",
-  // Clan Scout Waterproof
-  "clan-scout-shoes-_30": "Black",
-  "clan-scout-shoes-_13": "Black",
-  "clan-scout-shoes-_24": "Blue",
-  "clan-scout-shoes-_19__2": "Blue",
-  "clan-scout-shoes-_11": "Grey",
-  "clan-scout-shoes-_5__11zon_1": "Grey",
-  "clan-scout-shoes-_46": "Red",
-  "clan-scout-shoes-_48": "Red",
-  // Clan Scout D3O Waterproof
-  "clan-scout-shoes-_3__11zon_1": "Red",
-  "clan-scout-shoes-_38": "Black",
-  "clan_scout_d3o_waterproof_riding_boots_-_grey": "Grey",
-  "clan-scout-shoes-_19__1": "Blue",
-};
-
-const KNOWN_COLORS = [
-  "black/flu. green", "black-flu-green", "black/flu green", "black/neon", "black/hiviz", "black/hi-viz",
-  "black/grey", "grey/black", "black/red", "red/black", "black/blue", "blue/black", 
-  "black/orange", "orange/black", "black/yellow", "yellow/black", "black/green", "green/black",
-  "black/white", "white/black", "red/white", "white/red", "blue/white", "white/blue",
-  "black", "brown", "tan", "white", "red", "blue", "green", "grey", "gray", "orange", "yellow", 
-  "neon", "navy", "olive", "camo", "silver", "gold", "pink", "purple", "teal", "cyan",
-  "flu green", "hi-viz", "hiviz"
-];
-
-const inferImageColorLabel = (imgUrl: string, existingAlt: string, productName: string): string => {
-  // SMART CHECK: If the database provided a rich alt text with a dash (e.g. "Product - Black/Flu. Green"), trust it!
-  if (existingAlt && existingAlt.includes('-') && existingAlt.length > productName.length + 1) {
-    return existingAlt;
-  }
-
-  const urlLower = (imgUrl || "").toLowerCase();
-
-  // Check known obscure filenames (Magento edge cases)
-  for (const [key, color] of Object.entries(filenameToColorMap)) {
-    if (urlLower.includes(key.toLowerCase())) {
-      return `${productName} - ${color}`;
-    }
-  }
-
-  // Check URL substrings
-  for (const c of KNOWN_COLORS) {
-    const dashFormat = c.replace(/\//g, "-");
-    const underscoreFormat = c.replace(/\//g, "_");
-    const noSpaceFormat = c.replace(/\//g, "");
-    
-    const check = (fmt: string) => {
-      const isShort = fmt === "red" || fmt === "tan";
-      if (isShort) return new RegExp(`(?:^|[^a-z])${fmt}`).test(urlLower);
-      return urlLower.includes(fmt);
-    };
-
-    if (check(c) || check(dashFormat) || check(underscoreFormat) || check(noSpaceFormat)) {
-      const capitalized = c.split(/[/\\&\-_+ ]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join("/");
-      return `${productName} - ${capitalized}`;
-    }
-  }
-
-  return existingAlt || productName;
-};
-
 export const inferRichColorFromUrl = (url: string, fallback: string): string => {
   if (!url) return fallback;
   const parts = url.toLowerCase().split(/[-_/+.\s]/);
@@ -565,97 +484,6 @@ const mapProductToPDP = (
     ? `${Math.round(((base - special!) / base) * 100)}%`
     : undefined;
 
-  const galleryMap = new Map<string, any>();
-  const normalizeUrlForMap = (url: string) => {
-    if (!url) return "";
-    const clean = url.split("?")[0].replace("http://", "https://").trim().toLowerCase();
-    // Strip S3 upload timestamp prefix (e.g. /1793099414474-testhelmet.webp -> /testhelmet.webp) to prevent duplicate uploads of the same photo
-    return clean.replace(/\/\d{10,15}-([^\/]+)$/, "/$1");
-  };
-  
-  // 1. Add Parent Images (with deduplication on base filename)
-  if (product.images?.length > 0) {
-    product.images.forEach((img) => {
-      if (!img.url) return;
-      const norm = normalizeUrlForMap(img.url);
-      const alt = inferImageColorLabel(img.url, img.altText || "", product.name);
-      const cleanUrl = normalizeExternalImageUrl(img.url);
-      if (!galleryMap.has(norm)) {
-        galleryMap.set(norm, {
-          url: cleanUrl,
-          altText: alt,
-        });
-      } else {
-        const existing = galleryMap.get(norm);
-        if (existing && !existing.altText?.includes(" - ") && alt?.includes(" - ")) {
-          galleryMap.set(norm, { url: img.url, altText: alt });
-        }
-      }
-    });
-  }
-
-  // 2. Add Variant Specific Images (Trust the DB Swatch/Variant Image & Alt Text!)
-  if (rawVariants && rawVariants.length > 0) {
-    rawVariants.forEach((v: any) => {
-      const vImgs = (v.images && v.images.length > 0)
-        ? v.images
-        : (v.imageUrl ? [{ url: v.imageUrl, altText: v.altText }] : []);
-
-      vImgs.forEach((vImg: any) => {
-        if (vImg?.url && vImg.url !== "/no-image.svg") {
-          const norm = normalizeUrlForMap(vImg.url);
-          let vColor = "";
-          const colorKey = Object.keys(v.attributes || {}).find((k) => k.toLowerCase().includes("color") || k.toLowerCase().includes("colour"));
-          if (colorKey) vColor = v.attributes[colorKey];
-          const alt = vImg.altText || (vColor ? `${product.name} - ${vColor}` : product.name);
-          
-          const cleanUrl = normalizeExternalImageUrl(vImg.url);
-          if (!galleryMap.has(norm)) {
-            galleryMap.set(norm, {
-              url: cleanUrl,
-              altText: alt,
-            });
-          } else {
-            const existing = galleryMap.get(norm);
-            if (existing && (!existing.altText?.includes(" - ") || vColor)) {
-              galleryMap.set(norm, {
-                url: vImg.url,
-                altText: alt,
-              });
-            }
-          }
-        }
-      });
-    });
-  }
-
-  // 3. Add ColorImages directly into galleryMap so every color has an explicit image in the gallery
-  if (product.colorImages) {
-    const cMap = product.colorImages instanceof Map ? Object.fromEntries(product.colorImages) : product.colorImages;
-    Object.entries(cMap).forEach(([color, url]) => {
-      if (typeof url === "string" && url && url !== "/no-image.svg") {
-        const norm = normalizeUrlForMap(url);
-        const alt = `${product.name} - ${color}`;
-        // Prefer explicit colorImage url and color alt text over generic base image
-        galleryMap.set(norm, {
-          url: normalizeExternalImageUrl(url),
-          altText: alt,
-        });
-      }
-    });
-  }
-
-  const gallery = galleryMap.size > 0 
-    ? Array.from(galleryMap.values())
-    : [{ url: "/no-image.svg", altText: "Placeholder" }];
-
-  const { categoryName: category, categorySlug } = extractCategoryInfo(product);
-
-  const plainTextDesc = product.shortDescription
-    ? stripHtml(product.shortDescription)
-    : stripHtml(product.description || "");
-  const shortDescription = plainTextDesc || "Premium riding gear built for safety and comfort.";
-
   let colorNames: string[] = [];
   let sizes: string[] = [];
   let sizeLabel = "SIZE";
@@ -705,13 +533,13 @@ const mapProductToPDP = (
     });
   }
   
-  // Add colors inferred from gallery images ONLY if no colors were found in variants or colorImages
+  // Add colors inferred from product images ONLY if no colors were found in variants or colorImages
   if (colorSet.size === 0 && product.images && Array.isArray(product.images)) {
     product.images.forEach(img => {
       const alt = img.altText || "";
-      if (alt.includes(" - ")) {
-        const parts = alt.split(" - ");
-        const inferredColor = parts[parts.length - 1].trim();
+      const match = alt.match(/-(?:\s*)(.+)$/);
+      if (match) {
+        const inferredColor = match[1].trim();
         if (!hasColor(colorSet, inferredColor) && (inferredColor.includes("/") || Object.keys(singleColorMap).includes(inferredColor.toLowerCase()))) {
           colorSet.add(inferredColor);
         }
@@ -721,6 +549,37 @@ const mapProductToPDP = (
 
   colorNames = Array.from(colorSet);
   sizes = Array.from(sizeSet);
+
+  // 1. Collect all images for the product
+  const rawGalleryImages: any[] = [];
+  if (product.images?.length > 0) {
+    product.images.forEach((img) => {
+      if (img?.url && img.url !== "/no-image.svg") {
+        rawGalleryImages.push({
+          url: normalizeExternalImageUrl(img.url),
+          altText: img.altText || product.name,
+        });
+      }
+    });
+  }
+
+  // 2. Add colorImages if any exist that weren't already represented
+  if (product.colorImages) {
+    const cMap = product.colorImages instanceof Map ? Object.fromEntries(product.colorImages) : product.colorImages;
+    Object.entries(cMap).forEach(([color, url]) => {
+      if (typeof url === "string" && url && url !== "/no-image.svg") {
+        rawGalleryImages.push({
+          url: normalizeExternalImageUrl(url),
+          altText: `${product.name} - ${color}`,
+        });
+      }
+    });
+  }
+
+  // 3. Deduplicate images by (color, angle) and sequence angles 1, 2, 3...
+  const gallery = rawGalleryImages.length > 0 
+    ? deduplicateProductImages(rawGalleryImages, colorNames, product.name)
+    : [{ url: "/no-image.svg", altText: "Placeholder" }];
 
   const mappedColors = colorNames.length > 0
     ? colorNames.map(name => {
@@ -748,6 +607,16 @@ const mapProductToPDP = (
           const parts = swatchBg.split(",").map((s: string) => s.trim());
           if (parts.length === 2) {
             swatchBg = `linear-gradient(135deg, ${parts[0]} 0%, ${parts[0]} 49.5%, ${parts[1]} 50.5%, ${parts[1]} 100%)`;
+          } else if (parts.length === 3) {
+            swatchBg = `linear-gradient(135deg, ${parts[0]} 0%, ${parts[0]} 32.8%, ${parts[1]} 33.3%, ${parts[1]} 66.1%, ${parts[2]} 66.6%, ${parts[2]} 100%)`;
+          } else if (parts.length >= 4) {
+            const step = 100 / parts.length;
+            const stops = parts.map((h: string, i: number) => {
+              const start = (i * step).toFixed(1);
+              const end = ((i + 1) * step).toFixed(1);
+              return `${h} ${start}%, ${h} ${end}%`;
+            }).join(", ");
+            swatchBg = `linear-gradient(135deg, ${stops})`;
           }
         }
         return {
@@ -781,8 +650,8 @@ const mapProductToPDP = (
     brand: brand || undefined,
     brandSlug,
     brandLogo,
-    category,
-    categorySlug,
+    category: (product as any).category || (product as any).categoryName || "",
+    categorySlug: (product as any).categorySlug || "",
     name: product.name,
     sku: product.sku,
     productType: product.productType,
@@ -794,7 +663,7 @@ const mapProductToPDP = (
     originalPriceFormatted,
     discountBadge,
     priceFormatted,
-    shortDescription,
+    shortDescription: product.shortDescription || (product as any).short_description || "",
     fullDescription: product.description || "",
     sizeChart: product.sizeChart || product.size_chart,
     images: gallery,

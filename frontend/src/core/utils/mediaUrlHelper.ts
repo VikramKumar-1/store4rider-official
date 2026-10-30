@@ -129,3 +129,153 @@ export function getVideoEmbedInfo(url?: string | null): VideoEmbedInfo | null {
 
   return null;
 }
+
+
+/**
+ * Normalizes a string for comparison by stripping all non-alphanumeric characters.
+ */
+export function normalizeForCompare(str?: string | null): string {
+  if (!str) return "";
+  return str.replace(/[^a-z0-9]/gi, "").toLowerCase();
+}
+
+/**
+ * Detects which known color an image belongs to based on altText or URL tokens.
+ * Accurately parses altText formats: 'Product - Color', 'Product-Color', 'Product- Color', etc.
+ */
+export function detectImageColor(
+  img: { url?: string; altText?: string },
+  knownColors: string[]
+): string | null {
+  if (!img || !knownColors || knownColors.length === 0) return null;
+  const alt = (img.altText || "").toLowerCase();
+  const url = (img.url || "").toLowerCase();
+
+  // 1. Check altText split by dash (supports '-', ' - ', '- ', ' _ ')
+  const altParts = alt.split(/-(?:\s*)/);
+  if (altParts.length > 1) {
+    const lastPart = altParts[altParts.length - 1].trim();
+    for (const c of knownColors) {
+      if (normalizeForCompare(lastPart) === normalizeForCompare(c)) {
+        return c;
+      }
+    }
+  }
+
+  // 2. Exact or substring match in altText or URL
+  for (const c of knownColors) {
+    const cNorm = normalizeForCompare(c);
+    if (normalizeForCompare(alt).includes(cNorm)) return c;
+
+    // Multi-color tokens (e.g. 'orange', 'green', 'red', 'yellow')
+    const tokens = c.toLowerCase().split(/[\/\\&\-_+ ]/).filter((t) => t.length > 2);
+    const nonBlackTokens = tokens.filter((t) => t !== "black");
+    if (nonBlackTokens.length > 0) {
+      if (nonBlackTokens.every((t) => alt.includes(t) || url.includes(t))) {
+        return c;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Extracts angle / sequence number from image filenames (e.g., -2_1.jpg -> 2, _1_2.jpg -> 1, _2.jpg -> 2, -_1_.jpg -> 1).
+ */
+export function extractAngleNumber(filename?: string | null): number {
+  if (!filename) return 1;
+  const clean = filename.split("?")[0].replace(/\.[^/.]+$/, "");
+  const match = clean.match(/(?:[-_])(\d+)(?:_\d+|_)?$/);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  return 1;
+}
+
+/**
+ * Enterprise product image deduplicator:
+ * 1. Groups images by color and sequence angle.
+ * 2. Deduplicates Magento duplicate re-uploads (_1.jpg, -1_1.jpg, _1_2.jpg).
+ * 3. Keeps exactly one clean, canonical photo per (color, angle).
+ * 4. Orders images logically by angle (1, 2, 3...) per color.
+ */
+export function deduplicateProductImages(
+  images: Array<{ url: string; altText?: string; detectedColor?: string; angle?: number }>,
+  knownColors: string[],
+  productName: string = ""
+): Array<{ url: string; altText: string; detectedColor?: string; angle: number }> {
+  if (!images || images.length === 0) return [];
+
+  const seenKeys = new Set<string>();
+  const result: Array<{ url: string; altText: string; detectedColor?: string; angle: number }> = [];
+
+  for (const img of images) {
+    if (!img || !img.url || img.url === "/no-image.svg") continue;
+    const cleanUrl = normalizeExternalImageUrl(img.url);
+    const filename = cleanUrl.split("/").pop() || "";
+    const color = img.detectedColor || detectImageColor(img, knownColors);
+    const angle = img.angle !== undefined ? img.angle : extractAngleNumber(filename);
+
+    let key: string;
+    if (color) {
+      key = `${color.toLowerCase()}-angle-${angle}`;
+    } else {
+      const baseFn = filename.replace(/\.[^/.]+$/, "").replace(/(?:[-_])\d+(?:_\d+|_)?$/, "");
+      key = `common-${baseFn}-angle-${angle}`;
+    }
+
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      const cleanAlt = color && productName ? `${productName} - ${color}` : (img.altText || productName);
+      result.push({
+        url: cleanUrl,
+        altText: cleanAlt,
+        detectedColor: color || undefined,
+        angle,
+      });
+    }
+  }
+
+  // Sort: keep colors grouped, with angles 1, 2, 3...
+  result.sort((a, b) => {
+    if (a.detectedColor && b.detectedColor) {
+      if (a.detectedColor !== b.detectedColor) {
+        return a.detectedColor.localeCompare(b.detectedColor);
+      }
+      return a.angle - b.angle;
+    }
+    if (a.detectedColor && !b.detectedColor) return -1;
+    if (!a.detectedColor && b.detectedColor) return 1;
+    return a.angle - b.angle;
+  });
+
+  return result;
+}
+
+/**
+ * Generates SEO-compliant alt text for a child variant image.
+ * Incorporates Product Name, Color, and Size/Volume.
+ * 
+ * Rules:
+ * - If color is "Standard" or omitted, color is excluded: "Product Name (Size)"
+ * - If size is omitted: "Product Name - Color"
+ * - If both color & size exist: "Product Name - Color (Size)"
+ * - If product name is empty, defaults to "Product"
+ */
+export function buildVariantAltText(
+  productName?: string,
+  color?: string,
+  size?: string
+): string {
+  const pName = productName?.trim() || "Product";
+  const c = color?.trim();
+  const s = size?.trim();
+  const isStandard = !c || c.toLowerCase() === "standard";
+
+  if (isStandard) {
+    return s ? `${pName} (${s})` : pName;
+  }
+  return s ? `${pName} - ${c} (${s})` : `${pName} - ${c}`;
+}
+

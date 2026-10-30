@@ -159,10 +159,70 @@ export function ProductMigration() {
       </div>
 
       <div className="bg-white rounded-lg shadow border border-gray-200 p-8">
-        <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+        <h2 className="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
           <ArrowUpTrayIcon className="w-5 h-5 text-brand" />
           Upload Updated CSV
         </h2>
+
+        {/* Informative CSV Column & Variant Guide */}
+        <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 text-xs text-slate-700">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-slate-900 text-sm">
+              📘 CSV Column Reference & Formatting Guide (For Admin)
+            </span>
+            <span className="text-[11px] font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded">
+              Standard 39 Columns
+            </span>
+          </div>
+
+          <p className="text-slate-600 leading-relaxed text-[11.5px]">
+            This bulk upload processes Magento & Store4Riders product spreadsheets. It automatically supports parent configurable products, individual child size/color variants, and color swatches.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 font-mono text-[11px]">
+            <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1">
+              <span className="font-bold text-slate-800 font-sans block text-xs border-b border-slate-100 pb-1">
+                1. Product & Identification
+              </span>
+              <div><strong className="text-brand">sku</strong>: Master or Variant SKU</div>
+              <div><strong className="text-brand">name</strong>: Full Title</div>
+              <div><strong className="text-brand">product_type</strong>: simple / configurable</div>
+              <div><strong className="text-brand">brand</strong>: Brand Name</div>
+              <div><strong className="text-brand">categories</strong>: Category Path</div>
+            </div>
+
+            <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1">
+              <span className="font-bold text-slate-800 font-sans block text-xs border-b border-slate-100 pb-1">
+                2. Price, Stock & Visibility
+              </span>
+              <div><strong className="text-brand">price</strong>: Base Selling Price (₹)</div>
+              <div><strong className="text-brand">special_price</strong>: Offer Price (₹)</div>
+              <div><strong className="text-brand">qty</strong>: Stock Quantity Count</div>
+              <div><strong className="text-brand">is_in_stock</strong>: 1 (In) / 0 (Out)</div>
+              <div><strong className="text-brand">status</strong>: 1 (Enabled) / 0 (Disabled)</div>
+            </div>
+
+            <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1">
+              <span className="font-bold text-slate-800 font-sans block text-xs border-b border-slate-100 pb-1">
+                3. Swatches & Variations
+              </span>
+              <div><strong className="text-brand">color_swatches</strong>:</div>
+              <div className="text-[10px] text-slate-600 font-sans leading-tight pl-2">
+                <code>Matte Black=#1F1F1F|Red=#DC2626</code>
+              </div>
+              <div className="pt-1"><strong className="text-brand">configurable_variations</strong>:</div>
+              <div className="text-[10px] text-slate-600 font-sans leading-tight pl-2 truncate">
+                <code>sku=SKU-1,price=4500,qty=10,color=Black,size=M|...</code>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900">
+            <span>
+              💡 <strong>Bulk Stock Update:</strong> You can upload a simple CSV with only <code className="font-bold">sku</code> and <code className="font-bold">qty</code> (or <code className="font-bold">price</code>) to instantly update inventory across thousands of variants!
+            </span>
+          </div>
+        </div>
         <div 
           className="border-2 border-dashed border-gray-300 rounded-lg p-12 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
           onClick={() => fileInputRef.current?.click()}

@@ -224,16 +224,29 @@ export class ProductService {
             .map((img: any) => (img.url ? img.url.split('?')[0].replace('http://', 'https://').trim().toLowerCase() : ''))
         );
 
+        // Normalize color matching to avoid adding duplicates if an image for that color already exists in product.images
+        const existingColors = new Set(
+          (product.images as any[])
+            .map((img: any) => {
+              const alt = (img.altText || '').toLowerCase();
+              const match = alt.match(/-(?:\s*)(.+)$/);
+              return match ? match[1].trim().toLowerCase() : '';
+            })
+            .filter(Boolean)
+        );
+
         Object.entries(cMap).forEach(([colorName, colorUrl]) => {
           if (typeof colorUrl === 'string' && colorUrl) {
             const cleanUrl = colorUrl.split('?')[0].replace('http://', 'https://').trim().toLowerCase();
-            if (!existingUrls.has(cleanUrl)) {
+            const colorLower = colorName.trim().toLowerCase();
+            if (!existingUrls.has(cleanUrl) && !existingColors.has(colorLower)) {
               (product.images as any[]).push({
                 id: `color-${colorName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
                 url: colorUrl,
                 altText: `${product.name} - ${colorName}`,
               });
               existingUrls.add(cleanUrl);
+              existingColors.add(colorLower);
             }
           }
         });
@@ -530,6 +543,8 @@ export class ProductService {
       }
       else if (c.includes("cleaner")) regexConditions.push({ name: /\b(cleaner|cleaning|spray|wash)\b/i });
       else if (c.includes("touring-pant")) regexConditions.push({ name: /\b(touring.*pant|pant.*touring)\b/i });
+      else if (c.includes("touring-gear") || c === "touring") regexConditions.push({ name: /\b(touring|tourer)\b/i });
+      else if (c.includes("monsoon") || c.includes("rain-gear")) regexConditions.push({ name: /\b(rain|waterproof|monsoon)\b/i });
       else if (c.includes("women")) regexConditions.push({ name: /\b(women|lady|ladies|stella)\b/i });
       else if (c.includes("top-box")) regexConditions.push({ name: /\b(top.*box|topcase|top.*case)\b/i });
       else if (c.includes("hydration")) regexConditions.push({ name: /\b(hydration|camelbak|water.*bladder)\b/i });
@@ -1372,10 +1387,14 @@ export class ProductService {
               if (rawColorSwatches !== undefined && typeof rawColorSwatches === "string" && rawColorSwatches.trim()) {
                 const parsedSwatches: Record<string, string> = {};
                 rawColorSwatches.split("|").forEach((item: string) => {
-                  const [col, hex] = item.split("=");
-                  if (col && hex) {
-                    const cleanKey = col.replace(/\./g, " ").replace(/\s+/g, " ").trim();
-                    parsedSwatches[cleanKey] = hex.trim();
+                  const eqIdx = item.indexOf("=");
+                  if (eqIdx !== -1) {
+                    const col = item.slice(0, eqIdx);
+                    const hex = item.slice(eqIdx + 1);
+                    if (col && hex) {
+                      const cleanKey = col.replace(/\./g, " ").replace(/\s+/g, " ").trim();
+                      parsedSwatches[cleanKey] = hex.trim();
+                    }
                   }
                 });
                 if (Object.keys(parsedSwatches).length > 0) {
@@ -1628,6 +1647,7 @@ export class ProductService {
             "", // additional_image_labels
             vImg,
             vAlt,
+            "", // color_swatches
             "", // configurable_variations
             "", // related_skus
             "", // upsell_skus

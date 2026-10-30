@@ -387,6 +387,9 @@ export const HomepageModule: React.FC<{
           subtitle={homepageConfig?.sections?.socialMedia?.sectionSubtitle}
           instagramHandle={homepageConfig?.sections?.socialMedia?.instagramHandle}
           instagramProfileUrl={homepageConfig?.sections?.socialMedia?.instagramProfileUrl}
+          profileName={homepageConfig?.sections?.socialMedia?.profileName}
+          bio={homepageConfig?.sections?.socialMedia?.bio}
+          websiteUrl={homepageConfig?.sections?.socialMedia?.websiteUrl}
           followersCount={homepageConfig?.sections?.socialMedia?.followersCount}
           followingCount={homepageConfig?.sections?.socialMedia?.followingCount}
           postsCount={homepageConfig?.sections?.socialMedia?.postsCount}

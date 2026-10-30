@@ -19,6 +19,9 @@ export interface SocialMediaSectionProps {
   subtitle?: string;
   instagramHandle?: string;
   instagramProfileUrl?: string;
+  profileName?: string;
+  bio?: string;
+  websiteUrl?: string;
   followersCount?: string;
   followingCount?: string;
   postsCount?: string;
@@ -41,6 +44,9 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
   title = "INSTA REELS",
   instagramHandle = "store4riders",
   instagramProfileUrl = "https://www.instagram.com/store4riders/",
+  profileName,
+  bio,
+  websiteUrl,
   followersCount,
   followingCount,
   postsCount,
@@ -193,21 +199,29 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                 {/* 3. Instagram Bio / Description */}
                 <div className="text-left text-xs mb-2.5 space-y-0.5">
                   <span className="font-bold text-white text-[11.5px] sm:text-xs block leading-tight">
-                    Store4Riders | Premium Riding Gear
+                    {profileName || "Store4Riders | Premium Riding Gear"}
                   </span>
-                  <span className="text-[10px] sm:text-[10.5px] text-white/60 block leading-tight">
-                    Motorcycle Gear & Accessories Store
-                  </span>
-                  <span className="text-[10px] sm:text-[10.5px] text-white/80 block leading-tight">
-                    India&apos;s leading certified helmets, jackets, boots & gloves.
-                  </span>
+                  {bio ? (
+                    <p className="text-[10px] sm:text-[10.5px] text-white/80 leading-snug whitespace-pre-line py-0.5">
+                      {bio}
+                    </p>
+                  ) : (
+                    <>
+                      <span className="text-[10px] sm:text-[10.5px] text-white/60 block leading-tight">
+                        Motorcycle Gear & Accessories Store
+                      </span>
+                      <span className="text-[10px] sm:text-[10.5px] text-white/80 block leading-tight">
+                        India&apos;s leading certified helmets, jackets, boots & gloves.
+                      </span>
+                    </>
+                  )}
                   <a
-                    href="https://store4riders.com"
+                    href={websiteUrl || "https://store4riders.com"}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] sm:text-[10.5px] text-[#0095f6] hover:underline block font-medium"
                   >
-                    store4riders.com
+                    {websiteUrl ? websiteUrl.replace(/^https?:\/\/(www\.)?/, "") : "store4riders.com"}
                   </a>
                 </div>
 
@@ -333,13 +347,8 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                             </div>
                           </div>
 
-                          {/* Bottom Gradient with Actual Real View Count */}
-                          <div className="absolute inset-x-0 bottom-0 p-1 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none flex items-center gap-1">
-                            <PlayIcon className="w-2 h-2 text-white fill-current shrink-0" />
-                            <span className="text-[8.5px] sm:text-[9.5px] font-bold text-white drop-shadow leading-none">
-                              {reel.views || "Live"}
-                            </span>
-                          </div>
+                          {/* Bottom Subtle Gradient */}
+                          <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
                         </div>
                       );
                     })

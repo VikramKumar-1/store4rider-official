@@ -108,12 +108,14 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
                         onClick={() =>
                           setExpandedId(expandedId === item.id ? null : item.id)
                         }
-                        className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold text-neutral-800 uppercase tracking-widest hover:bg-neutral-100 transition-colors"
+                        className={`w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold uppercase tracking-widest transition-colors ${
+                          expandedId === item.id ? "text-brand bg-neutral-50" : "text-neutral-800 hover:bg-neutral-100"
+                        }`}
                       >
                         <span>{item.label}</span>
                         <ChevronDownIcon
-                          className={`w-4 h-4 text-neutral-400 transition-transform duration-200 ${
-                            expandedId === item.id ? "rotate-180" : ""
+                          className={`w-4 h-4 transition-transform duration-200 ${
+                            expandedId === item.id ? "rotate-180 text-brand" : "text-neutral-400"
                           }`}
                         />
                       </button>
@@ -127,42 +129,96 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
                             transition={{ duration: 0.2 }}
                             className="overflow-hidden"
                           >
-                            <div className="pl-3 pb-2">
+                            <div className="pl-3 pr-2 pb-3 pt-1">
+                              {/* Direct section landing page link if available */}
+                              {item.href && item.href !== "#" && item.id !== "shop-by-brand" && (
+                                <div className="pt-1 pb-2 px-1 mb-2 border-b border-neutral-100">
+                                  <Link
+                                    href={item.href}
+                                    onClick={onClose}
+                                    className="inline-flex items-center gap-1.5 text-xs font-bold text-brand hover:underline"
+                                  >
+                                    <span>Explore All {item.label}</span>
+                                    <ChevronRightIcon className="w-3.5 h-3.5 text-brand stroke-[2.5]" />
+                                  </Link>
+                                </div>
+                              )}
+
                               {item.megaMenuItems.map((group, gIdx) => (
-                                <div key={gIdx} className="mb-3">
+                                <div key={gIdx} className="mb-3.5 last:mb-1 w-full">
                                   {group.group ? (
                                     group.groupHref ? (
-                                      <Link href={group.groupHref} onClick={onClose} className="block text-[10px] font-bold uppercase tracking-widest text-neutral-400 hover:text-brand px-3 mb-1">
-                                        {group.group}
+                                      <Link
+                                        href={group.groupHref}
+                                        onClick={onClose}
+                                        className="mb-2 block cursor-pointer group/cat px-1 mt-3 first:mt-0"
+                                      >
+                                        <h4 className="text-[12.5px] font-bold text-neutral-900 uppercase tracking-widest border-b border-neutral-200/60 pb-1.5 flex items-start gap-2 leading-snug group-hover/cat:text-brand transition-colors">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-banner shadow-xs shrink-0 mt-1.5" />
+                                          <span className="flex-1 min-w-0 break-words whitespace-normal">{group.group}</span>
+                                        </h4>
                                       </Link>
                                     ) : (
-                                      <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 px-3 mb-1">
-                                        {group.group}
-                                      </p>
+                                      <div className="mb-2 px-1 mt-3 first:mt-0">
+                                        <h4 className="text-[12.5px] font-bold text-neutral-900 uppercase tracking-widest border-b border-neutral-200/60 pb-1.5 flex items-start gap-2 leading-snug">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-banner shadow-xs shrink-0 mt-1.5" />
+                                          <span className="flex-1 min-w-0 break-words whitespace-normal">{group.group}</span>
+                                        </h4>
+                                      </div>
                                     )
                                   ) : null}
-                                  {group.items.map((link, lIdx) => (
-                                    <Link
-                                      key={lIdx}
-                                      href={link.href}
-                                      onClick={onClose}
-                                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-neutral-600 hover:text-banner hover:bg-orange-50 transition-colors"
-                                    >
-                                      {link.imageUrl ? (
-                                        <div className="relative w-5 h-5 rounded overflow-hidden shrink-0 border border-neutral-200 bg-neutral-100">
-                                          <Image src={link.imageUrl} alt={link.label} fill sizes="20px" className="object-cover" />
-                                        </div>
-                                      ) : (
-                                        <ChevronRightIcon className="w-3 h-3 text-neutral-300 shrink-0" />
-                                      )}
-                                      <span className="flex-1">{link.label}</span>
-                                      {link.badge && (
-                                        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider text-white ${link.badgeColor || "bg-brand"}`}>
-                                          {link.badge}
-                                        </span>
-                                      )}
-                                    </Link>
-                                  ))}
+
+                                  <ul className="flex flex-col gap-0.5 w-full">
+                                    {group.items.map((link, lIdx) => (
+                                      <li key={lIdx} className="w-full">
+                                        <Link
+                                          href={link.href}
+                                          onClick={onClose}
+                                          className={`cursor-pointer transition-colors duration-150 flex items-center gap-2.5 group/item w-full ${
+                                            !group.group
+                                              ? "text-[13px] font-medium text-neutral-700 hover:text-brand hover:bg-neutral-50 rounded-xl px-3 py-2"
+                                              : "text-[13px] font-medium text-neutral-600 hover:text-neutral-950 hover:bg-neutral-50 rounded-lg px-2.5 py-1.5"
+                                          }`}
+                                        >
+                                          {link.logoUrl ? (
+                                            <div className="w-10 h-5 flex items-center justify-center shrink-0">
+                                              <Image
+                                                src={link.logoUrl}
+                                                alt={link.label}
+                                                width={40}
+                                                height={20}
+                                                unoptimized
+                                                className="object-contain max-h-full max-w-full group-hover/item:scale-105 transition-transform duration-150"
+                                              />
+                                            </div>
+                                          ) : link.imageUrl ? (
+                                            <div className="relative w-5 h-5 rounded overflow-hidden shrink-0 border border-neutral-200/80 bg-neutral-100">
+                                              <Image
+                                                src={link.imageUrl}
+                                                alt={link.label}
+                                                fill
+                                                sizes="20px"
+                                                unoptimized
+                                                className="object-cover group-hover/item:scale-105 transition-transform duration-150"
+                                              />
+                                            </div>
+                                          ) : null}
+                                          <span className="group-hover/item:translate-x-0.5 transition-transform duration-150 flex-1 min-w-0 break-words whitespace-normal leading-snug flex items-center gap-1.5">
+                                            <span>{link.label}</span>
+                                            {link.badge && (
+                                              <span
+                                                className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider text-white ${
+                                                  link.badgeColor || "bg-brand"
+                                                }`}
+                                              >
+                                                {link.badge}
+                                              </span>
+                                            )}
+                                          </span>
+                                        </Link>
+                                      </li>
+                                    ))}
+                                  </ul>
                                 </div>
                               ))}
                               {item.id === "shop-by-brand" && (

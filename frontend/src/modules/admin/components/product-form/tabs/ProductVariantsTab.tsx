@@ -1,6 +1,7 @@
 "use client";
 
 import { parseColorToBackground } from "@/modules/product-detail/components/ProductDetailPageModule";
+import { buildVariantAltText } from "@/core/utils/mediaUrlHelper";
 
 import React, { useState } from "react";
 import Image from "next/image";
@@ -10,10 +11,44 @@ import { toast } from "sonner";
 import { useProductFormContext } from "../ProductFormContext";
 import { COLOR_OPTIONS, SIZE_OPTIONS } from "../product-specs.constants";
 import { ColorSwatchModal } from "../modals/ColorSwatchModal";
+import { AddSizeRunModal } from "../modals/AddSizeRunModal";
+
+export function generateVariantSku(
+  baseSku: string | undefined,
+  color: string,
+  size: string,
+  existingSkus: Set<string>
+): string {
+  const prefix = (baseSku || "SKU").trim();
+  const cleanSize = size.replace(/\s+/g, "").toUpperCase();
+  const cleanColor =
+    color && color.toLowerCase() !== "standard"
+      ? color.replace(/[^a-zA-Z0-9]/g, "").slice(0, 3).toUpperCase()
+      : "";
+
+  let candidate = cleanColor
+    ? `${prefix}-${cleanColor}-${cleanSize}`
+    : `${prefix}-${cleanSize}`;
+
+  if (existingSkus.has(candidate.toUpperCase())) {
+    let inc = 2;
+    while (existingSkus.has(`${candidate}-${inc}`.toUpperCase())) {
+      inc++;
+    }
+    candidate = `${candidate}-${inc}`;
+  }
+
+  return candidate;
+}
 
 export function ProductVariantsTab() {
-  const [editingColorSwatch, setEditingColorSwatch] = useState<string | null>(null);
+  const [editingColorTarget, setEditingColorTarget] = useState<{ colorName: string; variantIndex?: number } | null>(null);
   const [showSizeChartDrawer, setShowSizeChartDrawer] = useState(false);
+  const [sizeRunModalConfig, setSizeRunModalConfig] = useState<{
+    isOpen: boolean;
+    attributeSetName: string;
+    suggestedSizes: string[];
+  } | null>(null);
   const {
     variants,
     setVariants,
@@ -42,6 +77,162 @@ export function ProductVariantsTab() {
     );
     if (matchKey && colorSwatches[matchKey]) return colorSwatches[matchKey];
     return parseColorToBackground(trimmed) || "#111111";
+  };
+  const handleColorChange = (idx: number, newColor: string) => {
+    setVariants((prev) =>
+      prev.map((item, i) => {
+        if (i !== idx) return item;
+        const updatedAlt = item.imageUrl
+          ? buildVariantAltText(name, newColor, item.size)
+          : item.altText;
+        return {
+          ...item,
+          color: newColor,
+          altText: updatedAlt,
+          images: item.images?.length
+            ? item.images.map((img) => ({ ...img, altText: updatedAlt || img.altText }))
+            : item.images,
+        };
+      })
+    );
+  };
+
+  const handleSizeChange = (idx: number, newSize: string) => {
+    setVariants((prev) =>
+      prev.map((item, i) => {
+        if (i !== idx) return item;
+        const updatedAlt = item.imageUrl
+          ? buildVariantAltText(name, item.color, newSize)
+          : item.altText;
+        return {
+          ...item,
+          size: newSize,
+          altText: updatedAlt,
+          images: item.images?.length
+            ? item.images.map((img) => ({ ...img, altText: updatedAlt || img.altText }))
+            : item.images,
+        };
+      })
+    );
+  };
+
+  const handleApplyColorToAll = (colorToApply: string) => {
+    const trimmed = colorToApply.trim();
+    if (!trimmed) {
+      toast.error("Please enter a valid color name");
+      return;
+    }
+    setVariants((prev) =>
+      prev.map((item) => {
+        const updatedAlt = item.imageUrl
+          ? buildVariantAltText(name, trimmed, item.size)
+          : item.altText;
+        return {
+          ...item,
+          color: trimmed,
+          altText: updatedAlt,
+          images: item.images?.length
+            ? item.images.map((img) => ({ ...img, altText: updatedAlt || img.altText }))
+            : item.images,
+        };
+      })
+    );
+    toast.success(`✓ Color "${trimmed}" & auto Alt Texts applied to all ${variants.length} sizes!`);
+  };
+
+  
+  const handleAddSizeRun = (colorName: string, selectedSizes: string[], swatchCss?: string) => {
+    const finalColor = colorName.trim() || (variants.length === 0 ? "Standard" : "New Color");
+    const existingSkus = new Set(variants.map((v) => (v.sku || "").toUpperCase()));
+
+    const newVariants = selectedSizes.map((s) => {
+      const autoSku = generateVariantSku(sku, finalColor, s, existingSkus);
+      existingSkus.add(autoSku.toUpperCase());
+      const autoAlt = buildVariantAltText(name, finalColor, s);
+
+      return {
+        id: crypto.randomUUID(),
+        sku: autoSku,
+        color: finalColor,
+        size: s,
+        price: basePrice || 0,
+        specialPrice: (typeof specialPrice === "number" && specialPrice > 0 ? specialPrice : "") as number | "",
+        stock: 10,
+        imageUrl: undefined, // New color starts with clean photo slot!
+        altText: autoAlt,
+        images: [],
+      };
+    });
+
+    setVariants((prev) => [...prev, ...newVariants]);
+
+    if (swatchCss && finalColor.toLowerCase() !== "standard") {
+      setColorSwatches((prev) => ({
+        ...prev,
+        [finalColor]: swatchCss,
+      }));
+    }
+
+    toast.success(`⚡ Added ${newVariants.length} sizes for color "${finalColor}"!`);
+
+    setTimeout(() => {
+      const bottomElem = document.getElementById("variants-table-bottom");
+      if (bottomElem) {
+        bottomElem.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 100);
+  };
+
+  const handleSyncAllAltTexts = () => {
+    setVariants((prev) =>
+      prev.map((item) => {
+        if (!item.imageUrl) return item;
+        const autoAlt = buildVariantAltText(name, item.color, item.size);
+        return {
+          ...item,
+          altText: autoAlt,
+          images: item.images?.length
+            ? item.images.map((img) => ({ ...img, altText: autoAlt }))
+            : [{ id: crypto.randomUUID(), url: item.imageUrl, altText: autoAlt }],
+        };
+      })
+    );
+    toast.success("✓ All variant SEO Alt Texts synced with Product Name, Color & Size!");
+  };
+
+
+  const handleAddChildVariant = () => {
+    const prevLast = variants[variants.length - 1];
+    const inheritedColor = prevLast?.color || "";
+    const existingColorPhoto = variants.find(
+      (v) => inheritedColor && (v.color || "").trim().toLowerCase() === inheritedColor.trim().toLowerCase() && (v.imageUrl || v.images?.[0]?.url)
+    );
+    const photoUrl = existingColorPhoto?.imageUrl || existingColorPhoto?.images?.[0]?.url;
+    const photoAlt = existingColorPhoto?.altText || existingColorPhoto?.images?.[0]?.altText;
+
+    const newIndex = variants.length + 1;
+    const newVariant = {
+      id: crypto.randomUUID(),
+      sku: `${sku ? sku + "-" + newIndex : "VAR-" + newIndex}`,
+      color: inheritedColor,
+      size: "",
+      price: basePrice || 0,
+      specialPrice: (typeof specialPrice === "number" && specialPrice > 0 ? specialPrice : "") as number | "",
+      stock: 0,
+      imageUrl: photoUrl,
+      altText: photoUrl ? buildVariantAltText(name, inheritedColor, "") : undefined,
+      images: photoUrl ? [{ id: crypto.randomUUID(), url: photoUrl, altText: buildVariantAltText(name, inheritedColor, "") }] : [],
+    };
+
+    setVariants((prev) => [...prev, newVariant]);
+    toast.success(`Child variant #${newIndex} added!`);
+
+    setTimeout(() => {
+      const bottomElem = document.getElementById("variants-table-bottom");
+      if (bottomElem) {
+        bottomElem.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 100);
   };
 
   const handleSetCoverFromColor = (colorName: string, photoUrl?: string, altText?: string) => {
@@ -82,9 +273,15 @@ export function ProductVariantsTab() {
             <GitBranch className="text-brand" size={18} />
             Child Variants (Sizes, Volumes in ml/L, Colors & Child Images)
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Manage variants for this configurable product. Real database variants only.
-          </p>
+          <div className="mt-0.5 space-y-1">
+            <p className="text-xs text-slate-500">
+              Manage variants for this configurable product. Real database variants only.
+            </p>
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md">
+              <span className="font-bold text-brand">💡 Multi-Color Tip:</span>
+              <span>For dual/multi-color gear (e.g. Black boots with Red accents), enter color as <code className="bg-white px-1 py-0.2 rounded font-mono font-bold text-slate-800 border border-slate-300">Black / Red</code> for automatic 50/50 split diagonal swatches on storefront!</span>
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -93,36 +290,16 @@ export function ProductVariantsTab() {
             <button
               type="button"
               onClick={() => {
-                const sizes = activeBlueprint.suggestedSizes;
-                const currentColor = variants[0]?.color || "Standard";
-                const existingColorPhoto = variants.find(
-                  (v) => (v.color || "").trim().toLowerCase() === currentColor.trim().toLowerCase() && (v.imageUrl || v.images?.[0]?.url)
-                );
-                const photoUrl = existingColorPhoto?.imageUrl || existingColorPhoto?.images?.[0]?.url;
-                const photoAlt = existingColorPhoto?.altText || existingColorPhoto?.images?.[0]?.altText;
-                const cleanAltBase = photoAlt
-                  ? photoAlt.replace(/\s*\([^)]*\)$/, "").trim()
-                  : (currentColor ? currentColor : "Variant");
-
-                const newVariants = sizes.map((s: string) => ({
-                  id: crypto.randomUUID(),
-                  sku: `${sku || "SKU"}-${s.replace(/\s+/g, "")}`,
-                  color: currentColor,
-                  size: s,
-                  price: basePrice || 0,
-                  specialPrice: (typeof specialPrice === "number" && specialPrice > 0 ? specialPrice : "") as number | "",
-                  stock: 10,
-                  imageUrl: photoUrl,
-                  altText: photoUrl ? `${cleanAltBase} (${s})` : undefined,
-                  images: photoUrl ? [{ id: crypto.randomUUID(), url: photoUrl, altText: `${cleanAltBase} (${s})` }] : [],
-                }));
-                setVariants((prev) => [...prev, ...newVariants]);
-                toast.success(`⚡ Added ${sizes.length} ${activeBlueprint.attributeSet} sizes`);
+                setSizeRunModalConfig({
+                  isOpen: true,
+                  attributeSetName: activeBlueprint.attributeSet || "Sizes",
+                  suggestedSizes: activeBlueprint.suggestedSizes,
+                });
               }}
               className="px-2.5 py-1 bg-brand text-white rounded-lg text-xs font-bold hover:bg-brand/90 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
             >
               <Plus size={13} />
-              <span>+ Add {activeBlueprint.attributeSet} Sizes ({activeBlueprint.suggestedSizes[0]}-{activeBlueprint.suggestedSizes[activeBlueprint.suggestedSizes.length - 1]})</span>
+              <span>Add {activeBlueprint.attributeSet} Sizes ({activeBlueprint.suggestedSizes[0]}-{activeBlueprint.suggestedSizes[activeBlueprint.suggestedSizes.length - 1]})</span>
             </button>
           )}
 
@@ -131,60 +308,53 @@ export function ProductVariantsTab() {
             <span className="text-slate-400 font-bold px-1.5 uppercase">Other Sizes:</span>
             <button
               type="button"
-              onClick={() => applySizePreset("apparel")}
+              onClick={() => {
+                setSizeRunModalConfig({
+                  isOpen: true,
+                  attributeSetName: "Apparel",
+                  suggestedSizes: ["XS", "S", "M", "L", "XL", "2XL"],
+                });
+              }}
               className="px-2 py-0.5 bg-white border border-slate-200 hover:border-slate-300 rounded font-semibold text-slate-700 cursor-pointer"
             >
               Apparel (XS-2XL)
             </button>
             <button
               type="button"
-              onClick={() => applySizePreset("footwear")}
+              onClick={() => {
+                setSizeRunModalConfig({
+                  isOpen: true,
+                  attributeSetName: "Shoes",
+                  suggestedSizes: ["EU 39", "EU 40", "EU 41", "EU 42", "EU 43", "EU 44", "EU 45"],
+                });
+              }}
               className="px-2 py-0.5 bg-white border border-slate-200 hover:border-slate-300 rounded font-semibold text-slate-700 cursor-pointer"
             >
               Shoes (EU 39-45)
             </button>
             <button
               type="button"
-              onClick={() => applySizePreset("volume")}
+              onClick={() => {
+                setSizeRunModalConfig({
+                  isOpen: true,
+                  attributeSetName: "Volumes",
+                  suggestedSizes: ["50ml", "100ml", "150ml", "250ml", "500ml", "1L"],
+                });
+              }}
               className="px-2 py-0.5 bg-white border border-slate-200 hover:border-slate-300 rounded font-semibold text-slate-700 cursor-pointer"
             >
               Volumes (ml/L)
             </button>
           </div>
 
-          <Button
+          <button
             type="button"
-            variant="outline"
-            onClick={() => {
-              const prevLast = variants[variants.length - 1];
-              const inheritedColor = prevLast?.color || "";
-              const existingColorPhoto = variants.find(
-                (v) => inheritedColor && (v.color || "").trim().toLowerCase() === inheritedColor.trim().toLowerCase() && (v.imageUrl || v.images?.[0]?.url)
-              );
-              const photoUrl = existingColorPhoto?.imageUrl || existingColorPhoto?.images?.[0]?.url;
-              const photoAlt = existingColorPhoto?.altText || existingColorPhoto?.images?.[0]?.altText;
-
-              setVariants((prev) => [
-                ...prev,
-                {
-                  id: crypto.randomUUID(),
-                  sku: `${sku ? sku + "-" + (prev.length + 1) : "VAR-" + (prev.length + 1)}`,
-                  color: inheritedColor,
-                  size: "",
-                  price: basePrice || 0,
-                  specialPrice: (typeof specialPrice === "number" && specialPrice > 0 ? specialPrice : "") as number | "",
-                  stock: 0,
-                  imageUrl: photoUrl,
-                  altText: photoAlt,
-                  images: photoUrl ? [{ id: crypto.randomUUID(), url: photoUrl, altText: photoAlt || "" }] : [],
-                },
-              ]);
-            }}
-            className="text-xs flex items-center gap-1 cursor-pointer"
+            onClick={handleAddChildVariant}
+            className="px-3 py-1.5 bg-white border border-slate-300 hover:border-brand text-slate-700 hover:text-brand rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
           >
-            <Plus size={14} />
-            <span>+ Add Child Variant</span>
-          </Button>
+            <Plus size={14} className="text-brand" />
+            <span>Add Child Variant</span>
+          </button>
         </div>
       </div>
 
@@ -253,55 +423,61 @@ export function ProductVariantsTab() {
               return (
                 <div
                   key={c}
-                  className={`flex items-center gap-2 px-2.5 py-1 bg-white border rounded-lg text-xs shadow-2xs transition-all ${
+                  className={`flex items-center gap-2 px-2.5 py-1.5 bg-white border rounded-lg text-xs shadow-2xs transition-all ${
                     isCover ? "border-amber-400 ring-2 ring-amber-400/20 bg-amber-50/20" : "border-slate-200"
                   }`}
                 >
+                  {/* Visual: Photo if uploaded, otherwise Color Swatch Circle */}
                   {photoUrl ? (
-                    <div className="relative w-5 h-5 rounded overflow-hidden border border-slate-200 shrink-0">
-                      <Image src={photoUrl} alt={c} fill sizes="20px" className="object-cover" />
+                    <div className="relative w-6 h-6 rounded-md overflow-hidden border border-slate-200 shrink-0 shadow-2xs">
+                      <Image src={photoUrl} alt={c} fill sizes="24px" className="object-cover" />
                     </div>
                   ) : (
-                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0" />
-                  )}
-                  <span className="font-bold text-slate-800">{c}</span>
-                  <span className="text-[10px] text-slate-400">({vars.length} sizes)</span>
-                  <div className="flex items-center gap-1.5 ml-1 pl-1.5 border-l border-slate-200">
-                      <button
-                        type="button"
-                        onClick={() => setEditingColorSwatch(c)}
-                        className="relative w-6 h-6 rounded-full border-2 border-slate-300 shadow-2xs hover:scale-110 active:scale-95 transition-all shrink-0 ring-1 ring-black/10 cursor-pointer overflow-hidden flex items-center justify-center group"
-                        style={{ background: getSwatchBg(c) }}
-                        title={`Click to customize swatch / hex code / split for "${c}"`}
-                      >
-                        <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[8px] font-bold text-white drop-shadow-md bg-black/60 w-full h-full flex items-center justify-center">
-                          ✎
-                        </span>
-                      </button>
-                      <span className="font-mono text-[9px] text-slate-500 font-semibold uppercase">
-                        {colorSwatches[c] ? "Custom" : "Auto"}
+                    <button
+                      type="button"
+                      onClick={() => setEditingColorTarget({ colorName: c })}
+                      className="relative w-6 h-6 rounded-full border-2 border-slate-300 shadow-2xs hover:scale-110 active:scale-95 transition-all shrink-0 ring-1 ring-black/10 cursor-pointer overflow-hidden flex items-center justify-center group"
+                      style={{ background: getSwatchBg(c) }}
+                      title={`Click to edit color swatch for "${c}"`}
+                    >
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[8px] font-bold text-white drop-shadow-md bg-black/60 w-full h-full flex items-center justify-center">
+                        ✎
                       </span>
-                      {colorSwatches[c] && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setColorSwatches((prev) => {
-                              const next = { ...prev };
-                              delete next[c];
-                              return next;
-                            });
-                            toast.info(`Swatch for "${c}" reset to Auto`);
-                          }}
-                          className="text-[10px] text-slate-400 hover:text-red-500 cursor-pointer font-bold ml-0.5"
-                          title="Reset to Auto Color"
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
+                    </button>
+                  )}
 
+                  {/* Color Name + Size Count */}
+                  <div className="flex items-center gap-1">
+                    <span className="font-bold text-slate-800">{c}</span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingColorTarget({ colorName: c })}
+                      className="text-slate-400 hover:text-brand p-0.5 rounded cursor-pointer transition-colors"
+                      title={`Rename "${c}" for all ${vars.length} sizes`}
+                    >
+                      ✎
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-medium">({vars.length} {vars.length === 1 ? 'size' : 'sizes'})</span>
+
+                  {/* Swatch circle button if photo already set */}
+                  {photoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingColorTarget({ colorName: c })}
+                      className="relative w-5 h-5 rounded-full border-2 border-slate-300 shadow-2xs hover:scale-110 active:scale-95 transition-all shrink-0 ring-1 ring-black/10 cursor-pointer overflow-hidden flex items-center justify-center group ml-0.5"
+                      style={{ background: getSwatchBg(c) }}
+                      title={`Click to edit color swatch for "${c}"`}
+                    >
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[7px] font-bold text-white drop-shadow-md bg-black/60 w-full h-full flex items-center justify-center">
+                        ✎
+                      </span>
+                    </button>
+                  )}
+
+                  {/* Photo Actions */}
                   {hasPhoto ? (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 ml-1 pl-1.5 border-l border-slate-200">
                       <button
                         type="button"
                         onClick={() => setVariantImageModalIndex(firstIdx)}
@@ -333,16 +509,28 @@ export function ProductVariantsTab() {
                     <button
                       type="button"
                       onClick={() => setVariantImageModalIndex(firstIdx)}
-                      className="text-[10px] text-amber-800 font-bold bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer transition-colors"
+                      className="text-[10px] text-amber-800 font-bold bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer transition-colors ml-1"
                       title="Assign photo & mandatory alt text to all variants of this color"
                     >
                       <Camera size={11} className="text-amber-600" />
-                      <span>+ Add Photo & Alt</span>
+                      <span>+ Add Photo</span>
                     </button>
                   )}
                 </div>
               );
             })}
+
+            {variants.some((v) => v.imageUrl) && (
+              <button
+                type="button"
+                onClick={handleSyncAllAltTexts}
+                className="ml-auto text-[10.5px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
+                title="Automatically update all variant image alt texts to [Product Name] - [Color] ([Size])"
+              >
+                <Check size={12} className="text-emerald-600" />
+                <span>Auto-Sync Alt Texts (Color + Size)</span>
+              </button>
+            )}
           </div>
 
           {/* Quick Size Chart Manager Bar */}
@@ -422,7 +610,19 @@ export function ProductVariantsTab() {
                   <th className="p-3 min-w-[120px]">Photo & Alt Text</th>
                   <th className="p-3">Variant SKU</th>
                   <th className="p-3">
-                    <div>Color</div>
+                    <div className="flex items-center justify-between gap-1">
+                      <span>Color</span>
+                      {variants.length > 1 && variants[0]?.color && (
+                        <button
+                          type="button"
+                          onClick={() => handleApplyColorToAll(variants[0].color)}
+                          className="text-[9.5px] text-brand hover:text-red-700 font-bold lowercase tracking-normal flex items-center gap-0.5 cursor-pointer underline"
+                          title={`Apply "${variants[0].color}" to all ${variants.length} sizes`}
+                        >
+                          ⚡ Apply 1st to All
+                        </button>
+                      )}
+                    </div>
                     <span className="text-[10px] text-slate-400 font-normal lowercase tracking-normal block">&quot;Standard&quot; if single color</span>
                   </th>
                   <th className="p-3">Size / Volume (ml/L)</th>
@@ -461,12 +661,15 @@ export function ProductVariantsTab() {
                           )}
                         </button>
                         {v.imageUrl ? (
-                          <div className="min-w-0 max-w-[85px] hidden sm:block">
+                          <div className="min-w-0 max-w-[140px] sm:max-w-[180px]">
                             <span
-                              className="text-[10px] text-slate-500 font-medium truncate block"
-                              title={v.altText || v.images?.[0]?.altText || "Alt text"}
+                              className="text-[10.5px] text-slate-800 font-bold truncate block"
+                              title={v.altText || v.images?.[0]?.altText || buildVariantAltText(name, v.color, v.size)}
                             >
-                              {v.altText || v.images?.[0]?.altText || "Alt Text Set"}
+                              {v.altText || v.images?.[0]?.altText || buildVariantAltText(name, v.color, v.size)}
+                            </span>
+                            <span className="text-[9px] text-emerald-600 font-semibold flex items-center gap-0.5 mt-0.5">
+                              <Check size={9} /> Auto Alt (Color+Size)
                             </span>
                           </div>
                         ) : (
@@ -489,38 +692,53 @@ export function ProductVariantsTab() {
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => setEditingColorSwatch((v.color || "Standard").trim())}
-                          className="relative w-7 h-7 rounded-full border-2 border-slate-300 shadow-2xs hover:scale-110 active:scale-95 transition-all shrink-0 ring-1 ring-black/10 cursor-pointer overflow-hidden flex items-center justify-center group"
-                          style={{ background: getSwatchBg(v.color || "Standard") }}
-                          title={`Click to pick exact color, type hex code, or configure 2-tone split for "${v.color || "Standard"}"`}
+                          onClick={() => {
+                            const cName = v.color?.trim() || "";
+                            setEditingColorTarget({ colorName: cName, variantIndex: idx });
+                          }}
+                          className={`relative w-7 h-7 rounded-full border-2 shadow-2xs hover:scale-110 active:scale-95 transition-all shrink-0 cursor-pointer overflow-hidden flex items-center justify-center group ${
+                            v.color?.trim()
+                              ? "border-slate-300 ring-1 ring-black/10"
+                              : "border-dashed border-amber-400 bg-amber-50/70"
+                          }`}
+                          style={{ background: getSwatchBg(v.color) }}
+                          title={v.color?.trim() ? `Click to customize swatch for "${v.color}"` : "Click to select color & auto-name variant"}
                         >
-                          <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[9px] font-bold text-white drop-shadow-md bg-black/60 w-full h-full flex items-center justify-center">
-                            ✎
+                          <span className={`text-[9px] font-bold drop-shadow-md w-full h-full flex items-center justify-center transition-opacity ${
+                            v.color?.trim()
+                              ? "opacity-0 group-hover:opacity-100 text-white bg-black/60"
+                              : "opacity-80 group-hover:opacity-100 text-amber-700 bg-amber-100/60"
+                          }`}>
+                            {v.color?.trim() ? "✎" : "+"}
                           </span>
                         </button>
-                        <input
-                          type="text"
-                          value={v.color}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setVariants((prev) =>
-                              prev.map((item, i) => (i === idx ? { ...item, color: val } : item))
-                            );
-                          }}
-                          list="color-presets"
-                          placeholder="Color or Standard"
-                          className="w-28 sm:w-32 px-2 py-1.5 border border-slate-200 rounded focus:ring-2 focus:ring-brand font-medium text-xs"
-                        />
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={v.color}
+                            onChange={(e) => handleColorChange(idx, e.target.value)}
+                            list="color-presets"
+                            placeholder="Color or Standard"
+                            className="w-24 sm:w-28 px-2 py-1.5 border border-slate-200 rounded focus:ring-2 focus:ring-brand font-medium text-xs"
+                          />
+                          {variants.length > 1 && v.color && (
+                            <button
+                              type="button"
+                              onClick={() => handleApplyColorToAll(v.color)}
+                              className="text-[9px] text-slate-400 hover:text-brand font-bold bg-slate-100 hover:bg-slate-200 px-1 py-0.5 rounded cursor-pointer transition-colors shrink-0"
+                              title={`Apply "${v.color}" to all ${variants.length} sizes`}
+                            >
+                              All
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="p-2">
                       <input
                         type="text"
                         value={v.size}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setVariants((prev) => prev.map((item, i) => (i === idx ? { ...item, size: val } : item)));
-                        }}
+                        onChange={(e) => handleSizeChange(idx, e.target.value)}
                         list="size-presets"
                         placeholder="Select Size/Vol"
                         className="w-32 px-2 py-1.5 border border-slate-200 rounded font-bold text-slate-800 focus:ring-2 focus:ring-brand"
@@ -603,29 +821,112 @@ export function ProductVariantsTab() {
               </tbody>
             </table>
           </div>
+
+          {/* Bottom Table Bar: Row Count & Add Variant Button */}
+          <div id="variants-table-bottom" className="flex items-center justify-between p-3 bg-slate-50 border-t border-slate-200 rounded-b-xl">
+            <span className="text-xs font-semibold text-slate-500">
+              Total {variants.length} child variants
+            </span>
+            <button
+              type="button"
+              onClick={handleAddChildVariant}
+              className="px-3 py-1.5 bg-white border border-slate-300 hover:border-brand text-slate-700 hover:text-brand rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+            >
+              <Plus size={14} className="text-brand" />
+              <span>Add Another Variant</span>
+            </button>
+          </div>
         </div>
       )}
 
-      {editingColorSwatch && (
+      {sizeRunModalConfig?.isOpen && (
+        <AddSizeRunModal
+          isOpen={sizeRunModalConfig.isOpen}
+          attributeSetName={sizeRunModalConfig.attributeSetName}
+          suggestedSizes={sizeRunModalConfig.suggestedSizes}
+          existingColors={Array.from(new Set(variants.map((v) => (v.color || "Standard").trim()))).filter((c) => c !== "Standard")}
+          onClose={() => setSizeRunModalConfig(null)}
+          onAdd={handleAddSizeRun}
+        />
+      )}
+
+      {editingColorTarget && (
         <ColorSwatchModal
-          isOpen={Boolean(editingColorSwatch)}
-          colorName={editingColorSwatch}
-          currentSwatch={colorSwatches[editingColorSwatch]}
-          onClose={() => setEditingColorSwatch(null)}
-          onSave={(swatchValue) => {
+          isOpen={Boolean(editingColorTarget)}
+          colorName={editingColorTarget.colorName}
+          targetVariantIndex={editingColorTarget.variantIndex}
+          sameColorCount={
+            variants.filter(
+              (v) => (v.color || "Standard").trim().toLowerCase() === (editingColorTarget.colorName || "Standard").trim().toLowerCase()
+            ).length
+          }
+          currentSwatch={colorSwatches[editingColorTarget.colorName]}
+          onClose={() => setEditingColorTarget(null)}
+          onSave={(swatchValue, finalColorName, applyToAllMatching) => {
+            const targetColor = editingColorTarget.colorName || "Standard";
+            const targetIdx = editingColorTarget.variantIndex;
+
+            if (applyToAllMatching || targetIdx === undefined) {
+              // Update all variants sharing this color
+              setVariants((prev) =>
+                prev.map((item, i) => {
+                  const matches =
+                    (item.color || "Standard").trim().toLowerCase() === targetColor.trim().toLowerCase() ||
+                    (targetIdx !== undefined && i === targetIdx);
+                  if (!matches) return item;
+
+                  const updatedAlt = item.imageUrl
+                    ? buildVariantAltText(name, finalColorName, item.size)
+                    : item.altText;
+
+                  return {
+                    ...item,
+                    color: finalColorName,
+                    altText: updatedAlt,
+                    images: item.images?.length
+                      ? item.images.map((img) => ({ ...img, altText: updatedAlt || img.altText }))
+                      : item.images,
+                  };
+                })
+              );
+              toast.success(`✓ Color "${finalColorName}" & swatch applied to matching sizes!`);
+            } else {
+              // Update only this single variant
+              setVariants((prev) =>
+                prev.map((item, i) => {
+                  if (i !== targetIdx) return item;
+                  const updatedAlt = item.imageUrl
+                    ? buildVariantAltText(name, finalColorName, item.size)
+                    : item.altText;
+                  return {
+                    ...item,
+                    color: finalColorName,
+                    altText: updatedAlt,
+                    images: item.images?.length
+                      ? item.images.map((img) => ({ ...img, altText: updatedAlt || img.altText }))
+                      : item.images,
+                  };
+                })
+              );
+              toast.success(`Color swatch for "${finalColorName}" saved!`);
+            }
+
+            // Save swatch for this specific color name
             setColorSwatches((prev) => ({
               ...prev,
-              [editingColorSwatch]: swatchValue,
+              [finalColorName]: swatchValue,
             }));
-            toast.success(`Color swatch for "${editingColorSwatch}" saved!`);
           }}
           onReset={() => {
-            setColorSwatches((prev) => {
-              const next = { ...prev };
-              delete next[editingColorSwatch];
-              return next;
-            });
-            toast.info(`Color swatch for "${editingColorSwatch}" reset to auto.`);
+            const nameToReset = editingColorTarget.colorName;
+            if (nameToReset) {
+              setColorSwatches((prev) => {
+                const next = { ...prev };
+                delete next[nameToReset];
+                return next;
+              });
+              toast.info(`Color swatch for "${nameToReset}" reset to auto.`);
+            }
           }}
         />
       )}

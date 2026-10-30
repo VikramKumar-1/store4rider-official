@@ -1,6 +1,8 @@
 export interface ProductImage {
   url: string;
   altText: string;
+  detectedColor?: string;
+  angle?: number;
 }
 
 export interface KitProduct {

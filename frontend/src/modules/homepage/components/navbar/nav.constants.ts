@@ -34,6 +34,16 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
     hasDropdown: true,
     megaMenuItems: [
       {
+        group: "Riding Gloves",
+        groupHref: "/riding-gear/riding-gloves",
+        items: [
+          { label: "Riding Gloves", href: "/riding-gear/riding-gloves" },
+          { label: "Full Gauntlet Gloves", href: "/riding-gear/riding-gloves/full-gauntlet-gloves" },
+          { label: "Semi Gauntlet Gloves", href: "/riding-gear/riding-gloves/semi-gauntlet-gloves" },
+          { label: "Short Motorbike Gloves", href: "/riding-gear/riding-gloves/short-motorbike-gloves" },
+        ],
+      },
+      {
         group: "Riding Jackets",
         groupHref: "/riding-gear/riding-jackets",
         items: [
@@ -49,16 +59,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
           { label: "Riding Jeans", href: "/riding-gear/riding-pants/motorcycle-riding-jeans" },
           { label: "Touring Pants", href: "/riding-gear/riding-pants/touring-pants" },
           { label: "Knee Guards for bikers", href: "/riding-gear/riding-pants/knee-guards-bikers" },
-        ],
-      },
-      {
-        group: "Riding Gloves",
-        groupHref: "/riding-gear/riding-gloves",
-        items: [
-          { label: "Riding Gloves", href: "/riding-gear/riding-gloves" },
-          { label: "Full Gauntlet Gloves", href: "/riding-gear/riding-gloves/full-gauntlet-gloves" },
-          { label: "Semi Gauntlet Gloves", href: "/riding-gear/riding-gloves/semi-gauntlet-gloves" },
-          { label: "Short Motorbike Gloves", href: "/riding-gear/riding-gloves/short-motorbike-gloves" },
         ],
       },
       {

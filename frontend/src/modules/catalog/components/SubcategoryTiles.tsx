@@ -99,6 +99,12 @@ function resolveCategoryHref(item: SubcategoryItem, currentPathname: string): st
   if (slug === "off-road-motocross" || slug === "off-road-motocross-riding-gear") {
     return "/riding-gear/off-road-motocross-riding-gear";
   }
+  if (slug === "touring-gear") {
+    return "/riding-gear/touring-gear";
+  }
+  if (slug === "monsoon-gear" || slug === "monsoon-gear-for-riders") {
+    return "/riding-gear/monsoon-gear-for-riders";
+  }
 
   // Luggage subcategories
   if (slug === "tank-bags-bikes" || slug === "tank-bags") {

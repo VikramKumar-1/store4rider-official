@@ -42,6 +42,9 @@ export const CATEGORY_ALIAS_MAP: Record<string, string[]> = {
   "riding-gear-for-women": ["riding-gear-for-women", "women-riding-gear"],
   "off-road-motocross": ["off-road-motocross-riding-gear", "off-road-motocross"],
   "off-road-motocross-riding-gear": ["off-road-motocross", "off-road-motocross-riding-gear"],
+  "touring-gear": ["touring-gear", "touring-gears"],
+  "monsoon-gear": ["monsoon-gear-for-riders", "monsoon-gear", "monsoon-gear-for-rider"],
+  "monsoon-gear-for-riders": ["monsoon-gear-for-riders", "monsoon-gear", "monsoon-gear-for-rider"],
 
   // ── Riding Pants ──
   "riding-pants": ["riding-pants", "touring-pants", "touring-pant"],
@@ -197,6 +200,7 @@ export const CATEGORY_DOMAIN_GROUPS = {
   DISCIPLINE: [
     "off-road-motocross", "off-road-motocross-riding-gear",
     "women-riding-gear", "riding-gear-for-women",
+    "touring-gear", "monsoon-gear", "monsoon-gear-for-riders",
   ],
 } as const;
 
@@ -289,6 +293,9 @@ export const NAVBAR_TO_DB_SLUG_MAP: Record<string, string> = {
   "motorcycle-other-luggage": "other-luggage",
   "women-riding-gear": "riding-gear-for-women",
   "riding-gear-for-women": "riding-gear-for-women",
+  "touring-gear": "touring-gear",
+  "monsoon-gear": "monsoon-gear-for-riders",
+  "monsoon-gear-for-riders": "monsoon-gear-for-riders",
   "helmet-accessories": "helmet-accessories",
   "helmet-visors": "helmet-accessories",
   "bluetooth-intercoms": "communicators",
@@ -397,6 +404,9 @@ export const MAGENTO_PATH_TO_NAVBAR_SLUG: Record<string, string> = {
   "riding gear for women": "riding-gear-for-women",
   "off-road motocross riding gear": "off-road-motocross-riding-gear",
   "off-road / motocross": "off-road-motocross-riding-gear",
+  "touring gear": "touring-gear",
+  "monsoon gear": "monsoon-gear-for-riders",
+  "monsoon gear for riders": "monsoon-gear-for-riders",
 
   // Luggage
   "tank bags": "tank-bags-bikes",
@@ -490,6 +500,9 @@ export const LEAF_TO_PARENT_MAP: Record<string, string> = {
   "sports-riding-shoes": "riding-gear",
   "off-road-riding-boots": "riding-gear",
   "off-road-motocross-riding-gear": "riding-gear",
+  "touring-gear": "riding-gear",
+  "monsoon-gear": "riding-gear",
+  "monsoon-gear-for-riders": "riding-gear",
 
   // Luggage
   "tank-bags-bikes": "motorcycle-bags-bike-luggage",

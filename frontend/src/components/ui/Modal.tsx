@@ -11,9 +11,10 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   maxWidth?: string;
+  zIndex?: string;
 }
 
-const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-lg" }: ModalProps) => {
+const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-lg", zIndex = "z-50" }: ModalProps) => {
   useEffect(() => {
     if (isOpen) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
@@ -27,7 +28,7 @@ const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-lg" }: Moda
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        <div className={`fixed inset-0 ${zIndex} flex items-center justify-center p-4 sm:p-6`}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -41,7 +42,7 @@ const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-lg" }: Moda
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className={`relative z-50 w-full ${maxWidth} bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]`}
+            className={`relative ${zIndex} w-full ${maxWidth} bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]`}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-white sticky top-0 z-10">

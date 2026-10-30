@@ -667,13 +667,41 @@ export function AdminProducts() {
         isOpen={isCsvModalOpen}
         onClose={() => setIsCsvModalOpen(false)}
         title="Bulk Update Products (CSV)"
+        maxWidth="max-w-xl"
       >
         <div className="space-y-4">
-          <p className="text-sm text-slate-600">
-            Upload a CSV file to bulk update stock and pricing. The CSV must have a header row with{" "}
-            <code>sku</code>. Optional columns: <code>basePrice</code>, <code>specialPrice</code>,{" "}
-            <code>stockStatus</code> (0 or 1).
-          </p>
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs text-slate-700">
+            <p className="font-bold text-slate-900 text-sm">
+              Bulk CSV Update Instructions & Column Reference
+            </p>
+            <p className="text-slate-600 leading-relaxed text-[11.5px]">
+              Upload a standard CSV file to bulk update pricing, stock, or color swatches.
+              The CSV header row must include <code className="px-1 py-0.5 bg-white border border-slate-300 rounded font-mono font-bold text-slate-900">sku</code>.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1">
+                <span className="font-bold text-slate-800 font-sans block text-xs border-b border-slate-100 pb-0.5">Primary Columns:</span>
+                <div><span className="text-brand font-bold">sku</span>: Parent or Variant SKU</div>
+                <div><span className="text-brand font-bold">price</span>: Selling Price (₹)</div>
+                <div><span className="text-brand font-bold">special_price</span>: Offer (₹)</div>
+                <div><span className="text-brand font-bold">qty</span>: Inventory Count</div>
+              </div>
+
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1">
+                <span className="font-bold text-slate-800 font-sans block text-xs border-b border-slate-100 pb-0.5">Status & Swatches:</span>
+                <div><span className="text-brand font-bold">is_in_stock</span>: 1 (In), 0 (Out)</div>
+                <div><span className="text-brand font-bold">color_swatches</span>: Color=HEX</div>
+                <div className="text-[10px] text-slate-500 font-sans pt-0.5 leading-snug">
+                  e.g. <code className="text-slate-800 font-mono">Matte Black=#1F1F1F|Red=#DC2626</code>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900 leading-relaxed">
+              💡 <strong>Variant Update Tip:</strong> To update an individual size/color variant (e.g. Size M), put its exact Variant SKU (e.g. <code className="font-bold text-slate-900">AXOR-APEX-MAT-M</code>) in the <code className="font-bold">sku</code> column.
+            </div>
+          </div>
 
           {!uploadReport ? (
             <>

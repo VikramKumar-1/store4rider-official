@@ -54,47 +54,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
     }
     
     if (!initialColor && product.colors?.length > 0) {
-      // Fallback: try to match a color to the primary image (images[0])
-      // This ensures if PLP shows Neon helmet, PDP defaults to the Neon swatch instead of arbitrary first color (Black).
-      let matchedToFirstImage = "";
-      if (product.images && product.images.length > 0) {
-        const firstImg = product.images[0];
-        const alt = (firstImg.altText || "").toLowerCase();
-        const url = (firstImg.url || "").toLowerCase();
-        
-        // 1. Try to find a variant that explicitly uses this image URL
-        if (product.rawVariants) {
-          const matchingVariant = product.rawVariants.find(v => v.imageUrl && v.imageUrl.toLowerCase() === url);
-          if (matchingVariant && matchingVariant.attributes) {
-            const colorKey = Object.keys(matchingVariant.attributes).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
-            if (colorKey && matchingVariant.attributes[colorKey]) {
-              const vColor = matchingVariant.attributes[colorKey];
-              // Ensure this color exists in product.colors
-              const existingColor = product.colors.find((c: any) => c.name.toLowerCase() === vColor.toLowerCase());
-              if (existingColor) matchedToFirstImage = existingColor.name;
-            }
-          }
-        }
-        
-        // 2. If no variant match, fallback to text matching on URL/Alt
-        if (!matchedToFirstImage) {
-          for (const c of product.colors) {
-            const tokens = c.name.toLowerCase().split(/[/\\&\-_+ ]/).filter(Boolean);
-            const isMatch = tokens.length > 0 && tokens.every((t: string) => {
-              const term = t === "flu." || t === "flu" ? "neon" : t;
-              let m = alt.includes(term) || url.includes(term);
-              if (t === "flu." && !m) m = alt.includes("flu") || url.includes("flu");
-              if (term === "yellow" && !m) m = alt.includes("orange") || url.includes("orange") || alt.includes("green") || url.includes("green") || alt.includes("neon") || url.includes("neon");
-              return m;
-            });
-            if (isMatch) {
-              matchedToFirstImage = c.name;
-              break;
-            }
-          }
-        }
-      }
-      initialColor = matchedToFirstImage || product.colors[0].name;
+      initialColor = product.colors[0].name;
     }
 
     setSelectedColor(initialColor);

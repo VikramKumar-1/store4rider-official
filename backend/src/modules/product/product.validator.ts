@@ -259,6 +259,8 @@ export class ProductValidator {
       }
       else if (c.includes("cleaner")) regexConditions.push({ name: /\b(cleaner|cleaning|spray|wash)\b/i });
       else if (c.includes("touring-pant")) regexConditions.push({ name: /\b(touring.*pant|pant.*touring)\b/i });
+      else if (c.includes("touring-gear") || c === "touring") regexConditions.push({ name: /\b(touring|tourer)\b/i });
+      else if (c.includes("monsoon") || c.includes("rain-gear")) regexConditions.push({ name: /\b(rain|waterproof|monsoon)\b/i });
       else if (c.includes("women")) regexConditions.push({ name: /\b(women|lady|ladies|stella)\b/i });
       else if (c.includes("top-box")) regexConditions.push({ name: /\b(top.*box|topcase|top.*case)\b/i });
       else if (c.includes("hydration")) regexConditions.push({ name: /\b(hydration|camelbak|water.*bladder)\b/i });

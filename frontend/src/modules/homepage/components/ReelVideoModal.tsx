@@ -12,7 +12,6 @@ import {
   PlayIcon,
   PauseIcon,
   ArrowTopRightOnSquareIcon,
-  HeartIcon,
 } from "@heroicons/react/24/solid";
 
 interface ReelVideoModalProps {
@@ -27,45 +26,13 @@ interface ReelVideoModalProps {
 }
 
 /**
- * Extracts an embeddable iframe URL from an Instagram link or raw embed string
- */
-function getEmbedUrl(rawUrl: string): string {
-  if (!rawUrl) return "";
-  const trimmed = rawUrl.trim();
-
-  // If user pasted full <iframe> code, extract src
-  const srcMatch = trimmed.match(/src=["']([^"']+)["']/i);
-  if (srcMatch && srcMatch[1]) {
-    return srcMatch[1];
-  }
-
-  // If user pasted Instagram link: instagram.com/reel/CODE or instagram.com/p/CODE
-  const igMatch = trimmed.match(/instagram\.com\/(?:reel|p|tv)\/([^/?#&]+)/i);
-  if (igMatch && igMatch[1]) {
-    return `https://www.instagram.com/reel/${igMatch[1]}/embed/`;
-  }
-
-  // YouTube Shorts or standard YouTube video
-  const ytMatch = trimmed.match(/(?:youtube\.com\/(?:shorts\/|watch\?v=)|youtu\.be\/)([^/?#&]+)/i);
-  if (ytMatch && ytMatch[1]) {
-    return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=1`;
-  }
-
-  // If it's an Instagram profile link (not a specific reel), don't embed inside iframe as Instagram blocks it
-  if (/instagram\.com\/[^/?#&]+\/?$/i.test(trimmed) && !/instagram\.com\/(?:reel|p|tv)\//i.test(trimmed)) {
-    return "";
-  }
-
-  return trimmed;
-}
-
-/**
  * Individual Reel Slide in the Vertical Snap Feed
  */
 interface ReelSlideProps {
   reel: IInstagramReel;
   index: number;
   isActive: boolean;
+  isNearActive: boolean;
   isMuted: boolean;
   onToggleMute: () => void;
   instagramHandle: string;
@@ -78,6 +45,7 @@ const ReelSlide: React.FC<ReelSlideProps> = ({
   reel,
   index,
   isActive,
+  isNearActive,
   isMuted,
   onToggleMute,
   instagramHandle,
@@ -90,15 +58,14 @@ const ReelSlide: React.FC<ReelSlideProps> = ({
   const [progress, setProgress] = useState<number>(0);
   const [showPlayIconFeedback, setShowPlayIconFeedback] = useState<boolean>(false);
   const [isCaptionExpanded, setIsCaptionExpanded] = useState<boolean>(false);
-  const [hasLiked, setHasLiked] = useState<boolean>(false);
+  const [videoError, setVideoError] = useState<boolean>(false);
 
   const isUploadedVideo =
-    reel.videoType === "upload" ||
-    /\.(mp4|webm|mov)(\?.*)?$/i.test(reel.videoUrl) ||
-    reel.videoUrl?.includes(".mp4") ||
-    reel.videoUrl?.includes("fbcdn.net/o1/v/t2/f2");
-
-  const embedUrl = !isUploadedVideo ? getEmbedUrl(reel.videoUrl) : "";
+    !videoError &&
+    (reel.videoType === "upload" ||
+      /\.(mp4|webm|mov)(\?.*)?$/i.test(reel.videoUrl) ||
+      reel.videoUrl?.includes(".mp4") ||
+      reel.videoUrl?.includes("fbcdn.net/o1/v/t2/f2"));
 
   // Play / Pause when active slide changes
   useEffect(() => {
@@ -141,10 +108,10 @@ const ReelSlide: React.FC<ReelSlideProps> = ({
     }
   };
 
-  const handleTogglePlay = (e: React.MouseEvent) => {
+  // Single tap directly toggles Play / Pause instantly
+  const handleVideoClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!videoRef.current) return;
-
     if (videoRef.current.paused) {
       videoRef.current.play();
       setIsPlaying(true);
@@ -152,7 +119,6 @@ const ReelSlide: React.FC<ReelSlideProps> = ({
       videoRef.current.pause();
       setIsPlaying(false);
     }
-
     setShowPlayIconFeedback(true);
     setTimeout(() => setShowPlayIconFeedback(false), 500);
   };
@@ -163,17 +129,32 @@ const ReelSlide: React.FC<ReelSlideProps> = ({
       className="snap-start snap-always h-full w-full relative flex-shrink-0 flex items-center justify-center bg-black overflow-hidden select-none"
     >
       {/* 1. Video Player / Embed Stream */}
-      <div className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden cursor-pointer" onClick={handleTogglePlay}>
+      <div className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden cursor-pointer" onClick={handleVideoClick}>
         {isUploadedVideo ? (
           <>
+            {/* Poster Underlay - Ensures 0ms black-frame flicker while video is buffering */}
+            {reel.thumbnailUrl && (
+              <Image
+                src={reel.thumbnailUrl}
+                alt={reel.title || "Reel"}
+                fill
+                priority={isActive}
+                className="object-cover -z-10"
+                sizes="(max-width: 430px) 100vw, 430px"
+                unoptimized={true}
+              />
+            )}
+
             <video
               ref={videoRef}
-              src={reel.videoUrl}
+              src={isActive || isNearActive ? reel.videoUrl : undefined}
+              preload={isActive ? "auto" : isNearActive ? "metadata" : "none"}
               poster={reel.thumbnailUrl}
               playsInline
               loop
               muted={isMuted}
               onTimeUpdate={handleTimeUpdate}
+              onError={() => setVideoError(true)}
               className="w-full h-full object-cover"
             />
 
@@ -199,42 +180,46 @@ const ReelSlide: React.FC<ReelSlideProps> = ({
               </div>
             )}
           </>
-        ) : embedUrl ? (
-          <div className="w-full h-full bg-black flex items-center justify-center relative">
-            <iframe
-              src={embedUrl}
-              className="w-full h-full border-0"
-              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-              allowFullScreen
-              title={reel.title || "Instagram Reel"}
-            />
-          </div>
         ) : (
-          <div className="w-full h-full relative flex items-center justify-center">
+          <div className="w-full h-full relative flex items-center justify-center bg-black">
             {reel.thumbnailUrl && (
               <Image
                 src={reel.thumbnailUrl}
                 alt={reel.title || "Reel"}
                 fill
-                className="object-cover"
-                sizes="(max-width: 420px) 100vw, 420px"
+                priority={isActive}
+                className="object-cover opacity-60 filter blur-[1px]"
+                sizes="(max-width: 430px) 100vw, 430px"
                 unoptimized={true}
               />
             )}
-            <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center p-6 text-center text-white">
-              <p className="text-sm font-semibold mb-3">
-                {reel.title || "Store4Riders Instagram Reel"}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-black/80 flex flex-col items-center justify-center p-6 text-center text-white z-10">
+              <div className="w-14 h-14 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center shadow-xl mb-3 border border-white/20">
+                <PlayIcon className="w-7 h-7 text-white/80" />
+              </div>
+
+              <p className="text-sm font-bold leading-snug mb-1.5 max-w-[280px]">
+                {reel.title || "Store4Riders Reel"}
               </p>
-              <a
-                href={reel.instagramUrl || instagramProfileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-banner to-brand text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg"
+
+              <p className="text-[11px] text-neutral-300 mb-4 max-w-[240px] leading-relaxed">
+                Video is buffering or temporarily unavailable.
+              </p>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setVideoError(false);
+                  if (videoRef.current) {
+                    videoRef.current.load();
+                    videoRef.current.play().catch(() => {});
+                  }
+                }}
+                className="px-4 py-2 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white font-medium text-xs flex items-center gap-1.5 backdrop-blur-md border border-white/20 transition-all cursor-pointer"
               >
-                <span>Watch on Instagram</span>
-                <ArrowTopRightOnSquareIcon className="w-4 h-4" />
-              </a>
+                <span>Retry Playback</span>
+              </button>
             </div>
           </div>
         )}
@@ -272,7 +257,7 @@ const ReelSlide: React.FC<ReelSlideProps> = ({
               </svg>
             </span>
             <span className="text-[10px] text-neutral-300 font-medium leading-none">
-              {reel.views ? `${reel.views} views` : "Store4Riders Reel"}
+              Store4Riders Reel
             </span>
           </div>
         </a>
@@ -305,126 +290,113 @@ const ReelSlide: React.FC<ReelSlideProps> = ({
         </div>
       </div>
 
-      {/* 3. Right Action Rail (Instagram Reels Style) */}
-      <div
-        className="absolute right-3.5 bottom-24 z-30 flex flex-col items-center gap-4.5 pointer-events-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Like Button */}
-        <button
-          type="button"
-          onClick={() => setHasLiked(!hasLiked)}
-          className="flex flex-col items-center gap-1 group cursor-pointer"
-          title="Like this reel"
+      {/* 3. Right Action Rail (Instagram Reels Style) - Shown for native video */}
+      {isUploadedVideo && (
+        <div
+          className="absolute right-3.5 bottom-24 z-30 flex flex-col items-center gap-4.5 pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
         >
-          <div
-            className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md border transition-transform group-hover:scale-110 shadow-lg ${
-              hasLiked
-                ? "bg-rose-600/90 border-rose-400 text-white"
-                : "bg-black/60 border-white/20 text-white hover:bg-black/80"
-            }`}
+          {/* Global Sound Mute/Unmute Toggle */}
+          <button
+            type="button"
+            onClick={onToggleMute}
+            className="flex flex-col items-center gap-1 group cursor-pointer"
+            title={isMuted ? "Unmute audio" : "Mute audio"}
           >
-            <HeartIcon className={`w-5 h-5 ${hasLiked ? "text-white" : "text-white group-hover:text-rose-400"}`} />
-          </div>
-          <span className="text-[10px] font-bold text-white drop-shadow-md">
-            {reel.likes || "0"}
-          </span>
-        </button>
+            <div className="w-10 h-10 rounded-full bg-black/60 border border-white/20 backdrop-blur-md flex items-center justify-center text-white transition-transform group-hover:scale-110 shadow-lg">
+              {isMuted ? (
+                <SpeakerXMarkIcon className="w-5 h-5 text-rose-400" />
+              ) : (
+                <SpeakerWaveIcon className="w-5 h-5 text-emerald-400" />
+              )}
+            </div>
+            <span className="text-[9.5px] font-medium text-white/80 drop-shadow-md">
+              {isMuted ? "Muted" : "Sound"}
+            </span>
+          </button>
 
-        {/* Views Counter Badge */}
-        <div className="flex flex-col items-center gap-1" title="Real Instagram Play Views">
-          <div className="w-10 h-10 rounded-full bg-black/60 border border-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-lg">
-            <PlayIcon className="w-5 h-5 text-banner" />
-          </div>
-          <span className="text-[10px] font-bold text-white drop-shadow-md">
-            {reel.views || "Live"}
-          </span>
+          {/* External Link: Watch on Instagram */}
+          <a
+            href={reel.instagramUrl || instagramProfileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center gap-1 group cursor-pointer"
+            title="Watch reel on Instagram App"
+          >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] border border-white/30 backdrop-blur-md flex items-center justify-center text-white transition-transform group-hover:scale-110 shadow-lg">
+              <ArrowTopRightOnSquareIcon className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-[9.5px] font-medium text-white/80 drop-shadow-md">
+              App
+            </span>
+          </a>
         </div>
+      )}
 
-        {/* Global Sound Mute/Unmute Toggle */}
-        <button
-          type="button"
-          onClick={onToggleMute}
-          className="flex flex-col items-center gap-1 group cursor-pointer"
-          title={isMuted ? "Unmute audio" : "Mute audio"}
+      {/* 4. Bottom Overlay (Caption, Audio Info & Scrubber Bar) - Shown for native video */}
+      {isUploadedVideo && (
+        <div
+          className="absolute bottom-0 inset-x-0 z-30 p-4 bg-gradient-to-t from-black/95 via-black/60 to-transparent pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
         >
-          <div className="w-10 h-10 rounded-full bg-black/60 border border-white/20 backdrop-blur-md flex items-center justify-center text-white transition-transform group-hover:scale-110 shadow-lg">
-            {isMuted ? (
-              <SpeakerXMarkIcon className="w-5 h-5 text-rose-400" />
-            ) : (
-              <SpeakerWaveIcon className="w-5 h-5 text-emerald-400" />
-            )}
-          </div>
-          <span className="text-[9.5px] font-medium text-white/80 drop-shadow-md">
-            {isMuted ? "Muted" : "Sound"}
-          </span>
-        </button>
-
-        {/* External Link: Watch on Instagram */}
-        <a
-          href={reel.instagramUrl || instagramProfileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex flex-col items-center gap-1 group cursor-pointer"
-          title="Watch reel on Instagram App"
-        >
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] border border-white/30 backdrop-blur-md flex items-center justify-center text-white transition-transform group-hover:scale-110 shadow-lg">
-            <ArrowTopRightOnSquareIcon className="w-4 h-4 text-white" />
-          </div>
-          <span className="text-[9.5px] font-medium text-white/80 drop-shadow-md">
-            App
-          </span>
-        </a>
-      </div>
-
-      {/* 4. Bottom Overlay (Caption, Audio Info & Scrubber Bar) */}
-      <div
-        className="absolute bottom-0 inset-x-0 z-30 p-4 bg-gradient-to-t from-black/95 via-black/60 to-transparent pointer-events-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Caption text with expandable toggle */}
-        {reel.title && (
-          <div className="mb-2.5 pr-14 text-left">
-            <p
-              onClick={() => setIsCaptionExpanded(!isCaptionExpanded)}
-              className={`text-white text-xs sm:text-[13px] font-medium drop-shadow-md cursor-pointer transition-all ${
-                isCaptionExpanded ? "" : "line-clamp-2"
-              }`}
-            >
-              {reel.title}
-            </p>
-            {reel.title.length > 70 && (
-              <button
-                type="button"
+          {/* Caption text with expandable toggle */}
+          {reel.title && (
+            <div className="mb-2.5 pr-14 text-left">
+              <p
                 onClick={() => setIsCaptionExpanded(!isCaptionExpanded)}
-                className="text-[10.5px] text-white/70 hover:text-white font-semibold mt-0.5"
+                className={`text-white text-xs sm:text-[13px] font-medium drop-shadow-md cursor-pointer transition-all ${
+                  isCaptionExpanded ? "" : "line-clamp-2"
+                }`}
               >
-                {isCaptionExpanded ? "less" : "more"}
-              </button>
-            )}
-          </div>
-        )}
+                {reel.title}
+              </p>
+              {reel.title.length > 70 && (
+                <button
+                  type="button"
+                  onClick={() => setIsCaptionExpanded(!isCaptionExpanded)}
+                  className="text-[10.5px] text-white/70 hover:text-white font-semibold mt-0.5"
+                >
+                  {isCaptionExpanded ? "less" : "more"}
+                </button>
+              )}
+            </div>
+          )}
 
-        {/* Audio Track Pill */}
-        <div className="flex items-center gap-2 mb-2 pr-14">
-          <div className="w-3.5 h-3.5 text-white/80 flex items-center justify-center">
-            <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-            </svg>
+          {/* Audio Track Pill */}
+          <div className="flex items-center gap-2 mb-2 pr-14">
+            <div className="w-3.5 h-3.5 text-white/80 flex items-center justify-center">
+              <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+              </svg>
+            </div>
+            <span className="text-[10.5px] text-white/80 font-medium truncate">
+              Original Audio • @{instagramHandle}
+            </span>
           </div>
-          <span className="text-[10.5px] text-white/80 font-medium truncate">
-            Original Audio • @{instagramHandle}
-          </span>
-        </div>
 
-        {/* Progress Scrubber Bar */}
-        <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+          {/* Interactive Progress Scrubber Bar */}
           <div
-            className="h-full bg-gradient-to-r from-banner to-brand transition-all duration-100"
-            style={{ width: `${progress}%` }}
-          />
+            className="w-full py-1 cursor-pointer group/scrub"
+            onClick={(e) => {
+              e.stopPropagation();
+              const rect = e.currentTarget.getBoundingClientRect();
+              const clickPos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+              if (videoRef.current && videoRef.current.duration) {
+                videoRef.current.currentTime = clickPos * videoRef.current.duration;
+                setProgress(clickPos * 100);
+              }
+            }}
+            title="Click to seek"
+          >
+            <div className="w-full h-1 group-hover/scrub:h-1.5 bg-white/20 rounded-full overflow-hidden transition-all duration-150">
+              <div
+                className="h-full bg-gradient-to-r from-banner to-brand transition-all duration-75"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -571,43 +543,93 @@ export const ReelVideoModal: React.FC<ReelVideoModalProps> = ({
       className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-md transition-opacity duration-300"
       onClick={onClose}
     >
-      {/* Floating Desktop Up Button (Previous Reel) */}
-      {hasPrev && (
+      {/* Desktop Top-Right Floating Close Button */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="hidden sm:flex items-center justify-center w-11 h-11 rounded-full bg-white/10 hover:bg-white/25 text-white/90 hover:text-white backdrop-blur-md absolute top-6 right-6 z-50 transition-all duration-200 hover:scale-110 border border-white/20 shadow-2xl cursor-pointer"
+        aria-label="Close Reels Modal"
+        title="Close (Escape)"
+      >
+        <XMarkIcon className="w-6 h-6" />
+      </button>
+
+      {/* Desktop Side Controls (Previous / Next Reel) - Placed cleanly to the right of the phone frame */}
+      <div className="hidden lg:flex flex-col gap-3 absolute left-[calc(50%+235px)] top-1/2 -translate-y-1/2 z-50">
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             handlePrev();
           }}
-          className="hidden md:flex items-center justify-center w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 text-white backdrop-blur-md absolute top-10 left-1/2 -translate-x-1/2 transition-transform hover:scale-110 z-50 border border-white/20 shadow-2xl cursor-pointer"
-          aria-label="Previous Reel (Scroll Up)"
+          disabled={!hasPrev}
+          className={`w-12 h-12 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-200 border shadow-2xl ${
+            hasPrev
+              ? "bg-white/15 hover:bg-white/30 text-white hover:scale-110 border-white/25 cursor-pointer"
+              : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed opacity-40"
+          }`}
+          aria-label="Previous Reel"
           title="Previous Reel (Arrow Up)"
         >
-          <ChevronUpIcon className="w-7 h-7" />
+          <ChevronUpIcon className="w-6 h-6" />
         </button>
-      )}
 
-      {/* Floating Desktop Down Button (Next Reel) */}
-      {hasNext && (
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             handleNext();
           }}
-          className="hidden md:flex items-center justify-center w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 text-white backdrop-blur-md absolute bottom-10 left-1/2 -translate-x-1/2 transition-transform hover:scale-110 z-50 border border-white/20 shadow-2xl cursor-pointer"
-          aria-label="Next Reel (Scroll Down)"
+          disabled={!hasNext}
+          className={`w-12 h-12 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-200 border shadow-2xl ${
+            hasNext
+              ? "bg-white/15 hover:bg-white/30 text-white hover:scale-110 border-white/25 cursor-pointer"
+              : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed opacity-40"
+          }`}
+          aria-label="Next Reel"
           title="Next Reel (Arrow Down)"
         >
-          <ChevronDownIcon className="w-7 h-7" />
+          <ChevronDownIcon className="w-6 h-6" />
         </button>
-      )}
+      </div>
+
+      {/* Fallback Floating Nav for tablet screens (md only) */}
+      <div className="hidden md:flex lg:hidden flex-col gap-2.5 absolute right-4 top-1/2 -translate-y-1/2 z-50">
+        {hasPrev && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePrev();
+            }}
+            className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/30 text-white backdrop-blur-md flex items-center justify-center transition-transform hover:scale-110 border border-white/20 shadow-xl cursor-pointer"
+            aria-label="Previous Reel"
+            title="Previous Reel"
+          >
+            <ChevronUpIcon className="w-5 h-5" />
+          </button>
+        )}
+        {hasNext && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNext();
+            }}
+            className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/30 text-white backdrop-blur-md flex items-center justify-center transition-transform hover:scale-110 border border-white/20 shadow-xl cursor-pointer"
+            aria-label="Next Reel"
+            title="Next Reel"
+          >
+            <ChevronDownIcon className="w-5 h-5" />
+          </button>
+        )}
+      </div>
 
       {/* Vertical Snap-Scroll Reel Frame (9:16 Smartphone Ratio) */}
       <div
         ref={containerRef}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-[430px] h-full sm:h-[92vh] sm:max-h-[820px] bg-black sm:rounded-2xl overflow-y-scroll snap-y snap-mandatory scroll-smooth sm:border sm:border-white/15 shadow-2xl [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        className="relative w-full max-w-[430px] h-full sm:h-[92vh] sm:max-h-[820px] bg-black sm:rounded-2xl overflow-y-scroll snap-y snap-mandatory scroll-smooth sm:border sm:border-white/15 shadow-2xl [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] touch-pan-y overscroll-y-contain select-none"
       >
         {reels.map((reel, idx) => (
           <ReelSlide
@@ -615,6 +637,7 @@ export const ReelVideoModal: React.FC<ReelVideoModalProps> = ({
             reel={reel}
             index={idx}
             isActive={idx === activeIndex}
+            isNearActive={Math.abs(idx - activeIndex) <= 1}
             isMuted={isMuted}
             onToggleMute={() => setIsMuted(!isMuted)}
             instagramHandle={instagramHandle}

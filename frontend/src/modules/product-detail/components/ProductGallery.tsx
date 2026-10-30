@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import Image from "next/image";
 import { Play } from "lucide-react";
 import { ProductImage } from "../types/product-detail.types";
-import { normalizeExternalImageUrl, getVideoEmbedInfo } from "@/core/utils/mediaUrlHelper";
+import { normalizeExternalImageUrl, getVideoEmbedInfo, detectImageColor, normalizeForCompare } from "@/core/utils/mediaUrlHelper";
 
 const FALLBACK_IMAGE = "/no-image.svg";
 
@@ -69,61 +69,7 @@ const Thumbnail = React.memo(
 );
 Thumbnail.displayName = "Thumbnail";
 
-// 100% bulletproof normalization: remove EVERYTHING except letters and numbers!
-const normalizeForCompare = (str: string) => {
-  if (!str) return "";
-  return str.replace(/[^a-z0-9]/gi, "").toLowerCase();
-};
 
-const findMatchingImageIndex = (selectedColor: string | undefined, images: ProductImage[]): number => {
-  if (!selectedColor || !images || images.length === 0) return -1;
-
-  const normalizedValue = selectedColor.trim().toLowerCase();
-  const exactNormVal = normalizeForCompare(selectedColor);
-
-  let matchIdx = -1;
-
-  // 1. Exact Match on Color Portion (or full string)
-  matchIdx = images.findIndex((img) => {
-    if (!img.altText) return false;
-    const parts = img.altText.split("-");
-    if (parts.length > 1 && normalizeForCompare(parts[parts.length - 1]) === exactNormVal) return true;
-    if (normalizeForCompare(img.altText) === exactNormVal) return true;
-    if (normalizeForCompare(img.altText).endsWith(exactNormVal)) return true;
-    return false;
-  });
-  if (matchIdx !== -1) return matchIdx;
-
-  // 2. Token Matching (Exclusivity Check for Pure Colors)
-  const tokens = normalizedValue.split(/[/\\&\-_+ ]/).filter(Boolean);
-  const isPureColor = tokens.length === 1;
-  const allAccents = ["red", "orange", "blue", "green", "neon", "yellow", "silver", "white", "grey", "gray", "brown", "purple", "flu", "fluo", "hiviz", "hi-viz", "hi", "viz"];
-
-  matchIdx = images.findIndex((img) => {
-    const alt = (img.altText || "").toLowerCase();
-    const url = (img.url || "").toLowerCase();
-
-    if (isPureColor && tokens[0] === "black") {
-      if (allAccents.some((c) => alt.includes(c) || url.includes(c))) return false;
-      return alt.includes("black") || url.includes("black");
-    }
-
-    return tokens.every((t) => {
-      const term = t === "flu." || t === "flu" ? "neon" : t;
-
-      let isMatch = alt.includes(term) || url.includes(term);
-      if (t === "flu." && !isMatch) isMatch = alt.includes("flu") || url.includes("flu");
-
-      if (term === "yellow" && !isMatch) {
-        isMatch = alt.includes("orange") || url.includes("orange");
-      }
-
-      return isMatch;
-    });
-  });
-
-  return matchIdx;
-};
 
 export const ProductGallery: React.FC<{
   images: ProductImage[];
@@ -146,16 +92,41 @@ export const ProductGallery: React.FC<{
   videoUrl,
   onColorChange,
 }) => {
+  const knownColorNames = useMemo(() => (colors || []).map((c) => c.name), [colors]);
+
+  // Filter gallery images to only show the selected color (+ common uncolored images)
+  const displayedImages = useMemo(() => {
+    if (!images || images.length === 0) return [];
+
+    if (selectedColor && knownColorNames.length > 0) {
+      const normSelected = normalizeForCompare(selectedColor);
+
+      const matchingColorImages = images.filter((img) => {
+        const imgColor = img.detectedColor || detectImageColor(img, knownColorNames);
+        return imgColor && normalizeForCompare(imgColor) === normSelected;
+      });
+
+      const commonImages = images.filter((img) => {
+        const imgColor = img.detectedColor || detectImageColor(img, knownColorNames);
+        return !imgColor;
+      });
+
+      if (matchingColorImages.length > 0) {
+        return [...matchingColorImages, ...commonImages];
+      }
+    }
+
+    return images;
+  }, [images, selectedColor, knownColorNames]);
+
   const [activeIndex, setActiveIndex] = useState(0);
   const [mainSrc, setMainSrc] = useState(
-    normalizeExternalImageUrl(images?.[0]?.url) || FALLBACK_IMAGE
+    normalizeExternalImageUrl(displayedImages?.[0]?.url || images?.[0]?.url) || FALLBACK_IMAGE
   );
   const [isVideoActive, setIsVideoActive] = useState(false);
   const [isIframeLoading, setIsIframeLoading] = useState(true);
-  const prevColorRef = useRef(selectedColor);
 
   // 120 FPS Buttery-Smooth Zoom: Uses cached bounding rect & CSS variables
-  // Zero React state updates / re-renders during mouse movement!
   const [isZoomed, setIsZoomed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const rectRef = useRef<DOMRect | null>(null);
@@ -163,113 +134,31 @@ export const ProductGallery: React.FC<{
 
   const videoEmbed = useMemo(() => getVideoEmbedInfo(videoUrl), [videoUrl]);
 
-  const normalizeUrl = (url?: string) =>
-    url ? url.split("?")[0].replace("http://", "https://").trim().toLowerCase() : "";
-
-  const primaryImageUrl = images?.[0]?.url;
-
-  // Sync main image whenever primary image URL changes (navigation to different product)
+  // When selectedColor changes, immediately reset to Angle 1 of that color
   useEffect(() => {
-    if (primaryImageUrl) {
-      setActiveIndex(0);
-      setMainSrc(normalizeExternalImageUrl(primaryImageUrl));
-      setIsVideoActive(false);
+    setIsVideoActive(false);
+    setActiveIndex(0);
+    if (displayedImages.length > 0) {
+      setMainSrc(normalizeExternalImageUrl(displayedImages[0].url) || FALLBACK_IMAGE);
     }
-  }, [primaryImageUrl]);
-
-  // When selectedColor changes, switch to exact matching image
-  useEffect(() => {
-    if (selectedColor || activeVariantImageUrl) {
-      prevColorRef.current = selectedColor;
-      setIsVideoActive(false);
-
-      // 1. If active variant has an explicit image URL
-      if (activeVariantImageUrl) {
-        const cleanVarUrl = normalizeExternalImageUrl(activeVariantImageUrl);
-        const normTarget = normalizeUrl(cleanVarUrl);
-        const matchIdx = images.findIndex((img) => normalizeUrl(img.url) === normTarget);
-        if (matchIdx !== -1) {
-          setActiveIndex(matchIdx);
-          setMainSrc(normalizeExternalImageUrl(images[matchIdx].url));
-          return;
-        } else {
-          setMainSrc(cleanVarUrl);
-          return;
-        }
-      }
-
-      // 2. Check explicitly defined colorImages mapping from product
-      if (selectedColor && colorImages && colorImages[selectedColor]) {
-        const targetUrl = normalizeExternalImageUrl(colorImages[selectedColor]);
-        const normTarget = normalizeUrl(targetUrl);
-        const matchIdx = images.findIndex((img) => normalizeUrl(img.url) === normTarget);
-        if (matchIdx !== -1) {
-          setActiveIndex(matchIdx);
-          setMainSrc(normalizeExternalImageUrl(images[matchIdx].url));
-          return;
-        } else {
-          setMainSrc(targetUrl);
-          return;
-        }
-      }
-
-      // 3. Fallback: match by color name in altText or URL
-      if (selectedColor) {
-        const matchIdx = findMatchingImageIndex(selectedColor, images);
-        if (matchIdx !== -1) {
-          setActiveIndex(matchIdx);
-          setMainSrc(normalizeExternalImageUrl(images[matchIdx]?.url) || FALLBACK_IMAGE);
-          return;
-        }
-      }
-    }
-  }, [selectedColor, images, activeVariantImageUrl, colorImages]);
+  }, [selectedColor, displayedImages]);
 
   const handleSelect = useCallback(
     (idx: number) => {
       setIsVideoActive(false);
       setActiveIndex(idx);
-      const clickedImg = images[idx];
+      const clickedImg = displayedImages[idx];
       setMainSrc(normalizeExternalImageUrl(clickedImg?.url) || FALLBACK_IMAGE);
 
       // Dynamically detect and switch color when a thumbnail is clicked
-      if (onColorChange && clickedImg?.url) {
-        const normClickedUrl = normalizeUrl(clickedImg.url);
-
-        if (colorImages) {
-          const matchedColor = Object.keys(colorImages).find(
-            (c) => normalizeUrl(colorImages[c]) === normClickedUrl
-          );
-          if (matchedColor) {
-            onColorChange(matchedColor);
-            return;
-          }
-        }
-
-        if (colors && colors.length > 0) {
-          const matchedByImg = colors.find(
-            (c) => c.imageUrl && normalizeUrl(c.imageUrl) === normClickedUrl
-          );
-          if (matchedByImg) {
-            onColorChange(matchedByImg.name);
-            return;
-          }
-
-          if (clickedImg.altText && clickedImg.altText.includes(" - ")) {
-            const parts = clickedImg.altText.split(" - ");
-            const possibleColor = parts[parts.length - 1].trim().toLowerCase();
-            const matchedColorObj = colors.find(
-              (c) => c.name.toLowerCase() === possibleColor
-            );
-            if (matchedColorObj) {
-              onColorChange(matchedColorObj.name);
-              return;
-            }
-          }
+      if (onColorChange && clickedImg) {
+        const detected = clickedImg.detectedColor || detectImageColor(clickedImg, knownColorNames);
+        if (detected && normalizeForCompare(detected) !== normalizeForCompare(selectedColor)) {
+          onColorChange(detected);
         }
       }
     },
-    [images, onColorChange, colorImages, colors]
+    [displayedImages, onColorChange, knownColorNames, selectedColor]
   );
 
   const handleVideoClick = useCallback(() => {
@@ -397,7 +286,7 @@ export const ProductGallery: React.FC<{
           <>
             <Image
               src={mainSrc}
-              alt={images[activeIndex]?.altText || (productTitle ? `${productTitle} - Image ${activeIndex + 1}` : "Product image")}
+              alt={displayedImages[activeIndex]?.altText || (productTitle ? `${productTitle} - Image ${activeIndex + 1}` : "Product image")}
               fill
               unoptimized
               referrerPolicy="no-referrer"
@@ -419,7 +308,7 @@ export const ProductGallery: React.FC<{
                   <div className="relative w-full h-full bg-[#f4f4f4]">
                     <Image
                       src={mainSrc}
-                      alt={images[activeIndex]?.altText ? `${images[activeIndex].altText} (Zoomed)` : (productTitle ? `${productTitle} (Zoomed)` : "Product zoomed view")}
+                      alt={displayedImages[activeIndex]?.altText ? `${displayedImages[activeIndex].altText} (Zoomed)` : (productTitle ? `${productTitle} (Zoomed)` : "Product zoomed view")}
                       fill
                       unoptimized
                       referrerPolicy="no-referrer"
@@ -463,10 +352,10 @@ export const ProductGallery: React.FC<{
           className="flex gap-2 sm:gap-4 overflow-x-auto hide-scrollbar pb-2 px-1 w-full scroll-smooth"
         >
           {/* Primary Front Cover Image */}
-          {images[0] && (
+          {displayedImages[0] && (
             <Thumbnail
-              key={`${images[0].url || 0}-0`}
-              img={images[0]}
+              key={`${displayedImages[0].url || 0}-0`}
+              img={displayedImages[0]}
               idx={0}
               isActive={!isVideoActive && activeIndex === 0}
               productTitle={productTitle}
@@ -526,7 +415,7 @@ export const ProductGallery: React.FC<{
           )}
 
           {/* Remaining Angle Product Images */}
-          {images.slice(1).map((img, i) => {
+          {displayedImages.slice(1).map((img, i) => {
             const idx = i + 1;
             return (
               <Thumbnail

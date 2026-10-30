@@ -83,13 +83,6 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
-  // Return null when no reviews exist - Zero Mock Compliance
-  if (!testimonials || testimonials.length === 0) {
-    return null;
-  }
-
-  const displayTestimonials = testimonials;
-
   // Mouse drag state
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
@@ -114,6 +107,13 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({
       window.removeEventListener("resize", updateScrollState);
     };
   }, [updateScrollState]);
+
+  // Return null when no reviews exist - Zero Mock Compliance
+  if (!testimonials || testimonials.length === 0) {
+    return null;
+  }
+
+  const displayTestimonials = testimonials;
 
   const handleScroll = (direction: "left" | "right") => {
     const el = scrollContainerRef.current;

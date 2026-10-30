@@ -65,4 +65,19 @@ describe("Navbar & Submenu Navigation Integrity Suite", () => {
     expect(itemIds).toContain("luggage");
     expect(itemIds).toContain("accessories");
   });
+
+  it("should have Riding Gear mega menu groups strictly ordered as Gloves -> Jackets -> Pants -> Boots -> Specialized Gear", () => {
+    const ridingGearNav = DEFAULT_NAV_ITEMS.find((item) => item.id === "riding-gear");
+    expect(ridingGearNav).toBeDefined();
+    expect(ridingGearNav?.megaMenuItems).toBeDefined();
+
+    const groupNames = ridingGearNav!.megaMenuItems!.map((g) => g.group);
+    expect(groupNames).toEqual([
+      "Riding Gloves",
+      "Riding Jackets",
+      "Riding Pants",
+      "Riding Boots",
+      "Specialized Gear",
+    ]);
+  });
 });

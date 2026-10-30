@@ -101,6 +101,9 @@ export interface ISocialMediaSectionConfig {
   sectionSubtitle?: string;
   instagramHandle?: string;
   instagramProfileUrl?: string;
+  profileName?: string;
+  bio?: string;
+  websiteUrl?: string;
   followersCount?: string;
   followingCount?: string;
   postsCount?: string;
