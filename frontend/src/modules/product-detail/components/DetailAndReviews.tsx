@@ -145,12 +145,12 @@ export const DetailAndReviews: React.FC<{
       {/* ── Section Header Bar ── */}
       <div id="product-detail-description" className="w-full bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950 py-2.5 sm:py-3.5 px-4 sm:px-8 rounded-xl shadow-xs scroll-mt-20">
         <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-12">
-          <h2 className="font-sans text-[11px] sm:text-sm md:text-base font-bold uppercase tracking-wider sm:tracking-[0.2em] text-white flex items-center justify-center lg:justify-start gap-2 sm:gap-3 whitespace-nowrap overflow-hidden">
+          <h2 className="font-heading text-[11px] sm:text-sm md:text-base font-bold uppercase tracking-wider sm:tracking-[0.2em] text-white flex items-center justify-center lg:justify-start gap-2 sm:gap-3 whitespace-nowrap overflow-hidden">
             <span className="w-4 sm:w-6 md:w-8 h-[2px] bg-[#ab1509] shrink-0" />
             <span>Product Detail Description</span>
             <span className="w-4 h-[2px] bg-[#ab1509] shrink-0 lg:hidden" />
           </h2>
-          <h2 className="hidden lg:flex font-sans text-sm md:text-base font-bold uppercase tracking-[0.2em] text-white items-center gap-3 pl-6">
+          <h2 className="hidden lg:flex font-heading text-sm md:text-base font-bold uppercase tracking-[0.2em] text-white items-center gap-3 pl-6">
             <span className="w-8 h-[2px] bg-[#ab1509]" />
             Customer Reviews
           </h2>
@@ -169,7 +169,7 @@ export const DetailAndReviews: React.FC<{
                 <LayersIcon />
               </span>
               <div>
-                <h3 className="font-sans text-sm md:text-base font-extrabold text-neutral-900 uppercase tracking-wide">
+                <h3 className="font-heading text-sm md:text-base font-bold text-neutral-900 uppercase tracking-wide">
                   Features & Specifications
                 </h3>
                 <p className="text-[11px] text-neutral-400 font-medium">
@@ -212,7 +212,7 @@ export const DetailAndReviews: React.FC<{
             {/* Render legacy Magento HTML exactly as it is without accordions */}
             <div
               onClick={(e) => handleRichTextClick(e, router)}
-              className="magento-layout text-neutral-700 text-[13.5px] sm:text-[14.5px] leading-[1.8] sm:leading-[1.85]"
+              className="magento-layout text-neutral-700 text-[15px] sm:text-[16px] leading-[1.65]"
             >
                 <div
                   className={!isMobileDescExpanded ? "max-h-[250px] sm:max-h-[350px] overflow-hidden relative" : ""}

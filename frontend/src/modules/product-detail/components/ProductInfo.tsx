@@ -151,7 +151,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
         {/* Title (Max 3 lines, shows full on hover) */}
         <h1
           title={name}
-          className="font-sans font-extrabold text-lg md:text-2xl uppercase tracking-tight text-neutral-900 leading-tight line-clamp-3 cursor-help"
+          className="font-heading font-semibold text-[19px] sm:text-[22px] md:text-2xl uppercase tracking-tight text-neutral-900 leading-[1.3] line-clamp-3 cursor-help"
         >
           {name}
         </h1>
@@ -222,7 +222,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
         </div>
 
         {/* Trust Badges - Modern Tactile Clay Cards (MOBILE ONLY) */}
-        <div className={`grid md:hidden ${isFreeShipping ? 'grid-cols-4 gap-1.5 sm:gap-2.5' : 'grid-cols-3 gap-2 sm:gap-3.5'} w-full my-2.5`}>
+        <div className={`grid md:hidden ${isFreeShipping ? 'grid-cols-3 gap-2 sm:gap-3.5' : 'grid-cols-2 gap-2 sm:gap-3.5'} w-full my-2.5`}>
           {/* 1. COD & EMI available */}
           <div className="flex flex-col items-center justify-center text-center p-2 sm:p-2.5 rounded-xl bg-gradient-to-b from-neutral-50/90 to-neutral-100/70 border border-neutral-200/70 shadow-[0_2px_4px_rgba(0,0,0,0.03),inset_0_1px_0_rgba(255,255,255,0.9)] hover:shadow-xs hover:border-orange-200 transition-all group">
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-orange-50 border border-orange-100/80 flex items-center justify-center shadow-2xs mb-1.5 shrink-0 group-hover:scale-105 transition-transform">
@@ -248,19 +248,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
             </span>
           </div>
 
-          {/* 3. Easy Exchange */}
-          <div className="flex flex-col items-center justify-center text-center p-2 sm:p-2.5 rounded-xl bg-gradient-to-b from-neutral-50/90 to-neutral-100/70 border border-neutral-200/70 shadow-[0_2px_4px_rgba(0,0,0,0.03),inset_0_1px_0_rgba(255,255,255,0.9)] hover:shadow-xs hover:border-purple-200 transition-all group">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-50 border border-purple-100/80 flex items-center justify-center shadow-2xs mb-1.5 shrink-0 group-hover:scale-105 transition-transform">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-purple-600 shrink-0">
-                <path fillRule="evenodd" d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.919.53 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.918Z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <span className="text-[9.5px] sm:text-[10.5px] font-bold text-neutral-800 leading-tight">
-              Easy Exchange
-            </span>
-          </div>
-
-          {/* 4. Free shipping */}
+          {/* 3. Free shipping */}
           {isFreeShipping && (
             <div className="flex flex-col items-center justify-center text-center p-2 sm:p-2.5 rounded-xl bg-gradient-to-b from-neutral-50/90 to-neutral-100/70 border border-neutral-200/70 shadow-[0_2px_4px_rgba(0,0,0,0.03),inset_0_1px_0_rgba(255,255,255,0.9)] hover:shadow-xs hover:border-emerald-200 transition-all group">
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-50 border border-emerald-100/80 flex items-center justify-center shadow-2xs mb-1.5 shrink-0 group-hover:scale-105 transition-transform">
@@ -298,17 +286,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
             </span>
           </div>
 
-          {/* 3. Easy exchange */}
-          <div className="flex items-center gap-1.5">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-[18px] h-[18px] text-purple-600 shrink-0">
-              <path fillRule="evenodd" d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.919.53 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.918Z" clipRule="evenodd" />
-            </svg>
-            <span className="text-[13px] font-bold text-[#374151]">
-              Easy exchange
-            </span>
-          </div>
-
-          {/* 4. Free shipping */}
+          {/* 3. Free shipping */}
           {isFreeShipping && (
             <div className="flex items-center gap-1.5">
               <svg viewBox="0 0 256 256" fill="currentColor" className="w-[18px] h-[18px] text-emerald-600 shrink-0">
@@ -327,7 +305,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
             <div
               ref={descRef}
               onClick={(e) => handleRichTextClick(e, router)}
-              className={`text-neutral-500 text-xs md:text-sm leading-relaxed font-sans [&_a]:text-blue-600 [&_a]:underline hover:[&_a]:text-blue-800 [&_a]:font-medium ${isDescExpanded ? "" : "line-clamp-3"}`}
+              className={`text-neutral-700 text-[15px] md:text-[16px] leading-[1.65] font-sans [&_a]:text-blue-600 [&_a]:underline hover:[&_a]:text-blue-800 [&_a]:font-medium ${isDescExpanded ? "" : "line-clamp-3"}`}
               dangerouslySetInnerHTML={{ __html: cleanRichContent(shortDescription) }}
             />
             <div className="flex items-center justify-between w-full mt-1.5">
@@ -362,7 +340,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-8 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full relative flex flex-col max-h-full overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-4 border-b border-neutral-100 bg-neutral-50 shrink-0">
-              <h3 className="font-extrabold text-lg uppercase tracking-wide text-neutral-900">Size Guide</h3>
+              <h3 className="font-heading font-semibold text-lg uppercase tracking-wide text-neutral-900">Size Guide</h3>
               <button onClick={() => setShowSizeChart(false)} className="text-neutral-400 hover:text-red-500 p-1 hover:scale-110 active:scale-90 transition-all duration-200">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
@@ -370,7 +348,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
             <div className="p-4 pb-12 overflow-y-auto min-h-0">
               {sizeChart.includes('<') ? (
                 <div
-                  className="w-full text-[10px] sm:text-sm text-neutral-800 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-neutral-300 [&_th]:p-1.5 sm:[&_th]:p-3 [&_th]:bg-neutral-100 [&_th]:whitespace-nowrap [&_td]:border [&_td]:border-neutral-300 [&_td]:p-1.5 sm:[&_td]:p-3 [&_td]:text-center [&_img]:w-full [&_img]:max-h-[60vh] [&_img]:object-contain [&_img]:mx-auto"
+                  className="w-full text-[13px] sm:text-sm text-neutral-800 overflow-x-auto [&_table]:w-full [&_table]:border-collapse [&_th]:font-heading [&_th]:font-medium [&_th]:text-[13px] sm:[&_th]:text-sm [&_th]:border [&_th]:border-neutral-300 [&_th]:p-2 sm:[&_th]:p-3 [&_th]:bg-neutral-100 [&_th]:whitespace-nowrap [&_td]:font-sans [&_td]:text-[13px] sm:[&_td]:text-sm [&_td]:border [&_td]:border-neutral-300 [&_td]:p-2 sm:[&_td]:p-3 [&_td]:text-center [&_img]:w-full [&_img]:max-h-[60vh] [&_img]:object-contain [&_img]:mx-auto"
                   dangerouslySetInnerHTML={{ __html: sizeChart.replace(/""/g, '"') }}
                 />
               ) : (

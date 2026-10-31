@@ -231,7 +231,7 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
               {product.category}
             </span>
           )}
-          <h3 className="text-[13px] md:text-[14px] font-sans font-semibold text-neutral-900 line-clamp-1 leading-tight group-hover:text-banner transition-colors pointer-events-auto m-0 font-normal">
+          <h3 className="product-title text-[13px] md:text-[14px] font-heading font-medium text-neutral-900 line-clamp-1 leading-tight group-hover:text-banner transition-colors pointer-events-auto m-0">
             {product.name}
           </h3>
           <span className="text-xs md:text-[13px] font-extrabold text-brand mt-0.5">

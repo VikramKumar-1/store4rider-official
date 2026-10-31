@@ -488,12 +488,10 @@ export const CartPageModule = () => {
                 </div>
 
                 {/* Additional reassuring perks */}
-                <div className="flex items-center justify-between gap-4 mt-6 pt-6 border-t border-neutral-100 text-[11px] text-neutral-400 font-medium uppercase tracking-wider text-center">
+                <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t border-neutral-100 text-[11px] text-neutral-400 font-medium uppercase tracking-wider text-center">
                   <span>✓ 100% Secure Checkout</span>
                   <span>•</span>
                   <span>✓ Fast Dispatch</span>
-                  <span>•</span>
-                  <span>✓ Easy Exchange</span>
                 </div>
 
               </div>

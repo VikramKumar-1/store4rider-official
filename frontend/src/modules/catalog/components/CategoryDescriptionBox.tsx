@@ -31,7 +31,7 @@ export const CategoryDescriptionBox: React.FC<CategoryDescriptionBoxProps> = ({
         {/* Category Description Text (SSR Rendered for Googlebot) */}
         <div className="max-w-4xl w-full mx-auto text-center">
           <p
-            className={`text-[12px] sm:text-[15px] text-neutral-800 leading-relaxed font-sans transition-all duration-300 ${
+            className={`text-[15px] sm:text-[16px] text-neutral-800 leading-[1.65] font-sans transition-all duration-300 ${
               isExpanded ? "line-clamp-none" : "line-clamp-3"
             }`}
           >

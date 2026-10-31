@@ -54,7 +54,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
             >
               <Link
                 href={item.href}
-                className={`relative flex items-center gap-0.5 text-[9px] lg:text-[9.5px] xl:text-[10px] 2xl:text-[11px] font-sans font-bold tracking-tight xl:tracking-normal 2xl:tracking-wide uppercase px-1 lg:px-1 xl:px-1.5 2xl:px-2 py-1 rounded-full transition-all duration-150 z-10 cursor-pointer select-none active:scale-95 ${
+                className={`relative flex items-center gap-0.5 text-[9px] lg:text-[9.5px] xl:text-[10px] 2xl:text-[11px] font-sans font-semibold xl:font-bold leading-none tracking-tight xl:tracking-normal 2xl:tracking-wide uppercase px-1 lg:px-1 xl:px-1.5 2xl:px-2 py-1.5 rounded-full transition-all duration-150 z-10 cursor-pointer select-none active:scale-95 antialiased ${
                   isLight
                     ? isHovered
                       ? "text-neutral-950 bg-neutral-900/[0.08]"

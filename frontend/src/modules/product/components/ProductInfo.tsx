@@ -3,7 +3,7 @@
 import { useCartStore } from "@/stores/useCartStore";
 import Button from "@/components/ui/Button";
 import { formatPrice } from "@store4riders/shared-utils";
-import { Star, Shield, Truck, RotateCcw } from "lucide-react";
+import { Star, Shield, Truck } from "lucide-react";
 import { toast } from "sonner";
 
 interface ProductInfoProps {
@@ -52,7 +52,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6">
         <div className="flex flex-col items-center text-center gap-2 p-4 bg-zinc-50 dark:bg-zinc-900 rounded-xl">
           <Shield className="text-brand" size={24} />
           <span className="text-xs font-semibold">1 Year Warranty</span>
@@ -60,10 +60,6 @@ export function ProductInfo({ product }: ProductInfoProps) {
         <div className="flex flex-col items-center text-center gap-2 p-4 bg-zinc-50 dark:bg-zinc-900 rounded-xl">
           <Truck className="text-brand" size={24} />
           <span className="text-xs font-semibold">Free Delivery</span>
-        </div>
-        <div className="flex flex-col items-center text-center gap-2 p-4 bg-zinc-50 dark:bg-zinc-900 rounded-xl">
-          <RotateCcw className="text-brand" size={24} />
-          <span className="text-xs font-semibold">7 Days Exchange</span>
         </div>
       </div>
     </div>
