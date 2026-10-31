@@ -93,9 +93,9 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
           </div>
         )}
 
-        {/* High-Contrast Rating Badge (Top Right) */}
-        <div className="absolute top-2 right-2 bg-neutral-900/95 text-white text-[9px] font-black px-1.5 py-0.5 rounded-sm flex items-center gap-0.5 shadow-xs z-10 border border-white/10">
-          <StarIcon className="w-2.5 h-2.5 text-amber-400" />
+        {/* Solid Orange Rating Badge (Top Right as in Wireframe) */}
+        <div className="absolute top-2 right-2 bg-banner text-white text-[9px] font-black px-1.5 py-0.5 rounded-sm flex items-center gap-0.5 shadow-xs z-10">
+          <StarIcon className="w-2.5 h-2.5 text-white" />
           <span>{product.rating || "4.95"}</span>
         </div>
 
@@ -205,8 +205,8 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
               aria-label="Quick add to cart"
               className={`w-full py-2.5 rounded-full font-bold text-xs uppercase tracking-[0.15em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 ${
                 isAdded 
-                  ? "bg-banner text-white" 
-                  : "bg-neutral-900/90 hover:bg-banner text-white backdrop-blur-md"
+                  ? "bg-emerald-600 text-white" 
+                  : "bg-banner hover:bg-orange-600 text-white"
               }`}
             >
               {isAdded ? (

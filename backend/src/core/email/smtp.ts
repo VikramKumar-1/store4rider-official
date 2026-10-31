@@ -29,12 +29,19 @@ const getTransporter = () => {
 
 export const sendSmtpEmail = async (to: string, subject: string, html: string) => {
   const mailer = getTransporter();
-  const FROM_EMAIL = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || "noreply@store4riders.com";
+  const FROM_EMAIL = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || process.env.SES_FROM_EMAIL || "noreply@store4riders.com";
 
   if (!mailer) {
-    logger.warn(`Mocking email to ${to} (Subject: ${subject})`);
-    logger.info(`Email HTML Content: \n${html}`);
-    return;
+    // When SMTP credentials are not provided, fallback seamlessly to AWS SES
+    try {
+      const { sendEmail } = await import("./ses");
+      await sendEmail(to, subject, html);
+      logger.info(`Email sent to ${to} via AWS SES (SMTP fallback)`);
+      return;
+    } catch (sesErr) {
+      logger.error("Failed to send email via AWS SES", sesErr);
+      throw new AppError("Failed to send email", 500);
+    }
   }
 
   try {

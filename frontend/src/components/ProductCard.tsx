@@ -325,7 +325,7 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
                 aria-label="Add to cart"
                 className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shrink-0 transition-all shadow-md ${isAdded
                     ? "bg-green-500 text-white shadow-green-500/20"
-                    : "bg-brand text-white hover:bg-brand-dark hover:scale-105 hover:shadow-brand/20 active:scale-95"
+                    : "bg-banner text-white hover:bg-orange-600 hover:scale-105 hover:shadow-orange-500/20 active:scale-95"
                   }`}
               >
                 {isAdded ? <Check size={14} strokeWidth={3} /> : <ShoppingCart size={14} strokeWidth={2.5} />}

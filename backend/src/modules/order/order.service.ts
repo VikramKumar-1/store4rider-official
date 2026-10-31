@@ -197,11 +197,20 @@ export class OrderService {
 
     let couponDiscount = 0;
     if (couponCode) {
-      const couponResult = await CouponService.validateCoupon(couponCode, subtotal);
+      if (!userId) {
+        throw new AppError("Please sign in or create an account to use promo coupons", 401);
+      }
+      const couponResult = await CouponService.validateCoupon({
+        code: couponCode,
+        items: cartItems,
+        cartTotal: subtotal,
+        userId,
+      });
       couponDiscount = couponResult.discountAmount;
-      // Pro-rate tax reduction if coupon applies
+      // Pro-rate tax reduction if coupon applies and round to 2 decimals
       if (subtotal > 0) {
         totalTax = totalTax * (1 - (couponDiscount / subtotal));
+        totalTax = Math.round(totalTax * 100) / 100;
       }
     }
 
@@ -210,9 +219,9 @@ export class OrderService {
     const isInclusive = settings.gstPricingMode !== "exclusive";
     const allFreeShipping = orderItems.length > 0 && orderItems.every((item: any) => item.isFreeShipping);
     const shipping = (allFreeShipping || (discountedSubtotal >= freeShippingThreshold)) ? 0 : (discountedSubtotal > 0 ? shippingCost : 0);
-    const totalAmount = isInclusive
+    const totalAmount = Math.round((isInclusive
       ? discountedSubtotal + shipping
-      : discountedSubtotal + totalTax + shipping;
+      : discountedSubtotal + totalTax + shipping) * 100) / 100;
 
     const pricing: any = {
       subtotal,
@@ -327,7 +336,7 @@ export class OrderService {
           for (const itm of orderItems) {
             await ProductRepository.incrementSalesCount(itm.productId, itm.quantity, session);
           }
-          if (couponCode && userId) {
+          if (couponCode) {
             await CouponService.incrementUsage(couponCode, userId, session);
           }
           if (userId) {
@@ -433,7 +442,7 @@ export class OrderService {
             await ProductRepository.incrementSalesCount(itm.productId, itm.quantity, session);
           }
 
-          if (order.pricing && order.pricing.couponCode && order.userId) {
+          if (order.pricing && order.pricing.couponCode) {
             await CouponService.incrementUsage(order.pricing.couponCode, order.userId, session);
           }
           if (order.userId) {
@@ -583,7 +592,7 @@ export class OrderService {
             await ProductRepository.incrementSalesCount(itm.productId, itm.quantity, session);
           }
 
-          if (order.pricing && order.pricing.couponCode && order.userId) {
+          if (order.pricing && order.pricing.couponCode) {
             await CouponService.incrementUsage(order.pricing.couponCode, order.userId, session);
           }
           if (order.userId) {
@@ -724,6 +733,9 @@ export class OrderService {
               await ProductRepository.decrementStock(itm.productId, itm.variantId, itm.quantity, session);
               await ProductRepository.incrementSalesCount(itm.productId, itm.quantity, session);
             }
+            if (order.pricing && order.pricing.couponCode) {
+              await CouponService.incrementUsage(order.pricing.couponCode, order.userId, session);
+            }
           });
         } finally {
           await session.endSession();
@@ -819,6 +831,11 @@ export class OrderService {
               await ProductRepository.incrementStock(itm.productId, itm.variantId, itm.quantity, session);
               await ProductRepository.decrementSalesCount(itm.productId, itm.quantity, session);
             }
+          }
+
+          // Restore coupon usage if applicable
+          if (order.pricing?.couponCode) {
+            await CouponService.decrementUsage(order.pricing.couponCode, session);
           }
         }
 
@@ -1152,8 +1169,34 @@ export class OrderService {
     const order = await OrderRepository.findById(orderId);
     if (!order) throw new AppError("Order not found", 404);
 
-    // Business Logic for status transition can be added here
-    // e.g., restoring stock if cancelled/returned
+    const activeConfirmedStatuses = ["confirmed", "processing", "packed", "shipped"];
+    const wasConfirmed = activeConfirmedStatuses.includes(order.status);
+    const isNowCancelledOrRefunded = newStatus === "cancelled" || newStatus === "refunded";
+
+    if (wasConfirmed && isNowCancelledOrRefunded) {
+      // 1. Restore product stock & decrement sales count
+      if (order.items && order.items.length > 0) {
+        for (const itm of order.items) {
+          await ProductRepository.incrementStock(itm.productId, itm.variantId, itm.quantity);
+          await ProductRepository.decrementSalesCount(itm.productId, itm.quantity);
+        }
+      }
+      // 2. Restore coupon usage quota
+      if (order.pricing?.couponCode) {
+        await CouponService.decrementUsage(order.pricing.couponCode);
+      }
+    } else if ((order.status === "cancelled" || order.status === "refunded") && activeConfirmedStatuses.includes(newStatus)) {
+      // Re-deduct stock & re-increment coupon if transitioning back to active
+      if (order.items && order.items.length > 0) {
+        for (const itm of order.items) {
+          await ProductRepository.decrementStock(itm.productId, itm.variantId, itm.quantity);
+          await ProductRepository.incrementSalesCount(itm.productId, itm.quantity);
+        }
+      }
+      if (order.pricing?.couponCode) {
+        await CouponService.incrementUsage(order.pricing.couponCode, order.userId);
+      }
+    }
 
     const updatedOrder = await OrderRepository.updateStatus(orderId, newStatus);
     if (updatedOrder) {
@@ -1288,6 +1331,9 @@ export class OrderService {
           <h3 style="margin-top: 0; font-size: 14px; color: #0f172a;">Order & Payment Summary</h3>
           <p style="margin: 4px 0; font-size: 13px;"><strong>Order ID:</strong> #${order.orderNumber}</p>
           <p style="margin: 4px 0; font-size: 13px;"><strong>Grand Total:</strong> Rs. ${order.pricing?.total?.toFixed(2)}</p>
+          ${order.pricing?.couponDiscount && order.pricing.couponDiscount > 0 ? `
+            <p style="margin: 4px 0; font-size: 13px; color: #16a34a;"><strong>Promo Coupon (${order.pricing.couponCode || ""}):</strong> -Rs. ${order.pricing.couponDiscount.toFixed(2)}</p>
+          ` : ""}
           <p style="margin: 4px 0; font-size: 13px;"><strong>Payment Method:</strong> ${isCod ? "Cash on Delivery" : order.paymentMethod.toUpperCase()}</p>
           ${isCod ? `
             <p style="margin: 4px 0; font-size: 13px; color: #15803d;"><strong>Advance Paid Online:</strong> Rs. ${advancePaid.toFixed(2)}</p>

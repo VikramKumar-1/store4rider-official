@@ -210,5 +210,33 @@ export class OrderRepository {
     }
     return OrderModel.findByIdAndUpdate(id, update, { new: true, session }).lean().exec() as unknown as IOrder | null;
   }
+
+  static async countUserOrders(userId?: string, guestEmail?: string): Promise<number> {
+    const orConditions: any[] = [];
+    if (userId) orConditions.push({ userId });
+    if (guestEmail) orConditions.push({ guestEmail: guestEmail.toLowerCase().trim() });
+    if (orConditions.length === 0) return 0;
+
+    // Only count genuine confirmed/completed orders, ignore abandoned pending payments, cancellations or refunds
+    return OrderModel.countDocuments({
+      $or: orConditions,
+      status: { $in: ["confirmed", "processing", "packed", "shipped", "delivered"] }
+    }).exec();
+  }
+
+  static async countUserCouponUsage(couponCode: string, userId?: string, guestEmail?: string): Promise<number> {
+    const orConditions: any[] = [];
+    if (userId) orConditions.push({ userId });
+    if (guestEmail) orConditions.push({ guestEmail: guestEmail.toLowerCase().trim() });
+    if (orConditions.length === 0) return 0;
+
+    // Only count coupon as redeemed if order was confirmed/paid
+    return OrderModel.countDocuments({
+      $or: orConditions,
+      "pricing.couponCode": couponCode.toUpperCase().trim(),
+      status: { $in: ["confirmed", "processing", "packed", "shipped", "delivered"] }
+    }).exec();
+  }
 }
+
 

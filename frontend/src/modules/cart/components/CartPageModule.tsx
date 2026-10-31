@@ -105,7 +105,7 @@ export const CartPageModule = () => {
   }
 
   const subtotal = items.reduce((total, item) => {
-    const itemPrice = item.product?.basePrice || (item as any).price || 0;
+    const itemPrice = item.price ?? item.product?.price ?? item.product?.specialPrice ?? item.product?.basePrice ?? 0;
     return total + itemPrice * item.quantity;
   }, 0);
 
@@ -197,8 +197,8 @@ export const CartPageModule = () => {
               {items.map((item, idx) => {
                 const product = item.product || {};
                 const name = product.name || "Riding Gear";
-                const price = product.basePrice || (item as any).price || 0;
-                const originalPrice = product.specialPrice ? product.basePrice : Math.round(price * 1.25);
+                const price = item.price ?? product.specialPrice ?? (item as any).price ?? product.basePrice ?? 0;
+                const originalPrice = (product.specialPrice && product.basePrice > product.specialPrice) ? product.basePrice : (item.originalPrice || price);
                 const hasDiscount = product.specialPrice || originalPrice > price;
                 const discountPercent = hasDiscount
                   ? Math.round(((originalPrice - price) / originalPrice) * 100)

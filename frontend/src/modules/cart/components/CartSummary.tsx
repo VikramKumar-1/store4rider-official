@@ -36,6 +36,10 @@ export function CartSummary({ totalItems, totalPrice }: CartSummaryProps) {
           Proceed to Checkout
         </Button>
       </Link>
+
+      <p className="text-xs text-neutral-400 text-center mt-3 font-medium">
+        Have a promo code? Apply it at checkout.
+      </p>
     </div>
   );
 }

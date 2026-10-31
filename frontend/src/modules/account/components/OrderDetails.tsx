@@ -407,10 +407,14 @@ export function OrderDetails({ orderId }: { orderId: string }) {
                   <span className="font-semibold text-neutral-900">{formatPrice(order.pricing?.tax)}</span>
                 </div>
               )}
-              {order.pricing?.discount > 0 && (
+              {((order.pricing?.couponDiscount || 0) > 0 || (order.pricing?.discount || 0) > 0) && (
                 <div className="flex justify-between text-emerald-600">
-                  <span>Coupon Discount</span>
-                  <span className="font-bold">-{formatPrice(order.pricing?.discount)}</span>
+                  <span>
+                    Coupon Discount {order.pricing?.couponCode ? `(${order.pricing.couponCode})` : ""}
+                  </span>
+                  <span className="font-bold">
+                    -{formatPrice(order.pricing?.couponDiscount || order.pricing?.discount || 0)}
+                  </span>
                 </div>
               )}
               

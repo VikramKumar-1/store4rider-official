@@ -32,6 +32,10 @@ const envSchema = z.object({
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
   AWS_REGION: z.string().optional(),
   AWS_S3_BUCKET: z.string().optional(),
+  SES_ACCESS_KEY_ID: z.string().optional(),
+  SES_SECRET_ACCESS_KEY: z.string().optional(),
+  SES_REGION: z.string().optional(),
+  SES_FROM_EMAIL: z.string().optional(),
   SHIPROCKET_EMAIL: z.string().optional(),
   SHIPROCKET_PASSWORD: z.string().optional(),
   DELHIVERY_API_KEY: z.string().optional(),
@@ -74,6 +78,10 @@ export const ENV = envSchema.parse({
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY || process.env.S3_SECRET_ACCESS_KEY,
   AWS_REGION: process.env.AWS_REGION || process.env.S3_REGION,
   AWS_S3_BUCKET: process.env.AWS_S3_BUCKET || process.env.S3_BUCKET,
+  SES_ACCESS_KEY_ID: process.env.SES_ACCESS_KEY_ID,
+  SES_SECRET_ACCESS_KEY: process.env.SES_SECRET_ACCESS_KEY,
+  SES_REGION: process.env.SES_REGION,
+  SES_FROM_EMAIL: process.env.SES_FROM_EMAIL,
   SHIPROCKET_EMAIL: process.env.SHIPROCKET_EMAIL,
   SHIPROCKET_PASSWORD: process.env.SHIPROCKET_PASSWORD,
   SHIPROCKET_WEBHOOK_SECRET: process.env.SHIPROCKET_WEBHOOK_SECRET,
@@ -86,4 +94,3 @@ export const ENV = envSchema.parse({
   INSTAGRAM_ACCESS_TOKEN: process.env.INSTAGRAM_ACCESS_TOKEN,
   INSTAGRAM_ACCOUNT_ID: process.env.INSTAGRAM_ACCOUNT_ID,
 });
-

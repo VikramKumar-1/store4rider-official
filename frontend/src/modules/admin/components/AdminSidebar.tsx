@@ -31,6 +31,7 @@ import {
   CreditCard,
   Receipt,
   Star,
+  Ticket,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
@@ -50,7 +51,14 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  // 1. Orders
+  // 1. Dashboard (Top-level overview)
+  { 
+    name: "Dashboard", 
+    href: "/admin", 
+    icon: Home, 
+    allowedRoles: ["super_admin", "admin"] 
+  },
+  // 2. Orders & Fulfillment
   { 
     name: "Orders", 
     icon: ShoppingCart, 
@@ -61,47 +69,18 @@ const navItems: NavItem[] = [
       { name: "Exchange Requests", href: "/admin/orders/exchanges", icon: RefreshCw },
     ],
   },
-  // 2. Logistics
+  // 3. Shipping & Logistics
   { 
     name: "Logistics", 
     href: "/admin/shipping", 
     icon: Truck, 
     allowedRoles: ["super_admin", "admin", "logistic"] 
   },
-  // 3. Products
+  // 4. Products & Catalog
   { 
     name: "Products", 
     href: "/admin/products", 
     icon: Box, 
-    allowedRoles: ["super_admin", "admin"] 
-  },
-  // 4. Blogs
-  { 
-    name: "Blog", 
-    icon: BookOpen, 
-    allowedRoles: ["super_admin", "admin"],
-    subItems: [
-      { name: "All Articles", href: "/admin/blog", icon: FileText },
-      { name: "New Article", href: "/admin/blog/new", icon: Plus },
-      { name: "Categories", href: "/admin/blog/categories", icon: FolderTree },
-    ],
-  },
-  // 5. Homepage
-  {
-    name: "Homepage",
-    icon: LayoutTemplate,
-    allowedRoles: ["super_admin", "admin"],
-    subItems: [
-      { name: "Hero & SEO", href: "/admin/homepage/hero-seo", icon: Globe },
-      { name: "Section Edit", href: "/admin/homepage/sections", icon: Layers },
-      { name: "Store4Riders on Insta", href: "/admin/homepage/reels", icon: Instagram },
-    ],
-  },
-  // Remaining items
-  { 
-    name: "Dashboard", 
-    href: "/admin", 
-    icon: Home, 
     allowedRoles: ["super_admin", "admin"] 
   },
   { 
@@ -117,6 +96,42 @@ const navItems: NavItem[] = [
     allowedRoles: ["super_admin", "admin"] 
   },
   { 
+    name: "Bulk Upload", 
+    href: "/admin/products/migration", 
+    icon: Database, 
+    allowedRoles: ["super_admin", "admin"] 
+  },
+  // 5. Marketing & Promotions
+  { 
+    name: "Promo Coupons", 
+    href: "/admin/coupons", 
+    icon: Ticket, 
+    allowedRoles: ["super_admin", "admin"] 
+  },
+  // 6. Homepage Experience
+  {
+    name: "Homepage",
+    icon: LayoutTemplate,
+    allowedRoles: ["super_admin", "admin"],
+    subItems: [
+      { name: "Hero & SEO", href: "/admin/homepage/hero-seo", icon: Globe },
+      { name: "Section Edit", href: "/admin/homepage/sections", icon: Layers },
+      { name: "Store4Riders on Insta", href: "/admin/homepage/reels", icon: Instagram },
+    ],
+  },
+  // 7. Blog & Editorial
+  { 
+    name: "Blog", 
+    icon: BookOpen, 
+    allowedRoles: ["super_admin", "admin"],
+    subItems: [
+      { name: "All Articles", href: "/admin/blog", icon: FileText },
+      { name: "New Article", href: "/admin/blog/new", icon: Plus },
+      { name: "Categories", href: "/admin/blog/categories", icon: FolderTree },
+    ],
+  },
+  // 8. Users & Access Control
+  { 
     name: "Users", 
     icon: Users, 
     allowedRoles: ["super_admin", "admin"],
@@ -125,6 +140,7 @@ const navItems: NavItem[] = [
       { name: "Customers", href: "/admin/users?tab=customers", icon: UserCheck },
     ],
   },
+  // 9. Customer Care & Support
   { 
     name: "Contact Inquiries", 
     href: "/admin?tab=inquiries", 
@@ -143,12 +159,7 @@ const navItems: NavItem[] = [
     icon: AlertTriangle, 
     allowedRoles: ["customer_care", "customer_support"] 
   },
-  { 
-    name: "Bulk Upload", 
-    href: "/admin/products/migration", 
-    icon: Database, 
-    allowedRoles: ["super_admin", "admin"] 
-  },
+  // 10. Store Settings
   { 
     name: "Settings", 
     icon: Settings, 

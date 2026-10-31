@@ -417,6 +417,12 @@ export const CustomerCareOrderModal: React.FC<CustomerCareOrderModalProps> = ({ 
                 <span className="text-slate-500 block">Discount</span>
                 <span className="font-semibold text-emerald-600">{discount > 0 ? `-${formatPrice(discount)}` : "None"}</span>
               </div>
+              {Boolean(order.pricing?.couponDiscount && order.pricing.couponDiscount > 0) && (
+                <div>
+                  <span className="text-slate-500 block">Promo Coupon ({order.pricing?.couponCode})</span>
+                  <span className="font-semibold text-emerald-600">-{formatPrice(order.pricing?.couponDiscount || 0)}</span>
+                </div>
+              )}
             </div>
           </div>
 

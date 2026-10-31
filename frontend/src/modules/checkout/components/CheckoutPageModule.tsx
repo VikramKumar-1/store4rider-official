@@ -36,6 +36,7 @@ import { CheckoutShippingDelivery } from "./CheckoutShippingDelivery";
 import { CheckoutPaymentStep } from "./CheckoutPaymentStep";
 import { PostCheckoutRegisterForm } from "./PostCheckoutRegisterForm";
 import { useCheckout } from "@/core/hooks/useCheckout";
+import { useValidateCoupon } from "@/core/hooks/useCoupons";
 import { useUserAddresses, useAddAddress, useUpdateAddress, useDeleteAddress } from "@/core/hooks/useAddresses";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 import { usePincodeLookup } from "@/core/hooks/usePincodeLookup";
@@ -50,7 +51,8 @@ import {
   ChevronUpIcon,
   CheckIcon,
   ShieldCheckIcon,
-  LockClosedIcon
+  LockClosedIcon,
+  TagIcon
 } from "@heroicons/react/24/outline";
 import { COUNTRIES } from "@/core/utils/countries";
 
@@ -76,6 +78,29 @@ export const CheckoutPageModule = () => {
   const { mutateAsync: addAddressAsync, isPending: isAddingAddress } = useAddAddress();
   const { mutateAsync: updateAddressAsync, isPending: isUpdatingAddress } = useUpdateAddress();
   const { mutateAsync: deleteAddressAsync } = useDeleteAddress();
+
+  // Compute active cart subtotal with exact price resolution
+  const subtotal = items.reduce((total, item) => {
+    const itemPrice = item.price ?? item.product?.price ?? item.product?.specialPrice ?? item.product?.basePrice ?? 0;
+    return total + itemPrice * item.quantity;
+  }, 0);
+
+  // Promo Coupon state
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
+  const validateCouponMutation = useValidateCoupon();
+
+  // Invalidate applied coupon if subtotal changes (prevents cart tampering)
+  const prevSubtotalRef = useRef(subtotal);
+  useEffect(() => {
+    if (prevSubtotalRef.current !== subtotal) {
+      prevSubtotalRef.current = subtotal;
+      if (appliedCoupon) {
+        setAppliedCoupon(null);
+        toast.info("Cart updated. Please re-apply your promo coupon.");
+      }
+    }
+  }, [subtotal, appliedCoupon]);
 
   // Combine query savedAddresses with cached user.addresses for instant zero-latency address availability
   const effectiveAddresses: IUserAddress[] = React.useMemo(() => {
@@ -353,11 +378,6 @@ export const CheckoutPageModule = () => {
     );
   }
 
-  const subtotal = items.reduce((total, item) => {
-    const itemPrice = item.product?.basePrice || (item as any).price || 0;
-    return total + itemPrice * item.quantity;
-  }, 0);
-
   const cartWeightKg = items.reduce((total, item) => {
     const itemWeight = item.product?.weight || 0.5; // fallback 0.5kg
     return total + itemWeight * item.quantity;
@@ -365,14 +385,54 @@ export const CheckoutPageModule = () => {
 
   const isAllFreeShipping = items.length > 0 && items.every(item => item.product?.isFreeShipping || (item as any).isFreeShipping);
   const shippingCost = settings ? ((isAllFreeShipping || subtotal >= settings.freeShippingThreshold) ? 0 : settings.shippingCost) : 0;
-  const voucherDiscount = subtotal >= 3000 ? 500 : 0; // Voucher 50KDISCOUNT
+  const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const isGstExclusive = settings?.gstPricingMode === "exclusive";
   const defaultTaxRate = typeof settings?.taxRate === "number" ? settings.taxRate : 18;
-  const taxableSubtotal = Math.max(0, subtotal - voucherDiscount);
+  const taxableSubtotal = Math.max(0, subtotal - couponDiscount);
   const estimatedTax = isGstExclusive
     ? Math.round((taxableSubtotal * defaultTaxRate) / 100)
     : Math.round(taxableSubtotal - (taxableSubtotal / (1 + defaultTaxRate / 100)));
   const total = Math.max(0, taxableSubtotal + shippingCost + (isGstExclusive ? estimatedTax : 0));
+
+  const handleApplyCoupon = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!user) {
+      toast.error("Please sign in or create an account to apply promo coupons");
+      return;
+    }
+    if (!couponInput.trim()) {
+      toast.error("Please enter a coupon code");
+      return;
+    }
+
+    const itemsPayload = items.map((it) => ({
+      productId: it.productId,
+      variantId: it.variantId || null,
+      quantity: it.quantity,
+    }));
+
+    try {
+      const res = await validateCouponMutation.mutateAsync({
+        code: couponInput.trim(),
+        items: itemsPayload,
+        cartTotal: subtotal,
+      });
+
+      setAppliedCoupon({
+        code: res.code,
+        discountAmount: res.discountAmount,
+      });
+      toast.success(res.message || `Coupon "${res.code}" applied!`);
+      setCouponInput("");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Invalid or ineligible coupon code");
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    toast.info("Coupon removed");
+  };
 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -636,6 +696,7 @@ export const CheckoutPageModule = () => {
       shippingAddress,
       guestEmail: user ? undefined : formData.email,
       paymentMethod: paymentOption,
+      couponCode: appliedCoupon?.code || undefined,
       phone: dialCode + formData.phone,
       fullName: formData.name,
       customerGstin: formData.isB2b && formData.customerGstin ? formData.customerGstin.trim().toUpperCase() : undefined,
@@ -804,30 +865,82 @@ export const CheckoutPageModule = () => {
               <div className="w-full lg:w-[38%] lg:sticky lg:top-4 z-20">
                 <div className="flex flex-col bg-white border border-neutral-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-5 sm:p-6">
                   
-                  {/* Promo Applied Banner in Order Summary */}
-                  {voucherDiscount > 0 && (
-                    <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 px-3 py-2 rounded-lg text-[11px] font-bold flex items-center justify-between mb-4">
-                      <span className="flex items-center gap-1.5">
-                        <CheckCircleIcon className="w-4 h-4" />
-                        Voucher "50KDISCOUNT" Applied!
-                      </span>
-                      <button className="text-emerald-500 hover:text-emerald-700">
-                        <XMarkIcon className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
-
                   {/* Heading */}
                   <h2 className="font-sans font-bold text-lg text-neutral-900 tracking-tight mb-4">
                     Order Summary
                   </h2>
+
+                  {/* Promo Coupon Input / Applied Box */}
+                  <div className="mb-4">
+                    {!user ? (
+                      <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 flex items-center justify-between gap-3 text-xs transition-all">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="p-1.5 rounded-lg bg-amber-100/90 text-amber-700 shrink-0">
+                            <TagIcon className="w-4 h-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <span className="font-bold text-neutral-900 block leading-tight truncate">
+                              Have a promo code?
+                            </span>
+                            <span className="text-[11px] text-neutral-600 block leading-tight truncate">
+                              Sign in or register to unlock discounts
+                            </span>
+                          </div>
+                        </div>
+                        <Link
+                          href="/login?redirect=/checkout"
+                          className="shrink-0 px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
+                        >
+                          Sign In / Register →
+                        </Link>
+                      </div>
+                    ) : appliedCoupon ? (
+                      <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircleIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>Coupon <strong>{appliedCoupon.code}</strong> applied!</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveCoupon}
+                          className="text-emerald-600 hover:text-emerald-800 font-medium text-xs ml-2 underline cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          placeholder="Promo coupon code"
+                          value={couponInput}
+                          onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleApplyCoupon();
+                            }
+                          }}
+                          className="flex-1 px-3 py-2 text-xs border border-neutral-200 rounded-lg font-mono uppercase focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleApplyCoupon()}
+                          disabled={validateCouponMutation.isPending || !couponInput.trim()}
+                          className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0"
+                        >
+                          {validateCouponMutation.isPending ? "Checking..." : "Apply"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Items Mini List */}
                   <div className="flex flex-col gap-3 mb-5 max-h-[180px] overflow-y-auto pr-2 custom-scrollbar">
                     {items.map((item) => {
                       const product = item.product || {};
                       const name = product.name || "Riding Gear";
-                      const price = product.basePrice || (item as any).price || 0;
+                      const price = item.price ?? product.price ?? product.specialPrice ?? product.basePrice ?? 0;
                       const rawImg = product.images?.[0]?.url || product.image || FALLBACK_IMAGE;
 
                       return (
@@ -866,10 +979,12 @@ export const CheckoutPageModule = () => {
                       <span className="text-neutral-900">{formatPrice(subtotal)}</span>
                     </div>
 
-                    {voucherDiscount > 0 && (
+                    {couponDiscount > 0 && appliedCoupon && (
                       <div className="flex items-center justify-between text-sm font-medium">
-                        <span className="text-emerald-600">Discount</span>
-                        <span className="text-emerald-600 font-bold">-{formatPrice(voucherDiscount)}</span>
+                        <span className="text-emerald-600 flex items-center gap-1">
+                          Coupon ({appliedCoupon.code})
+                        </span>
+                        <span className="text-emerald-600 font-bold">-{formatPrice(couponDiscount)}</span>
                       </div>
                     )}
 
