@@ -79,5 +79,26 @@ describe("Navbar & Submenu Navigation Integrity Suite", () => {
       "Riding Boots",
       "Specialized Gear",
     ]);
+
+    // Verify Specialized Gear contains Touring Gear and Monsoon Gear
+    const specializedGroup = ridingGearNav!.megaMenuItems!.find((g) => g.group === "Specialized Gear");
+    expect(specializedGroup).toBeDefined();
+    const specializedLabels = specializedGroup!.items.map((i) => i.label);
+    expect(specializedLabels).toContain("Touring Gear");
+    expect(specializedLabels).toContain("Monsoon Gear");
+  });
+
+  it("should have Exhausts as a standalone top-level item without duplicate submenu entries", () => {
+    const exhaustNavItem = DEFAULT_NAV_ITEMS.find((item) => item.id === "exhausts");
+    expect(exhaustNavItem).toBeDefined();
+    expect(exhaustNavItem?.href).toBe("/exhausts");
+
+    // Ensure it is not duplicated in other submenus
+    DEFAULT_NAV_ITEMS.filter((item) => item.id !== "exhausts" && item.megaMenuItems).forEach((item) => {
+      item.megaMenuItems!.forEach((group) => {
+        const exhaustSubItem = group.items.find((sub) => sub.label.toLowerCase() === "exhausts");
+        expect(exhaustSubItem).toBeUndefined();
+      });
+    });
   });
 });

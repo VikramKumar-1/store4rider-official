@@ -74,6 +74,8 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
       {
         group: "Specialized Gear",
         items: [
+          { label: "Touring Gear", href: "/riding-gear/touring-gear" },
+          { label: "Monsoon Gear", href: "/riding-gear/monsoon-gear-for-riders" },
           { label: "Riding Gear For Women", href: "/riding-gear-for-women" },
           { label: "Off-Road / Motocross Gear", href: "/riding-gear/off-road-motocross-riding-gear" },
         ],
@@ -125,7 +127,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         items: [
           { label: "Off-Beat Accessories", href: "/motorcycle-accessories-online/off-beat-motorcycle-accessories" },
           { label: "Performance Parts", href: "/motorcycle-accessories-online/performance-parts" },
-          { label: "Exhausts", href: "/exhausts" },
           { label: "Rally Towers / Navigation Tower", href: "/motorcycle-accessories-online/rally-tower" },
           { label: "Bike Covers", href: "/motorcycle-accessories-online/bike-covers" },
           { label: "Chain Care", href: "/motorcycle-accessories-online/chain-care" },
@@ -147,7 +148,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
           { label: "Iridium Spark Plugs", href: "/bike-spares/iridium-spark-plug" },
           { label: "Performance Air Filters", href: "/bike-spares/performance-air-filter-bike" },
           { label: "Brake Pads", href: "/bike-spares/brake-pads" },
-          { label: "Exhausts", href: "/exhausts" },
         ],
       },
     ],
