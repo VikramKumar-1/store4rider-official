@@ -117,7 +117,7 @@ export const FloatingCatalogBar: React.FC<FloatingCatalogBarProps> = ({
 
           <div className="flex items-center gap-2">
             {activeFiltersCount > 0 && (
-              <span className="bg-[#FF5429] text-white text-[11px] font-black w-5 h-5 rounded-full flex items-center justify-center">
+              <span className="bg-brand text-white text-[11px] font-black w-5 h-5 rounded-full flex items-center justify-center">
                 {activeFiltersCount}
               </span>
             )}
@@ -199,7 +199,7 @@ export const FloatingCatalogBar: React.FC<FloatingCatalogBarProps> = ({
               <button
                 type="button"
                 onClick={() => setIsFilterDrawerOpen(false)}
-                className="w-full bg-[#FF5429] hover:bg-orange-600 text-white font-extrabold text-xs uppercase tracking-wider py-3 rounded-full transition-colors active:scale-95 flex items-center justify-center gap-2"
+                className="w-full bg-brand hover:bg-brand-dark text-white font-extrabold text-xs uppercase tracking-wider py-3 rounded-full transition-colors active:scale-95 flex items-center justify-center gap-2"
               >
                 {isFetching ? (
                   <>

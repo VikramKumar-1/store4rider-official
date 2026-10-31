@@ -193,7 +193,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <ShoppingBagIcon className="w-5 h-5 stroke-[1.75]" />
               {totalItemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-banner text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+                <span className="absolute -top-0.5 -right-0.5 bg-brand text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
                   {totalItemCount > 99 ? "99+" : totalItemCount}
                 </span>
               )}

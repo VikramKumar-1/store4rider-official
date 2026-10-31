@@ -37,8 +37,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
   const images = bgImageUrls && bgImageUrls.length > 0 ? bgImageUrls : [bgImageUrl];
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
+    setHasMounted(true);
     if (images.length <= 1) return;
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % images.length);
@@ -50,7 +52,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     <section className="relative w-full h-[320px] lg:h-[100svh] lg:min-h-[600px] flex flex-col justify-between overflow-hidden bg-neutral-900">
       {/* Background Image Slider */}
       <div className="absolute inset-0 z-0">
-        {images.map((src, index) => (
+        {images.map((src, index) => {
+          if (index > 0 && !hasMounted) return null;
+
+          return (
           <div
             key={src}
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
@@ -62,11 +67,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               alt={`Hero background ${index + 1}`}
               fill
               priority={index === 0}
-              sizes="100vw"
+              fetchPriority={index === 0 ? "high" : "low"}
+              loading={index === 0 ? "eager" : "lazy"}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1400px"
               className="object-cover object-[center_30%] lg:object-center"
             />
           </div>
-        ))}
+          );
+        })}
 
         {/* Mobile: stronger gradient for text legibility | Desktop: light overlay */}
         <div className="absolute inset-0 pointer-events-none z-10
@@ -107,10 +115,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             </Link>
           </div>
 
-          {/* Mobile Button: Glassmorphism, small, left-aligned, pushed to bottom (Hidden on desktop) */}
+          {/* Mobile Button: small, left-aligned, pushed to bottom (Hidden on desktop) */}
           <Link
             href={ctaLink || "/products"}
-            className="lg:hidden mt-auto inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md border border-white/30 text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full shadow-lg hover:bg-white/30 transition-colors self-start"
+            className="lg:hidden mt-auto inline-flex items-center gap-1.5 bg-banner hover:bg-orange-600 text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full shadow-lg transition-colors self-start"
           >
             {ctaText || "Shop Now"}
             <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -127,18 +135,24 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       </div>
 
 
-      {/* Slide indicator dots (mobile + desktop) */}
+      {/* Slide indicator dots (mobile + desktop) — tap target padded to 44px for accessibility */}
       {images.length > 1 && (
-        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex gap-1.5">
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex gap-0.5 items-center">
           {images.map((_, idx) => (
             <button
               key={idx}
+              type="button"
+              suppressHydrationWarning
               onClick={() => setCurrentImageIndex(idx)}
               aria-label={`Go to slide ${idx + 1}`}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                idx === currentImageIndex ? "w-6 bg-white" : "w-1.5 bg-white/40"
-              }`}
-            />
+              className="py-3 px-1.5 flex items-center justify-center cursor-pointer focus:outline-hidden"
+            >
+              <span
+                className={`h-1.5 rounded-full transition-all duration-300 block ${
+                  idx === currentImageIndex ? "w-6 bg-white" : "w-1.5 bg-white/40"
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}

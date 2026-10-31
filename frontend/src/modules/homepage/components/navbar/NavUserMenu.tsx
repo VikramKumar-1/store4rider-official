@@ -98,7 +98,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = ({
               </>
             ) : (
               <>
-                <Link href="/login" onClick={onClose} className="flex items-center justify-between px-4 py-2.5 bg-banner text-white font-bold hover:bg-orange-600 transition-colors mx-3 my-1 rounded-sm cursor-pointer">
+                <Link href="/login" onClick={onClose} className="flex items-center justify-between px-4 py-2.5 bg-brand text-white font-bold hover:bg-brand-dark transition-colors mx-3 my-1 rounded-sm cursor-pointer">
                   <span>SIGN IN / LOGIN</span>
                   <ArrowRightOnRectangleIcon className="w-4 h-4" />
                 </Link>

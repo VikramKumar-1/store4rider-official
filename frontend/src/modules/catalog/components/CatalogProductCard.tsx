@@ -93,9 +93,9 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
           </div>
         )}
 
-        {/* Orange Rating Badge (Top Right as in Wireframe) */}
-        <div className="absolute top-2 right-2 bg-[#FF5429] text-white text-[9px] font-black px-1.5 py-0.5 rounded-sm flex items-center gap-0.5 shadow-xs z-10">
-          <StarIcon className="w-2.5 h-2.5 text-white" />
+        {/* High-Contrast Rating Badge (Top Right) */}
+        <div className="absolute top-2 right-2 bg-neutral-900/95 text-white text-[9px] font-black px-1.5 py-0.5 rounded-sm flex items-center gap-0.5 shadow-xs z-10 border border-white/10">
+          <StarIcon className="w-2.5 h-2.5 text-amber-400" />
           <span>{product.rating || "4.95"}</span>
         </div>
 

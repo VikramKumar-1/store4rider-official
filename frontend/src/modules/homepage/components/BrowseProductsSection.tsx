@@ -34,9 +34,9 @@ const GridProductCard: React.FC<{ product: BrowseProductData }> = ({
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
         
-        {/* Solid Orange Rating Badge */}
-        <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 bg-[#FF5429] text-white text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 z-10 shadow-sm">
-          <svg className="w-2 h-2 md:w-2.5 md:h-2.5 text-white fill-current" viewBox="0 0 20 20">
+        {/* High-Contrast Rating Badge (18:1 ratio) */}
+        <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 bg-neutral-900/95 text-white text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 z-10 shadow-sm border border-white/10">
+          <svg className="w-2 h-2 md:w-2.5 md:h-2.5 text-amber-400 fill-current" viewBox="0 0 20 20">
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
           {(Number(product.rating) || 4.8).toFixed(1)}
@@ -44,7 +44,7 @@ const GridProductCard: React.FC<{ product: BrowseProductData }> = ({
 
         {/* Hover "Add to Cart" Button Overlay */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto bg-black/5 z-20 hidden lg:flex">
-          <span className="bg-white hover:bg-[#FF5429] text-neutral-900 hover:text-white w-[85%] py-2.5 rounded flex items-center justify-center gap-2 text-[10px] font-bold tracking-widest shadow-xl translate-y-4 group-hover:translate-y-0 transition-all duration-300 ease-out select-none">
+          <span className="bg-white hover:bg-brand text-neutral-900 hover:text-white w-[85%] py-2.5 rounded flex items-center justify-center gap-2 text-[10px] font-bold tracking-widest shadow-xl translate-y-4 group-hover:translate-y-0 transition-all duration-300 ease-out select-none">
             ADD TO CART
           </span>
         </div>
@@ -129,6 +129,7 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
             onClick={() => handleScroll("left")}
             disabled={!canScrollLeft}
             aria-label="Previous products"
+            suppressHydrationWarning
             className={`absolute -left-2 sm:-left-4 md:-left-5 lg:-left-6 top-[42%] -translate-y-1/2 z-30 w-9 h-9 sm:w-11 sm:h-11 lg:w-12 lg:h-12 rounded-full bg-neutral-200/90 backdrop-blur-md border border-neutral-300/90 shadow-lg flex items-center justify-center transition-all duration-300 ease-out text-neutral-900 hover:bg-neutral-900 hover:text-white hover:scale-110 hover:shadow-xl ${
               canScrollLeft
                 ? "cursor-pointer opacity-100"
@@ -186,6 +187,7 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
             onClick={() => handleScroll("right")}
             disabled={!canScrollRight}
             aria-label="Next products"
+            suppressHydrationWarning
             className={`absolute -right-2 sm:-right-4 md:-right-5 lg:-right-6 top-[42%] -translate-y-1/2 z-30 w-9 h-9 sm:w-11 sm:h-11 lg:w-12 lg:h-12 rounded-full bg-neutral-200/90 backdrop-blur-md border border-neutral-300/90 shadow-lg flex items-center justify-center transition-all duration-300 ease-out text-neutral-900 hover:bg-neutral-900 hover:text-white hover:scale-110 hover:shadow-xl ${
               canScrollRight
                 ? "cursor-pointer opacity-100"
@@ -202,7 +204,7 @@ export const BrowseProductsSection: React.FC<BrowseProductsSectionProps> = ({
         <div className="mt-8 md:mt-12 flex justify-center">
           <Link
             href={seeMoreLink || "/products?q=touring"}
-            className="bg-banner text-white px-8 md:px-12 py-3 md:py-3.5 text-xs sm:text-sm font-semibold tracking-[0.2em] shadow-md hover:bg-orange-600 hover:shadow-lg transition-all duration-300 rounded-sm"
+            className="bg-banner hover:bg-orange-600 text-white px-8 md:px-12 py-3 md:py-3.5 text-xs sm:text-sm font-bold tracking-[0.2em] transition-all duration-300 rounded-sm active:scale-[0.99]"
           >
             {seeMoreText || "SEE MORE"}
           </Link>

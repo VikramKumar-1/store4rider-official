@@ -166,8 +166,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                         fill
                         className="object-cover"
                         sizes="48px"
-                        unoptimized={!!profileAvatarUrl}
-                        priority
+                        loading="lazy"
                       />
                     </div>
                   </div>
@@ -230,7 +229,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                     href={instagramProfileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 py-1 px-2.5 rounded-md bg-[#0095f6] hover:bg-[#1877f2] text-white text-[11px] font-bold text-center transition-colors shadow-xs"
+                    className="flex-1 py-1 px-2.5 rounded-md bg-[#006bc8] hover:bg-[#005bb0] text-white text-[11px] font-bold text-center transition-colors shadow-xs"
                   >
                     Follow
                   </a>
@@ -250,6 +249,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                   <div className="relative pb-0.5 flex-1 flex justify-center">
                     <button
                       type="button"
+                      suppressHydrationWarning
                       onClick={() => setActiveTab("all")}
                       aria-label="Instagram Grid View - All Posts"
                       className={`p-1 flex items-center gap-1 transition-colors cursor-pointer ${
@@ -270,6 +270,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                   <div className="relative pb-0.5 flex-1 flex justify-center">
                     <button
                       type="button"
+                      suppressHydrationWarning
                       onClick={() => setActiveTab("reels")}
                       aria-label="Instagram Reels View - Videos Only"
                       className={`p-1 flex items-center gap-1 transition-colors cursor-pointer ${
@@ -311,20 +312,14 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                           onClick={() => setActiveModalReel(reel)}
                           className="group relative aspect-[4/5] rounded-md overflow-hidden bg-neutral-900 border border-white/10 cursor-pointer select-none"
                         >
-                          {/* Thumbnail Image - unoptimized loads directly from Meta CDN with 0 serverless proxy latency */}
+                          {/* Thumbnail Image - automatically optimized into responsive WebP/AVIF to minimize download size */}
                           <Image
                             src={reel.thumbnailUrl || "/helmetcat.jpg"}
                             alt={reel.title || `Reel ${idx + 1}`}
                             fill
                             className="object-cover group-hover:scale-105 transition-transform duration-300"
                             sizes="(max-width: 640px) 30vw, (max-width: 1024px) 15vw, 140px"
-                            unoptimized={
-                              reel.thumbnailUrl?.includes("cdninstagram.com") ||
-                              reel.thumbnailUrl?.includes("fbcdn.net") ||
-                              reel.thumbnailUrl?.startsWith("http")
-                            }
-                            priority={idx < 3}
-                            loading={idx < 3 ? "eager" : "lazy"}
+                            loading="lazy"
                           />
 
                           {/* Top Gradient for Pin Icon */}
@@ -358,6 +353,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                 {currentTabReels.length > 6 && (
                   <button
                     type="button"
+                    suppressHydrationWarning
                     onClick={() => setActiveModalReel(currentTabReels[0])}
                     className="w-full py-2 px-3 mt-2 rounded-lg bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] hover:opacity-95 text-white text-[11px] font-bold text-center transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm group"
                   >
@@ -416,8 +412,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                         src={bannerTop?.imageUrl || "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/f/o/forma-viper-urban-motorcycle-riding-boots-black.jpg"}
                         alt={bannerTop?.title || "Store4Riders Promotional Banner"}
                         fill
-                        unoptimized={true}
-                        priority
+                        loading="lazy"
                         className={`object-cover ${topPositionClass} group-hover:scale-105 transition-transform duration-500`}
                         sizes="(max-width: 1024px) 100vw, 55vw"
                       />
@@ -467,8 +462,7 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                         src={bannerBottom?.imageUrl || "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/b/b/bbg_hybrid_tail_bag.jpg"}
                         alt={bannerBottom?.title || "Store4Riders Promotional Banner"}
                         fill
-                        unoptimized={true}
-                        priority
+                        loading="lazy"
                         className={`object-cover ${bottomPositionClass} group-hover:scale-105 transition-transform duration-500`}
                         sizes="(max-width: 1024px) 100vw, 55vw"
                       />

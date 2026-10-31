@@ -141,7 +141,6 @@ const ReelSlide: React.FC<ReelSlideProps> = ({
                 priority={isActive}
                 className="object-cover -z-10"
                 sizes="(max-width: 430px) 100vw, 430px"
-                unoptimized={true}
               />
             )}
 
@@ -190,7 +189,6 @@ const ReelSlide: React.FC<ReelSlideProps> = ({
                 priority={isActive}
                 className="object-cover opacity-60 filter blur-[1px]"
                 sizes="(max-width: 430px) 100vw, 430px"
-                unoptimized={true}
               />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-black/80 flex flex-col items-center justify-center p-6 text-center text-white z-10">
@@ -243,7 +241,6 @@ const ReelSlide: React.FC<ReelSlideProps> = ({
                 fill
                 className="object-cover"
                 sizes="32px"
-                unoptimized={true}
               />
             </div>
           </div>

@@ -92,6 +92,7 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
               </Link>
               <button
                 onClick={onClose}
+                suppressHydrationWarning
                 className="p-2 rounded-full hover:bg-neutral-100 text-neutral-700 transition-colors cursor-pointer"
               >
                 <XMarkIcon className="w-5 h-5 stroke-[2]" />
@@ -105,6 +106,7 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
                   {item.megaMenuItems ? (
                     <>
                       <button
+                        suppressHydrationWarning
                         onClick={() =>
                           setExpandedId(expandedId === item.id ? null : item.id)
                         }
@@ -311,6 +313,7 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
 
                   {/* Logout Button */}
                   <button
+                    suppressHydrationWarning
                     onClick={() => {
                       onLogout();
                       onClose();
@@ -327,7 +330,7 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
                   <Link
                     href="/login"
                     onClick={onClose}
-                    className="flex-1 text-center py-2.5 bg-banner text-white text-sm font-bold rounded-xl hover:bg-orange-600 transition-colors shadow-sm"
+                    className="flex-1 text-center py-2.5 bg-brand text-white text-sm font-bold rounded-xl hover:bg-brand-dark transition-colors shadow-sm"
                   >
                     Sign In
                   </Link>

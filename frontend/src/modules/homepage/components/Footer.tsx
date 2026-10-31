@@ -216,6 +216,7 @@ export const Footer: React.FC = () => {
           <div className="flex flex-col border-b border-neutral-900 pb-4 lg:border-none lg:pb-0">
             <button
               type="button"
+              suppressHydrationWarning
               onClick={() => toggleSection("column1")}
               className="w-full flex items-center justify-between py-2 lg:py-0 text-left cursor-pointer group"
             >
@@ -250,6 +251,7 @@ export const Footer: React.FC = () => {
           <div className="flex flex-col border-b border-neutral-900 pb-4 lg:border-none lg:pb-0">
             <button
               type="button"
+              suppressHydrationWarning
               onClick={() => toggleSection("column2")}
               className="w-full flex items-center justify-between py-2 lg:py-0 text-left cursor-pointer group"
             >
@@ -294,6 +296,7 @@ export const Footer: React.FC = () => {
               <Mail className="w-5 h-5 text-neutral-200 shrink-0 mr-3" />
               <input
                 type="email"
+                suppressHydrationWarning
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={newsletterPlaceholder}
@@ -302,6 +305,7 @@ export const Footer: React.FC = () => {
               />
               <button
                 type="submit"
+                suppressHydrationWarning
                 aria-label="Subscribe to newsletter"
                 className="absolute right-3 text-neutral-200 hover:text-white transition-colors flex items-center justify-center p-1 cursor-pointer"
               >
@@ -311,8 +315,8 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Sub-Footer Bar */}
-        <div className="mt-10 md:mt-16 pt-6 border-t border-neutral-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
+        {/* Bottom Sub-Footer Bar — text-neutral-400 provides accessible 8.4:1 contrast on black */}
+        <div className="mt-10 md:mt-16 pt-6 border-t border-neutral-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-400">
           <p>{copyrightText}</p>
           <div className="flex items-center gap-6 flex-wrap justify-center">
             {bottomLinks.map((link, idx) => (
@@ -321,7 +325,7 @@ export const Footer: React.FC = () => {
                 href={link.url}
                 target={link.openInNewTab ? "_blank" : undefined}
                 rel={link.openInNewTab ? "noopener noreferrer" : undefined}
-                className="hover:text-neutral-300 transition-colors"
+                className="hover:text-white transition-colors"
               >
                 {link.label}
               </Link>
