@@ -352,6 +352,8 @@ export const HomepageModule: React.FC<{
             title={homepageConfig?.hero?.title || "RIDING GEAR THAT KEEPS YOU SAFE"}
             bgImageUrl={homepageConfig?.hero?.bgImages?.[0] || heroBgImage}
             bgImageUrls={homepageConfig?.hero?.bgImages?.length ? homepageConfig.hero.bgImages : ["/heropic1.jpg", "/heropic2.jpg"]}
+            slides={homepageConfig?.hero?.slides}
+            showOverlay={homepageConfig?.hero?.showOverlay}
             featuredProducts={featuredProducts}
             ctaText={homepageConfig?.hero?.ctaText || "Shop Now"}
             ctaLink={homepageConfig?.hero?.ctaLink || "/products"}

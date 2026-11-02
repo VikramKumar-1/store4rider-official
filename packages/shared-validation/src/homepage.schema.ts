@@ -9,12 +9,24 @@ export const heroCardSchema = z.object({
   ctaUrl: z.string().default("/products"),
 });
 
+export const heroSlideSchema = z.object({
+  id: z.string().optional(),
+  imageUrl: z.string().min(1, "Slide image is required"),
+  title: z.string().max(200).optional().default(""),
+  subtitle: z.string().max(200).optional().default(""),
+  ctaText: z.string().max(50).optional().default(""),
+  ctaLink: z.string().max(500).optional().default(""),
+  showOverlay: z.boolean().optional().default(true),
+});
+
 export const heroSectionSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
   subtitle: z.string().min(1, "Subtitle is required").max(200),
   ctaText: z.string().min(1, "CTA Text is required").max(50),
   ctaLink: z.string().min(1, "CTA Link is required").max(500),
+  showOverlay: z.boolean().optional().default(true),
   bgImages: z.array(z.string().min(1)).min(1, "At least one background image is required"),
+  slides: z.array(heroSlideSchema).optional().default([]),
   featuredCards: z.array(heroCardSchema).max(4).default([]),
 });
 

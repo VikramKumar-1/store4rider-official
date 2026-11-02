@@ -12,8 +12,10 @@ function AdminLiveStreamSubscriber() {
 
 export function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const secretPath = process.env.NEXT_PUBLIC_ADMIN_SECRET_PATH || "rider-staff-gate";
+  const isLoginPage = pathname === `/admin/${secretPath}` || pathname === "/admin/login";
 
-  if (pathname === "/admin/login") {
+  if (isLoginPage) {
     return <main className="min-h-screen bg-slate-50">{children}</main>;
   }
 

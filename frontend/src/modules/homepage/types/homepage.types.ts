@@ -74,17 +74,34 @@ export interface HeroProductCardData {
 }
 
 /**
+ * Data model for individual slide in HeroSection.
+ */
+export interface HeroSlideData {
+  id?: string;
+  imageUrl: string;
+  title?: string;
+  subtitle?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  showOverlay?: boolean;
+}
+
+/**
  * Props for the HeroSection component.
  */
 export interface HeroSectionProps {
-  /** Small category/tagline above main heading */
+  /** Small category/tagline above main heading (fallback) */
   subtitle: string;
-  /** Main hero banner headline */
+  /** Main hero banner headline (fallback) */
   title: string;
   /** Background image URL (fallback) */
   bgImageUrl: string;
-  /** Array of background image URLs for slider */
+  /** Array of background image URLs for slider (legacy/fallback) */
   bgImageUrls?: string[];
+  /** Full slide configuration with per-slide text and visibility toggles */
+  slides?: HeroSlideData[];
+  /** Global toggle to show/hide text card overlay */
+  showOverlay?: boolean;
   /** List of products to display as floating cards */
   featuredProducts: HeroProductCardData[];
   /** Optional CTA text */

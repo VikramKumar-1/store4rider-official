@@ -463,4 +463,75 @@ describe("CouponService - Robust Validation & Guardrails", () => {
     expect(result.eligibleSubtotal).toBe(2000);
     expect(result.discountAmount).toBe(200);
   });
+
+  // 19. Category scope: matches subcategory to parent category via canonical resolution
+  it("accurately matches child subcategory product when coupon targets parent category", async () => {
+    vi.mocked(CouponRepository.findByCode).mockResolvedValue({
+      code: "HELMET15",
+      discountType: "percent",
+      discountValue: 15,
+      minPurchase: 0,
+      expiryDate: new Date(Date.now() + 86400000),
+      isActive: true,
+      scope: "category",
+      applicableCategories: ["motorcycle-helmets"],
+    } as any);
+
+    vi.mocked(ProductRepository.findById).mockImplementation(async (id: string) => {
+      if (id === "helmet_item") {
+        return {
+          basePrice: 5000,
+          categorySlugs: ["full-face-helmets"], // Subcategory of motorcycle-helmets
+          magentoCategories: "Helmets/Full Face Helmets",
+        } as any;
+      }
+      if (id === "jacket_item") {
+        return {
+          basePrice: 8000,
+          categorySlugs: ["riding-jackets"],
+        } as any;
+      }
+      return null;
+    });
+
+    const result = await CouponService.validateCoupon({
+      code: "HELMET15",
+      items: [
+        { productId: "helmet_item", quantity: 1 },
+        { productId: "jacket_item", quantity: 1 },
+      ],
+      userId: TEST_USER_ID,
+    });
+
+    expect(result.isValid).toBe(true);
+    expect(result.eligibleSubtotal).toBe(5000); // Only helmet qualifies
+    expect(result.discountAmount).toBe(750); // 15% of 5000
+  });
+
+  // 20. Category scope: throws when cart has no qualifying category items
+  it("throws error when no items match category-specific coupon", async () => {
+    vi.mocked(CouponRepository.findByCode).mockResolvedValue({
+      code: "JACKET20",
+      discountType: "percent",
+      discountValue: 20,
+      minPurchase: 0,
+      expiryDate: new Date(Date.now() + 86400000),
+      isActive: true,
+      scope: "category",
+      applicableCategories: ["riding-jackets"],
+    } as any);
+
+    vi.mocked(ProductRepository.findById).mockResolvedValue({
+      basePrice: 4000,
+      categorySlugs: ["motorcycle-helmets"],
+    } as any);
+
+    await expect(
+      CouponService.validateCoupon({
+        code: "JACKET20",
+        items: [{ productId: "helmet_only", quantity: 1 }],
+        userId: TEST_USER_ID,
+      })
+    ).rejects.toThrow("This coupon is valid only for selected product categories");
+  });
 });

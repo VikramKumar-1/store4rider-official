@@ -1,11 +1,22 @@
+import { notFound, redirect } from "next/navigation";
 import { Metadata } from "next";
-import { AdminLogin } from "@/modules/admin/components/AdminLogin";
 
 export const metadata: Metadata = {
-  title: "Admin Login | Store4Riders",
-  description: "Secure admin portal login",
+  title: "Not Found",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function AdminLoginPage() {
-  return <AdminLogin />;
+  const secretPath = process.env.NEXT_PUBLIC_ADMIN_SECRET_PATH || "rider-staff-gate";
+
+  // In development, provide a smooth redirect to the secret slug so developers never get locked out
+  if (process.env.NODE_ENV === "development") {
+    redirect(`/admin/${secretPath}`);
+  }
+
+  // In production, generic /admin/login is dead and returns 404
+  notFound();
 }

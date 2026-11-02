@@ -12,6 +12,9 @@ export async function POST(
     const rawBody = await req.text();
     const parsedParams = new URLSearchParams(rawBody);
     const txnid = parsedParams.get("txnid") || "";
+    const unmappedstatus = (parsedParams.get("unmappedstatus") || "").toLowerCase();
+    const errorMsg = (parsedParams.get("error_Message") || "").toLowerCase();
+    const isCancelled = unmappedstatus.includes("cancel") || errorMsg.includes("cancel") || status === "cancel" || status === "cancelled";
     const orderParam = txnid ? `&orderId=${encodeURIComponent(txnid)}` : "";
 
     // Forward the webhook to the backend API server so DB order status updates
@@ -32,6 +35,8 @@ export async function POST(
 
     if (isSuccess) {
       return NextResponse.redirect(`${origin}/checkout?success=true${orderParam}`, 303);
+    } else if (isCancelled) {
+      return NextResponse.redirect(`${origin}/checkout?cancelled=true${orderParam}`, 303);
     } else {
       return NextResponse.redirect(`${origin}/checkout?failed=true${orderParam}`, 303);
     }
@@ -50,6 +55,8 @@ export async function GET(
   const orderParam = txnid ? `&orderId=${encodeURIComponent(txnid)}` : "";
   if (status === "success") {
     return NextResponse.redirect(`${origin}/checkout?success=true${orderParam}`, 303);
+  } else if (status === "cancel" || status === "cancelled") {
+    return NextResponse.redirect(`${origin}/checkout?cancelled=true${orderParam}`, 303);
   } else {
     return NextResponse.redirect(`${origin}/checkout?failed=true${orderParam}`, 303);
   }

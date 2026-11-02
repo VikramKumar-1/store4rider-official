@@ -7,12 +7,24 @@ export interface IHeroCard {
   ctaUrl: string;
 }
 
+export interface IHeroSlide {
+  id?: string;
+  imageUrl: string;
+  title?: string;
+  subtitle?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  showOverlay?: boolean;
+}
+
 export interface IHeroSectionConfig {
   title: string;
   subtitle: string;
   ctaText: string;
   ctaLink: string;
+  showOverlay?: boolean;
   bgImages: string[];
+  slides?: IHeroSlide[];
   featuredCards: IHeroCard[];
 }
 

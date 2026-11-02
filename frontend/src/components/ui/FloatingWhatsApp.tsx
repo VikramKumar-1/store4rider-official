@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import { usePathname } from "next/navigation";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 import { useCartStore } from "@/stores/useCartStore";
@@ -56,6 +56,7 @@ export const FloatingWhatsApp: React.FC = () => {
   const pathname = usePathname();
   const { data: settings } = usePublicSettings();
   const cartItemCount = useCartStore((state) => state.items.length);
+  const isPDP = useUIStore((state) => state.isPDP);
 
   // Do not render on Admin or API routes
   if (!pathname || pathname.startsWith("/admin") || pathname.startsWith("/api")) {
@@ -101,8 +102,6 @@ export const FloatingWhatsApp: React.FC = () => {
     pathname?.startsWith("/products/") ||
     pathname?.startsWith("/search");
   const hasBlinkitCart = cartItemCount > 0 && isProductPage;
-
-  const isPDP = useUIStore((state) => state.isPDP);
 
   // Calculate mobile bottom position to prevent overlapping with:
   // 1. "See all reviews" in PDP & Catalog sticky bars (~184px high)

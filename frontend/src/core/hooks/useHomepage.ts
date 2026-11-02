@@ -26,7 +26,7 @@ export function usePublicHomepageConfig() {
       const res = await apiClient.get<{ success: boolean; data: IHomepageConfig }>("/homepage/public");
       return res.data.data;
     },
-    staleTime: 60 * 1000,
+    staleTime: 5 * 1000,
   });
 }
 
@@ -37,7 +37,11 @@ export function useUpdateHeroAndSeo() {
       const res = await apiClient.put("/homepage/hero-seo", payload);
       return res.data.data;
     },
-    onSuccess: () => {
+    onSuccess: (updatedData) => {
+      if (updatedData) {
+        queryClient.setQueryData(["homepage", "config"], updatedData);
+        queryClient.setQueryData(["homepage", "public"], updatedData);
+      }
       queryClient.invalidateQueries({ queryKey: ["homepage"] });
       toast.success("Hero & SEO settings saved successfully!");
     },

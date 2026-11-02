@@ -8,7 +8,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   try {
     const res = await fetch(homepageUrl, {
-      next: { revalidate: 60 },
+      cache: "no-store",
       signal: AbortSignal.timeout(2500),
     });
 
@@ -85,7 +85,7 @@ export default async function Home() {
         signal: AbortSignal.timeout(5000),
       }),
       fetch(homepageUrl, {
-        next: { revalidate: 10 },
+        cache: "no-store",
         signal: AbortSignal.timeout(5000),
       }),
       fetch(reviewsUrl, {

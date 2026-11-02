@@ -112,3 +112,14 @@ export function useValidateCoupon() {
     },
   });
 }
+
+export function usePublicCoupons() {
+  return useQuery({
+    queryKey: ["public-coupons"],
+    queryFn: async () => {
+      const response = await apiClient.get<{ success: boolean; data: ICoupon[] }>("/coupons/public");
+      return response.data.data || [];
+    },
+    staleTime: 60 * 1000, // 1 minute
+  });
+}

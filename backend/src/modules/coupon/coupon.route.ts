@@ -15,7 +15,12 @@ export async function couponRouter(req: NextRequest, routePath: string[]): Promi
   const method = req.method;
   const pathLen = routePath.length;
 
-  // 1. POST /api/v1/coupons/validate (Checkout - Strictly Registered Users Only)
+  // 1. GET /api/v1/coupons/public (Public - Active Storefront Promo Coupons)
+  if (method === "GET" && pathLen === 1 && routePath[0] === "public") {
+    return await CouponController.getPublicActiveCoupons();
+  }
+
+  // 2. POST /api/v1/coupons/validate (Checkout - Strictly Registered Users Only)
   if (method === "POST" && pathLen === 1 && routePath[0] === "validate") {
     const userId = extractUserFromAuth(req);
     return await CouponController.validate(req, userId);

@@ -342,7 +342,17 @@ export const SocialMediaSection: React.FC<SocialMediaSectionProps> = ({
                           </div>
 
                           {/* Bottom Subtle Gradient */}
-                          <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                          <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
+
+                          {/* Bottom Real Live Views Badge (Instagram Style) */}
+                          {reel.views && (
+                            <div className="absolute bottom-1.5 left-1.5 z-10 flex items-center gap-1 text-white text-[10px] sm:text-[11px] font-bold drop-shadow-md">
+                              <svg className="w-2.5 h-2.5 fill-current text-white/90" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                              <span>{reel.views}</span>
+                            </div>
+                          )}
                         </div>
                       );
                     })

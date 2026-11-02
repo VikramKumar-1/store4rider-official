@@ -232,7 +232,7 @@ export function AdminSidebar() {
 
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    router.push("/");
   };
 
   const filteredNavItems = navItems.filter((item) => {

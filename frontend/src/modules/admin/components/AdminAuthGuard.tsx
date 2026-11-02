@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { AdminLogin } from "./AdminLogin";
 
 export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated } = useAuthStore();
@@ -15,6 +14,11 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (mounted) {
+      if (!isAuthenticated) {
+        // Obfuscate admin existence: unauthenticated access redirects to home
+        router.replace("/");
+        return;
+      }
       if (isAuthenticated && (!user?.role || user?.role === "customer")) {
         router.replace("/");
       }
@@ -25,12 +29,8 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
     return <div className="h-screen w-full flex items-center justify-center">Loading...</div>;
   }
 
-  if (!isAuthenticated) {
-    return <AdminLogin />;
-  }
-
-  if (!user?.role || user?.role === "customer") {
-    return <div className="h-screen w-full flex items-center justify-center">Redirecting...</div>;
+  if (!isAuthenticated || !user?.role || user?.role === "customer") {
+    return null;
   }
 
   return <>{children}</>;

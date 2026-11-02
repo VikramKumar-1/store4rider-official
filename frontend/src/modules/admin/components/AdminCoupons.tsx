@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Plus,
   Edit2,
@@ -27,6 +27,10 @@ import {
 } from "@/core/hooks/useCoupons";
 import { useBrands } from "@/core/hooks/useBrands";
 import { useCategoryTree } from "@/core/hooks/useCategories";
+import {
+  STORE_CATEGORY_GROUPS,
+  CATEGORY_SLUG_TO_LABEL,
+} from "../constants/coupon-categories";
 import { ICoupon, CouponScope } from "@store4riders/shared-types";
 import { toast } from "sonner";
 
@@ -47,6 +51,25 @@ export function AdminCoupons() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<ICoupon | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [categorySearch, setCategorySearch] = useState("");
+  const [activeCategoryTab, setActiveCategoryTab] = useState("all");
+
+  const filteredCategoryGroups = useMemo(() => {
+    let groups = STORE_CATEGORY_GROUPS;
+    if (activeCategoryTab !== "all") {
+      groups = groups.filter((g) => g.id === activeCategoryTab);
+    }
+    if (!categorySearch.trim()) return groups;
+    const q = categorySearch.toLowerCase().trim();
+    return groups
+      .map((g) => ({
+        ...g,
+        submenus: g.submenus.filter(
+          (s) => s.label.toLowerCase().includes(q) || s.slug.toLowerCase().includes(q)
+        ),
+      }))
+      .filter((g) => g.submenus.length > 0);
+  }, [categorySearch, activeCategoryTab]);
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -374,7 +397,9 @@ export function AdminCoupons() {
                                 (coupon.applicableBrands || []).length > 2 ? ` +${coupon.applicableBrands!.length - 2}` : ""
                               }`
                             : coupon.scope === "category"
-                            ? "Category Specific"
+                            ? `Category: ${(coupon.applicableCategories || []).slice(0, 2).map((c) => CATEGORY_SLUG_TO_LABEL[c] || c.replace(/[-_]/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())).join(", ")}${
+                                (coupon.applicableCategories || []).length > 2 ? ` +${coupon.applicableCategories!.length - 2}` : ""
+                              }`
                             : "Product Specific"}
                         </span>
                       </td>
@@ -719,35 +744,191 @@ export function AdminCoupons() {
               </div>
             )}
 
-            {/* Category Select */}
+            {/* Category Select - Strictly Store Navigation Categories & Submenus */}
             {formData.scope === "category" && (
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
-                <span className="text-xs font-medium text-slate-700">Select Applicable Categories:</span>
-                <div className="max-h-36 overflow-y-auto grid grid-cols-2 gap-1.5 p-1 bg-white border border-slate-200 rounded">
-                  {categoryTree.map((cat) => (
-                    <label key={cat._id || cat.name} className="flex items-center gap-2 text-xs text-slate-700 hover:bg-slate-50 p-1 rounded cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.applicableCategories.includes(cat.slug || cat.name)}
-                        onChange={(e) => {
-                          const val = cat.slug || cat.name;
-                          if (e.target.checked) {
-                            setFormData({
-                              ...formData,
-                              applicableCategories: [...formData.applicableCategories, val],
-                            });
-                          } else {
-                            setFormData({
-                              ...formData,
-                              applicableCategories: formData.applicableCategories.filter((c) => c !== val),
-                            });
-                          }
-                        }}
-                        className="rounded text-brand focus:ring-brand border-slate-300"
-                      />
-                      <span className="truncate">{cat.name}</span>
-                    </label>
-                  ))}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 block">
+                      Target Store Categories & Submenus
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      Select exact menu items or submenus from the Store4Riders catalog.
+                    </span>
+                  </div>
+                  {formData.applicableCategories.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand/10 text-brand">
+                        {formData.applicableCategories.length} selected
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, applicableCategories: [] })}
+                        className="text-[11px] text-red-500 hover:text-red-700 font-semibold underline cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Search Box */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                  <input
+                    type="text"
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    placeholder="Search submenus (e.g. Full Face, Gloves, Jacket, Tank Bag, Lights)..."
+                    className="w-full pl-8 pr-7 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
+                  />
+                  {categorySearch && (
+                    <button
+                      type="button"
+                      onClick={() => setCategorySearch("")}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                {/* Quick Department Filter Tabs */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs custom-scrollbar">
+                  <button
+                    type="button"
+                    onClick={() => setActiveCategoryTab("all")}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                      activeCategoryTab === "all"
+                        ? "bg-slate-900 text-white font-bold"
+                        : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    All Menus
+                  </button>
+                  {STORE_CATEGORY_GROUPS.map((group) => {
+                    const groupSelectedCount = group.submenus.filter((s) =>
+                      formData.applicableCategories.includes(s.slug)
+                    ).length;
+                    return (
+                      <button
+                        key={group.id}
+                        type="button"
+                        onClick={() => setActiveCategoryTab(group.id)}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer ${
+                          activeCategoryTab === group.id
+                            ? "bg-slate-900 text-white font-bold"
+                            : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span>{group.name}</span>
+                        {groupSelectedCount > 0 && (
+                          <span
+                            className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                              activeCategoryTab === group.id
+                                ? "bg-white/20 text-white"
+                                : "bg-brand/10 text-brand font-bold"
+                            }`}
+                          >
+                            {groupSelectedCount}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Submenu Groups Grid */}
+                <div className="max-h-64 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+                  {filteredCategoryGroups.map((group) => {
+                    const allSlugsInGroup = group.submenus.map((s) => s.slug);
+                    const isGroupAllSelected = allSlugsInGroup.every((slug) =>
+                      formData.applicableCategories.includes(slug)
+                    );
+
+                    const toggleSelectAllGroup = () => {
+                      if (isGroupAllSelected) {
+                        setFormData({
+                          ...formData,
+                          applicableCategories: formData.applicableCategories.filter(
+                            (c) => !allSlugsInGroup.includes(c)
+                          ),
+                        });
+                      } else {
+                        const next = Array.from(
+                          new Set([...formData.applicableCategories, ...allSlugsInGroup])
+                        );
+                        setFormData({ ...formData, applicableCategories: next });
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={group.id}
+                        className="bg-white border border-slate-200/80 rounded-lg p-2.5 shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+                          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-brand" />
+                            {group.name}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={toggleSelectAllGroup}
+                            className="text-[10px] text-brand hover:text-brand/80 font-bold uppercase tracking-wider cursor-pointer"
+                          >
+                            {isGroupAllSelected ? "Deselect Group" : "Select All in Group"}
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          {group.submenus.map((sub) => {
+                            const isChecked = formData.applicableCategories.includes(sub.slug);
+                            return (
+                              <label
+                                key={sub.slug}
+                                className={`flex items-center gap-2 p-1.5 rounded-md border text-xs cursor-pointer transition-all ${
+                                  isChecked
+                                    ? "bg-brand/5 border-brand/30 text-brand font-semibold"
+                                    : "bg-slate-50/50 hover:bg-slate-50 border-slate-200/60 text-slate-700"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setFormData({
+                                        ...formData,
+                                        applicableCategories: [
+                                          ...formData.applicableCategories,
+                                          sub.slug,
+                                        ],
+                                      });
+                                    } else {
+                                      setFormData({
+                                        ...formData,
+                                        applicableCategories: formData.applicableCategories.filter(
+                                          (c) => c !== sub.slug
+                                        ),
+                                      });
+                                    }
+                                  }}
+                                  className="rounded text-brand focus:ring-brand border-slate-300 w-3.5 h-3.5"
+                                />
+                                <span className="truncate">{sub.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {filteredCategoryGroups.length === 0 && (
+                    <div className="py-6 text-center text-xs text-slate-400">
+                      No submenus match "{categorySearch}".
+                    </div>
+                  )}
                 </div>
               </div>
             )}

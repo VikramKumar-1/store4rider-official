@@ -3,7 +3,12 @@ import { ICoupon, ICouponValidationResult } from "@store4riders/shared-types";
 import { AppError, NotFoundError } from "../../core/errors/AppError";
 import { OrderRepository } from "../order/order.repository";
 import { ProductRepository } from "../product/product.repository";
-import { ClientSession } from "mongoose";
+import mongoose, { ClientSession } from "mongoose";
+import {
+  CATEGORY_ALIAS_MAP,
+  LEAF_TO_PARENT_MAP,
+  resolveCanonicalCategorySlugs,
+} from "../product/product.category-constants";
 
 export interface IValidateCouponInput {
   code: string;
@@ -144,12 +149,127 @@ export class CouponService {
             isEligible = false;
           }
         } else if (coupon.scope === "category") {
-          const catList = (coupon.applicableCategories || []).map((c) => c.trim().toLowerCase());
-          const productCat = (product.categoryId || "").trim().toLowerCase();
-          const productMagCats = (product.magentoCategories || "").trim().toLowerCase();
-          const matchesCat = catList.some(
-            (c) => productCat === c || (productMagCats && productMagCats.includes(c))
-          );
+          // 1. Build comprehensive set of target category identifiers for the coupon
+          const targetCategories = new Set<string>();
+          for (const rawCat of coupon.applicableCategories || []) {
+            if (!rawCat) continue;
+            const clean = rawCat.trim().toLowerCase();
+            targetCategories.add(clean);
+            targetCategories.add(clean.replace(/[^a-z0-9]+/g, "-"));
+            targetCategories.add(clean.replace(/[-_]+/g, " "));
+
+            // Include aliases from CATEGORY_ALIAS_MAP
+            const aliases = CATEGORY_ALIAS_MAP[clean] || [];
+            aliases.forEach((a) => {
+              targetCategories.add(a.toLowerCase());
+              targetCategories.add(a.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
+            });
+
+            // If target is a parent category (e.g. "motorcycle-helmets" or "riding-gear"),
+            // also allow any leaf category whose parent maps to this category
+            for (const [leafSlug, parentSlug] of Object.entries(LEAF_TO_PARENT_MAP)) {
+              if (
+                parentSlug.toLowerCase() === clean ||
+                parentSlug.toLowerCase().replace(/[^a-z0-9]+/g, "-") === clean
+              ) {
+                targetCategories.add(leafSlug.toLowerCase());
+              }
+            }
+          }
+
+          // 2. Build comprehensive set of product category identifiers
+          const productCategories = new Set<string>();
+
+          // Primary category ID or slug
+          if (product.categoryId) {
+            const catIdClean = String(product.categoryId).trim().toLowerCase();
+            productCategories.add(catIdClean);
+            productCategories.add(catIdClean.replace(/[^a-z0-9]+/g, "-"));
+            if (LEAF_TO_PARENT_MAP[catIdClean]) {
+              productCategories.add(LEAF_TO_PARENT_MAP[catIdClean].toLowerCase());
+            }
+          }
+
+          // Attached category slugs
+          if (Array.isArray(product.categorySlugs)) {
+            for (const s of product.categorySlugs) {
+              if (s) {
+                const sClean = String(s).trim().toLowerCase();
+                productCategories.add(sClean);
+                productCategories.add(sClean.replace(/[^a-z0-9]+/g, "-"));
+                if (LEAF_TO_PARENT_MAP[sClean]) {
+                  productCategories.add(LEAF_TO_PARENT_MAP[sClean].toLowerCase());
+                }
+              }
+            }
+          }
+
+          // Canonical category slugs with leaf-to-parent propagation
+          try {
+            const canonicalSlugs = resolveCanonicalCategorySlugs(product as any);
+            for (const c of canonicalSlugs) {
+              const cLower = c.toLowerCase();
+              productCategories.add(cLower);
+              if (LEAF_TO_PARENT_MAP[cLower]) {
+                productCategories.add(LEAF_TO_PARENT_MAP[cLower].toLowerCase());
+              }
+            }
+          } catch {}
+
+          // Legacy Magento category paths
+          if (product.magentoCategories && typeof product.magentoCategories === "string") {
+            const rawMag = product.magentoCategories.toLowerCase();
+            productCategories.add(rawMag);
+            const pathParts = rawMag.split(/[,/]/).map((p) => p.trim()).filter(Boolean);
+            for (const p of pathParts) {
+              productCategories.add(p);
+              productCategories.add(p.replace(/[^a-z0-9]+/g, "-"));
+            }
+          }
+
+          // DB lookup if product.categoryId is a valid ObjectId
+          if (product.categoryId && mongoose.isValidObjectId(product.categoryId)) {
+            try {
+              const { CategoryModel } = await import("../category/category.model");
+              const catDoc: any = await CategoryModel.findById(product.categoryId).lean().exec();
+              if (catDoc) {
+                if (catDoc.slug) {
+                  productCategories.add(catDoc.slug.toLowerCase());
+                  if (LEAF_TO_PARENT_MAP[catDoc.slug.toLowerCase()]) {
+                    productCategories.add(LEAF_TO_PARENT_MAP[catDoc.slug.toLowerCase()].toLowerCase());
+                  }
+                }
+                if (catDoc.name) {
+                  productCategories.add(catDoc.name.toLowerCase());
+                  productCategories.add(catDoc.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
+                }
+                if (catDoc.parentId) {
+                  const parentDoc: any = await CategoryModel.findById(catDoc.parentId).lean().exec();
+                  if (parentDoc) {
+                    if (parentDoc.slug) productCategories.add(parentDoc.slug.toLowerCase());
+                    if (parentDoc.name) productCategories.add(parentDoc.name.toLowerCase());
+                  }
+                }
+              }
+            } catch {}
+          }
+
+          // 3. Exact or containment match check
+          let matchesCat = false;
+          for (const target of targetCategories) {
+            if (productCategories.has(target)) {
+              matchesCat = true;
+              break;
+            }
+            if (
+              product.magentoCategories &&
+              product.magentoCategories.toLowerCase().includes(target)
+            ) {
+              matchesCat = true;
+              break;
+            }
+          }
+
           if (!matchesCat) {
             isEligible = false;
           }
@@ -306,6 +426,42 @@ export class CouponService {
       limit,
       totalPages: Math.ceil(total / limit) || 1,
     };
+  }
+
+  static async getPublicActiveCoupons(): Promise<Partial<ICoupon>[]> {
+    const now = new Date();
+    const filter: any = {
+      isActive: true,
+      expiryDate: { $gte: now },
+      $or: [
+        { startDate: { $exists: false } },
+        { startDate: null },
+        { startDate: { $lte: now } },
+      ],
+    };
+    const { items } = await CouponRepository.findAll(filter, 1, 50);
+    return items
+      .filter((c: any) => {
+        if (typeof c.totalUsageLimit === "number" && c.totalUsageLimit > 0) {
+          if ((c.usageCount || 0) >= c.totalUsageLimit) return false;
+        }
+        return true;
+      })
+      .map((c: any) => ({
+        _id: c._id,
+        code: c.code,
+        description: c.description || "",
+        discountType: c.discountType,
+        discountValue: c.discountValue,
+        minPurchase: c.minPurchase || 0,
+        maxDiscountCap: c.maxDiscountCap,
+        expiryDate: c.expiryDate,
+        scope: c.scope,
+        firstOrderOnly: Boolean(c.firstOrderOnly),
+        excludeSaleItems: Boolean(c.excludeSaleItems),
+        applicableBrands: c.applicableBrands || [],
+        applicableCategories: c.applicableCategories || [],
+      }));
   }
 
   static async incrementUsage(code: string, userId?: string, session?: ClientSession): Promise<void> {

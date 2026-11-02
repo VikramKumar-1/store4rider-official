@@ -15,6 +15,9 @@ export const CheckoutCallbackModule = () => {
   const [countdown, setCountdown] = useState(5);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const isCancelled = status === "cancel" || status === "cancelled";
+  const isSuccess = status === "success";
+
   useEffect(() => {
     timerRef.current = setInterval(() => {
       setCountdown((prev) => prev - 1);
@@ -27,22 +30,27 @@ export const CheckoutCallbackModule = () => {
 
   useEffect(() => {
     if (countdown <= 0) {
-      if (status === "success") {
+      if (isSuccess) {
         router.push("/account/orders");
+      } else if (isCancelled) {
+        const cancelledUrl = orderId ? `/checkout?cancelled=true&orderId=${encodeURIComponent(orderId)}` : "/checkout?cancelled=true";
+        router.push(cancelledUrl);
       } else {
         const failedUrl = orderId ? `/checkout?failed=true&orderId=${encodeURIComponent(orderId)}` : "/checkout?failed=true";
         router.push(failedUrl);
       }
     }
-  }, [countdown, router, status]);
-
-  const isSuccess = status === "success";
+  }, [countdown, router, isSuccess, isCancelled, orderId]);
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center p-4">
       <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center flex flex-col items-center">
         {isSuccess ? (
           <CheckCircleIcon className="w-20 h-20 text-emerald-500 mb-4" />
+        ) : isCancelled ? (
+          <div className="w-20 h-20 rounded-full bg-neutral-100 border border-neutral-300 flex items-center justify-center text-3xl mb-4 text-neutral-600">
+            🛒
+          </div>
         ) : (
           <div className="w-20 h-20 rounded-full bg-amber-50 border-2 border-amber-300 flex items-center justify-center text-3xl mb-4 text-amber-600">
             ⏳
@@ -50,13 +58,15 @@ export const CheckoutCallbackModule = () => {
         )}
         
         <h1 className="text-2xl font-bold mb-2 text-neutral-900">
-          {isSuccess ? "Payment Successful!" : "Checking Payment Status"}
+          {isSuccess ? "Payment Successful!" : isCancelled ? "Payment Cancelled" : "Checking Payment Status"}
         </h1>
         
         <p className="text-neutral-600 mb-6 text-sm leading-relaxed">
           {isSuccess 
             ? `Your order ${orderId ? "#" + orderId : ""} has been placed successfully.` 
-            : "Redirecting to checkout to verify confirmation with your bank. If money was debited, your order will be confirmed automatically."}
+            : isCancelled
+            ? "You cancelled the payment. All your items are safely in your cart. Returning to checkout..."
+            : "Redirecting to checkout. If money was debited, your order will be confirmed automatically."}
         </p>
 
         <p className="text-xs text-neutral-400 mb-6">
@@ -64,10 +74,18 @@ export const CheckoutCallbackModule = () => {
         </p>
 
         <Button 
-          onClick={() => isSuccess ? router.push("/account/orders") : router.push(orderId ? `/checkout?failed=true&orderId=${encodeURIComponent(orderId)}` : "/checkout?failed=true")}
+          onClick={() => {
+            if (isSuccess) {
+              router.push("/account/orders");
+            } else if (isCancelled) {
+              router.push(orderId ? `/checkout?cancelled=true&orderId=${encodeURIComponent(orderId)}` : "/checkout?cancelled=true");
+            } else {
+              router.push(orderId ? `/checkout?failed=true&orderId=${encodeURIComponent(orderId)}` : "/checkout?failed=true");
+            }
+          }}
           className="w-full"
         >
-          {isSuccess ? "View Orders Now" : "Check Status on Checkout"}
+          {isSuccess ? "View Orders Now" : isCancelled ? "Back to Checkout" : "Check Status on Checkout"}
         </Button>
       </div>
     </div>

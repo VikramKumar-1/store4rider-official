@@ -12,6 +12,7 @@ import {
   PlayIcon,
   PauseIcon,
   ArrowTopRightOnSquareIcon,
+  HeartIcon,
 } from "@heroicons/react/24/solid";
 
 interface ReelVideoModalProps {
@@ -253,8 +254,14 @@ const ReelSlide: React.FC<ReelSlideProps> = ({
                 <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7l-4-4 1.4-1.4 2.6 2.6 6.6-6.6 1.4 1.4-8 8z" />
               </svg>
             </span>
-            <span className="text-[10px] text-neutral-300 font-medium leading-none">
-              Store4Riders Reel
+            <span className="text-[10px] text-neutral-300 font-medium leading-none flex items-center gap-1.5 mt-0.5">
+              <span>Store4Riders Reel</span>
+              {reel.views && (
+                <>
+                  <span className="text-neutral-500">•</span>
+                  <span className="text-white font-bold">{reel.views} views</span>
+                </>
+              )}
             </span>
           </div>
         </a>
@@ -290,9 +297,35 @@ const ReelSlide: React.FC<ReelSlideProps> = ({
       {/* 3. Right Action Rail (Instagram Reels Style) - Shown for native video */}
       {isUploadedVideo && (
         <div
-          className="absolute right-3.5 bottom-24 z-30 flex flex-col items-center gap-4.5 pointer-events-auto"
+          className="absolute right-3.5 bottom-24 z-30 flex flex-col items-center gap-3.5 pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Real Likes Counter */}
+          {reel.likes && (
+            <div className="flex flex-col items-center gap-0.5">
+              <div className="w-10 h-10 rounded-full bg-black/60 border border-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-lg">
+                <HeartIcon className="w-5 h-5 text-rose-500 fill-rose-500" />
+              </div>
+              <span className="text-[9.5px] font-bold text-white drop-shadow-md">
+                {reel.likes}
+              </span>
+            </div>
+          )}
+
+          {/* Real Views Counter */}
+          {reel.views && (
+            <div className="flex flex-col items-center gap-0.5">
+              <div className="w-10 h-10 rounded-full bg-black/60 border border-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-lg">
+                <svg className="w-4 h-4 fill-current text-white" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+              <span className="text-[9.5px] font-bold text-white drop-shadow-md">
+                {reel.views}
+              </span>
+            </div>
+          )}
+
           {/* Global Sound Mute/Unmute Toggle */}
           <button
             type="button"

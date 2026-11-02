@@ -134,7 +134,27 @@ export class OrderController {
         if (isSuccess) {
           return NextResponse.redirect(`${frontendUrl}/checkout?success=true${orderParam}`, 303);
         } else {
-          return NextResponse.redirect(`${frontendUrl}/checkout?failed=true${orderParam}`, 303);
+          const isCancelled = (() => {
+            try {
+              const bodyLower = rawBody.toLowerCase();
+              return (
+                bodyLower.includes("usercancelled") ||
+                bodyLower.includes("user cancelled") ||
+                bodyLower.includes("cancelled by user") ||
+                bodyLower.includes("status=cancel") ||
+                bodyLower.includes("status=aborted") ||
+                bodyLower.includes("unmappedstatus=usercancelled")
+              );
+            } catch {
+              return false;
+            }
+          })();
+
+          if (isCancelled) {
+            return NextResponse.redirect(`${frontendUrl}/checkout?cancelled=true${orderParam}`, 303);
+          } else {
+            return NextResponse.redirect(`${frontendUrl}/checkout?failed=true${orderParam}`, 303);
+          }
         }
       }
 

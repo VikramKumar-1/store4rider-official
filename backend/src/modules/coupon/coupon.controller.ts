@@ -4,6 +4,11 @@ import { CouponValidator } from "./coupon.validator";
 import { ApiResponse } from "../../core/response/ApiResponse";
 
 export class CouponController {
+  static async getPublicActiveCoupons() {
+    const coupons = await CouponService.getPublicActiveCoupons();
+    return ApiResponse.success(coupons, "Active promo coupons fetched successfully");
+  }
+
   static async validate(req: NextRequest, userId?: string) {
     const { code, items, cartTotal } = await CouponValidator.validateApplyCoupon(req);
     const result = await CouponService.validateCoupon({

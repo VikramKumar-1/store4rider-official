@@ -18,15 +18,33 @@ const heroCardSchema = new Schema(
   { _id: false }
 );
 
+const heroSlideSchema = new Schema(
+  {
+    id: { type: String },
+    imageUrl: { type: String, required: true },
+    title: { type: String, default: "" },
+    subtitle: { type: String, default: "" },
+    ctaText: { type: String, default: "" },
+    ctaLink: { type: String, default: "" },
+    showOverlay: { type: Boolean, default: true },
+  },
+  { _id: false }
+);
+
 const heroSectionSchema = new Schema(
   {
     title: { type: String, default: "RIDING GEAR THAT KEEPS YOU SAFE" },
     subtitle: { type: String, default: "BROWSE THE COLLECTION" },
     ctaText: { type: String, default: "Shop Now" },
     ctaLink: { type: String, default: "/products" },
+    showOverlay: { type: Boolean, default: true },
     bgImages: {
       type: [String],
       default: ["/heropic1.jpg", "/heropic2.jpg"],
+    },
+    slides: {
+      type: [heroSlideSchema],
+      default: [],
     },
     featuredCards: {
       type: [heroCardSchema],

@@ -34,14 +34,20 @@ export class HomepageRepository {
     seo: IHomepageSeoConfig,
     session?: ClientSession
   ): Promise<IHomepageConfig> {
-    let doc = await HomepageModel.findOne().session(session || null);
-    if (!doc) {
-      doc = new HomepageModel({});
-    }
-    doc.hero = hero;
-    doc.seo = seo;
-    await doc.save({ session });
-    return doc.toObject() as IHomepageConfig;
+    const doc = await HomepageModel.findOneAndUpdate(
+      {},
+      {
+        $set: {
+          hero,
+          seo,
+        },
+      },
+      { new: true, upsert: true, session: session || null, runValidators: false }
+    )
+      .lean<IHomepageConfig>()
+      .exec();
+
+    return doc as IHomepageConfig;
   }
 
   /**
@@ -51,15 +57,19 @@ export class HomepageRepository {
     sections: IHomepageSectionsConfig,
     session?: ClientSession
   ): Promise<IHomepageConfig> {
-    let doc = await HomepageModel.findOne().session(session || null);
-    if (!doc) {
-      doc = new HomepageModel({});
-    }
-    doc.sections = sections;
-    doc.markModified("sections");
-    doc.markModified("sections.socialMedia");
-    await doc.save({ session });
-    return doc.toObject() as IHomepageConfig;
+    const doc = await HomepageModel.findOneAndUpdate(
+      {},
+      {
+        $set: {
+          sections,
+        },
+      },
+      { new: true, upsert: true, session: session || null }
+    )
+      .lean<IHomepageConfig>()
+      .exec();
+
+    return doc as IHomepageConfig;
   }
 
   /**
@@ -69,14 +79,16 @@ export class HomepageRepository {
     data: Partial<IHomepageConfig>,
     session?: ClientSession
   ): Promise<IHomepageConfig> {
-    let doc = await HomepageModel.findOne().session(session || null);
-    if (!doc) {
-      doc = new HomepageModel({});
-    }
-    if (data.hero) doc.hero = data.hero;
-    if (data.seo) doc.seo = data.seo;
-    if (data.sections) doc.sections = data.sections;
-    await doc.save({ session });
-    return doc.toObject() as IHomepageConfig;
+    const doc = await HomepageModel.findOneAndUpdate(
+      {},
+      {
+        $set: data,
+      },
+      { new: true, upsert: true, session: session || null }
+    )
+      .lean<IHomepageConfig>()
+      .exec();
+
+    return doc as IHomepageConfig;
   }
 }

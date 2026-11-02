@@ -36,7 +36,7 @@ import { CheckoutShippingDelivery } from "./CheckoutShippingDelivery";
 import { CheckoutPaymentStep } from "./CheckoutPaymentStep";
 import { PostCheckoutRegisterForm } from "./PostCheckoutRegisterForm";
 import { useCheckout } from "@/core/hooks/useCheckout";
-import { useValidateCoupon } from "@/core/hooks/useCoupons";
+import { useValidateCoupon, usePublicCoupons } from "@/core/hooks/useCoupons";
 import { useUserAddresses, useAddAddress, useUpdateAddress, useDeleteAddress } from "@/core/hooks/useAddresses";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 import { usePincodeLookup } from "@/core/hooks/usePincodeLookup";
@@ -89,6 +89,39 @@ export const CheckoutPageModule = () => {
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
   const validateCouponMutation = useValidateCoupon();
+  const { data: publicCoupons = [] } = usePublicCoupons();
+
+  // Restore applied coupon from Cart / localStorage if user is authenticated
+  useEffect(() => {
+    if (!mounted || !user || appliedCoupon) return;
+    try {
+      const saved = localStorage.getItem("s4r_checkout_coupon");
+      if (saved && items.length > 0 && subtotal > 0) {
+        const parsed = JSON.parse(saved);
+        const code = typeof parsed === "string" ? parsed : parsed?.code;
+        if (code && !validateCouponMutation.isPending) {
+          const itemsPayload = items.map((it) => ({
+            productId: it.productId,
+            variantId: it.variantId || null,
+            quantity: it.quantity,
+          }));
+          validateCouponMutation.mutateAsync({
+            code,
+            items: itemsPayload,
+            cartTotal: subtotal,
+          }).then((res) => {
+            setAppliedCoupon({
+              code: res.code,
+              discountAmount: res.discountAmount,
+            });
+            toast.success(`Coupon "${res.code}" applied from your cart!`);
+          }).catch(() => {
+            localStorage.removeItem("s4r_checkout_coupon");
+          });
+        }
+      }
+    } catch {}
+  }, [mounted, user, items, subtotal]);
 
   // Invalidate applied coupon if subtotal changes (prevents cart tampering)
   const prevSubtotalRef = useRef(subtotal);
@@ -97,6 +130,7 @@ export const CheckoutPageModule = () => {
       prevSubtotalRef.current = subtotal;
       if (appliedCoupon) {
         setAppliedCoupon(null);
+        localStorage.removeItem("s4r_checkout_coupon");
         toast.info("Cart updated. Please re-apply your promo coupon.");
       }
     }
@@ -111,6 +145,8 @@ export const CheckoutPageModule = () => {
 
   const isSuccessParam = searchParams?.get("success") === "true";
   const isFailedParam = searchParams?.get("failed") === "true";
+  const isCancelledParam = searchParams?.get("cancelled") === "true";
+  const hasPaymentIssue = isFailedParam || isCancelledParam;
   const orderIdParam = searchParams?.get("orderId");
   const [isOrderCompleted, setIsOrderCompleted] = useState(false);
   
@@ -337,18 +373,19 @@ export const CheckoutPageModule = () => {
     if (isSuccessParam) {
       setCurrentStep(3);
       clearCart();
+      localStorage.removeItem("s4r_checkout_coupon");
     }
   }, [isSuccessParam, clearCart]);
 
   // Handle failed or cancelled payment redirect
   useEffect(() => {
-    if (isFailedParam) {
+    if (hasPaymentIssue) {
       if (!orderIdParam) {
-        toast.info("Payment session ended. Your items are still safely in your cart.");
+        toast.info(isCancelledParam ? "Payment cancelled. Your items are still safely in your cart." : "Payment session ended. Your items are still safely in your cart.");
       }
       setCurrentStep(2);
     }
-  }, [isFailedParam, orderIdParam]);
+  }, [hasPaymentIssue, isCancelledParam, orderIdParam]);
 
   // If orderId is provided in URL, update generatedOrderNumber
   useEffect(() => {
@@ -422,6 +459,7 @@ export const CheckoutPageModule = () => {
         code: res.code,
         discountAmount: res.discountAmount,
       });
+      localStorage.setItem("s4r_checkout_coupon", JSON.stringify({ code: res.code, discountAmount: res.discountAmount }));
       toast.success(res.message || `Coupon "${res.code}" applied!`);
       setCouponInput("");
     } catch (err: any) {
@@ -431,6 +469,7 @@ export const CheckoutPageModule = () => {
 
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
+    localStorage.removeItem("s4r_checkout_coupon");
     toast.info("Coupon removed");
   };
 
@@ -844,6 +883,7 @@ export const CheckoutPageModule = () => {
                     handleAgreeToPay={handleAgreeToPay}
                     isProcessing={isProcessing}
                     isFailedParam={isFailedParam}
+                    isCancelledParam={isCancelledParam}
                     shippingAddressSummary={
                       effectiveAddresses.find((a) => (a.id || String((a as any)._id)) === selectedAddressId)
                         ? (() => {
@@ -909,28 +949,73 @@ export const CheckoutPageModule = () => {
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          placeholder="Promo coupon code"
-                          value={couponInput}
-                          onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleApplyCoupon();
-                            }
-                          }}
-                          className="flex-1 px-3 py-2 text-xs border border-neutral-200 rounded-lg font-mono uppercase focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleApplyCoupon()}
-                          disabled={validateCouponMutation.isPending || !couponInput.trim()}
-                          className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0"
-                        >
-                          {validateCouponMutation.isPending ? "Checking..." : "Apply"}
-                        </button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            placeholder="Promo coupon code"
+                            value={couponInput}
+                            onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleApplyCoupon();
+                              }
+                            }}
+                            className="flex-1 px-3 py-2 text-xs border border-neutral-200 rounded-lg font-mono uppercase focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleApplyCoupon()}
+                            disabled={validateCouponMutation.isPending || !couponInput.trim()}
+                            className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0"
+                          >
+                            {validateCouponMutation.isPending ? "Checking..." : "Apply"}
+                          </button>
+                        </div>
+
+                        {/* Quick-apply active offers */}
+                        {publicCoupons.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                            <span className="text-[10px] text-neutral-400 font-semibold uppercase">Offers:</span>
+                            {publicCoupons.slice(0, 3).map((pc) => (
+                              <button
+                                key={pc._id || pc.code}
+                                type="button"
+                                onClick={() => {
+                                  const itemsPayload = items.map((it) => ({
+                                    productId: it.productId,
+                                    variantId: it.variantId || null,
+                                    quantity: it.quantity,
+                                  }));
+                                  validateCouponMutation.mutateAsync({
+                                    code: pc.code,
+                                    items: itemsPayload,
+                                    cartTotal: subtotal,
+                                  }).then((res) => {
+                                    setAppliedCoupon({
+                                      code: res.code,
+                                      discountAmount: res.discountAmount,
+                                    });
+                                    localStorage.setItem("s4r_checkout_coupon", JSON.stringify({ code: res.code, discountAmount: res.discountAmount }));
+                                    toast.success(res.message || `Coupon "${res.code}" applied!`);
+                                    setCouponInput("");
+                                  }).catch((err: any) => {
+                                    toast.error(err.response?.data?.error || `Coupon "${pc.code}" cannot be applied to current cart`);
+                                  });
+                                }}
+                                disabled={validateCouponMutation.isPending}
+                                className="text-[10px] bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-mono font-bold px-2 py-0.5 rounded border border-neutral-200 flex items-center gap-1 transition-colors cursor-pointer"
+                              >
+                                <TagIcon className="w-3 h-3 text-banner" />
+                                <span>{pc.code}</span>
+                                <span className="text-neutral-500 font-sans font-normal">
+                                  ({pc.discountType === "percent" ? `${pc.discountValue}%` : `₹${pc.discountValue}`})
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
