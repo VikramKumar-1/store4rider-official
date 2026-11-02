@@ -17,6 +17,7 @@ import { ShoppingBag, Tag } from "lucide-react";
 import { usePublicCoupons, useValidateCoupon } from "@/core/hooks/useCoupons";
 import { ICoupon } from "@store4riders/shared-types";
 import { toast } from "sonner";
+import { getCartItemImage } from "@/core/utils/mediaUrlHelper";
 
 const FALLBACK_IMAGE = "/no-image.svg";
 
@@ -244,7 +245,7 @@ export const CartPageModule = () => {
                   ? Math.round(((originalPrice - price) / originalPrice) * 100)
                   : 0;
 
-                const rawImg = product.images?.[0]?.url || product.image || FALLBACK_IMAGE;
+                const rawImg = getCartItemImage(item, FALLBACK_IMAGE);
                 const selectedColor = product.selectedColor || "";
                 const selectedSize = product.selectedSize || "";
                 const itemKey = `${item.productId}-${item.variantId || idx}`;

@@ -8,6 +8,7 @@ import { useCartStore } from "@/stores/useCartStore";
 import { useUIStore } from "@/stores/useUIStore";
 import { formatPrice } from "@store4riders/shared-utils";
 import { ChevronRightIcon, CheckIcon, ShoppingBagIcon } from "@heroicons/react/24/solid";
+import { getCartItemImage } from "@/core/utils/mediaUrlHelper";
 
 const FALLBACK_IMAGE = "/no-image.svg";
 
@@ -52,7 +53,7 @@ export const BlinkitFloatingCart: React.FC = () => {
 
   // Stack of up to 2 thumbnails for the compact mini pill
   const previewThumbnails = items.slice(-2).map((item) => {
-    return item.product?.images?.[0]?.url || item.product?.image || FALLBACK_IMAGE;
+    return getCartItemImage(item, FALLBACK_IMAGE);
   });
 
   return (

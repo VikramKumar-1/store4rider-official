@@ -5,6 +5,7 @@ import {
   extractAngleNumber,
   deduplicateProductImages,
   buildVariantAltText,
+  getCartItemImage,
 } from "../mediaUrlHelper";
 
 describe("mediaUrlHelper - Enterprise Gallery & Color Swapping", () => {
@@ -124,6 +125,42 @@ describe("mediaUrlHelper - Enterprise Gallery & Color Swapping", () => {
     it("defaults to 'Product' if product name is empty", () => {
       const alt = buildVariantAltText("", "brown", "S");
       expect(alt).toBe("Product - brown (S)");
+    });
+  });
+
+  describe("getCartItemImage - Color & Variant Image Resolution", () => {
+    it("returns explicit item image if present", () => {
+      const item = {
+        image: "https://store4riders.com/golden-helmet.jpg",
+        product: {
+          images: [{ url: "https://store4riders.com/yellow-helmet.jpg" }],
+        },
+      };
+      expect(getCartItemImage(item)).toBe("https://store4riders.com/golden-helmet.jpg");
+    });
+
+    it("matches image by selectedColor from product.images if item.image is absent", () => {
+      const item = {
+        product: {
+          selectedColor: "Golden",
+          images: [
+            { url: "https://store4riders.com/yellow-helmet.jpg", altText: "Test Helmet - Yellow" },
+            { url: "https://store4riders.com/golden-helmet.jpg", altText: "Test Helmet - Golden" },
+          ],
+        },
+      };
+      expect(getCartItemImage(item)).toBe("https://store4riders.com/golden-helmet.jpg");
+    });
+
+    it("falls back to first image when no color matches", () => {
+      const item = {
+        product: {
+          images: [
+            { url: "https://store4riders.com/default-helmet.jpg", altText: "Test Helmet" },
+          ],
+        },
+      };
+      expect(getCartItemImage(item)).toBe("https://store4riders.com/default-helmet.jpg");
     });
   });
 });

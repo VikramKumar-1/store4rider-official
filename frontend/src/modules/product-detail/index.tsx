@@ -14,6 +14,7 @@ import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { ProductDetailProps } from "./types/product-detail.types";
 import { ProductGallery } from "./components/ProductGallery";
 import { normalizeColorKey } from "./components/ProductDetailPageModule";
+import { detectImageColor } from "@/core/utils/mediaUrlHelper";
 import { ProductInfo } from "./components/ProductInfo";
 import { StickyFooterBar } from "./components/StickyFooterBar";
 
@@ -189,18 +190,77 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
     const hasColor = Boolean(product.colors && product.colors.length > 0 && color);
     const hasSize = Boolean(product.sizes && product.sizes.length > 0 && size);
 
+    // 1. Resolve variant image for the selected color & size
+    let variantImageUrl: string | undefined = activeVariant?.imageUrl || (activeVariant as any)?.images?.[0]?.url;
+
+    if (!variantImageUrl && color) {
+      // Check product.colors array
+      const colorObj = product.colors?.find(
+        (c) => c.name.trim().toLowerCase() === color.trim().toLowerCase()
+      );
+      if (colorObj?.imageUrl) {
+        variantImageUrl = colorObj.imageUrl;
+      }
+
+      // Check product.colorImages map
+      if (!variantImageUrl && product.colorImages) {
+        const cMap = product.colorImages instanceof Map
+          ? Object.fromEntries(product.colorImages)
+          : product.colorImages;
+        const matchKey = Object.keys(cMap).find(
+          (k) => k.trim().toLowerCase() === color.trim().toLowerCase()
+        );
+        if (matchKey && cMap[matchKey]) {
+          variantImageUrl = cMap[matchKey];
+        }
+      }
+
+      // Check product.images matching color
+      if (!variantImageUrl && product.images && product.images.length > 0) {
+        const normColor = color.trim().toLowerCase();
+        const knownColors = (product.colors || []).map((c) => c.name);
+        const matchingImg = product.images.find((img) => {
+          const detected = img.detectedColor || detectImageColor(img, knownColors);
+          if (detected && detected.trim().toLowerCase() === normColor) return true;
+          const alt = (img.altText || "").toLowerCase();
+          const url = (img.url || "").toLowerCase();
+          return (
+            alt.split(/[-_/\s]+/).includes(normColor) ||
+            alt.includes(normColor) ||
+            url.includes(normColor)
+          );
+        });
+        if (matchingImg?.url) {
+          variantImageUrl = matchingImg.url;
+        }
+      }
+    }
+
+    if (!variantImageUrl && product.images && product.images.length > 0) {
+      variantImageUrl = product.images[0]?.url;
+    }
+
+    const reorderedImages = variantImageUrl
+      ? [
+          { url: variantImageUrl, altText: `${product.name} - ${color || ""}` },
+          ...(product.images || []).filter((img) => img.url !== variantImageUrl),
+        ]
+      : product.images;
+
     addItem({
       id: crypto.randomUUID(),
       productId: product.id,
       quantity: 1,
       variantId: activeVariant?.sku || (hasColor || hasSize ? `${color}-${size}` : product.id),
+      image: variantImageUrl,
       product: {
         _id: product.id,
         id: product.id,
         name: product.name,
         basePrice: activePrice,
         price: activePrice,
-        images: product.images,
+        image: variantImageUrl,
+        images: reorderedImages,
         slug: product.slug,
         selectedColor: hasColor ? color : undefined,
         selectedSize: hasSize ? size : undefined,

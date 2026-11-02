@@ -279,3 +279,55 @@ export function buildVariantAltText(
   return s ? `${pName} - ${c} (${s})` : `${pName} - ${c}`;
 }
 
+/**
+ * Enterprise image resolver for Cart items, Drawers, and Checkout.
+ * Accurately shows the selected variant / color image instead of defaulting to product.images[0].
+ */
+export function getCartItemImage(item: any, fallback: string = "/no-image.svg"): string {
+  if (!item) return fallback;
+  const product = item.product || {};
+  const selectedColor = (
+    product.selectedColor ||
+    item.selectedColor ||
+    item.selectedAttributes?.Color ||
+    item.selectedAttributes?.color ||
+    ""
+  ).toLowerCase().trim();
+
+  // 1. Explicit item image
+  if (item.image && typeof item.image === "string" && item.image !== "/no-image.svg") {
+    return normalizeExternalImageUrl(item.image);
+  }
+
+  // 2. Explicit product image attached to item
+  if (product.image && typeof product.image === "string" && product.image !== "/no-image.svg") {
+    return normalizeExternalImageUrl(product.image);
+  }
+
+  // 3. Match against product images by color
+  const images = Array.isArray(product.images) ? product.images : [];
+  if (selectedColor && images.length > 0) {
+    const matchingImg = images.find((img: any) => {
+      const alt = (img?.altText || "").toLowerCase();
+      const url = (img?.url || "").toLowerCase();
+      const detected = (img?.detectedColor || "").toLowerCase();
+      return (
+        detected === selectedColor ||
+        alt.split(/[-_/\s]+/).includes(selectedColor) ||
+        alt.includes(selectedColor) ||
+        url.includes(selectedColor)
+      );
+    });
+    if (matchingImg?.url) {
+      return normalizeExternalImageUrl(matchingImg.url);
+    }
+  }
+
+  // 4. Default to first product image
+  if (images.length > 0 && images[0]?.url) {
+    return normalizeExternalImageUrl(images[0].url);
+  }
+
+  return fallback;
+}
+

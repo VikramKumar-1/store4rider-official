@@ -10,12 +10,27 @@ function AdminLiveStreamSubscriber() {
   return null;
 }
 
+const KNOWN_DASHBOARD_ROUTES = [
+  "/admin/blog",
+  "/admin/brands",
+  "/admin/categories",
+  "/admin/coupons",
+  "/admin/homepage",
+  "/admin/inquiries",
+  "/admin/orders",
+  "/admin/products",
+  "/admin/settings",
+  "/admin/shipping",
+  "/admin/users",
+];
+
 export function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const secretPath = process.env.NEXT_PUBLIC_ADMIN_SECRET_PATH || "rider-staff-gate";
-  const isLoginPage = pathname === `/admin/${secretPath}` || pathname === "/admin/login";
 
-  if (isLoginPage) {
+  // Any non-dashboard route under /admin (such as the secret login page) renders cleanly without sidebar
+  const isDashboardRoute = pathname === "/admin" || KNOWN_DASHBOARD_ROUTES.some((route) => pathname.startsWith(route));
+
+  if (!isDashboardRoute) {
     return <main className="min-h-screen bg-slate-50">{children}</main>;
   }
 

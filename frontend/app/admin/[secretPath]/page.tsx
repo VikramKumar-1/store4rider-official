@@ -18,7 +18,7 @@ interface SecretAdminLoginPageProps {
 
 export default async function SecretAdminLoginPage({ params }: SecretAdminLoginPageProps) {
   const { secretPath } = await params;
-  const configuredSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET_PATH || "rider-staff-gate";
+  const configuredSecret = process.env.ADMIN_SECRET_PATH || process.env.NEXT_PUBLIC_ADMIN_SECRET_PATH || "rider-staff-gate";
 
   // Strict check: if the path segment does not match the secret slug, return 404
   if (secretPath !== configuredSecret) {

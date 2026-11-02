@@ -41,6 +41,7 @@ import { useUserAddresses, useAddAddress, useUpdateAddress, useDeleteAddress } f
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 import { usePincodeLookup } from "@/core/hooks/usePincodeLookup";
 import { PaymentMethodType, IUserAddress } from "@store4riders/shared-types";
+import { getCartItemImage } from "@/core/utils/mediaUrlHelper";
 import { 
   UserIcon, 
   TruckIcon, 
@@ -1026,7 +1027,7 @@ export const CheckoutPageModule = () => {
                       const product = item.product || {};
                       const name = product.name || "Riding Gear";
                       const price = item.price ?? product.price ?? product.specialPrice ?? product.basePrice ?? 0;
-                      const rawImg = product.images?.[0]?.url || product.image || FALLBACK_IMAGE;
+                      const rawImg = getCartItemImage(item, FALLBACK_IMAGE);
 
                       return (
                         <div key={`${item.productId}-${item.variantId}`} className="flex items-center gap-3 group">
@@ -1104,6 +1105,22 @@ export const CheckoutPageModule = () => {
                   {/* Desktop Step 2 Place Order Button - positioned directly below Total in Order Summary */}
                   {currentStep === 2 && (
                     <div className="hidden lg:flex flex-col gap-2.5 mt-5">
+                      {paymentOption === "cod" && Boolean(settings?.codPartialPaymentEnabled) && (settings?.codPartialPaymentValue || 0) > 0 && (
+                        <div className="p-3 bg-[#F0F5FF] border border-[#D0E1FD] rounded text-xs leading-relaxed text-[#172337] flex items-center justify-between gap-2.5 shadow-2xs">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <svg className="w-4 h-4 text-[#2874F0] shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
+                            </svg>
+                            <div className="text-[11.5px] leading-snug text-[#1E293B]">
+                              for <strong className="font-bold text-[#2874F0]">{settings?.codPartialPaymentType === "fixed" ? `₹${Number(settings?.codPartialPaymentValue || 0).toLocaleString("en-IN")}` : `${settings?.codPartialPaymentValue ?? 10}%`} advance payment</strong> you will be directed to <strong className="font-bold text-neutral-900">Payu Payment Gateway</strong>
+                            </div>
+                          </div>
+                          <div className="shrink-0 hidden sm:flex items-center bg-white px-2 py-0.5 border border-[#D0E1FD] rounded shadow-2xs h-5">
+                            <Image src="/icons/payment/payu.svg" alt="PayU" width={30} height={14} className="object-contain h-3.5 w-auto" priority loading="eager" unoptimized />
+                          </div>
+                        </div>
+                      )}
+
                       <button
                         type="button"
                         onClick={handleAgreeToPay}

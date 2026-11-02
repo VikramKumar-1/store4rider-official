@@ -115,7 +115,16 @@ export const CheckoutPaymentStep = ({
       )
     },
     cod: {
-      label: "Cash on Delivery (COD)",
+      label: (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span>Cash on Delivery (COD)</span>
+          {Boolean(settings?.codPartialPaymentEnabled) && (settings?.codPartialPaymentValue || 0) > 0 && (
+            <span className="text-[10px] font-bold bg-[#EBF4FF] text-[#2874F0] border border-[#C7D9FF] px-2 py-0.5 rounded tracking-wide">
+              {settings?.codPartialPaymentType === "fixed" ? `₹${Number(settings?.codPartialPaymentValue || 0).toLocaleString("en-IN")}` : `${settings?.codPartialPaymentValue ?? 10}%`} Advance
+            </span>
+          )}
+        </div>
+      ),
       desc: "Pay in cash or UPI when package is delivered at your doorstep",
       icon: (
         <div className="flex items-center gap-1.5 shrink-0">
@@ -127,7 +136,7 @@ export const CheckoutPaymentStep = ({
             </svg>
             <span className="font-extrabold text-[11px] tracking-wider uppercase">COD</span>
           </div>
-          <span className="text-[9px] font-bold bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded border border-amber-200">Doorstep</span>
+          <span className="text-[9px] font-medium bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded border border-neutral-200">Doorstep</span>
         </div>
       )
     }
@@ -342,8 +351,22 @@ export const CheckoutPaymentStep = ({
             
             const isSnapmint = method === "snapmint";
             const isSnapmintIneligible = isSnapmint && total !== undefined && total < snapmintMin;
-            const isCodWithAdvance = method === "cod" && Boolean(settings?.codPartialPaymentEnabled) && Boolean(settings?.codPartialPaymentValue) && (settings?.codPartialPaymentValue || 0) > 0;
+            const isCodWithAdvance = method === "cod" && Boolean(settings?.codPartialPaymentEnabled) && (settings?.codPartialPaymentValue || 0) > 0;
             const isSelected = paymentOption === method;
+
+            const codAdvanceText = settings?.codPartialPaymentType === "fixed"
+              ? `₹${Number(settings?.codPartialPaymentValue || 0).toLocaleString("en-IN")}`
+              : `${settings?.codPartialPaymentValue ?? 10}%`;
+
+            const advanceAmount = total !== undefined && total > 0
+              ? settings?.codPartialPaymentType === "fixed"
+                ? Math.min(total, Number(settings?.codPartialPaymentValue || 0))
+                : Math.round((total * Number(settings?.codPartialPaymentValue || 10)) / 100)
+              : 0;
+
+            const balanceDue = total !== undefined && total > 0
+              ? Math.max(0, total - advanceAmount)
+              : 0;
 
             const handleSelectMethod = () => {
               if (isSnapmintIneligible) {
@@ -384,10 +407,25 @@ export const CheckoutPaymentStep = ({
                       {method !== "payu" && <div className="shrink-0 scale-90 origin-right">{info.icon}</div>}
                     </div>
                     <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
-                      {isCodWithAdvance 
-                        ? `${info.desc} (Requires ${settings?.codPartialPaymentType === 'fixed' ? '₹' + settings?.codPartialPaymentValue : settings?.codPartialPaymentValue + '%'} advance)` 
-                        : info.desc}
+                      {info.desc}
                     </span>
+
+                    {/* Flipkart-style Highlight Ticker Strip */}
+                    {method === "cod" && isCodWithAdvance && (
+                      <div className="mt-2.5 flex items-center justify-between gap-2.5 px-3 py-2 bg-[#F0F5FF] border border-[#D0E1FD] rounded text-xs text-[#172337]">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <svg className="w-4 h-4 text-[#2874F0] shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
+                          </svg>
+                          <p className="text-[12px] leading-snug text-[#1E293B]">
+                            for <strong className="font-bold text-[#2874F0]">{codAdvanceText} advance payment</strong> you will be directed to <strong className="font-bold text-neutral-900">Payu Payment Gateway</strong>
+                          </p>
+                        </div>
+                        <div className="shrink-0 hidden sm:flex items-center bg-white px-1.5 py-0.5 border border-[#D0E1FD] rounded shadow-2xs h-5">
+                          <Image src="/icons/payment/payu.svg" alt="PayU" width={30} height={14} className="object-contain h-3.5 w-auto" priority loading="eager" unoptimized />
+                        </div>
+                      </div>
+                    )}
 
                     {/* Snapmint Ineligible notice */}
                     {isSnapmintIneligible && (
@@ -398,6 +436,42 @@ export const CheckoutPaymentStep = ({
                         <div>
                           <span className="font-bold">Order value ₹{Number(total).toLocaleString("en-IN")} is below Snapmint's minimum limit (₹{snapmintMin.toLocaleString("en-IN")}).</span>{" "}
                           <span className="text-neutral-700">Add <strong>₹{(snapmintMin - total).toLocaleString('en-IN')}</strong> more to your cart to unlock 0% Cardless EMI with Snapmint.</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* COD Advance payment live breakdown (when selected) */}
+                    {method === "cod" && isCodWithAdvance && isSelected && total !== undefined && total > 0 && advanceAmount > 0 && (
+                      <div className="mt-2.5 p-3 bg-neutral-50/80 border border-neutral-200 rounded text-xs text-neutral-800 flex flex-wrap items-center justify-between gap-3 shadow-2xs animate-in fade-in duration-200">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded bg-[#F0F5FF] border border-[#D0E1FD] flex items-center justify-center shrink-0">
+                            <svg className="w-3.5 h-3.5 text-[#2874F0]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="2" y="5" width="20" height="14" rx="2" />
+                              <line x1="2" y1="10" x2="22" y2="10" />
+                            </svg>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-neutral-500 uppercase font-semibold">Advance via PayU</span>
+                            <strong className="text-banner font-black text-sm">₹{advanceAmount.toLocaleString("en-IN")}</strong>
+                          </div>
+                        </div>
+
+                        <div className="text-neutral-300 font-light text-base hidden sm:block">→</div>
+
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
+                            <svg className="w-3.5 h-3.5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M6 3h12" />
+                              <path d="M6 8h12" />
+                              <path d="m6 13 8.5 8" />
+                              <path d="M6 13h3" />
+                              <path d="M9 13c6.667 0 6.667-10 0-10" />
+                            </svg>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-neutral-500 uppercase font-semibold">Balance on Delivery</span>
+                            <strong className="text-emerald-700 font-black text-sm">₹{balanceDue.toLocaleString("en-IN")}</strong>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -425,24 +499,41 @@ export const CheckoutPaymentStep = ({
       </div>
 
       {/* Mobile Fixed Sticky Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 bg-white border-t border-neutral-200 z-[60] flex items-center justify-between gap-4 shadow-[0_-8px_16px_-6px_rgba(0,0,0,0.15)] lg:hidden">
-        {/* Mobile Total Display */}
-        <div className="flex flex-col min-w-0">
-          <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Total</span>
-          <span className="text-lg font-black text-banner leading-none line-clamp-1">
-            {total !== undefined ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(total) : "₹0.00"}
-          </span>
-        </div>
+      <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 bg-white border-t border-neutral-200 z-[60] flex flex-col gap-2.5 shadow-[0_-8px_16px_-6px_rgba(0,0,0,0.15)] lg:hidden">
+        {paymentOption === "cod" && Boolean(settings?.codPartialPaymentEnabled) && (settings?.codPartialPaymentValue || 0) > 0 && (
+          <div className="w-full text-xs text-[#172337] bg-[#F0F5FF] border border-[#D0E1FD] px-3 py-2 rounded flex items-center justify-between gap-2 shadow-2xs leading-snug">
+            <div className="flex items-center gap-2 min-w-0">
+              <svg className="w-4 h-4 text-[#2874F0] shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
+              </svg>
+              <span className="text-[11.5px] text-[#1E293B]">
+                for <strong className="font-bold text-[#2874F0]">{settings?.codPartialPaymentType === "fixed" ? `₹${Number(settings?.codPartialPaymentValue || 0).toLocaleString("en-IN")}` : `${settings?.codPartialPaymentValue ?? 10}%`} advance payment</strong> you will be directed to <strong className="font-bold text-neutral-900">Payu Payment Gateway</strong>
+              </span>
+            </div>
+            <div className="shrink-0 flex items-center bg-white px-1.5 py-0.5 border border-[#D0E1FD] rounded shadow-2xs h-4.5">
+              <Image src="/icons/payment/payu.svg" alt="PayU" width={26} height={12} className="object-contain h-3 w-auto" priority loading="eager" unoptimized />
+            </div>
+          </div>
+        )}
+        <div className="flex items-center justify-between gap-4">
+          {/* Mobile Total Display */}
+          <div className="flex flex-col min-w-0">
+            <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Total</span>
+            <span className="text-lg font-black text-banner leading-none line-clamp-1">
+              {total !== undefined ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(total) : "₹0.00"}
+            </span>
+          </div>
 
-        {/* Continue Button on Mobile */}
-        <button
-          type="button"
-          onClick={handleAgreeToPay}
-          disabled={isProcessing || !paymentOption}
-          className="flex-1 bg-banner hover:bg-orange-600 text-white font-bold tracking-wider text-xs uppercase py-3.5 px-6 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap"
-        >
-          {isProcessing ? "PROCESSING..." : "PLACE ORDER"}
-        </button>
+          {/* Continue Button on Mobile */}
+          <button
+            type="button"
+            onClick={handleAgreeToPay}
+            disabled={isProcessing || !paymentOption}
+            className="flex-1 bg-banner hover:bg-orange-600 text-white font-bold tracking-wider text-xs uppercase py-3.5 px-6 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap"
+          >
+            {isProcessing ? "PROCESSING..." : "PLACE ORDER"}
+          </button>
+        </div>
       </div>
 
     </div>

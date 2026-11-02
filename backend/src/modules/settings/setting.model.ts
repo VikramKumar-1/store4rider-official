@@ -138,7 +138,7 @@ const settingSchema = new Schema<ISetting>(
     enabledGateways: { type: [String], default: ["payu", "cod"] },
     codPartialPaymentEnabled: { type: Boolean, default: false },
     codPartialPaymentType: { type: String, enum: ["percentage", "fixed"], default: "percentage" },
-    codPartialPaymentValue: { type: Number, default: 20 },
+    codPartialPaymentValue: { type: Number, default: 10 },
     snapmintMinOrderValue: { type: Number, default: 25000 },
     storeOriginPincode: { type: String, default: "411001" },
     storeOriginCity: { type: String, default: "Pune" },

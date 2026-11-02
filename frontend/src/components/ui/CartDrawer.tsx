@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/useCartStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { formatPrice } from "@store4riders/shared-utils";
+import { getCartItemImage } from "@/core/utils/mediaUrlHelper";
 import { 
   XMarkIcon, 
   TrashIcon, 
@@ -149,7 +150,7 @@ export const CartDrawer: React.FC = () => {
                 const product = item.product || {};
                 const name = product.name || "Riding Gear";
                 const price = product.basePrice || (item as any).price || 0;
-                const rawImg = product.images?.[0]?.url || product.image || FALLBACK_IMAGE;
+                const rawImg = getCartItemImage(item, FALLBACK_IMAGE);
                 const selectedColor = product.selectedColor || "";
                 const selectedSize = product.selectedSize || "";
 

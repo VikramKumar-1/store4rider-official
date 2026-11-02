@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default function AdminLoginPage() {
-  const secretPath = process.env.NEXT_PUBLIC_ADMIN_SECRET_PATH || "rider-staff-gate";
+  const secretPath = process.env.ADMIN_SECRET_PATH || process.env.NEXT_PUBLIC_ADMIN_SECRET_PATH || "rider-staff-gate";
 
   // In development, provide a smooth redirect to the secret slug so developers never get locked out
   if (process.env.NODE_ENV === "development") {

@@ -171,12 +171,27 @@ export class OrderService {
       const itemHsnCode = (item.variantId ? product.variants?.find((v: any) => v.id === item.variantId || v.sku === item.variantId)?.hsnCode : undefined) || product.hsnCode || "";
 
       const variantObj = item.variantId ? product.variants?.find((v: any) => v.id === item.variantId || v.sku === item.variantId) : null;
-      const itemImage = (variantObj as any)?.image
+      let itemImage = (variantObj as any)?.imageUrl
+        || (variantObj as any)?.image
         || (variantObj as any)?.images?.[0]?.url
-        || product.images?.[0]?.url
-        || (product as any).thumbnail
-        || (product as any).image
         || "";
+
+      if (!itemImage && variantObj?.attributes?.color && Array.isArray(product.images) && product.images.length > 0) {
+        const vCol = String(variantObj.attributes.color).trim().toLowerCase();
+        const matched = product.images.find((img: any) => {
+          const alt = (img?.altText || "").toLowerCase();
+          const url = (img?.url || "").toLowerCase();
+          return alt.includes(vCol) || url.includes(vCol);
+        });
+        if (matched?.url) itemImage = matched.url;
+      }
+
+      if (!itemImage) {
+        itemImage = product.images?.[0]?.url
+          || (product as any).thumbnail
+          || (product as any).image
+          || "";
+      }
 
       orderItems.push({
         productId: String(product._id),
