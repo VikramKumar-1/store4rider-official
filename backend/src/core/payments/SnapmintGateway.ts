@@ -150,9 +150,7 @@ export class SnapmintGateway implements PaymentGateway {
 
       if (errorCode === "ORDER_VALUE_LT_MIN") {
         throw new AppError(
-          configuredMin > 0
-            ? `Order value ₹${amount} is below Snapmint's minimum. EMI purchases are applicable on orders above ₹${configuredMin.toLocaleString("en-IN")}.`
-            : `Order value ₹${amount} is below Snapmint's minimum eligible amount.`,
+          `Snapmint Gateway: ${errorMsg}`,
           400
         );
       }
@@ -166,16 +164,10 @@ export class SnapmintGateway implements PaymentGateway {
 
       logger.error("Snapmint V3 S2S createOrder rejected", { result, orderId });
 
-      // If Snapmint API returns its own min-order error (their platform limit),
-      // override with our dynamic configuredMin so the user sees our admin-configured value
+      // If Snapmint API returns its own min-order error (their platform limit)
       const lowerMsg = errorMsg.toLowerCase();
       if (lowerMsg.includes("minimum") || lowerMsg.includes("min order") || lowerMsg.includes("order value") || lowerMsg.includes("below")) {
-        throw new AppError(
-          configuredMin > 0
-            ? `Snapmint Cardless EMI is applicable on orders above ₹${configuredMin.toLocaleString("en-IN")} (Current order: ₹${Math.round(amount)}). Please choose another payment method or add more items to your cart.`
-            : `Snapmint: ${errorMsg}`,
-          400
-        );
+        throw new AppError(`Snapmint: ${errorMsg}`, 400);
       }
 
       throw new AppError(`Snapmint: ${errorMsg}`, response.status >= 500 ? 502 : 400);
