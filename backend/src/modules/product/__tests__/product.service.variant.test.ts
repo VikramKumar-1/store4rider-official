@@ -1,10 +1,14 @@
 import 'dotenv/config';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { ProductService } from '../product.service';
 import { ProductRepository } from '../product.repository';
 import { connectToDatabase } from '../../../core/database/connection';
 
-describe('ProductService End-to-End Variant SpecialPrice & Relations Resolution', () => {
+describe('ProductService End-to-End Variant SpecialPrice & Relations Resolution', { timeout: 30000 }, () => {
+  beforeAll(async () => {
+    await connectToDatabase();
+  }, 30000);
+
   it('should fetch test-helmet with variants and specialPrice', async () => {
     await connectToDatabase();
     const product = await ProductService.getProductBySlug('test-helmet');
@@ -13,7 +17,7 @@ describe('ProductService End-to-End Variant SpecialPrice & Relations Resolution'
     expect(product.variants).toBeDefined();
     expect(product.variants.length).toBeGreaterThan(0);
     expect(product.variants[0].specialPrice).toBe(1899);
-  });
+  }, 30000);
 
   it('should resolve both child variants and parent products in findBySkus without dropping hidden items', async () => {
     await connectToDatabase();
@@ -30,7 +34,7 @@ describe('ProductService End-to-End Variant SpecialPrice & Relations Resolution'
     expect(resolvedSkus).toContain('S4R-PROD-UPLO-763');
     // Standalone child variant without parent in catalog is preserved:
     expect(resolvedSkus).toContain('AATGFFH-S-Black/Blue');
-  });
+  }, 30000);
 
   it('should create product with variant specialPrice, update it, invalidate cache, and verify', async () => {
     await connectToDatabase();
