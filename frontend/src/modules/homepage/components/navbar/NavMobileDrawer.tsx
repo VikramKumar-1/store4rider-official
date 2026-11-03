@@ -80,13 +80,13 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
               <Link href="/" onClick={onClose} className="cursor-pointer">
-                <div className="relative h-[36.8px] w-40">
+                <div className="relative h-[42.32px] w-[184px]">
                   <Image
                     src="/Store4riders-Logo.jpg"
                     alt="Store4Riders"
                     fill
                     className="object-contain object-left"
-                    sizes="144px"
+                    sizes="184px"
                   />
                 </div>
               </Link>
@@ -146,83 +146,107 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
                                 </div>
                               )}
 
-                              {item.megaMenuItems.map((group, gIdx) => (
-                                <div key={gIdx} className="mb-3.5 last:mb-1 w-full">
-                                  {group.group ? (
-                                    group.groupHref ? (
-                                      <Link
-                                        href={group.groupHref}
-                                        onClick={onClose}
-                                        className="mb-2 block cursor-pointer group/cat px-1 mt-3 first:mt-0"
-                                      >
-                                        <h4 className="text-[12.5px] font-bold text-neutral-900 uppercase tracking-widest border-b border-neutral-200/60 pb-1.5 flex items-start gap-2 leading-snug group-hover/cat:text-brand transition-colors">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-banner shadow-xs shrink-0 mt-1.5" />
-                                          <span className="flex-1 min-w-0 break-words whitespace-normal">{group.group}</span>
-                                        </h4>
-                                      </Link>
-                                    ) : (
-                                      <div className="mb-2 px-1 mt-3 first:mt-0">
-                                        <h4 className="text-[12.5px] font-bold text-neutral-900 uppercase tracking-widest border-b border-neutral-200/60 pb-1.5 flex items-start gap-2 leading-snug">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-banner shadow-xs shrink-0 mt-1.5" />
-                                          <span className="flex-1 min-w-0 break-words whitespace-normal">{group.group}</span>
-                                        </h4>
-                                      </div>
-                                    )
-                                  ) : null}
+                              {item.megaMenuItems.map((group, gIdx) => {
+                                // Deduplicate: avoid repeating group heading or parent label in sub-items
+                                const visibleItems = group.items.filter((link) => {
+                                  const cleanLabel = link.label.trim().toLowerCase();
+                                  const cleanGroup = group.group?.trim().toLowerCase();
+                                  const cleanParent = item.label.trim().toLowerCase();
 
-                                  <ul className="flex flex-col gap-0.5 w-full">
-                                    {group.items.map((link, lIdx) => (
-                                      <li key={lIdx} className="w-full">
+                                  // Avoid repeating group heading
+                                  if (cleanGroup && (cleanLabel === cleanGroup || (group.groupHref && link.href === group.groupHref))) {
+                                    return false;
+                                  }
+                                  // Avoid repeating parent category link
+                                  if (cleanLabel === cleanParent || link.href === item.href) {
+                                    return false;
+                                  }
+                                  return true;
+                                });
+
+                                const shouldShowHeader = Boolean(
+                                  group.group &&
+                                  group.group.trim().toLowerCase() !== item.label.trim().toLowerCase()
+                                );
+
+                                return (
+                                  <div key={gIdx} className="mb-3.5 last:mb-1 w-full">
+                                    {shouldShowHeader ? (
+                                      group.groupHref ? (
                                         <Link
-                                          href={link.href}
+                                          href={group.groupHref}
                                           onClick={onClose}
-                                          className={`cursor-pointer transition-colors duration-150 flex items-center gap-2.5 group/item w-full ${
-                                            !group.group
-                                              ? "text-[13px] font-medium text-neutral-700 hover:text-brand hover:bg-neutral-50 rounded-xl px-3 py-2"
-                                              : "text-[13px] font-medium text-neutral-600 hover:text-neutral-950 hover:bg-neutral-50 rounded-lg px-2.5 py-1.5"
-                                          }`}
+                                          className="mb-2 block cursor-pointer group/cat px-1 mt-3 first:mt-0"
                                         >
-                                          {link.logoUrl ? (
-                                            <div className="w-10 h-5 flex items-center justify-center shrink-0">
-                                              <Image
-                                                src={link.logoUrl}
-                                                alt={link.label}
-                                                width={40}
-                                                height={20}
-                                                unoptimized
-                                                className="object-contain max-h-full max-w-full group-hover/item:scale-105 transition-transform duration-150"
-                                              />
-                                            </div>
-                                          ) : link.imageUrl ? (
-                                            <div className="relative w-5 h-5 rounded overflow-hidden shrink-0 border border-neutral-200/80 bg-neutral-100">
-                                              <Image
-                                                src={link.imageUrl}
-                                                alt={link.label}
-                                                fill
-                                                sizes="20px"
-                                                unoptimized
-                                                className="object-cover group-hover/item:scale-105 transition-transform duration-150"
-                                              />
-                                            </div>
-                                          ) : null}
-                                          <span className="group-hover/item:translate-x-0.5 transition-transform duration-150 flex-1 min-w-0 break-words whitespace-normal leading-snug flex items-center gap-1.5">
-                                            <span>{link.label}</span>
-                                            {link.badge && (
-                                              <span
-                                                className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider text-white ${
-                                                  link.badgeColor || "bg-brand"
-                                                }`}
-                                              >
-                                                {link.badge}
-                                              </span>
-                                            )}
-                                          </span>
+                                          <h4 className="text-[12.5px] font-bold text-neutral-900 uppercase tracking-widest border-b border-neutral-200/60 pb-1.5 flex items-start gap-2 leading-snug group-hover/cat:text-brand transition-colors">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-banner shadow-xs shrink-0 mt-1.5" />
+                                            <span className="flex-1 min-w-0 break-words whitespace-normal">{group.group}</span>
+                                          </h4>
                                         </Link>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              ))}
+                                      ) : (
+                                        <div className="mb-2 px-1 mt-3 first:mt-0">
+                                          <h4 className="text-[12.5px] font-bold text-neutral-900 uppercase tracking-widest border-b border-neutral-200/60 pb-1.5 flex items-start gap-2 leading-snug">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-banner shadow-xs shrink-0 mt-1.5" />
+                                            <span className="flex-1 min-w-0 break-words whitespace-normal">{group.group}</span>
+                                          </h4>
+                                        </div>
+                                      )
+                                    ) : null}
+
+                                    <ul className="flex flex-col gap-0.5 w-full">
+                                      {visibleItems.map((link, lIdx) => (
+                                        <li key={lIdx} className="w-full">
+                                          <Link
+                                            href={link.href}
+                                            onClick={onClose}
+                                            className={`cursor-pointer transition-colors duration-150 flex items-center gap-2.5 group/item w-full ${
+                                              !shouldShowHeader
+                                                ? "text-[13px] font-medium text-neutral-700 hover:text-brand hover:bg-neutral-50 rounded-xl px-3 py-2"
+                                                : "text-[13px] font-medium text-neutral-600 hover:text-neutral-950 hover:bg-neutral-50 rounded-lg px-2.5 py-1.5"
+                                            }`}
+                                          >
+                                            {link.logoUrl ? (
+                                              <div className="w-10 h-5 flex items-center justify-center shrink-0">
+                                                <Image
+                                                  src={link.logoUrl}
+                                                  alt={link.label}
+                                                  width={40}
+                                                  height={20}
+                                                  unoptimized
+                                                  className="object-contain max-h-full max-w-full group-hover/item:scale-105 transition-transform duration-150"
+                                                />
+                                              </div>
+                                            ) : link.imageUrl ? (
+                                              <div className="relative w-5 h-5 rounded overflow-hidden shrink-0 border border-neutral-200/80 bg-neutral-100">
+                                                <Image
+                                                  src={link.imageUrl}
+                                                  alt={link.label}
+                                                  fill
+                                                  sizes="20px"
+                                                  unoptimized
+                                                  className="object-cover group-hover/item:scale-105 transition-transform duration-150"
+                                                />
+                                              </div>
+                                            ) : null}
+                                            <span className="group-hover/item:translate-x-0.5 transition-transform duration-150 flex-1 min-w-0 break-words whitespace-normal leading-snug flex items-center gap-1.5">
+                                              <span>{link.label}</span>
+                                              {link.badge && (
+                                                <span
+                                                  className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider text-white ${
+                                                    link.badgeColor || "bg-brand"
+                                                  }`}
+                                                >
+                                                  {link.badge}
+                                                </span>
+                                              )}
+                                            </span>
+                                          </Link>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                );
+                              })}
                               {item.id === "shop-by-brand" && (
                                 <Link
                                   href="/brands"

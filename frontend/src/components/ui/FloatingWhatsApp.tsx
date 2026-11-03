@@ -58,6 +58,19 @@ export const FloatingWhatsApp: React.FC = () => {
   const { data: settings } = usePublicSettings();
   const cartItemCount = useCartStore((state) => state.items.length);
   const isPDP = useUIStore((state) => state.isPDP);
+  const currentProductName = useUIStore((state) => state.currentProductName);
+
+  // Dynamic Product Name resolution:
+  // 1. From Zustand UI store (set by ProductDetailModule / StickyFooterBar)
+  // 2. Fallback to DOM (h1 tag) on client if store is pending hydration
+  const resolvedProductName = React.useMemo(() => {
+    if (currentProductName?.trim()) return currentProductName.trim();
+    if (typeof document !== "undefined" && isPDP) {
+      const h1Text = document.querySelector("h1")?.textContent?.trim();
+      if (h1Text) return h1Text;
+    }
+    return null;
+  }, [currentProductName, isPDP]);
 
   // Do not render on Admin or API routes
   if (!pathname || pathname.startsWith("/admin") || pathname.startsWith("/api")) {
@@ -85,11 +98,48 @@ export const FloatingWhatsApp: React.FC = () => {
     return null;
   }
 
-  const defaultMessage =
+  const rawTemplate =
     settings?.whatsappDefaultMessage?.trim() ||
-    "Hi Store4Riders, I have a query regarding products/order.";
+    "Hello Store4Riders. I have a query regarding {product page name}.";
 
-  const whatsappHref = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(defaultMessage)}`;
+  // Compute final WhatsApp message dynamically based on page context:
+  const whatsappMessage = (() => {
+    const hasToken = /\{(?:product\s*page\s*name|product_name|product)\}/i.test(rawTemplate);
+
+    if (resolvedProductName) {
+      if (hasToken) {
+        return rawTemplate.replace(
+          /\{(?:product\s*page\s*name|product_name|product)\}/gi,
+          resolvedProductName
+        );
+      }
+      // If template was legacy static message, rewrite to authentic product-specific format
+      if (
+        !rawTemplate ||
+        rawTemplate.toLowerCase().includes("i have a query regarding") ||
+        rawTemplate.toLowerCase().includes("products/order")
+      ) {
+        return `Hello Store4Riders. I have a query regarding ${resolvedProductName}.`;
+      }
+      return `${rawTemplate} (${resolvedProductName})`;
+    }
+
+    // On non-product pages:
+    if (hasToken) {
+      return rawTemplate.replace(
+        /\{(?:product\s*page\s*name|product_name|product)\}/gi,
+        "products/order"
+      );
+    }
+
+    if (rawTemplate.startsWith("Hi Store4Riders, I have a query regarding products/order.")) {
+      return "Hello Store4Riders. I have a query regarding products/order.";
+    }
+
+    return rawTemplate;
+  })();
+
+  const whatsappHref = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(whatsappMessage)}`;
 
   // Determine if current mobile view has a sticky bottom bar (PDP, Catalog, Category, Cart, Checkout)
   const isMarketingPage = ROUTES_WITHOUT_BOTTOM_BAR.some(

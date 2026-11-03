@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { useCartStore } from "@/stores/useCartStore";
 import { useRecentViewsStore } from "@/stores/useRecentViewsStore";
+import { useUIStore } from "@/stores/useUIStore";
 import TopBanner from "@/modules/homepage/components/TopBanner";
 import Navbar from "@/modules/homepage/components/Navbar";
 import Footer from "@/modules/homepage/components/Footer";
@@ -34,6 +35,17 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
   const router = useRouter();
   const searchParams = useSearchParams();
   const colorQuery = searchParams.get("color");
+  const setCurrentProductName = useUIStore((state) => state.setCurrentProductName);
+
+  // Sync current product name into global UI store for WhatsApp & sticky widgets
+  useEffect(() => {
+    if (product?.name) {
+      setCurrentProductName(product.name);
+    }
+    return () => {
+      setCurrentProductName(null);
+    };
+  }, [product?.name, setCurrentProductName]);
 
   // Reset defaults when product changes (e.g. navigating via related products)
   useEffect(() => {

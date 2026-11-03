@@ -369,7 +369,7 @@ export function AdminFooterSettings() {
             <div className="flex items-center justify-between p-3.5 bg-neutral-50 rounded-lg border border-neutral-200">
               <div>
                 <span className="text-xs font-bold text-neutral-800 block">Show Social Media Icons</span>
-                <span className="text-[11px] text-neutral-500">Display Instagram, Facebook, YouTube, Twitter icons</span>
+                <span className="text-[11px] text-neutral-500">Display Instagram, Facebook, and YouTube icons</span>
               </div>
               <input
                 type="checkbox"

@@ -37,7 +37,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         group: "Riding Gloves",
         groupHref: "/riding-gear/riding-gloves",
         items: [
-          { label: "Riding Gloves", href: "/riding-gear/riding-gloves" },
           { label: "Full Gauntlet Gloves", href: "/riding-gear/riding-gloves/full-gauntlet-gloves" },
           { label: "Semi Gauntlet Gloves", href: "/riding-gear/riding-gloves/semi-gauntlet-gloves" },
           { label: "Short Motorbike Gloves", href: "/riding-gear/riding-gloves/short-motorbike-gloves" },
@@ -47,7 +46,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         group: "Riding Jackets",
         groupHref: "/riding-gear/riding-jackets",
         items: [
-          { label: "Riding Jackets", href: "/riding-gear/riding-jackets" },
           { label: "Protectors / Armour", href: "/riding-gear/riding-jackets/protectors-armour" },
         ],
       },
@@ -55,7 +53,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         group: "Riding Pants",
         groupHref: "/riding-gear/riding-pants",
         items: [
-          { label: "Riding Pants", href: "/riding-gear/riding-pants" },
           { label: "Riding Jeans", href: "/riding-gear/riding-pants/motorcycle-riding-jeans" },
           { label: "Touring Pants", href: "/riding-gear/riding-pants/touring-pants" },
           { label: "Knee Guards for bikers", href: "/riding-gear/riding-pants/knee-guards-bikers" },
@@ -65,7 +62,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         group: "Riding Boots",
         groupHref: "/riding-gear/motorcycle-riding-boots",
         items: [
-          { label: "Riding Boots", href: "/riding-gear/motorcycle-riding-boots" },
           { label: "Short biking boots", href: "/riding-gear/motorcycle-riding-boots/short-biking-boots" },
           { label: "Sports riding shoes", href: "/riding-gear/motorcycle-riding-boots/sports-riding-shoes" },
           { label: "Off-road boots", href: "/riding-gear/motorcycle-riding-boots/off-road-riding-boots" },
@@ -164,7 +160,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
     hasDropdown: true,
     megaMenuItems: [
       {
-        group: "Gadgets",
+        group: "",
         items: [
           { label: "Bike Phone Holders", href: "/gadgets/bike-phone-holders" },
           { label: "Communicators", href: "/gadgets/communicators" },

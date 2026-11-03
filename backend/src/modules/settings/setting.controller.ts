@@ -33,7 +33,7 @@ export class SettingController {
       supportEmail: settings.supportEmail || "contact@store4riders.com",
       whatsappNumber: settings.whatsappNumber || "+91 - 7263007788",
       whatsappChatEnabled: settings.whatsappChatEnabled !== false,
-      whatsappDefaultMessage: settings.whatsappDefaultMessage || "Hi Store4Riders, I have a query regarding products/order.",
+      whatsappDefaultMessage: settings.whatsappDefaultMessage || "Hello Store4Riders. I have a query regarding {product page name}.",
       facebookUrl: settings.facebookUrl,
       instagramUrl: settings.instagramUrl,
       youtubeUrl: settings.youtubeUrl,

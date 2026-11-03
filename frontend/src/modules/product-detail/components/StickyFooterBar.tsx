@@ -96,10 +96,17 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
   }, [allowBackorders, hasColors, hasSizes, activeColor, activeSize, disabledColors, disabledSizes, stockStatus]);
 
   const setIsPDP = useUIStore((state) => state.setIsPDP);
+  const setCurrentProductName = useUIStore((state) => state.setCurrentProductName);
   useEffect(() => {
     setIsPDP(true);
-    return () => setIsPDP(false);
-  }, [setIsPDP]);
+    if (productName) {
+      setCurrentProductName(productName);
+    }
+    return () => {
+      setIsPDP(false);
+      setCurrentProductName(null);
+    };
+  }, [setIsPDP, setCurrentProductName, productName]);
 
   return (
     <div

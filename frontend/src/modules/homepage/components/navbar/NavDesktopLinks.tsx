@@ -123,71 +123,93 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
                             ? "gap-x-6 gap-y-6 p-6"
                             : "gap-x-6 gap-y-6 p-6 xl:p-8"
                         } ${item.megaMenuFeatured ? "w-[65%] border-r border-neutral-200/60" : "w-full"}`}>
-                          {item.megaMenuItems.map((menuGroup, idx) => (
-                            <div key={idx} className="min-w-0 w-full">
-                              {menuGroup.group ? (
-                                menuGroup.groupHref ? (
-                                  <Link href={menuGroup.groupHref} className="mb-3.5 block cursor-pointer">
-                                    <h4 className="text-[12.5px] font-bold text-neutral-900 uppercase tracking-widest border-b border-neutral-200/60 pb-2 flex items-start gap-2 leading-snug hover:text-brand transition-colors">
+                          {item.megaMenuItems.map((menuGroup, idx) => {
+                            // Deduplicate: avoid repeating group heading or parent label in sub-items
+                            const visibleItems = menuGroup.items.filter((link) => {
+                              const cleanLabel = link.label.trim().toLowerCase();
+                              const cleanGroup = menuGroup.group?.trim().toLowerCase();
+                              const cleanParent = item.label.trim().toLowerCase();
+
+                              if (cleanGroup && (cleanLabel === cleanGroup || (menuGroup.groupHref && link.href === menuGroup.groupHref))) {
+                                return false;
+                              }
+                              if (cleanLabel === cleanParent || link.href === item.href) {
+                                return false;
+                              }
+                              return true;
+                            });
+
+                            const shouldShowHeader = Boolean(
+                              menuGroup.group &&
+                              menuGroup.group.trim().toLowerCase() !== item.label.trim().toLowerCase()
+                            );
+
+                            return (
+                              <div key={idx} className="min-w-0 w-full">
+                                {shouldShowHeader ? (
+                                  menuGroup.groupHref ? (
+                                    <Link href={menuGroup.groupHref} className="mb-3.5 block cursor-pointer">
+                                      <h4 className="text-[12.5px] font-bold text-neutral-900 uppercase tracking-widest border-b border-neutral-200/60 pb-2 flex items-start gap-2 leading-snug hover:text-brand transition-colors">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-banner shadow-xs shrink-0 mt-1.5" />
+                                        <span className="flex-1 min-w-0 break-words whitespace-normal">{menuGroup.group}</span>
+                                      </h4>
+                                    </Link>
+                                  ) : (
+                                    <h4 className="text-[12.5px] font-bold text-neutral-900 uppercase tracking-widest mb-3.5 border-b border-neutral-200/60 pb-2 flex items-start gap-2 leading-snug">
                                       <span className="w-1.5 h-1.5 rounded-full bg-banner shadow-xs shrink-0 mt-1.5" />
                                       <span className="flex-1 min-w-0 break-words whitespace-normal">{menuGroup.group}</span>
                                     </h4>
-                                  </Link>
-                                ) : (
-                                  <h4 className="text-[12.5px] font-bold text-neutral-900 uppercase tracking-widest mb-3.5 border-b border-neutral-200/60 pb-2 flex items-start gap-2 leading-snug">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-banner shadow-xs shrink-0 mt-1.5" />
-                                    <span className="flex-1 min-w-0 break-words whitespace-normal">{menuGroup.group}</span>
-                                  </h4>
-                                )
-                              ) : null}
-                              <ul className="flex flex-col gap-1 w-full">
-                                {menuGroup.items.map((link, lIdx) => (
-                                  <li key={lIdx} className="w-full">
-                                    <Link
-                                      href={link.href}
-                                      className={`cursor-pointer ${
-                                        !menuGroup.group
-                                          ? "text-[13px] font-medium text-neutral-700 hover:text-brand hover:bg-neutral-50 rounded-xl px-3 py-2 transition-colors duration-150 flex items-start gap-2 group w-full"
-                                          : "text-[13px] font-medium text-neutral-600 hover:text-neutral-950 hover:bg-neutral-50 rounded-xl px-2 py-1.5 transition-colors duration-150 flex items-start gap-2.5 group w-full"
-                                      }`}
-                                    >
-                                      {link.logoUrl ? (
-                                        <div className="w-11 h-6 flex items-center justify-center shrink-0 mt-0.5">
-                                          <Image 
-                                            src={link.logoUrl} 
-                                            alt={link.label} 
-                                            width={44} 
-                                            height={24} 
-                                            unoptimized
-                                            className="object-contain max-h-full max-w-full group-hover:scale-105 transition-transform duration-150"
-                                          />
-                                        </div>
-                                      ) : link.imageUrl ? (
-                                        <div className="relative w-6 h-6 rounded-md overflow-hidden shrink-0 mt-0.5 border border-neutral-200/80 bg-neutral-100">
-                                          <Image 
-                                            src={link.imageUrl} 
-                                            alt={link.label} 
-                                            fill 
-                                            sizes="24px" 
-                                            unoptimized
-                                            className="object-cover group-hover:scale-105 transition-transform duration-150" 
-                                          />
-                                        </div>
-                                      ) : null}
-                                      <span className="group-hover:translate-x-1 transition-transform duration-150 flex-1 min-w-0 break-words whitespace-normal leading-snug flex items-center gap-1.5">
-                                        <span>{link.label}</span>
-                                        {link.badge && (
-                                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider text-white ${link.badgeColor || "bg-brand"}`}>
-                                            {link.badge}
-                                          </span>
-                                        )}
-                                      </span>
-                                    </Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          ))}
+                                  )
+                                ) : null}
+                                <ul className="flex flex-col gap-1 w-full">
+                                  {visibleItems.map((link, lIdx) => (
+                                    <li key={lIdx} className="w-full">
+                                      <Link
+                                        href={link.href}
+                                        className={`cursor-pointer ${
+                                          !shouldShowHeader
+                                            ? "text-[13px] font-medium text-neutral-700 hover:text-brand hover:bg-neutral-50 rounded-xl px-3 py-2 transition-colors duration-150 flex items-start gap-2 group w-full"
+                                            : "text-[13px] font-medium text-neutral-600 hover:text-neutral-950 hover:bg-neutral-50 rounded-xl px-2 py-1.5 transition-colors duration-150 flex items-start gap-2.5 group w-full"
+                                        }`}
+                                      >
+                                        {link.logoUrl ? (
+                                          <div className="w-11 h-6 flex items-center justify-center shrink-0 mt-0.5">
+                                            <Image 
+                                              src={link.logoUrl} 
+                                              alt={link.label} 
+                                              width={44} 
+                                              height={24} 
+                                              unoptimized
+                                              className="object-contain max-h-full max-w-full group-hover:scale-105 transition-transform duration-150"
+                                            />
+                                          </div>
+                                        ) : link.imageUrl ? (
+                                          <div className="relative w-6 h-6 rounded-md overflow-hidden shrink-0 mt-0.5 border border-neutral-200/80 bg-neutral-100">
+                                            <Image 
+                                              src={link.imageUrl} 
+                                              alt={link.label} 
+                                              fill 
+                                              sizes="24px" 
+                                              unoptimized
+                                              className="object-cover group-hover:scale-105 transition-transform duration-150" 
+                                            />
+                                          </div>
+                                        ) : null}
+                                        <span className="group-hover:translate-x-1 transition-transform duration-150 flex-1 min-w-0 break-words whitespace-normal leading-snug flex items-center gap-1.5">
+                                          <span>{link.label}</span>
+                                          {link.badge && (
+                                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider text-white ${link.badgeColor || "bg-brand"}`}>
+                                              {link.badge}
+                                            </span>
+                                          )}
+                                        </span>
+                                      </Link>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 

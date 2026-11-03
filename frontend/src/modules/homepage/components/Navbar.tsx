@@ -145,13 +145,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             className={`shrink-0 items-center group transition-all duration-200 cursor-pointer ${isMobileSearchOpen ? "opacity-0 pointer-events-none sm:flex sm:opacity-100 sm:pointer-events-auto" : "flex opacity-100"
               }`}
           >
-            <div className="relative h-[27.6px] w-[104px] sm:h-8 sm:w-[120px] md:h-9 md:w-[135px] lg:h-[34px] lg:w-[128px] xl:h-[42px] xl:w-[158px] 2xl:h-[46px] 2xl:w-[175px] transition-transform duration-300 group-hover:scale-105 will-change-transform">
+            <div className="relative h-[31.74px] w-[119.6px] sm:h-[36.8px] sm:w-[138px] md:h-[41.4px] md:w-[155px] lg:h-[34px] lg:w-[128px] xl:h-[42px] xl:w-[158px] 2xl:h-[46px] 2xl:w-[175px] transition-transform duration-300 group-hover:scale-105 will-change-transform">
               <Image
                 src="/Store4riders-Logo.jpg"
                 alt={logoText || "Store4Riders Logo"}
                 fill
                 className="object-contain object-left"
-                sizes="(max-width: 768px) 144px, 200px"
+                sizes="(max-width: 768px) 160px, 200px"
                 priority
               />
             </div>

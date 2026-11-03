@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Mail, ArrowRight, Instagram, Facebook, Youtube, Twitter, ChevronDown } from "lucide-react";
+import { Mail, ArrowRight, Instagram, Facebook, Youtube, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 import { IFooterLink } from "@store4riders/shared-types";
@@ -67,7 +67,6 @@ export const Footer: React.FC = () => {
   const instagramUrl = settings?.instagramUrl || "https://www.instagram.com/store4riders/";
   const facebookUrl = settings?.facebookUrl || "https://www.facebook.com/store4riders/";
   const youtubeUrl = settings?.youtubeUrl || "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg";
-  const twitterUrl = settings?.twitterUrl || "https://twitter.com/store4riders";
 
   // Column 2 Navigation Links
   const column1Title = footer?.column1Title?.trim() || "EXCHANGE & REPLACEMENTS";
@@ -113,12 +112,12 @@ export const Footer: React.FC = () => {
           
           {/* Column 1: Brand Logo, About, Contact info & Social Media */}
           <div className="flex flex-col gap-4 sm:gap-6 sm:col-span-2 lg:col-span-1 pb-4 border-b border-neutral-900 lg:border-none lg:pb-0">
-            <div className="relative h-10 w-40 md:h-12 md:w-48 -ml-1 sm:-ml-2 mb-1 overflow-hidden rounded-sm">
+            <div className="relative h-[46px] w-[184px] md:h-12 md:w-48 -ml-1 sm:-ml-2 mb-1 overflow-hidden rounded-sm">
               <Image 
                 src="/Store4riders-Logo.jpg" 
                 alt="Store4Riders Logo" 
                 fill 
-                sizes="(max-width: 768px) 160px, 192px"
+                sizes="(max-width: 768px) 184px, 192px"
                 className="object-contain object-left" 
               />
             </div>
@@ -192,17 +191,6 @@ export const Footer: React.FC = () => {
                       className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-neutral-900 border border-neutral-800 hover:bg-banner hover:border-banner text-neutral-400 hover:text-white flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-xs"
                     >
                       <Youtube className="w-4 h-4" />
-                    </a>
-                  )}
-                  {twitterUrl && (
-                    <a
-                      href={twitterUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Follow Store4Riders on X / Twitter"
-                      className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-neutral-900 border border-neutral-800 hover:bg-banner hover:border-banner text-neutral-400 hover:text-white flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-xs"
-                    >
-                      <Twitter className="w-4 h-4" />
                     </a>
                   )}
                 </div>

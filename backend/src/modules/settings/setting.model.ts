@@ -163,7 +163,7 @@ const settingSchema = new Schema<ISetting>(
     supportEmail: { type: String, default: "contact@store4riders.com" },
     whatsappNumber: { type: String, default: "+91 - 7263007788" },
     whatsappChatEnabled: { type: Boolean, default: true },
-    whatsappDefaultMessage: { type: String, default: "Hi Store4Riders, I have a query regarding products/order." },
+    whatsappDefaultMessage: { type: String, default: "Hello Store4Riders. I have a query regarding {product page name}." },
     facebookUrl: { type: String, default: "https://www.facebook.com/store4riders/" },
     instagramUrl: { type: String, default: "https://www.instagram.com/store4riders/" },
     youtubeUrl: { type: String, default: "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg" },

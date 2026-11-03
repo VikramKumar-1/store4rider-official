@@ -43,7 +43,7 @@ export function AdminContactSettings() {
     supportPhone: "",
     whatsappNumber: "+91 - 7263007788",
     whatsappChatEnabled: true,
-    whatsappDefaultMessage: "Hi Store4Riders, I have a query regarding products/order.",
+    whatsappDefaultMessage: "Hello Store4Riders. I have a query regarding {product page name}.",
     supportEmail: "contact@store4riders.com",
     storeOriginAddress: "Store4Riders Warehouse",
     storeOriginCity: "Pune",
@@ -71,7 +71,7 @@ export function AdminContactSettings() {
           ...res.data.data,
           whatsappNumber: res.data.data.whatsappNumber || "+91 - 7263007788",
           whatsappChatEnabled: res.data.data.whatsappChatEnabled !== false,
-          whatsappDefaultMessage: res.data.data.whatsappDefaultMessage || "Hi Store4Riders, I have a query regarding products/order.",
+          whatsappDefaultMessage: res.data.data.whatsappDefaultMessage || "Hello Store4Riders. I have a query regarding {product page name}.",
           supportEmail: res.data.data.supportEmail || "contact@store4riders.com",
           returnWindowDays: res.data.data.returnWindowDays ?? 7,
         }));
@@ -192,11 +192,11 @@ export function AdminContactSettings() {
                   type="text"
                   value={settings.whatsappDefaultMessage || ""}
                   onChange={(e) => setSettings({ ...settings, whatsappDefaultMessage: e.target.value })}
-                  placeholder="Hi Store4Riders, I have a query regarding products/order."
+                  placeholder="Hello Store4Riders. I have a query regarding {product page name}."
                   className="w-full text-sm border border-neutral-300 rounded-lg px-3.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                 />
                 <p className="text-[11px] text-neutral-500 mt-1">
-                  Pre-filled greeting message opened in WhatsApp web / mobile app.
+                  Pre-filled greeting message. Use <code className="bg-neutral-100 text-neutral-700 px-1 py-0.5 rounded font-mono text-[10px]">&#123;product page name&#125;</code> to dynamically insert the product title on product pages.
                 </p>
               </div>
 
@@ -214,7 +214,10 @@ export function AdminContactSettings() {
                     href={`https://wa.me/${(() => {
                       const d = (settings.whatsappNumber || "").replace(/\D/g, "");
                       return d.length === 10 ? `91${d}` : d;
-                    })()}?text=${encodeURIComponent(settings.whatsappDefaultMessage || "Hi Store4Riders, I have a query regarding products/order.")}`}
+                    })()}?text=${encodeURIComponent(
+                      (settings.whatsappDefaultMessage || "Hello Store4Riders. I have a query regarding {product page name}.")
+                        .replace(/\{(?:product\s*page\s*name|product_name|product)\}/gi, "Sample Product Name")
+                    )}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-800 font-semibold underline underline-offset-2"
