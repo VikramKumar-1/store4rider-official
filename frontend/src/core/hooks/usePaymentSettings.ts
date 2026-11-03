@@ -31,6 +31,9 @@ export interface IPublicSettings {
   snapmintMinOrderValue?: number;
   footerConfig?: IFooterConfig;
   policyPages?: IPolicyPageConfig[];
+  googleRating?: number;
+  googleReviewCount?: string | number;
+  googleLastSyncedAt?: string | Date;
 }
 
 export function usePublicSettings() {

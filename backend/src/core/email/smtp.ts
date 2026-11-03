@@ -28,32 +28,38 @@ const getTransporter = () => {
 };
 
 export const sendSmtpEmail = async (to: string, subject: string, html: string) => {
-  const mailer = getTransporter();
-  const FROM_EMAIL = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || process.env.SES_FROM_EMAIL || "noreply@store4riders.com";
-
-  if (!mailer) {
-    // When SMTP credentials are not provided, fallback seamlessly to AWS SES
+  // 1. Primary: Prefer AWS SES when credentials are configured
+  const hasSes = !!(process.env.SES_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID);
+  if (hasSes) {
     try {
       const { sendEmail } = await import("./ses");
       await sendEmail(to, subject, html);
-      logger.info(`Email sent to ${to} via AWS SES (SMTP fallback)`);
+      logger.info(`Email sent to ${to} via AWS SES`);
       return;
     } catch (sesErr) {
-      logger.error("Failed to send email via AWS SES", sesErr);
+      logger.warn(`AWS SES delivery failed, trying SMTP fallback...`, sesErr);
+    }
+  }
+
+  // 2. Secondary: Fallback to SMTP if SES fails or is not available
+  const mailer = getTransporter();
+  const FROM_EMAIL = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || process.env.SES_FROM_EMAIL || "noreply@store4riders.com";
+
+  if (mailer) {
+    try {
+      const info = await mailer.sendMail({
+        from: FROM_EMAIL,
+        to,
+        subject,
+        html,
+      });
+      logger.info(`Email sent to ${to} via SMTP [Message ID: ${info.messageId}]`);
+      return;
+    } catch (smtpErr) {
+      logger.error("Failed to send SMTP email", smtpErr);
       throw new AppError("Failed to send email", 500);
     }
   }
 
-  try {
-    const info = await mailer.sendMail({
-      from: FROM_EMAIL,
-      to,
-      subject,
-      html,
-    });
-    logger.info(`Email sent to ${to} [Message ID: ${info.messageId}]`);
-  } catch (error) {
-    logger.error("Failed to send SMTP email", error);
-    throw new AppError("Failed to send email", 500);
-  }
+  throw new AppError("No email provider configured (both AWS SES and SMTP failed)", 500);
 };

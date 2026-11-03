@@ -7,7 +7,7 @@ import { cleanRichContent, stripHtml, handleRichTextClick } from "@/core/utils/c
 
 export interface AccordionItem {
   id: string;
-  title: string;
+  title: string | React.ReactNode;
   content: string | React.ReactNode;
   className?: string;
 }
@@ -61,10 +61,10 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
     "@type": "FAQPage",
     mainEntity: items.map((item) => ({
       "@type": "Question",
-      name: item.title,
+      name: typeof item.title === "string" ? item.title : "Store Reviews",
       acceptedAnswer: {
         "@type": "Answer",
-        text: typeof item.content === "string" ? stripHtml(item.content) : item.title,
+        text: typeof item.content === "string" ? stripHtml(item.content) : (typeof item.title === "string" ? item.title : "Store Reviews"),
       },
     })),
   };
@@ -100,7 +100,7 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
                   aria-controls={`accordion-content-${item.id}`}
                   className="w-full py-3 px-4 sm:py-4 sm:px-5 flex items-center justify-between text-left gap-3 bg-neutral-50/70 hover:bg-neutral-100/70 transition-colors cursor-pointer select-none"
                 >
-                  <span className="text-sm sm:text-base font-bold text-neutral-900 tracking-tight">
+                  <span className="text-sm sm:text-base font-bold text-neutral-900 tracking-tight flex items-center gap-2">
                     {item.title}
                   </span>
                   <ChevronDownIcon
@@ -127,8 +127,12 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
               >
                 <div className="overflow-hidden w-full max-w-full">
                   <div
-                    onClick={(e) => handleRichTextClick(e, router)}
-                    className="text-sm text-neutral-700 leading-relaxed font-sans border-t border-neutral-200 p-3 sm:p-5 break-words overflow-x-hidden w-full max-w-full prose prose-sm prose-neutral prose-a:text-blue-600 hover:prose-a:text-blue-800 prose-a:underline prose-a:font-medium prose-table:w-full prose-table:table-fixed prose-table:border-collapse"
+                    onClick={(e) => isStringContent && handleRichTextClick(e, router)}
+                    className={
+                      isStringContent
+                        ? "text-sm text-neutral-700 leading-relaxed font-sans border-t border-neutral-200 p-3 sm:p-5 break-words overflow-x-hidden w-full max-w-full prose prose-sm prose-neutral prose-a:text-blue-600 hover:prose-a:text-blue-800 prose-a:underline prose-a:font-medium prose-table:w-full prose-table:table-fixed prose-table:border-collapse"
+                        : "border-t border-neutral-200 p-3 sm:p-5 w-full overflow-x-hidden"
+                    }
                   >
                     {isStringContent ? (
                       <div dangerouslySetInnerHTML={{ __html: cleanedHtml || "" }} />

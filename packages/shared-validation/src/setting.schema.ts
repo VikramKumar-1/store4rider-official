@@ -85,6 +85,9 @@ export const updateSettingSchema = z.object({
   guidesHeroDescription: z.string().max(1000).optional().or(z.literal("")),
   footerConfig: footerConfigSchema.optional(),
   policyPages: z.array(policyPageSchema).optional(),
+  googleRating: z.number().min(1).max(5).optional(),
+  googleReviewCount: z.union([z.string(), z.number()]).optional(),
+  googleLastSyncedAt: z.union([z.date(), z.string()]).optional(),
 });
 
 export type UpdateSettingInput = z.infer<typeof updateSettingSchema>;

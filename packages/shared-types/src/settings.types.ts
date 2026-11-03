@@ -76,6 +76,9 @@ export interface ISetting {
   popularSearches?: string[];
   footerConfig?: IFooterConfig;
   policyPages?: IPolicyPageConfig[];
+  googleRating?: number;
+  googleReviewCount?: string | number;
+  googleLastSyncedAt?: Date | string;
 }
 
 export interface IPublicSettings {
@@ -108,4 +111,7 @@ export interface IPublicSettings {
   packagePresets?: IPackagePreset[];
   footerConfig?: IFooterConfig;
   policyPages?: IPolicyPageConfig[];
+  googleRating?: number;
+  googleReviewCount?: string | number;
+  googleLastSyncedAt?: Date | string;
 }

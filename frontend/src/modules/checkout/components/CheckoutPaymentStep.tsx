@@ -19,17 +19,6 @@ interface CheckoutPaymentStepProps {
   total?: number;
 }
 
-// Authentic Brand Vector Logos
-const UpiLogo = () => (
-  <div className="flex items-center justify-center bg-white px-2.5 py-0.5 border border-neutral-200 rounded shadow-xs h-7 shrink-0">
-    <img 
-      src="/upi.svg" 
-      alt="UPI" 
-      className="h-4.5 w-auto object-contain max-h-[18px]" 
-    />
-  </div>
-);
-
 export const CheckoutPaymentStep = ({
   generatedOrderNumber,
   paymentOption,
@@ -46,113 +35,16 @@ export const CheckoutPaymentStep = ({
   const { data: settings, isLoading } = usePublicSettings();
   const snapmintMin = settings?.snapmintMinOrderValue ?? 0;
 
-  const GATEWAY_INFO: Record<string, { label: React.ReactNode; desc: string; icon: React.ReactNode }> = {
-    payu: {
-      label: (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span>PayU & UPI</span>
-          <div className="flex items-center ml-auto gap-1">
-            <Image src="/icons/payment/payu.svg" alt="PayU" width={40} height={20} className="object-contain h-5 w-auto" priority loading="eager" unoptimized />
-            <Image src="/icons/payment/upi.svg" alt="UPI" width={30} height={16} className="object-contain h-4 w-auto" priority loading="eager" unoptimized />
-          </div>
-        </div>
-      ),
-      desc: "Google Pay, PhonePe, Paytm, Cards & NetBanking",
-      icon: (
-        <div className="flex items-center gap-2 mt-2 flex-wrap opacity-90">
-          <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-            <Image src="/icons/payment/gpay.svg" alt="GPay" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-          </div>
-          <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-            <Image src="/icons/payment/phonepe.svg" alt="PhonePe" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-          </div>
-          <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-            <Image src="/icons/payment/paytm.svg" alt="Paytm" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-          </div>
-          <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-            <Image src="/icons/payment/visa.svg" alt="VISA" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-          </div>
-          <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-            <Image src="/icons/payment/mastercard.svg" alt="Mastercard" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-          </div>
-          <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-            <Image src="/icons/payment/rupay.svg" alt="RuPay" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-          </div>
-        </div>
-      )
-    },
-    ccavenue: {
-      label: "NetBanking & EMI (CCAvenue)",
-      desc: "All Major Indian Banks & Flexible EMI options",
-      icon: (
-        <div className="flex items-center gap-1.5 shrink-0">
-          <div className="flex items-center bg-[#8f0d14] px-2.5 py-1 rounded shadow-xs h-7">
-            <span className="text-white font-black text-xs tracking-tight">CCAvenue</span>
-          </div>
-          <span className="text-[9px] font-bold bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded border border-neutral-200">50+ Banks</span>
-        </div>
-      )
-    },
-    snapmint: {
-      label: (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span>Snapmint (Cardless 0% EMI)</span>
-          {snapmintMin > 0 && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-amber-50 text-amber-900 border border-amber-300 px-2 py-0.5 rounded shadow-2xs tracking-wide uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-              Min. Order ₹{snapmintMin.toLocaleString("en-IN")}
-            </span>
-          )}
-        </div>
-      ),
-      desc: "Buy now, pay in easy monthly installments without credit card",
-      icon: (
-        <div className="flex items-center gap-1.5 shrink-0">
-          <div className="flex items-center bg-[#004851] px-2.5 py-1 rounded shadow-xs h-7">
-            <span className="text-[#00e396] font-bold text-xs tracking-tight">snap</span>
-            <span className="text-white font-bold text-xs tracking-tight">mint</span>
-          </div>
-          <span className="text-[9px] font-extrabold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200">0% Interest</span>
-        </div>
-      )
-    },
-    cod: {
-      label: (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span>Cash on Delivery (COD)</span>
-          {Boolean(settings?.codPartialPaymentEnabled) && (settings?.codPartialPaymentValue || 0) > 0 && (
-            <span className="text-[10px] font-bold bg-[#EBF4FF] text-[#2874F0] border border-[#C7D9FF] px-2 py-0.5 rounded tracking-wide">
-              {settings?.codPartialPaymentType === "fixed" ? `₹${Number(settings?.codPartialPaymentValue || 0).toLocaleString("en-IN")}` : `${settings?.codPartialPaymentValue ?? 10}%`} Advance
-            </span>
-          )}
-        </div>
-      ),
-      desc: "Pay in cash or UPI when package is delivered at your doorstep",
-      icon: (
-        <div className="flex items-center gap-1.5 shrink-0">
-          <div className="flex items-center gap-1 bg-neutral-900 text-white px-2.5 py-1 rounded shadow-xs h-7">
-            <svg className="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="6" width="20" height="12" rx="2" />
-              <circle cx="12" cy="12" r="2" />
-              <path d="M6 12h.01M18 12h.01" />
-            </svg>
-            <span className="font-extrabold text-[11px] tracking-wider uppercase">COD</span>
-          </div>
-          <span className="text-[9px] font-medium bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded border border-neutral-200">Doorstep</span>
-        </div>
-      )
-    }
-  };
-
   const baseGateways = settings?.enabledGateways && settings.enabledGateways.length > 0
     ? settings.enabledGateways
     : ["payu", "ccavenue", "snapmint", "cod"];
     
   const availableGateways = baseGateways.filter(g => g !== "cod" || isCodAvailable);
 
+  const isSnapmintIneligible = snapmintMin > 0 && total !== undefined && total < snapmintMin;
+
   // Ensure an available and eligible gateway is selected
   React.useEffect(() => {
-    const isSnapmintIneligible = snapmintMin > 0 && total !== undefined && total < snapmintMin;
     const eligibleGateways = availableGateways.filter(
       (g) => g !== "snapmint" || !isSnapmintIneligible
     );
@@ -162,7 +54,7 @@ export const CheckoutPaymentStep = ({
     ) {
       setPaymentOption(eligibleGateways[0] as PaymentMethodType);
     }
-  }, [availableGateways, paymentOption, setPaymentOption, total, snapmintMin]);
+  }, [availableGateways, paymentOption, setPaymentOption, isSnapmintIneligible]);
 
   const [isCheckingStatus, setIsCheckingStatus] = React.useState(false);
   const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
@@ -195,6 +87,32 @@ export const CheckoutPaymentStep = ({
     } finally {
       setIsCheckingStatus(false);
     }
+  };
+
+  const isCodWithAdvance = Boolean(settings?.codPartialPaymentEnabled) && (settings?.codPartialPaymentValue || 0) > 0;
+
+  const codAdvanceText = settings?.codPartialPaymentType === "fixed"
+    ? `₹${Number(settings?.codPartialPaymentValue || 0).toLocaleString("en-IN")}`
+    : `${settings?.codPartialPaymentValue ?? 10}%`;
+
+  const advanceAmount = total !== undefined && total > 0
+    ? settings?.codPartialPaymentType === "fixed"
+      ? Math.min(total, Number(settings?.codPartialPaymentValue || 0))
+      : Math.round((total * Number(settings?.codPartialPaymentValue || 10)) / 100)
+    : 0;
+
+  const balanceDue = total !== undefined && total > 0
+    ? Math.max(0, total - advanceAmount)
+    : 0;
+
+  const handleSelectGateway = (gw: PaymentMethodType) => {
+    if (gw === "snapmint" && isSnapmintIneligible) {
+      toast.error(
+        `Snapmint EMI requires a minimum order of ₹${snapmintMin.toLocaleString("en-IN")} (Current total: ₹${Number(total).toLocaleString("en-IN")})`
+      );
+      return;
+    }
+    setPaymentOption(gw);
   };
 
   return (
@@ -342,149 +260,295 @@ export const CheckoutPaymentStep = ({
         </div>
       )}
 
-      {/* Gateway Options */}
+      {/* Payment Method Gateways — Authentic live site headings */}
       <div className="flex flex-col gap-2.5 pt-1">
         {isLoading ? (
           <div className="p-4 border border-neutral-200 animate-pulse bg-neutral-50 h-24" />
         ) : (
           availableGateways.map((method) => {
-            const info = GATEWAY_INFO[method];
-            if (!info) return null;
-            
-            const isSnapmint = method === "snapmint";
-            const isSnapmintIneligible = isSnapmint && snapmintMin > 0 && total !== undefined && total < snapmintMin;
-            const isCodWithAdvance = method === "cod" && Boolean(settings?.codPartialPaymentEnabled) && (settings?.codPartialPaymentValue || 0) > 0;
-            const isSelected = paymentOption === method;
+            // 1. PayU (Live site title: PayUMoney - Bajaj EMI, Credit Cards, Net Banking & More)
+            if (method === "payu") {
+              const isSelected = paymentOption === "payu";
+              return (
+                <label
+                  key="payu"
+                  onClick={() => handleSelectGateway("payu")}
+                  className={`relative flex flex-col p-3.5 border rounded-none transition-all overflow-hidden cursor-pointer ${
+                    isSelected
+                      ? "border-banner bg-orange-50/20 ring-1 ring-banner"
+                      : "border-neutral-300 hover:border-neutral-400 bg-white"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="paymentOption"
+                      checked={isSelected}
+                      onChange={() => handleSelectGateway("payu")}
+                      className="accent-orange-600 w-4 h-4 mt-0.5 shrink-0 cursor-pointer"
+                    />
+                    <div className="flex flex-col w-full">
+                      <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>PayUMoney - Bajaj EMI, Credit Cards, Net Banking & More</span>
+                        </div>
+                        <div className="flex items-center ml-auto gap-1 shrink-0">
+                          <Image src="/icons/payment/payu.svg" alt="PayU" width={40} height={20} className="object-contain h-5 w-auto" priority loading="eager" unoptimized />
+                          <Image src="/icons/payment/upi.svg" alt="UPI" width={30} height={16} className="object-contain h-4 w-auto" priority loading="eager" unoptimized />
+                        </div>
+                      </div>
+                      <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
+                        Google Pay, PhonePe, Paytm, Visa, Mastercard, RuPay, NetBanking & Bajaj Finserv EMI
+                      </span>
 
-            const codAdvanceText = settings?.codPartialPaymentType === "fixed"
-              ? `₹${Number(settings?.codPartialPaymentValue || 0).toLocaleString("en-IN")}`
-              : `${settings?.codPartialPaymentValue ?? 10}%`;
-
-            const advanceAmount = total !== undefined && total > 0
-              ? settings?.codPartialPaymentType === "fixed"
-                ? Math.min(total, Number(settings?.codPartialPaymentValue || 0))
-                : Math.round((total * Number(settings?.codPartialPaymentValue || 10)) / 100)
-              : 0;
-
-            const balanceDue = total !== undefined && total > 0
-              ? Math.max(0, total - advanceAmount)
-              : 0;
-
-            const handleSelectMethod = () => {
-              if (isSnapmintIneligible) {
-                toast.error(
-                  `Snapmint Cardless EMI requires a minimum order of ₹${snapmintMin.toLocaleString("en-IN")} (Current total: ₹${Number(total).toLocaleString("en-IN")})`
-                );
-                return;
-              }
-              setPaymentOption(method as PaymentMethodType);
-            };
-
-            return (
-              <label
-                key={method}
-                onClick={handleSelectMethod}
-                className={`relative flex flex-col p-3.5 border rounded-none transition-all overflow-hidden ${
-                  isSnapmintIneligible
-                    ? "border-neutral-200 bg-neutral-50/70 opacity-80 cursor-not-allowed"
-                    : isSelected
-                    ? "border-banner bg-orange-50/20 ring-1 ring-banner cursor-pointer"
-                    : "border-neutral-300 hover:border-neutral-400 bg-white cursor-pointer"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <input
-                    type="radio"
-                    name="paymentOption"
-                    disabled={isSnapmintIneligible}
-                    checked={isSelected}
-                    onChange={handleSelectMethod}
-                    className={`accent-orange-600 w-4 h-4 mt-0.5 shrink-0 ${
-                      isSnapmintIneligible ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-                    }`}
-                  />
-                  <div className="flex flex-col w-full">
-                    <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
-                      {info.label}
-                      {method !== "payu" && <div className="shrink-0 scale-90 origin-right">{info.icon}</div>}
+                      {/* Logo Strip */}
+                      <div className="flex items-center gap-2 mt-2 flex-wrap opacity-90">
+                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+                          <Image src="/icons/payment/gpay.svg" alt="GPay" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                        </div>
+                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+                          <Image src="/icons/payment/phonepe.svg" alt="PhonePe" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                        </div>
+                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+                          <Image src="/icons/payment/paytm.svg" alt="Paytm" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                        </div>
+                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+                          <Image src="/icons/payment/visa.svg" alt="VISA" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                        </div>
+                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+                          <Image src="/icons/payment/mastercard.svg" alt="Mastercard" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                        </div>
+                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+                          <Image src="/icons/payment/rupay.svg" alt="RuPay" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
-                      {info.desc}
-                    </span>
-
-                    {/* Flipkart-style Highlight Ticker Strip */}
-                    {method === "cod" && isCodWithAdvance && (
-                      <div className="mt-2.5 flex items-center justify-between gap-2.5 px-3 py-2 bg-[#F0F5FF] border border-[#D0E1FD] rounded text-xs text-[#172337]">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <svg className="w-4 h-4 text-[#2874F0] shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
-                          </svg>
-                          <p className="text-[12px] leading-snug text-[#1E293B]">
-                            for <strong className="font-bold text-[#2874F0]">{codAdvanceText} advance payment</strong> you will be directed to <strong className="font-bold text-neutral-900">Payu Payment Gateway</strong>
-                          </p>
-                        </div>
-                        <div className="shrink-0 hidden sm:flex items-center bg-white px-1.5 py-0.5 border border-[#D0E1FD] rounded shadow-2xs h-5">
-                          <Image src="/icons/payment/payu.svg" alt="PayU" width={30} height={14} className="object-contain h-3.5 w-auto" priority loading="eager" unoptimized />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Snapmint Ineligible notice */}
-                    {isSnapmintIneligible && (
-                      <div className="mt-2.5 flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 text-amber-900 rounded text-xs leading-relaxed">
-                        <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <div>
-                          <span className="font-bold">Order value ₹{Number(total).toLocaleString("en-IN")} is below Snapmint's minimum limit (₹{snapmintMin.toLocaleString("en-IN")}).</span>{" "}
-                          <span className="text-neutral-700">Add <strong>₹{(snapmintMin - total).toLocaleString('en-IN')}</strong> more to your cart to unlock 0% Cardless EMI with Snapmint.</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* COD Advance payment live breakdown (when selected) */}
-                    {method === "cod" && isCodWithAdvance && isSelected && total !== undefined && total > 0 && advanceAmount > 0 && (
-                      <div className="mt-2.5 p-3 bg-neutral-50/80 border border-neutral-200 rounded text-xs text-neutral-800 flex flex-wrap items-center justify-between gap-3 shadow-2xs animate-in fade-in duration-200">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded bg-[#F0F5FF] border border-[#D0E1FD] flex items-center justify-center shrink-0">
-                            <svg className="w-3.5 h-3.5 text-[#2874F0]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="2" y="5" width="20" height="14" rx="2" />
-                              <line x1="2" y1="10" x2="22" y2="10" />
-                            </svg>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-[10px] text-neutral-500 uppercase font-semibold">Advance via PayU</span>
-                            <strong className="text-banner font-black text-sm">₹{advanceAmount.toLocaleString("en-IN")}</strong>
-                          </div>
-                        </div>
-
-                        <div className="text-neutral-300 font-light text-base hidden sm:block">→</div>
-
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
-                            <svg className="w-3.5 h-3.5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M6 3h12" />
-                              <path d="M6 8h12" />
-                              <path d="m6 13 8.5 8" />
-                              <path d="M6 13h3" />
-                              <path d="M9 13c6.667 0 6.667-10 0-10" />
-                            </svg>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-[10px] text-neutral-500 uppercase font-semibold">Balance on Delivery</span>
-                            <strong className="text-emerald-700 font-black text-sm">₹{balanceDue.toLocaleString("en-IN")}</strong>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    
-
-                    {method === "payu" && info.icon}
                   </div>
-                </div>
-              </label>
-            );
+                </label>
+              );
+            }
+
+            // 2. CCAvenue (Live site title: CCAvenue)
+            if (method === "ccavenue") {
+              const isSelected = paymentOption === "ccavenue";
+              return (
+                <label
+                  key="ccavenue"
+                  onClick={() => handleSelectGateway("ccavenue")}
+                  className={`relative flex flex-col p-3.5 border rounded-none transition-all overflow-hidden cursor-pointer ${
+                    isSelected
+                      ? "border-banner bg-orange-50/20 ring-1 ring-banner"
+                      : "border-neutral-300 hover:border-neutral-400 bg-white"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="paymentOption"
+                      checked={isSelected}
+                      onChange={() => handleSelectGateway("ccavenue")}
+                      className="accent-orange-600 w-4 h-4 mt-0.5 shrink-0 cursor-pointer"
+                    />
+                    <div className="flex flex-col w-full">
+                      <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>CCAvenue</span>
+                          <span className="text-[9px] font-bold bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded border border-neutral-200">
+                            50+ Banks
+                          </span>
+                        </div>
+                        <div className="shrink-0 flex items-center gap-1.5">
+                          <div className="flex items-center bg-[#8f0d14] px-2.5 py-1 rounded shadow-2xs h-6">
+                            <span className="text-white font-black text-[11px] tracking-tight">CCAvenue</span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
+                        Credit Cards, Debit Cards, NetBanking (All Major Indian Banks) & Wallets
+                      </span>
+                    </div>
+                  </div>
+                </label>
+              );
+            }
+
+            // 3. Snapmint (Live site title: Snapmint - EMI without Credit Card)
+            if (method === "snapmint") {
+              const isSelected = paymentOption === "snapmint";
+              return (
+                <label
+                  key="snapmint"
+                  onClick={() => handleSelectGateway("snapmint")}
+                  className={`relative flex flex-col p-3.5 border rounded-none transition-all overflow-hidden ${
+                    isSnapmintIneligible
+                      ? "border-neutral-200 bg-neutral-50/70 opacity-80 cursor-not-allowed"
+                      : isSelected
+                      ? "border-banner bg-orange-50/20 ring-1 ring-banner cursor-pointer"
+                      : "border-neutral-300 hover:border-neutral-400 bg-white cursor-pointer"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="paymentOption"
+                      disabled={isSnapmintIneligible}
+                      checked={isSelected}
+                      onChange={() => handleSelectGateway("snapmint")}
+                      className={`accent-orange-600 w-4 h-4 mt-0.5 shrink-0 ${
+                        isSnapmintIneligible ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                      }`}
+                    />
+                    <div className="flex flex-col w-full">
+                      <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>Snapmint - EMI without Credit Card</span>
+                          {snapmintMin > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-amber-50 text-amber-900 border border-amber-300 px-2 py-0.5 rounded shadow-2xs tracking-wide uppercase">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                              Min. Order ₹{snapmintMin.toLocaleString("en-IN")}
+                            </span>
+                          )}
+                        </div>
+                        <div className="shrink-0 scale-90 origin-right">
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="flex items-center bg-[#004851] px-2.5 py-1 rounded shadow-xs h-7">
+                              <span className="text-[#00e396] font-bold text-xs tracking-tight">snap</span>
+                              <span className="text-white font-bold text-xs tracking-tight">mint</span>
+                            </div>
+                            <span className="text-[9px] font-extrabold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200">0% Interest</span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
+                        Buy now, pay in easy monthly installments without credit card
+                      </span>
+
+                      {/* Snapmint Ineligible notice */}
+                      {isSnapmintIneligible && (
+                        <div className="mt-2.5 flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 text-amber-900 rounded text-xs leading-relaxed">
+                          <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                          <div>
+                            <span className="font-bold">Order value ₹{Number(total).toLocaleString("en-IN")} is below Snapmint&apos;s minimum limit (₹{snapmintMin.toLocaleString("en-IN")}).</span>{" "}
+                            <span className="text-neutral-700">Add <strong>₹{(snapmintMin - total).toLocaleString('en-IN')}</strong> more to your cart to unlock 0% EMI with Snapmint.</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </label>
+              );
+            }
+
+            // 4. Cash on Delivery (Live site title: Cash on Delivery | COD)
+            if (method === "cod") {
+              const isSelected = paymentOption === "cod";
+              return (
+                <label
+                  key="cod"
+                  onClick={() => handleSelectGateway("cod")}
+                  className={`relative flex flex-col p-3.5 border rounded-none transition-all overflow-hidden cursor-pointer ${
+                    isSelected
+                      ? "border-banner bg-orange-50/20 ring-1 ring-banner"
+                      : "border-neutral-300 hover:border-neutral-400 bg-white"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="paymentOption"
+                      checked={isSelected}
+                      onChange={() => handleSelectGateway("cod")}
+                      className="accent-orange-600 w-4 h-4 mt-0.5 shrink-0 cursor-pointer"
+                    />
+                    <div className="flex flex-col w-full">
+                      <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>Cash on Delivery | COD</span>
+                          {isCodWithAdvance && (
+                            <span className="text-[10px] font-bold bg-[#EBF4FF] text-[#2874F0] border border-[#C7D9FF] px-2 py-0.5 rounded tracking-wide">
+                              {codAdvanceText} Advance
+                            </span>
+                          )}
+                        </div>
+                        <div className="shrink-0 scale-90 origin-right">
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="flex items-center gap-1 bg-neutral-900 text-white px-2.5 py-1 rounded shadow-xs h-7">
+                              <svg className="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="2" y="6" width="20" height="12" rx="2" />
+                                <circle cx="12" cy="12" r="2" />
+                                <path d="M6 12h.01M18 12h.01" />
+                              </svg>
+                              <span className="font-extrabold text-[11px] tracking-wider uppercase">COD</span>
+                            </div>
+                            <span className="text-[9px] font-medium bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded border border-neutral-200">Doorstep</span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
+                        Pay in cash or UPI when package is delivered at your doorstep
+                      </span>
+
+                      {/* Advance Payment Banner */}
+                      {isCodWithAdvance && (
+                        <div className="mt-2.5 flex items-center justify-between gap-2.5 px-3 py-2 bg-[#F0F5FF] border border-[#D0E1FD] rounded text-xs text-[#172337]">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <svg className="w-4 h-4 text-[#2874F0] shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
+                            </svg>
+                            <p className="text-[12px] leading-snug text-[#1E293B]">
+                              for <strong className="font-bold text-[#2874F0]">{codAdvanceText} advance payment</strong> you will be directed to <strong className="font-bold text-neutral-900">Payu Payment Gateway</strong>
+                            </p>
+                          </div>
+                          <div className="shrink-0 hidden sm:flex items-center bg-white px-1.5 py-0.5 border border-[#D0E1FD] rounded shadow-2xs h-5">
+                            <Image src="/icons/payment/payu.svg" alt="PayU" width={30} height={14} className="object-contain h-3.5 w-auto" priority loading="eager" unoptimized />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* COD Advance payment live breakdown (when selected) */}
+                      {isCodWithAdvance && isSelected && total !== undefined && total > 0 && advanceAmount > 0 && (
+                        <div className="mt-2.5 p-3 bg-neutral-50/80 border border-neutral-200 rounded text-xs text-neutral-800 flex flex-wrap items-center justify-between gap-3 shadow-2xs animate-in fade-in duration-200">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded bg-[#F0F5FF] border border-[#D0E1FD] flex items-center justify-center shrink-0">
+                              <svg className="w-3.5 h-3.5 text-[#2874F0]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="2" y="5" width="20" height="14" rx="2" />
+                                <line x1="2" y1="10" x2="22" y2="10" />
+                              </svg>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] text-neutral-500 uppercase font-semibold">Advance via PayU</span>
+                              <strong className="text-banner font-black text-sm">₹{advanceAmount.toLocaleString("en-IN")}</strong>
+                            </div>
+                          </div>
+
+                          <div className="text-neutral-300 font-light text-base hidden sm:block">→</div>
+
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
+                              <svg className="w-3.5 h-3.5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M6 3h12" />
+                                <path d="M6 8h12" />
+                                <path d="m6 13 8.5 8" />
+                                <path d="M6 13h3" />
+                                <path d="M9 13c6.667 0 6.667-10 0-10" />
+                              </svg>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] text-neutral-500 uppercase font-semibold">Balance on Delivery</span>
+                              <strong className="text-emerald-700 font-black text-sm">₹{balanceDue.toLocaleString("en-IN")}</strong>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </label>
+              );
+            }
+
+            return null;
           })
         )}
       </div>
@@ -509,7 +573,7 @@ export const CheckoutPaymentStep = ({
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
               </svg>
               <span className="text-[11.5px] text-[#1E293B]">
-                for <strong className="font-bold text-[#2874F0]">{settings?.codPartialPaymentType === "fixed" ? `₹${Number(settings?.codPartialPaymentValue || 0).toLocaleString("en-IN")}` : `${settings?.codPartialPaymentValue ?? 10}%`} advance payment</strong> you will be directed to <strong className="font-bold text-neutral-900">Payu Payment Gateway</strong>
+                for <strong className="font-bold text-[#2874F0]">{codAdvanceText} advance payment</strong> you will be directed to <strong className="font-bold text-neutral-900">Payu Payment Gateway</strong>
               </span>
             </div>
             <div className="shrink-0 flex items-center bg-white px-1.5 py-0.5 border border-[#D0E1FD] rounded shadow-2xs h-4.5">
@@ -531,7 +595,7 @@ export const CheckoutPaymentStep = ({
             type="button"
             onClick={handleAgreeToPay}
             disabled={isProcessing || !paymentOption}
-            className="flex-1 bg-banner hover:bg-orange-600 text-white font-bold tracking-wider text-xs uppercase py-3.5 px-6 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap"
+            className="flex-1 bg-banner hover:bg-orange-600 text-white font-bold tracking-wider text-xs uppercase py-3.5 px-6 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
           >
             {isProcessing ? "PROCESSING..." : "PLACE ORDER"}
           </button>

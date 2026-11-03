@@ -32,6 +32,11 @@ export class ReviewController {
     return ApiResponse.success(reviews, "Store reviews fetched successfully");
   }
 
+  static async getStoreRatingStats(req: NextRequest) {
+    const stats = await ReviewService.getStoreRatingStats();
+    return ApiResponse.success(stats, "Store rating stats fetched successfully");
+  }
+
   static async syncGoogleReviews(req: NextRequest) {
     let apiKey: string | undefined;
     let pages = 1;

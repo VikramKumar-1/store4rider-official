@@ -51,6 +51,26 @@ export class ReviewService {
     return reviews;
   }
 
+  static async getStoreRatingStats(): Promise<{ rating: number; reviewCount: string }> {
+    try {
+      const { SettingRepository } = await import("../settings/setting.repository");
+      const settings = await SettingRepository.getSettings();
+      if (settings.googleRating) {
+        return {
+          rating: settings.googleRating,
+          reviewCount: String(settings.googleReviewCount || "800+"),
+        };
+      }
+    } catch {
+      // Fallback to reviews calculation
+    }
+    const stats = await ReviewRepository.calculateStoreRatingStats();
+    return {
+      rating: stats.avgRating,
+      reviewCount: stats.reviewCount > 0 ? `${stats.reviewCount}+` : "800+",
+    };
+  }
+
   static async syncGoogleReviews(apiKey?: string, pages: number = 1): Promise<IStoreReview[]> {
     const resolvedKey = apiKey || process.env.SERPAPI_KEY;
     if (!resolvedKey) {
@@ -60,6 +80,8 @@ export class ReviewService {
     const maxPages = Math.min(Math.max(pages, 1), 10);
     const allReviews: any[] = [];
     let nextToken: string | undefined = undefined;
+    let placeRating: number | undefined = undefined;
+    let placeReviewsCount: number | undefined = undefined;
 
     logger.info(`Fetching up to ${maxPages} page(s) of Google Reviews from SerpApi`);
 
@@ -76,6 +98,20 @@ export class ReviewService {
         if (allReviews.length > 0) break;
         logger.error("SerpApi returned error", { error: data.error });
         throw new AppError(`SerpApi error: ${data.error}`, 502);
+      }
+
+      // Extract dynamic live store rating directly from Google Maps place_info
+      if (p === 0 && data.place_info) {
+        if (typeof data.place_info.rating === "number") {
+          placeRating = data.place_info.rating;
+        } else if (typeof data.place_info.rating === "string") {
+          placeRating = parseFloat(data.place_info.rating);
+        }
+        if (data.place_info.reviews !== undefined) {
+          placeReviewsCount = typeof data.place_info.reviews === "number" 
+            ? data.place_info.reviews 
+            : parseInt(String(data.place_info.reviews), 10);
+        }
       }
 
       if (!data.reviews || !Array.isArray(data.reviews) || data.reviews.length === 0) {
@@ -105,6 +141,22 @@ export class ReviewService {
 
     const saved = await ReviewRepository.saveStoreReviews(mapped);
     logger.info(`Successfully saved ${saved.length} store reviews to database across ${maxPages} page(s)`);
+
+    // Dynamically persist live Google Maps rating to Settings
+    if (placeRating !== undefined || placeReviewsCount !== undefined) {
+      try {
+        const { SettingRepository } = await import("../settings/setting.repository");
+        await SettingRepository.updateSettings({
+          ...(placeRating !== undefined && !isNaN(placeRating) ? { googleRating: placeRating } : {}),
+          ...(placeReviewsCount ? { googleReviewCount: `${placeReviewsCount}+` } : {}),
+          googleLastSyncedAt: new Date(),
+        });
+        logger.info(`Updated Google Store rating: ${placeRating}, reviews: ${placeReviewsCount}`);
+      } catch (err: any) {
+        logger.warn("Failed to update settings with Google rating", { error: err.message });
+      }
+    }
+
     return saved;
   }
 

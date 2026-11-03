@@ -48,6 +48,9 @@ export class SettingController {
       guidesMetaKeywords: settings.guidesMetaKeywords || "",
       footerConfig: settings.footerConfig,
       policyPages: settings.policyPages || [],
+      googleRating: settings.googleRating ?? 4.8,
+      googleReviewCount: settings.googleReviewCount ?? "800+",
+      googleLastSyncedAt: settings.googleLastSyncedAt,
     };
     return ApiResponse.success(publicData, "Public settings retrieved successfully");
   }

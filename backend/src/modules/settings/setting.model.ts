@@ -47,6 +47,9 @@ export interface ISetting extends Document {
   guidesHeroDescription?: string;
   footerConfig?: IFooterConfig;
   policyPages?: IPolicyPageConfig[];
+  googleRating?: number;
+  googleReviewCount?: string | number;
+  googleLastSyncedAt?: Date;
 }
 
 const policyPageMongooseSchema = new Schema(
@@ -184,7 +187,10 @@ const settingSchema = new Schema<ISetting>(
         { name: "Medium Box (Jackets/Boots)", length: 30, breadth: 30, height: 15 },
         { name: "Large Box (Helmets)", length: 40, breadth: 30, height: 30 }
       ]
-    }
+    },
+    googleRating: { type: Number, default: 4.8 },
+    googleReviewCount: { type: String, default: "800+" },
+    googleLastSyncedAt: { type: Date }
   },
   { timestamps: true }
 );

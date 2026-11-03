@@ -68,6 +68,16 @@ export class ReviewRepository {
     return StoreReviewModel.countDocuments({ isActive: true });
   }
 
+  static async calculateStoreRatingStats(): Promise<{ avgRating: number; reviewCount: number }> {
+    const reviews = await StoreReviewModel.find({ isActive: true }).select("rating").lean().exec();
+    if (!reviews || reviews.length === 0) {
+      return { avgRating: 4.8, reviewCount: 0 };
+    }
+    const total = reviews.reduce((sum, r: any) => sum + (r.rating || 0), 0);
+    const avgRating = Number((total / reviews.length).toFixed(1));
+    return { avgRating, reviewCount: reviews.length };
+  }
+
   static async saveStoreReviews(reviews: Partial<IStoreReview>[]): Promise<IStoreReview[]> {
     if (!reviews || reviews.length === 0) {
       return this.getStoreReviews(100);
