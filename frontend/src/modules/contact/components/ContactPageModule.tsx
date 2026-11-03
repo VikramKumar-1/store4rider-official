@@ -172,7 +172,7 @@ export function ContactPageModule() {
               <span className="font-bold text-slate-900 uppercase tracking-wider block text-[11px]">Helpful Resources</span>
               <ul className="space-y-2 text-slate-600">
                 <li>
-                  <Link href="/returns" className="text-slate-800 hover:text-brand font-semibold flex items-center justify-between">
+                  <Link href="/returns-replacements-store4riders" className="text-slate-800 hover:text-brand font-semibold flex items-center justify-between">
                     <span>7-Day Size &amp; Gear Exchange Policy</span>
                     <span>&rarr;</span>
                   </Link>

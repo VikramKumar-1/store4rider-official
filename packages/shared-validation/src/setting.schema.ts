@@ -88,6 +88,11 @@ export const updateSettingSchema = z.object({
   googleRating: z.number().min(1).max(5).optional(),
   googleReviewCount: z.union([z.string(), z.number()]).optional(),
   googleLastSyncedAt: z.union([z.date(), z.string()]).optional(),
+  upiMerchantVpa: z.string().optional().or(z.literal("")),
+  upiMerchantName: z.string().optional().or(z.literal("")),
+  upiMcc: z.string().optional().or(z.literal("")),
+  googlePayMerchantId: z.string().optional().or(z.literal("")),
+  googlePayEnvironment: z.enum(["TEST", "PRODUCTION"]).optional(),
 });
 
 export type UpdateSettingInput = z.infer<typeof updateSettingSchema>;

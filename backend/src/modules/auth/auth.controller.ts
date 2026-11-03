@@ -23,8 +23,22 @@ const setCookies = (res: NextResponse, accessToken: string, refreshToken: string
 };
 
 const clearCookies = (res: NextResponse) => {
-  res.cookies.set("accessToken", "", { maxAge: 0, path: "/" });
-  res.cookies.set("refreshToken", "", { maxAge: 0, path: "/" });
+  res.cookies.set("accessToken", "", {
+    maxAge: 0,
+    expires: new Date(0),
+    path: "/",
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "strict" : "lax",
+  });
+  res.cookies.set("refreshToken", "", {
+    maxAge: 0,
+    expires: new Date(0),
+    path: "/",
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "strict" : "lax",
+  });
 };
 
 /**
@@ -86,7 +100,24 @@ export class AuthController {
   }
 
   static async logout(req: NextRequest) {
-    // Note: We'd extract userId if we're blacklisting
+    try {
+      const { extractUserFromAuth } = await import("../../core/middlewares/auth");
+      const userId = extractUserFromAuth(req);
+      if (userId) {
+        await AuthService.logout(userId);
+      }
+    } catch {
+      // Session may already be expired, proceed to clear cookies
+    }
+
+    const refreshToken = req.cookies.get("refreshToken")?.value;
+    if (refreshToken) {
+      try {
+        const { setCache } = await import("../../core/cache/redis");
+        await setCache(`bl_token_${refreshToken}`, "1", 30 * 24 * 60 * 60);
+      } catch {}
+    }
+
     const res = ApiResponse.success(null, "Logged out successfully");
     clearCookies(res);
     return res;

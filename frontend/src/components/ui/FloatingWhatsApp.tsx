@@ -23,6 +23,7 @@ const ROUTES_WITHOUT_BOTTOM_BAR = [
   "/privacy",
   "/shipping",
   "/returns",
+  "/returns-replacements-store4riders",
   "/cash-on-delivery",
   "/collaboration",
   "/careers",

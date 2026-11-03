@@ -85,7 +85,7 @@ export async function orderRouter(req: NextRequest, routePath: string[]): Promis
     return await OrderController.syncPaymentStatus(req);
   }
 
-  if (method === "POST" && pathLen === 1 && routePath[0] === "verify") {
+  if (method === "POST" && pathLen === 1 && (routePath[0] === "verify" || routePath[0] === "verify-payment")) {
     return await OrderController.verify(req);
   }
 

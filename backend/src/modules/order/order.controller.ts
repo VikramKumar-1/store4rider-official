@@ -44,7 +44,12 @@ export class OrderController {
       userId,
       data.gatewayOrderId,
       data.paymentId,
-      data.signature
+      data.signature,
+      {
+        paymentData: data.paymentData,
+        tezResponse: data.tezResponse,
+        utr: data.utr,
+      }
     );
     return ApiResponse.success(null, "Payment verified successfully");
   }

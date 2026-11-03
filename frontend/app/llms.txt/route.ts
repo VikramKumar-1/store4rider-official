@@ -41,8 +41,8 @@ Store4Riders equips motorcyclists across India with 100% genuine, certified ridi
 - [Motorcycle Gear Guides](${siteUrl}/guides): Expert advice on helmet sizing, CE armor ratings (Level 1 vs Level 2), riding gear maintenance, and long-distance touring preparation.
 
 ## Policies & Customer Service
-- [Size & Gear Exchange Policy](${siteUrl}/exchange): 7-day hassle-free size and gear exchange policy on unworn apparel with original tags.
-- [Returns Policy](${siteUrl}/returns): Comprehensive guidelines on product return criteria, exchanges, and warranty claims.
+- [Size & Gear Exchange Policy](${siteUrl}/returns-replacements-store4riders): 7-day hassle-free size and gear exchange policy on unworn apparel with original tags.
+- [Returns & Replacements Policy](${siteUrl}/returns-replacements-store4riders): Comprehensive guidelines on product return criteria, exchanges, and warranty claims.
 - [Shipping & Delivery Policy](${siteUrl}/shipping): Express doorstep delivery across India with free shipping on qualifying orders above ₹999.
 - [Cash on Delivery (COD)](${siteUrl}/cash-on-delivery): Payment terms, pin code availability, and verification guidelines for COD orders.
 - [Customer Support](${siteUrl}/support): Frequently asked questions, sizing assistance, order status tracking, and rider support.

@@ -1,5 +1,5 @@
 export type PaymentStatus = "created" | "pending" | "captured" | "failed" | "refunded" | "partially_refunded";
-export type PaymentGatewayType = "payu" | "ccavenue" | "snapmint";
+export type PaymentGatewayType = "payu" | "ccavenue" | "snapmint" | "upi" | "gpay";
 export type PaymentMethodType = "cod" | "payu" | "ccavenue" | "snapmint" | "upi";
 
 

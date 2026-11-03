@@ -51,6 +51,11 @@ export class SettingController {
       googleRating: settings.googleRating ?? 4.8,
       googleReviewCount: settings.googleReviewCount ?? "800+",
       googleLastSyncedAt: settings.googleLastSyncedAt,
+      upiMerchantVpa: settings.upiMerchantVpa || process.env.GOOGLE_PAY_MERCHANT_VPA || undefined,
+      upiMerchantName: settings.upiMerchantName || process.env.GOOGLE_PAY_MERCHANT_NAME || settings.legalBusinessName || "Store4Riders",
+      upiMcc: settings.upiMcc || process.env.GOOGLE_PAY_MCC || "5941",
+      googlePayMerchantId: settings.googlePayMerchantId || process.env.GOOGLE_PAY_MERCHANT_ID || undefined,
+      googlePayEnvironment: settings.googlePayEnvironment || (process.env.GOOGLE_PAY_ENVIRONMENT as any) || "TEST",
     };
     return ApiResponse.success(publicData, "Public settings retrieved successfully");
   }

@@ -34,6 +34,11 @@ export interface IPublicSettings {
   googleRating?: number;
   googleReviewCount?: string | number;
   googleLastSyncedAt?: string | Date;
+  upiMerchantVpa?: string;
+  upiMerchantName?: string;
+  upiMcc?: string;
+  googlePayMerchantId?: string;
+  googlePayEnvironment?: "TEST" | "PRODUCTION";
 }
 
 export function usePublicSettings() {

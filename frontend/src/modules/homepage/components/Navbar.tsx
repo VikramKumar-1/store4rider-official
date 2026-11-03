@@ -8,6 +8,7 @@ import { Bars3Icon, ShoppingBagIcon, MagnifyingGlassIcon, XMarkIcon, HeartIcon, 
 import { NavbarProps } from "../types/homepage.types";
 import { useCartStore } from "@/stores/useCartStore";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useLogout } from "@/core/hooks/useAuth";
 import { SearchAutocomplete } from "@/modules/search/components/SearchAutocomplete";
 import { NavItem } from "../types/homepage.types";
 import { DEFAULT_NAV_ITEMS } from "./navbar/nav.constants";
@@ -32,8 +33,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   hasTopBanner = true,
 }) => {
   const items = useCartStore((state) => state.items);
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const router = useRouter();
+  const logoutMutation = useLogout();
+
+  const handleLogout = () => {
+    setIsUserMenuOpen(false);
+    setIsMobileMenuOpen(false);
+    logoutMutation.mutate();
+  };
 
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -227,11 +235,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 else setIsUserMenuOpen((v) => !v);
               }}
               onClose={() => setIsUserMenuOpen(false)}
-              onLogout={() => {
-                logout();
-                setIsUserMenuOpen(false);
-                router.push("/");
-              }}
+              onLogout={handleLogout}
               menuRef={userMenuRef}
             />
 
@@ -271,10 +275,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         mounted={mounted}
         isAuthenticated={isAuthenticated}
         user={user}
-        onLogout={() => {
-          logout();
-          router.push("/");
-        }}
+        onLogout={handleLogout}
       />
     </>
   );

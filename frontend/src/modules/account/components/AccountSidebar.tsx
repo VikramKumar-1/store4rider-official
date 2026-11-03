@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { User, Package, Heart, LogOut, MapPin, Settings } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
+import { useLogout } from "@/core/hooks/useAuth";
 import { toast } from "sonner";
 
 const links = [
@@ -32,19 +32,9 @@ export function AccountSidebar() {
     }
   }, [mounted, isAuthenticated, router]);
 
-  const handleLogout = async () => {
-    try {
-      await apiClient.post("/auth/logout");
-      logout();
-      setUser(null);
-      toast.success("Logged out successfully");
-      router.push("/");
-    } catch (err) {
-      logout();
-      setUser(null);
-      toast.success("Logged out successfully");
-      router.push("/");
-    }
+  const logoutMutation = useLogout();
+  const handleLogout = () => {
+    logoutMutation.mutate();
   };
 
   if (!mounted || !isAuthenticated || !user) return null;

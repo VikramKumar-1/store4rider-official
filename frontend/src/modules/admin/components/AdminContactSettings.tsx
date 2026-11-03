@@ -115,7 +115,7 @@ export function AdminContactSettings() {
         <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
         <div className="text-xs sm:text-sm text-blue-900 leading-relaxed">
           <strong className="font-semibold text-blue-950">Storefront & Schema.org SEO Control:</strong>{" "}
-          Phone numbers, email, physical warehouse address, WhatsApp, and social media links configured here will automatically synchronize with Schema.org structured data (Google Rich Results), the website footer contact card, and customer invoices.
+          Phone numbers, email, physical warehouse address, WhatsApp, and social media links configured here will automatically synchronize with Schema.org structured data (Google Rich Results), courier shipping pickup, and customer invoices.
         </div>
       </div>
 

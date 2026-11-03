@@ -251,7 +251,7 @@ export class OrderService {
 
     let gatewayAmount = totalAmount;
     let collectGatewayForCod = false;
-    let actualGatewayType = paymentMethod === "upi" ? "payu" : paymentMethod;
+    let actualGatewayType = paymentMethod;
 
     if (paymentMethod === "cod") {
       pricing.codAmountToCollect = totalAmount;
@@ -408,7 +408,13 @@ export class OrderService {
     return resultData;
   }
 
-  static async verifyPayment(userId: string | undefined, gatewayOrderId: string, paymentId: string, signature: string) {
+  static async verifyPayment(
+    userId: string | undefined,
+    gatewayOrderId: string,
+    paymentId: string,
+    signature: string,
+    extraData?: { paymentData?: any; tezResponse?: any; utr?: string }
+  ) {
     const session = await mongoose.startSession();
     let stockFailed = false;
     let paymentRecord: any = null;
@@ -420,12 +426,22 @@ export class OrderService {
         // Ownership check
         if (userId && order.userId && String(order.userId) !== userId) throw new AppError("Order belongs to different user", 403);
 
-        const payment = await PaymentRepository.findByGatewayOrderId(gatewayOrderId, session);
+        const orderIdStr = String((order as any)._id || order.id);
+        const payment = (await PaymentRepository.findByGatewayOrderId(gatewayOrderId, session))
+          || (order.gatewayOrderId ? await PaymentRepository.findByGatewayOrderId(order.gatewayOrderId, session) : null)
+          || (await PaymentRepository.findByOrderId(orderIdStr, session));
         if (!payment) throw new AppError("Payment record not found", 404);
         paymentRecord = payment;
 
         const gateway = PaymentGatewayFactory.create(payment.gateway);
-        const verifyResult = await gateway.verifyPayment(payment as unknown as IPayment, { gatewayOrderId, paymentId, signature });
+        const verifyResult = await gateway.verifyPayment(payment as unknown as IPayment, {
+          gatewayOrderId,
+          paymentId,
+          signature,
+          paymentData: extraData?.paymentData,
+          tezResponse: extraData?.tezResponse,
+          utr: extraData?.utr || (signature && /^\d{12}$/.test(signature) ? signature : undefined),
+        });
 
         if (!verifyResult.success) {
           throw new AppError(verifyResult.message || "Payment verification failed", 400);
@@ -747,6 +763,9 @@ export class OrderService {
         const snapStatus = String(liveStatus?.status || liveStatus?.order_status || "").toLowerCase();
         isSuccess = snapStatus === "success" || snapStatus === "completed" || snapStatus === "authorized";
         gatewayPaymentId = liveStatus?.id || liveStatus?.token;
+      } else if (payment.gateway === "upi" || payment.gateway === "gpay") {
+        isSuccess = liveStatus?.status === "SUCCESS" || liveStatus?.isSuccess === true;
+        gatewayPaymentId = liveStatus?.gatewayPaymentId || payment.gatewayPaymentId || "";
       }
 
       if (isSuccess) {

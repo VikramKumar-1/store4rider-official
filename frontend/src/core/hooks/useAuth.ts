@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../api/client";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useCartStore } from "@/stores/useCartStore";
@@ -91,6 +91,36 @@ export function useResetPassword() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || "Failed to reset password. Link may be expired.");
+    },
+  });
+}
+
+
+export function useLogout() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const logoutStore = useAuthStore((state) => state.logout);
+
+  return useMutation({
+    mutationFn: async () => {
+      try {
+        await apiClient.post("/auth/logout");
+      } catch (e) {
+        // Proceed to clean up locally even if network is offline
+      }
+    },
+    onSettled: () => {
+      // 1. Clear Zustand auth store (user, token, refreshToken, isAuthenticated: false)
+      logoutStore();
+
+      // 2. Clear user cart binding, revert to guest cart
+      useCartStore.getState().switchUserCart(null);
+
+      // 3. Clear all cached React Query data (wishlist, profile, orders)
+      queryClient.clear();
+
+      toast.success("Logged out successfully");
+      router.push("/");
     },
   });
 }

@@ -50,6 +50,11 @@ export interface ISetting extends Document {
   googleRating?: number;
   googleReviewCount?: string | number;
   googleLastSyncedAt?: Date;
+  upiMerchantVpa?: string;
+  upiMerchantName?: string;
+  upiMcc?: string;
+  googlePayMerchantId?: string;
+  googlePayEnvironment?: "TEST" | "PRODUCTION";
 }
 
 const policyPageMongooseSchema = new Schema(
@@ -108,6 +113,7 @@ const footerConfigMongooseSchema = new Schema(
         { label: "Wish List", url: "/account/wishlist", openInNewTab: false },
         { label: "Rider Assist", url: "/rider-assist", openInNewTab: false },
         { label: "Cash on Delivery", url: "/cash-on-delivery", openInNewTab: false },
+        { label: "Store4Riders Gpay/PhonePay", url: "/googlepay-phonepay", openInNewTab: false },
         { label: "Collaboration", url: "/collaboration", openInNewTab: false },
       ],
     },
@@ -164,6 +170,11 @@ const settingSchema = new Schema<ISetting>(
     twitterUrl: { type: String, default: "https://twitter.com/store4riders" },
     returnWindowDays: { type: Number, default: 7 },
     popularSearches: { type: [String], default: [] },
+    upiMerchantVpa: { type: String, default: "" },
+    upiMerchantName: { type: String, default: "Store4Riders" },
+    upiMcc: { type: String, default: "5941" },
+    googlePayMerchantId: { type: String, default: "" },
+    googlePayEnvironment: { type: String, enum: ["TEST", "PRODUCTION"], default: "TEST" },
     brandsMetaTitle: { type: String, default: "" },
     brandsMetaDescription: { type: String, default: "" },
     brandsMetaKeywords: { type: String, default: "" },

@@ -74,8 +74,13 @@ export function useCheckout() {
         return;
       }
 
-      // Handle PayU, UPI, and COD partial payment with PayU
-      if (((method === "payu" || method === "upi") || (method === "cod" && gatewayOrderId)) && gatewayResponse) {
+      // Handle Direct UPI / Google Pay (modal handled in CheckoutPageModule)
+      if ((method === "upi" || method === "gpay") && gatewayResponse) {
+        return;
+      }
+
+      // Handle PayU and COD partial payment with PayU
+      if ((method === "payu" || (method === "cod" && gatewayOrderId)) && gatewayResponse) {
         toast.success("Redirecting to PayU Payment Gateway...");
 
         // If backend already resolved the sanitized redirect URL (bypassing PayU space bug)

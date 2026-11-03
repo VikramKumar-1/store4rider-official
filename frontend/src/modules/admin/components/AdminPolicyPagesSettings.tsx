@@ -77,7 +77,7 @@ function VisualRichEditor({ html, onChange }: VisualEditorProps) {
   };
 
   const handleInsertLink = () => {
-    const url = window.prompt("Enter destination URL (e.g. /returns or https://...):", "/");
+    const url = window.prompt("Enter destination URL (e.g. /returns-replacements-store4riders or https://...):", "/");
     if (url) {
       exec("createLink", url);
     }

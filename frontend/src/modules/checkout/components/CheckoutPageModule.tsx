@@ -34,6 +34,7 @@ import { CheckoutPersonalInfo } from "./CheckoutPersonalInfo";
 import { CheckoutStepper } from "./CheckoutStepper";
 import { CheckoutShippingDelivery } from "./CheckoutShippingDelivery";
 import { CheckoutPaymentStep } from "./CheckoutPaymentStep";
+import { DirectUpiModal } from "./DirectUpiModal";
 import { PostCheckoutRegisterForm } from "./PostCheckoutRegisterForm";
 import { useCheckout } from "@/core/hooks/useCheckout";
 import { useValidateCoupon, usePublicCoupons } from "@/core/hooks/useCoupons";
@@ -73,7 +74,7 @@ export const CheckoutPageModule = () => {
   const { user } = useAuthStore();
   const { items, clearCart, isLoaded } = useCartStore();
   const [mounted, setMounted] = useState(false);
-  const { mutate: placeOrder, isPending: isPlacingOrder } = useCheckout();
+  const { mutate: placeOrder, mutateAsync: placeOrderAsync, isPending: isPlacingOrder } = useCheckout();
   const { data: settings } = usePublicSettings();
   const { data: savedAddresses = [] } = useUserAddresses();
   const { mutateAsync: addAddressAsync, isPending: isAddingAddress } = useAddAddress();
@@ -91,6 +92,21 @@ export const CheckoutPageModule = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
   const validateCouponMutation = useValidateCoupon();
   const { data: publicCoupons = [] } = usePublicCoupons();
+
+  // Direct UPI / Google Pay Modal State
+  const [upiModalData, setUpiModalData] = useState<{
+    isOpen: boolean;
+    orderNumber: string;
+    amount: number;
+    upiUri: string;
+    payeeName?: string;
+    payeeVpa?: string;
+  }>({
+    isOpen: false,
+    orderNumber: "",
+    amount: 0,
+    upiUri: "",
+  });
 
   // Restore applied coupon from Cart / localStorage if user is authenticated
   useEffect(() => {
@@ -750,6 +766,22 @@ export const CheckoutPageModule = () => {
         const method = data?.paymentMethod || paymentOption;
         const gatewayOrderId = data?.data?.gatewayOrderId;
 
+        // Direct UPI / Google Pay
+        if ((method === "upi" || method === "gpay") && data?.data?.gatewayResponse) {
+          const gw = data.data.gatewayResponse;
+          const ordId = gw.orderNumber || data?.data?.orderNumber || data?.data?.orderId || generatedOrderNumber;
+          setGeneratedOrderNumber(ordId);
+          setUpiModalData({
+            isOpen: true,
+            orderNumber: ordId,
+            amount: Number(gw.amount || total),
+            upiUri: gw.upiUri,
+            payeeName: gw.payeeName,
+            payeeVpa: gw.payeeVpa,
+          });
+          return;
+        }
+
         // Pure COD order completed
         if (method === "cod" && !gatewayOrderId) {
           setIsOrderCompleted(true);
@@ -764,6 +796,86 @@ export const CheckoutPageModule = () => {
         }
       }
     });
+  };
+
+  const handleUpiSuccess = (confirmedOrderNumber: string) => {
+    setUpiModalData((prev) => ({ ...prev, isOpen: false }));
+    setIsOrderCompleted(true);
+    setGeneratedOrderNumber(confirmedOrderNumber);
+    setCurrentStep(3);
+    clearCart();
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", `/checkout?success=true&orderId=${encodeURIComponent(confirmedOrderNumber)}`);
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleCreateOrderForGooglePay = async (): Promise<string | null> => {
+    if (!user && !selectedAddressId) {
+      if (!formData.name?.trim() || !formData.email?.trim() || !formData.phone?.trim() || !formData.address?.trim()) {
+        toast.error("Please complete your delivery address details first");
+        setCurrentStep(1);
+        return null;
+      }
+      if (!formData.city?.trim() || !formData.state?.trim() || !formData.pinCode?.trim()) {
+        toast.error("Please complete your delivery address details first");
+        setCurrentStep(1);
+        return null;
+      }
+    }
+
+    try {
+      const { COUNTRIES } = await import("@/core/utils/countries");
+      const dialCode = COUNTRIES.find((c) => c.code === formData.countryCode)?.dialCode || "+91";
+      const selectedCountryObj = COUNTRIES.find(
+        (c) =>
+          c.code.toUpperCase() === (formData.country || "").toUpperCase() ||
+          c.name.toLowerCase() === (formData.country || "").toLowerCase()
+      );
+      const selectedCountryName =
+        selectedCountryObj?.name ||
+        (formData.country && formData.country.length >= 2 ? formData.country : "India");
+      const finalCountry =
+        selectedCountryName && selectedCountryName.trim().length >= 2 ? selectedCountryName.trim() : "India";
+
+      const shippingAddress = user && selectedAddressId ? undefined : {
+        fullName: formData.name,
+        phone: dialCode + formData.phone,
+        street: formData.address,
+        addressLine1: formData.address,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pinCode,
+        country: finalCountry,
+      };
+
+      const result: any = await placeOrderAsync({
+        shippingAddressId: user ? (selectedAddressId || undefined) : undefined,
+        shippingAddress,
+        guestEmail: user ? undefined : formData.email,
+        paymentMethod: "upi",
+        couponCode: appliedCoupon?.code || undefined,
+        phone: dialCode + formData.phone,
+        fullName: formData.name,
+        customerGstin: formData.isB2b && formData.customerGstin ? formData.customerGstin.trim().toUpperCase() : undefined,
+        businessName: formData.isB2b && formData.businessName ? formData.businessName.trim() : undefined,
+      });
+
+      const ordId = result?.data?.orderNumber || result?.data?.gatewayOrderId || result?.data?.orderId;
+      if (ordId) {
+        setGeneratedOrderNumber(ordId);
+        return ordId;
+      }
+      return null;
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          "Could not initialize order for Google Pay"
+      );
+      return null;
+    }
   };
 
   return (
@@ -812,6 +924,21 @@ export const CheckoutPageModule = () => {
             <p className="text-neutral-500 text-xs sm:text-sm max-w-md mb-3 leading-normal font-sans">
               Thank you for shopping with Store4Riders. Your order <strong>#{generatedOrderNumber}</strong> has been confirmed. A receipt and tracking details have been sent to {formData.email || user?.email ? <strong>{formData.email || user?.email}</strong> : "your registered email address"}.
             </p>
+
+            {/* Payment Method Badge on Confirmation (Google Pay Brand Guidelines Compliance) */}
+            <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-3 my-3 text-xs text-neutral-700 flex items-center justify-between w-full max-w-md font-sans">
+              <span className="font-medium text-neutral-500">Payment Method:</span>
+              <span className="font-bold text-neutral-900 flex items-center gap-1.5">
+                {((paymentOption as string) === "gpay" || paymentOption === "upi") ? (
+                  <>
+                    <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={22} height={14} className="object-contain" priority />
+                    <span>Paid with Google Pay</span>
+                  </>
+                ) : (
+                  <span>{paymentOption.toUpperCase()}</span>
+                )}
+              </span>
+            </div>
             
             {showRegisterForm && formData.email && (
               <PostCheckoutRegisterForm email={formData.email} name={formData.name || ""} />
@@ -882,6 +1009,7 @@ export const CheckoutPageModule = () => {
                     setPaymentOption={setPaymentOption}
                     setCurrentStep={setCurrentStep as (step: 1 | 2) => void}
                     handleAgreeToPay={handleAgreeToPay}
+                    onPreOrderCreate={handleCreateOrderForGooglePay}
                     isProcessing={isProcessing}
                     isFailedParam={isFailedParam}
                     isCancelledParam={isCancelledParam}
@@ -1158,6 +1286,18 @@ export const CheckoutPageModule = () => {
         )}
 
       </main>
+
+      {/* Direct UPI / Google Pay Modal */}
+      <DirectUpiModal
+        isOpen={upiModalData.isOpen}
+        onClose={() => setUpiModalData((prev) => ({ ...prev, isOpen: false }))}
+        orderNumber={upiModalData.orderNumber}
+        amount={upiModalData.amount}
+        upiUri={upiModalData.upiUri}
+        payeeName={upiModalData.payeeName}
+        payeeVpa={upiModalData.payeeVpa}
+        onSuccess={handleUpiSuccess}
+      />
 
       {/* Global Footer */}
       <div className="hidden lg:block">

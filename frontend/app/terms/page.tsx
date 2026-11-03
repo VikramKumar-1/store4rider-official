@@ -127,7 +127,7 @@ export default function TermsPage() {
         </blockquote>
         <p>
           For full conditions, qualified product categories, and reverse pickup instructions, please refer to our dedicated{" "}
-          <Link href="/returns" className="text-brand hover:underline font-bold">
+          <Link href="/returns-replacements-store4riders" className="text-brand hover:underline font-bold">
             Exchange Policy
           </Link>
           .

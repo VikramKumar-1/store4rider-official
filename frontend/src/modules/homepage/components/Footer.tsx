@@ -9,7 +9,7 @@ import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 import { IFooterLink } from "@store4riders/shared-types";
 
 const DEFAULT_COLUMN1_LINKS: IFooterLink[] = [
-  { label: "Exchange & Replacements", url: "/returns", openInNewTab: false },
+  { label: "Exchange & Replacements", url: "/returns-replacements-store4riders", openInNewTab: false },
   { label: "Warranty", url: "/warranty", openInNewTab: false },
   { label: "Conditions of Sale & Use", url: "/terms", openInNewTab: false },
   { label: "Privacy and Cookie Policy", url: "/privacy", openInNewTab: false },
@@ -31,7 +31,7 @@ const DEFAULT_COLUMN2_LINKS: IFooterLink[] = [
 const DEFAULT_BOTTOM_LINKS: IFooterLink[] = [
   { label: "Privacy Policy", url: "/privacy", openInNewTab: false },
   { label: "Terms of Service", url: "/terms", openInNewTab: false },
-  { label: "Exchange Policy", url: "/returns", openInNewTab: false },
+  { label: "Exchange Policy", url: "/returns-replacements-store4riders", openInNewTab: false },
 ];
 
 /**
@@ -62,9 +62,7 @@ export const Footer: React.FC = () => {
 
   const phone = footer?.contactPhone?.trim() || settings?.whatsappNumber || settings?.supportPhone || "";
   const emailAddress = footer?.contactEmail?.trim() || settings?.supportEmail || "contact@store4riders.com";
-  const address = footer?.contactAddress?.trim() || (settings?.storeOriginAddress
-    ? `${settings.storeOriginAddress}, ${settings.storeOriginCity || "Pune"}, ${settings.storeOriginState || "Maharashtra"} - ${settings.storeOriginPincode || "411001"}`
-    : "Store4Riders, Pune, Maharashtra - 411001");
+  const address = footer?.contactAddress?.trim() || "";
 
   const instagramUrl = settings?.instagramUrl || "https://www.instagram.com/store4riders/";
   const facebookUrl = settings?.facebookUrl || "https://www.facebook.com/store4riders/";
@@ -315,22 +313,40 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Sub-Footer Bar — text-neutral-400 provides accessible 8.4:1 contrast on black */}
-        <div className="mt-10 md:mt-16 pt-6 border-t border-neutral-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-400">
-          <p>{copyrightText}</p>
-          <div className="flex items-center gap-6 flex-wrap justify-center">
-            {bottomLinks.map((link, idx) => (
-              <Link 
-                key={`bottom-link-${idx}`}
-                href={link.url}
-                target={link.openInNewTab ? "_blank" : undefined}
-                rel={link.openInNewTab ? "noopener noreferrer" : undefined}
-                className="hover:text-white transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
+        {/* Bottom Sub-Footer Bar */}
+        <div className="mt-10 md:mt-16 pt-8 border-t border-neutral-900 flex flex-col items-center justify-center gap-6 text-xs text-neutral-400">
+          {/* Official Payment Methods & GPay/PhonePe Banner: Larger, Centered & Side-by-Side */}
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+            <Link 
+              href="/googlepay-phonepay"
+              className="block bg-white rounded-xs p-1.5 sm:p-2 hover:opacity-95 transition-opacity shadow-xs"
+              title="Store4Riders Gpay / PhonePe"
+            >
+              <Image 
+                src="/images/payment/QR_Code_1_.svg" 
+                alt="Store4Riders Gpay/PhonePe" 
+                width={400} 
+                height={100} 
+                className="h-14 sm:h-16 md:h-20 w-auto object-contain"
+                unoptimized
+                priority
+              />
+            </Link>
+
+            <div className="bg-white rounded-xs p-1.5 sm:p-2 shadow-xs">
+              <Image 
+                src="/images/payment/100_Secure_Payment.webp" 
+                alt="100% Secure Payment - Visa, MasterCard, Bajaj Finserv, Maestro, RuPay" 
+                width={400} 
+                height={100} 
+                className="h-14 sm:h-16 md:h-20 w-auto object-contain"
+                unoptimized
+                priority
+              />
+            </div>
           </div>
+
+          <p className="text-center text-xs text-neutral-400">{copyrightText}</p>
         </div>
       </div>
     </footer>

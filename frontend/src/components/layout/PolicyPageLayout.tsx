@@ -25,7 +25,8 @@ import {
   HeartHandshake,
   Compass,
   Wrench,
-  ChevronDown
+  ChevronDown,
+  Smartphone
 } from "lucide-react";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 import { buildBreadcrumbSchema } from "@/core/utils/seo-schema";
@@ -49,8 +50,7 @@ export const POLICY_NAV_GROUPS: PolicyNavGroup[] = [
     items: [
       {
         label: "Exchange & Replacements",
-        href: "/returns",
-        badge: "7-Day",
+        href: "/returns-replacements-store4riders",
         icon: ArrowLeftRight,
       },
       {
@@ -62,6 +62,11 @@ export const POLICY_NAV_GROUPS: PolicyNavGroup[] = [
         label: "Cash on Delivery (COD)",
         href: "/cash-on-delivery",
         icon: Clock,
+      },
+      {
+        label: "Store4Riders Gpay/PhonePay",
+        href: "/googlepay-phonepay",
+        icon: Smartphone,
       },
       {
         label: "Warranty & Claims",
@@ -311,7 +316,7 @@ export function PolicyPageLayout({
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none snap-x">
               {POLICY_NAV_GROUPS.flatMap((g) => g.items).map((item) => {
-                const isActive = activePath === item.href;
+                const isActive = activePath === item.href || (item.href === "/googlepay-phonepay" && (activePath === "/gpay" || activePath === "/googlepay-phonepay"));
                 const Icon = item.icon;
                 return (
                   <Link
@@ -355,7 +360,7 @@ export function PolicyPageLayout({
                       </div>
                       <div className="space-y-0.5">
                         {group.items.map((item) => {
-                          const isActive = activePath === item.href;
+                          const isActive = activePath === item.href || (item.href === "/googlepay-phonepay" && (activePath === "/gpay" || activePath === "/googlepay-phonepay"));
                           const Icon = item.icon;
                           return (
                             <Link
@@ -468,47 +473,8 @@ export function PolicyPageLayout({
                   )}
                 </article>
 
-                {/* Bottom Assistance & Trust Banner */}
-                <div className="mt-12 pt-8 border-t border-slate-100 space-y-6">
-                  {/* 3 Core Trust Badges */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/60 flex items-start gap-3">
-                      <ShieldCheck className="w-5 h-5 text-brand shrink-0 mt-0.5" />
-                      <div>
-                        <h5 className="font-bold text-xs uppercase tracking-wider text-slate-900">
-                          100% Genuine Gear
-                        </h5>
-                        <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                          Direct brand imports & authorized Indian distributor stock with warranty.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/60 flex items-start gap-3">
-                      <ArrowLeftRight className="w-5 h-5 text-brand shrink-0 mt-0.5" />
-                      <div>
-                        <h5 className="font-bold text-xs uppercase tracking-wider text-slate-900">
-                          7-Day Size Exchange
-                        </h5>
-                        <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                          Hassle-free size replacement support so your riding armor fits securely.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/60 flex items-start gap-3">
-                      <Truck className="w-5 h-5 text-brand shrink-0 mt-0.5" />
-                      <div>
-                        <h5 className="font-bold text-xs uppercase tracking-wider text-slate-900">
-                          Pan-India Logistics
-                        </h5>
-                        <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                          Inspected, securely packaged, and tracked via premier express couriers.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
+                {/* Bottom Assistance Banner */}
+                <div className="mt-8 pt-6 border-t border-slate-100">
                   {/* Help prompt */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-slate-900 text-white">
                     <div>

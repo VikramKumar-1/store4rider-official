@@ -56,6 +56,11 @@ const envSchema = z.object({
   SERPAPI_KEY: z.string().optional(),
   INSTAGRAM_ACCESS_TOKEN: z.string().optional(),
   INSTAGRAM_ACCOUNT_ID: z.string().optional(),
+  GOOGLE_PAY_MERCHANT_VPA: z.string().optional(),
+  GOOGLE_PAY_MERCHANT_NAME: z.string().optional(),
+  GOOGLE_PAY_MCC: z.string().optional(),
+  GOOGLE_PAY_MERCHANT_ID: z.string().optional(),
+  GOOGLE_PAY_ENVIRONMENT: z.enum(["TEST", "PRODUCTION"]).optional().default("TEST"),
 });
 
 const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
@@ -102,4 +107,8 @@ export const ENV = envSchema.parse({
   SERPAPI_KEY: process.env.SERPAPI_KEY,
   INSTAGRAM_ACCESS_TOKEN: process.env.INSTAGRAM_ACCESS_TOKEN,
   INSTAGRAM_ACCOUNT_ID: process.env.INSTAGRAM_ACCOUNT_ID,
+  GOOGLE_PAY_MERCHANT_VPA: process.env.GOOGLE_PAY_MERCHANT_VPA,
+  GOOGLE_PAY_MERCHANT_NAME: process.env.GOOGLE_PAY_MERCHANT_NAME,
+  GOOGLE_PAY_MCC: process.env.GOOGLE_PAY_MCC,
+  GOOGLE_PAY_MERCHANT_ID: process.env.GOOGLE_PAY_MERCHANT_ID,
 });

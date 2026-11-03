@@ -1,1 +1,5 @@
-export { default, metadata } from "../returns/page";
+import { redirect } from "next/navigation";
+
+export default function ExchangeRedirectPage() {
+  redirect("/returns-replacements-store4riders");
+}

@@ -133,8 +133,8 @@ export function buildOrganizationSchema(params?: {
     },
     hasMerchantReturnPolicy: {
       "@type": "MerchantReturnPolicy",
-      name: "7-Day Size & Gear Exchange Policy",
-      merchantReturnLink: `${siteUrl}/returns`,
+      name: "Exchange & Replacements Policy",
+      merchantReturnLink: `${siteUrl}/returns-replacements-store4riders`,
       applicableCountry: "IN",
       returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
       merchantReturnDays: returnDays,
@@ -264,8 +264,8 @@ export function buildProductSchema(
       },
       hasMerchantReturnPolicy: {
         "@type": "MerchantReturnPolicy",
-        name: "7-Day Size & Gear Exchange Policy",
-        merchantReturnLink: `${normalizedSiteUrl}/returns`,
+        name: "Exchange & Replacements Policy",
+        merchantReturnLink: `${normalizedSiteUrl}/returns-replacements-store4riders`,
         applicableCountry: "IN",
         returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
         merchantReturnDays: 7,

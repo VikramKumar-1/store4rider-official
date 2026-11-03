@@ -4,6 +4,7 @@ import { PaymentMethodType } from "@store4riders/shared-types";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 import { toast } from "sonner";
 import { apiClient } from "@/core/api/client";
+import { GooglePayWebButton } from "./GooglePayWebButton";
 
 interface CheckoutPaymentStepProps {
   generatedOrderNumber: string;
@@ -11,6 +12,7 @@ interface CheckoutPaymentStepProps {
   setPaymentOption: (option: PaymentMethodType) => void;
   setCurrentStep: (step: 1 | 2) => void;
   handleAgreeToPay: () => void;
+  onPreOrderCreate?: () => Promise<string | null>;
   isProcessing: boolean;
   shippingAddressSummary?: string;
   isFailedParam?: boolean;
@@ -25,6 +27,7 @@ export const CheckoutPaymentStep = ({
   setPaymentOption,
   setCurrentStep,
   handleAgreeToPay,
+  onPreOrderCreate,
   isProcessing,
   shippingAddressSummary,
   isFailedParam,
@@ -37,7 +40,7 @@ export const CheckoutPaymentStep = ({
 
   const baseGateways = settings?.enabledGateways && settings.enabledGateways.length > 0
     ? settings.enabledGateways
-    : ["payu", "ccavenue", "snapmint", "cod"];
+    : ["upi", "payu", "ccavenue", "snapmint", "cod"];
     
   const availableGateways = baseGateways.filter(g => g !== "cod" || isCodAvailable);
 
@@ -266,6 +269,76 @@ export const CheckoutPaymentStep = ({
           <div className="p-4 border border-neutral-200 animate-pulse bg-neutral-50 h-24" />
         ) : (
           availableGateways.map((method) => {
+            // 0. Direct UPI / Google Pay
+            if (method === "upi" || method === "gpay") {
+              const isSelected = paymentOption === "upi";
+              return (
+                <label
+                  key="upi"
+                  onClick={() => handleSelectGateway("upi")}
+                  className={`relative flex flex-col p-3.5 border rounded-none transition-all overflow-hidden cursor-pointer ${
+                    isSelected
+                      ? "border-banner bg-orange-50/20 ring-1 ring-banner"
+                      : "border-neutral-300 hover:border-neutral-400 bg-white"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="paymentOption"
+                      checked={isSelected}
+                      onChange={() => handleSelectGateway("upi")}
+                      className="accent-orange-600 w-4 h-4 mt-0.5 shrink-0 cursor-pointer"
+                    />
+                    <div className="flex flex-col w-full">
+                      <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>UPI - Google Pay, PhonePe, Paytm & Any UPI App</span>
+                        </div>
+                        <div className="flex items-center ml-auto gap-1 shrink-0">
+                          <Image src="/icons/payment/upi.svg" alt="UPI" width={30} height={16} className="object-contain h-4 w-auto" priority loading="eager" unoptimized />
+                        </div>
+                      </div>
+                      <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
+                        Instant payment via Google Pay, PhonePe, Paytm, CRED or scan Dynamic UPI QR code
+                      </span>
+
+                      {/* UPI Logo Strip */}
+                      <div className="flex items-center gap-2 mt-2 flex-wrap opacity-90">
+                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+                          <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                        </div>
+                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+                          <Image src="/icons/payment/phonepe.svg" alt="PhonePe" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                        </div>
+                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+                          <Image src="/icons/payment/paytm.svg" alt="Paytm" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                        </div>
+                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
+                          <Image src="/icons/payment/upi.svg" alt="UPI" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                        </div>
+                      </div>
+
+                      {/* Google Pay Official Button with Test Card Suite */}
+                      {isSelected && (
+                        <div className="mt-3 pt-3 border-t border-neutral-200" onClick={(e) => e.stopPropagation()}>
+                          <GooglePayWebButton
+                            amount={Number(total || 0)}
+                            onPreOrderCreate={onPreOrderCreate}
+                            onSuccess={(confirmedOrderNumber) => {
+                              if (typeof window !== "undefined") {
+                                window.location.href = `/checkout?success=true&orderId=${encodeURIComponent(confirmedOrderNumber)}`;
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </label>
+              );
+            }
+
             // 1. PayU (Live site title: PayUMoney - Bajaj EMI, Credit Cards, Net Banking & More)
             if (method === "payu") {
               const isSelected = paymentOption === "payu";

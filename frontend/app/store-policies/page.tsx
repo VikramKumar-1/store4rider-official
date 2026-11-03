@@ -57,7 +57,7 @@ export default function StorePoliciesPage() {
               <tr>
                 <td><strong>Size & Gear Exchange</strong></td>
                 <td>7 Days from delivery date</td>
-                <td>Hassle-free size replacement; see <Link href="/returns" className="text-brand font-bold hover:underline">Exchange Policy</Link></td>
+                <td>Hassle-free size replacement; see <Link href="/returns-replacements-store4riders" className="text-brand font-bold hover:underline">Exchange Policy</Link></td>
               </tr>
               <tr>
                 <td><strong>Order Dispatch SLA</strong></td>
@@ -133,7 +133,7 @@ export default function StorePoliciesPage() {
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6">
           <Link
-            href="/returns"
+            href="/returns-replacements-store4riders"
             className="p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-brand/40 transition-all flex items-start gap-3 group"
           >
             <ArrowLeftRight className="w-5 h-5 text-brand shrink-0 mt-0.5" />

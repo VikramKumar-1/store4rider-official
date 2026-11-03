@@ -115,7 +115,7 @@ export default function CashOnDeliveryPage() {
         <h2>6. Size Exchanges on COD Orders</h2>
         <p>
           COD orders enjoy the exact same <strong>7-Day Size and Gear Exchange Guarantee</strong> as prepaid orders! If the jacket, boots, or helmet you received does not fit properly, simply visit{" "}
-          <Link href="/returns" className="text-brand hover:underline font-bold">
+          <Link href="/returns-replacements-store4riders" className="text-brand hover:underline font-bold">
             Exchange Policy
           </Link>{" "}
           or reach out to our support team within 7 days of delivery to arrange a replacement.

@@ -15,6 +15,11 @@ interface ISettings {
   codPartialPaymentType: "percentage" | "fixed";
   codPartialPaymentValue: number;
   snapmintMinOrderValue?: number;
+  upiMerchantVpa?: string;
+  upiMerchantName?: string;
+  upiMcc?: string;
+  googlePayMerchantId?: string;
+  googlePayEnvironment?: "TEST" | "PRODUCTION";
 }
 
 export function AdminPaymentSettings() {
@@ -119,6 +124,100 @@ export function AdminPaymentSettings() {
                   <span className="ml-2 uppercase text-sm font-semibold">{gw}</span>
                 </label>
               ))}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t">
+            <h3 className="font-semibold text-md mb-2 flex items-center gap-2">
+              <span>Direct UPI & Google Pay (India)</span>
+              <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200">
+                NPCI Specification
+              </span>
+            </h3>
+            <p className="text-xs text-neutral-500 mb-3">
+              Configure your verified Merchant VPA for direct account-to-account UPI payments and Google Pay Merchant API.
+            </p>
+            <div className="space-y-3 p-4 bg-neutral-50 border border-neutral-200 rounded-lg">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                  Merchant UPI VPA (UPI ID) *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. store4riders@icici or motohive@hdfcbank"
+                  className="w-full border border-neutral-300 rounded p-2 text-sm bg-white font-mono"
+                  value={settings.upiMerchantVpa || ""}
+                  onChange={(e) => setSettings({ ...settings, upiMerchantVpa: e.target.value })}
+                />
+                <span className="text-[11px] text-neutral-400 mt-0.5 block">
+                  Provided by your acquiring bank / PSP with merchant push payment enabled.
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                    Merchant Payee Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Store4Riders"
+                    className="w-full border border-neutral-300 rounded p-2 text-sm bg-white"
+                    value={settings.upiMerchantName || ""}
+                    onChange={(e) => setSettings({ ...settings, upiMerchantName: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                    Merchant Category Code (MCC)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="5941"
+                    maxLength={4}
+                    className="w-full border border-neutral-300 rounded p-2 text-sm bg-white font-mono"
+                    value={settings.upiMcc || ""}
+                    onChange={(e) => setSettings({ ...settings, upiMcc: e.target.value })}
+                  />
+                  <span className="text-[10px] text-neutral-400 mt-0.5 block">Default: 5941 (Motorcycle Gear / Sports)</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                    Google Pay Merchant ID (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. BCR2DN6T..."
+                    className="w-full border border-neutral-300 rounded p-2 text-sm bg-white font-mono"
+                    value={settings.googlePayMerchantId || ""}
+                    onChange={(e) => setSettings({ ...settings, googlePayMerchantId: e.target.value })}
+                  />
+                  <span className="text-[11px] text-neutral-400 mt-0.5 block">
+                    From Google Pay &amp; Wallet Business Console.
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                    Google Pay API Environment
+                  </label>
+                  <select
+                    className="w-full border border-neutral-300 rounded p-2 text-sm bg-white font-medium"
+                    value={settings.googlePayEnvironment || "TEST"}
+                    onChange={(e) => setSettings({ ...settings, googlePayEnvironment: e.target.value as "TEST" | "PRODUCTION" })}
+                  >
+                    <option value="TEST">TEST (Google Pay Test Card Suite Active)</option>
+                    <option value="PRODUCTION">PRODUCTION (Live Cards &amp; UPI Charges)</option>
+                  </select>
+                  <span className="text-[10px] text-neutral-400 mt-0.5 block">
+                    TEST mode displays Google&apos;s Test Card Suite without real credit cards.
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -79,6 +79,11 @@ export interface ISetting {
   googleRating?: number;
   googleReviewCount?: string | number;
   googleLastSyncedAt?: Date | string;
+  upiMerchantVpa?: string;
+  upiMerchantName?: string;
+  upiMcc?: string;
+  googlePayMerchantId?: string;
+  googlePayEnvironment?: "TEST" | "PRODUCTION";
 }
 
 export interface IPublicSettings {
@@ -114,4 +119,9 @@ export interface IPublicSettings {
   googleRating?: number;
   googleReviewCount?: string | number;
   googleLastSyncedAt?: Date | string;
+  upiMerchantVpa?: string;
+  upiMerchantName?: string;
+  upiMcc?: string;
+  googlePayMerchantId?: string;
+  googlePayEnvironment?: "TEST" | "PRODUCTION";
 }

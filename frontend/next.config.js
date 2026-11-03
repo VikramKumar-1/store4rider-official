@@ -1,6 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,  // Disable double-render in dev — makes everything 2x faster
+  async redirects() {
+    return [
+      {
+        source: '/returns',
+        destination: '/returns-replacements-store4riders',
+        permanent: true,
+      },
+      {
+        source: '/exchange',
+        destination: '/returns-replacements-store4riders',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

@@ -644,6 +644,7 @@ Once PayU + COD are production-solid:
 - [x] **4.G5** Create `frontend/app/checkout/callback/page.tsx` â€” handles redirect from PayU/CCavenue/Snapmint
 - [x] **4.G6** Update env.ts with PayU/CCavenue/Snapmint env vars
 - [x] **4.G7** Update checkout UI â€” show all enabled gateways from settings
+- [x] **4.G8** Create Direct UPI & Google Pay Gateway (`GooglePayUpiGateway.ts`) â€” NPCI UPI URI standard, Google Pay India Merchant API, Dynamic UPI QR code modal with real-time status polling, UTR verification, and Admin Panel configuration
 
 ### Phase 4 Verification (ALL must pass before marking complete)
 

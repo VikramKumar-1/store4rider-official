@@ -22,7 +22,7 @@ import {
 import { IFooterConfig, IFooterLink } from "@store4riders/shared-types";
 
 export const STORE_ROUTE_PRESETS = [
-  { label: "Exchange & Replacements", url: "/returns" },
+  { label: "Exchange & Replacements", url: "/returns-replacements-store4riders" },
   { label: "Warranty", url: "/warranty" },
   { label: "Conditions of Sale & Use", url: "/terms" },
   { label: "Privacy and Cookie Policy", url: "/privacy" },
@@ -35,6 +35,7 @@ export const STORE_ROUTE_PRESETS = [
   { label: "Wish List", url: "/account/wishlist" },
   { label: "Rider Assist", url: "/rider-assist" },
   { label: "Cash on Delivery", url: "/cash-on-delivery" },
+  { label: "Store4Riders Gpay/PhonePay", url: "/googlepay-phonepay" },
   { label: "Collaboration", url: "/collaboration" },
   { label: "Gear Care Guide", url: "/care" },
   { label: "Sale & Offers", url: "/sale" },
@@ -49,7 +50,7 @@ const INITIAL_DEFAULTS: IFooterConfig = {
   showSocialLinks: true,
   column1Title: "EXCHANGE & REPLACEMENTS",
   column1Links: [
-    { label: "Exchange & Replacements", url: "/returns", openInNewTab: false },
+    { label: "Exchange & Replacements", url: "/returns-replacements-store4riders", openInNewTab: false },
     { label: "Warranty", url: "/warranty", openInNewTab: false },
     { label: "Conditions of Sale & Use", url: "/terms", openInNewTab: false },
     { label: "Privacy and Cookie Policy", url: "/privacy", openInNewTab: false },
@@ -65,6 +66,7 @@ const INITIAL_DEFAULTS: IFooterConfig = {
     { label: "Wish List", url: "/account/wishlist", openInNewTab: false },
     { label: "Rider Assist", url: "/rider-assist", openInNewTab: false },
     { label: "Cash on Delivery", url: "/cash-on-delivery", openInNewTab: false },
+    { label: "Store4Riders Gpay/PhonePay", url: "/googlepay-phonepay", openInNewTab: false },
     { label: "Collaboration", url: "/collaboration", openInNewTab: false },
   ],
   newsletterTitle: "SUBSCRIBE US",
@@ -74,7 +76,7 @@ const INITIAL_DEFAULTS: IFooterConfig = {
   bottomLinks: [
     { label: "Privacy Policy", url: "/privacy", openInNewTab: false },
     { label: "Terms of Service", url: "/terms", openInNewTab: false },
-    { label: "Exchange Policy", url: "/returns", openInNewTab: false },
+    { label: "Exchange Policy", url: "/returns-replacements-store4riders", openInNewTab: false },
   ],
 };
 
@@ -278,7 +280,7 @@ export function AdminFooterSettings() {
                 <div className="text-neutral-400 space-y-1 text-[11px]">
                   <p>Contact: {config.contactPhone || "+91 7263007788"}</p>
                   <p>Email: {config.contactEmail || "contact@store4riders.com"}</p>
-                  <p>Address: {config.contactAddress || "Pune, Maharashtra"}</p>
+                  {config.contactAddress && <p>Address: {config.contactAddress}</p>}
                 </div>
               )}
             </div>
@@ -354,7 +356,7 @@ export function AdminFooterSettings() {
             <div className="flex items-center justify-between p-3.5 bg-neutral-50 rounded-lg border border-neutral-200">
               <div>
                 <span className="text-xs font-bold text-neutral-800 block">Show Contact Details</span>
-                <span className="text-[11px] text-neutral-500">Display phone, email, and warehouse address in footer</span>
+                <span className="text-[11px] text-neutral-500">Display phone and email in footer</span>
               </div>
               <input
                 type="checkbox"

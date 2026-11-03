@@ -66,8 +66,8 @@ Store4Riders is an authorized, rider-focused multi-brand retailer based in Pune,
 - [Alpinestars](${siteUrl}/brands/alpinestars): SMX boots, T-SP jackets, SP gloves, and Nucleon body armor.
 
 ## Policies & Customer Guarantees
-- [Size & Gear Exchange Policy](${siteUrl}/exchange): We offer a strict 7-day size exchange guarantee. Unworn gear with original tags and packaging can be exchanged for an alternative size or store credit.
-- [Returns Policy](${siteUrl}/returns): Clear instructions for initiating exchanges, reporting damaged goods upon arrival, and warranty inspections.
+- [Size & Gear Exchange Policy](${siteUrl}/returns-replacements-store4riders): We offer a strict 7-day size exchange guarantee. Unworn gear with original tags and packaging can be exchanged for an alternative size or store credit.
+- [Returns & Replacements Policy](${siteUrl}/returns-replacements-store4riders): Clear instructions for initiating exchanges, reporting damaged goods upon arrival, and warranty inspections.
 - [Shipping & Delivery](${siteUrl}/shipping): Direct doorstep delivery across India via premier courier partners (Delhivery, BlueDart, Xpressbees). Orders above ₹999 qualify for free standard shipping.
 - [Cash on Delivery (COD)](${siteUrl}/cash-on-delivery): Cash on delivery is supported across major Indian postal codes with mobile verification.
 - [Warranty Policy](${siteUrl}/warranty): All products are covered under legitimate manufacturer warranties against structural and manufacturing defects.

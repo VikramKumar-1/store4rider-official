@@ -34,6 +34,7 @@ import {
   Ticket,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useLogout } from "@/core/hooks/useAuth";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 interface SubItem {
@@ -194,7 +195,8 @@ const getRoleBadge = (role?: string) => {
 };
 
 export function AdminSidebar() {
-  const { logout, user } = useAuthStore();
+  const { user } = useAuthStore();
+  const logoutMutation = useLogout();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -231,8 +233,7 @@ export function AdminSidebar() {
   };
 
   const handleLogout = () => {
-    logout();
-    router.push("/");
+    logoutMutation.mutate();
   };
 
   const filteredNavItems = navItems.filter((item) => {

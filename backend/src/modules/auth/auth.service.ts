@@ -88,6 +88,19 @@ export class AuthService {
   static async refreshToken(oldToken: string) {
     try {
       const decoded = verifyToken(oldToken, true);
+
+      // Verify blacklisting from Redis
+      try {
+        const { getCache } = await import("../../core/cache/redis");
+        const isUserBlacklisted = await getCache(`blacklist:${decoded.userId}`);
+        const isTokenBlacklisted = await getCache(`bl_token_${oldToken}`);
+        if (isUserBlacklisted || isTokenBlacklisted) {
+          throw new UnauthorizedError("Session has expired or was logged out");
+        }
+      } catch (e: any) {
+        if (e instanceof UnauthorizedError) throw e;
+      }
+
       const user = await UserRepository.findById(decoded.userId);
       if (!user || user.isActive === false) {
         throw new UnauthorizedError("Account has been disabled");

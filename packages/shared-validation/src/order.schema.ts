@@ -31,8 +31,11 @@ export const createOrderSchema = z.object({
 
 export const verifyPaymentSchema = z.object({
   gatewayOrderId: z.string(),
-  paymentId: z.string(),
-  signature: z.string(),
+  paymentId: z.string().optional().default(""),
+  signature: z.string().optional().default(""),
+  paymentData: z.any().optional(),
+  tezResponse: z.any().optional(),
+  utr: z.string().optional(),
 });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
