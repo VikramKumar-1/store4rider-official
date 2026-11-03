@@ -44,7 +44,7 @@ export const CheckoutPaymentStep = ({
   total
 }: CheckoutPaymentStepProps) => {
   const { data: settings, isLoading } = usePublicSettings();
-  const snapmintMin = settings?.snapmintMinOrderValue ?? 25000;
+  const snapmintMin = settings?.snapmintMinOrderValue ?? 1500;
 
   const GATEWAY_INFO: Record<string, { label: React.ReactNode; desc: string; icon: React.ReactNode }> = {
     payu: {

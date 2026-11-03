@@ -39,7 +39,7 @@ export class SettingController {
       youtubeUrl: settings.youtubeUrl,
       twitterUrl: settings.twitterUrl,
       returnWindowDays: settings.returnWindowDays || 7,
-      snapmintMinOrderValue: settings.snapmintMinOrderValue ?? (Number(process.env.SNAPMINT_MIN_ORDER_VALUE) || 25000),
+      snapmintMinOrderValue: settings.snapmintMinOrderValue ?? (Number(process.env.SNAPMINT_MIN_ORDER_VALUE) || 1500),
       brandsMetaTitle: settings.brandsMetaTitle || "",
       brandsMetaDescription: settings.brandsMetaDescription || "",
       brandsMetaKeywords: settings.brandsMetaKeywords || "",

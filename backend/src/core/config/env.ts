@@ -4,6 +4,15 @@
  * Uses safe defaults during build time to prevent build failures.
  */
 import { z } from "zod";
+import dotenv from "dotenv";
+import path from "path";
+
+// Ensure environment variables from .env and backend/.env are loaded reliably in all contexts
+const rootDir = process.cwd();
+dotenv.config({ path: path.resolve(rootDir, ".env") });
+dotenv.config({ path: path.resolve(rootDir, "backend", ".env") });
+dotenv.config({ path: path.resolve(rootDir, "..", ".env") });
+dotenv.config({ path: path.resolve(rootDir, "..", "backend", ".env") });
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),

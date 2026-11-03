@@ -139,7 +139,7 @@ const settingSchema = new Schema<ISetting>(
     codPartialPaymentEnabled: { type: Boolean, default: false },
     codPartialPaymentType: { type: String, enum: ["percentage", "fixed"], default: "percentage" },
     codPartialPaymentValue: { type: Number, default: 10 },
-    snapmintMinOrderValue: { type: Number, default: 25000 },
+    snapmintMinOrderValue: { type: Number, default: 1500 },
     storeOriginPincode: { type: String, default: "411001" },
     storeOriginCity: { type: String, default: "Pune" },
     storeOriginState: { type: String, default: "Maharashtra" },

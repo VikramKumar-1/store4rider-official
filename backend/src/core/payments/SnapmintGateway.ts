@@ -26,7 +26,8 @@ export class SnapmintGateway implements PaymentGateway {
     // SNAPMINT_SECRET = Merchant Token (e.g. WiG-6A3P) — used as merchantPassword in V3
     const merchantToken = (ENV.SNAPMINT_SECRET || process.env.SNAPMINT_SECRET || "").trim();
     // SNAPMINT_MID = Numeric MID (e.g. 2025) — the actual merchantId for V3 S2S API
-    const mid = (ENV.SNAPMINT_MID || process.env.SNAPMINT_MID || "").trim();
+    // Fall back to SNAPMINT_MERCHANT_ID if SNAPMINT_MID is not explicitly set
+    const mid = (ENV.SNAPMINT_MID || process.env.SNAPMINT_MID || ENV.SNAPMINT_MERCHANT_ID || process.env.SNAPMINT_MERCHANT_ID || "").trim();
 
     const isPlaceholder = (val: string) => !val || val.startsWith("your_") || val.includes("placeholder");
     if (isPlaceholder(mid) || isPlaceholder(merchantToken)) {
@@ -50,8 +51,8 @@ export class SnapmintGateway implements PaymentGateway {
   async createOrder(order: IOrder, amount: number): Promise<GatewayOrderResult> {
     const { merchantToken, mid, s2sApiUrl } = this.getCredentials();
 
-    // Proactive minimum order value check for Snapmint merchant tier (dynamic from ENV/Settings, default ₹25,000)
-    const configuredMin = Number(ENV.SNAPMINT_MIN_ORDER_VALUE || process.env.SNAPMINT_MIN_ORDER_VALUE) || 25000;
+    // Proactive minimum order value check for Snapmint merchant tier (dynamic from DB settings on order / ENV, default ₹1,500)
+    const configuredMin = Number((order as any)?.snapmintMinOrderValue || ENV.SNAPMINT_MIN_ORDER_VALUE || process.env.SNAPMINT_MIN_ORDER_VALUE) || 1500;
     if (amount < configuredMin) {
       throw new AppError(
         `Snapmint Cardless EMI is applicable on orders above ₹${configuredMin.toLocaleString("en-IN")} (Current order: ₹${Math.round(amount)}). Please choose another payment method or add more items to your cart.`,
@@ -162,6 +163,17 @@ export class SnapmintGateway implements PaymentGateway {
       }
 
       logger.error("Snapmint V3 S2S createOrder rejected", { result, orderId });
+
+      // If Snapmint API returns its own min-order error (their platform limit),
+      // override with our dynamic configuredMin so the user sees our admin-configured value
+      const lowerMsg = errorMsg.toLowerCase();
+      if (lowerMsg.includes("minimum") || lowerMsg.includes("min order") || lowerMsg.includes("order value") || lowerMsg.includes("below")) {
+        throw new AppError(
+          `Snapmint Cardless EMI is applicable on orders above ₹${configuredMin.toLocaleString("en-IN")} (Current order: ₹${Math.round(amount)}). Please choose another payment method or add more items to your cart.`,
+          400
+        );
+      }
+
       throw new AppError(`Snapmint: ${errorMsg}`, response.status >= 500 ? 502 : 400);
 
     } catch (error: any) {

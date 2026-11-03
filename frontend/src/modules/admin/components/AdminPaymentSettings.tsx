@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/core/api/client";
 import { toast } from "sonner";
 import Button from "@/components/ui/Button";
@@ -13,9 +14,12 @@ interface ISettings {
   codPartialPaymentEnabled?: boolean;
   codPartialPaymentType: "percentage" | "fixed";
   codPartialPaymentValue: number;
+  snapmintMinOrderValue?: number;
 }
 
 export function AdminPaymentSettings() {
+  const queryClient = useQueryClient();
+  const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<ISettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<any[]>([]);
@@ -29,7 +33,11 @@ export function AdminPaymentSettings() {
   const fetchSettings = async () => {
     try {
       const res = await apiClient.get("/admin/settings");
-      setSettings(res.data.data);
+      const data = res.data.data;
+      setSettings({
+        ...data,
+        snapmintMinOrderValue: data.snapmintMinOrderValue ?? 1500,
+      });
     } catch (err) {
       toast.error("Failed to load settings");
     } finally {
@@ -51,14 +59,20 @@ export function AdminPaymentSettings() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!settings) return;
+    if (!settings || saving) return;
     try {
+      setSaving(true);
       const { _id, __v, createdAt, updatedAt, id, ...payload } = settings as any;
+      payload.snapmintMinOrderValue = Number(settings.snapmintMinOrderValue) || 1500;
       await apiClient.put("/admin/settings", payload);
-      toast.success("Settings saved successfully");
+      await queryClient.invalidateQueries({ queryKey: ["publicSettings"] });
+      await queryClient.refetchQueries({ queryKey: ["publicSettings"] });
+      toast.success("Payment settings saved successfully");
     } catch (err: any) {
       const msg = err.response?.data?.message || err.response?.data?.error || "Failed to save settings";
       toast.error(typeof msg === "string" ? msg : "Failed to save settings");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -206,8 +220,48 @@ export function AdminPaymentSettings() {
             )}
           </div>
 
+                    {/* Snapmint Cardless EMI Configuration */}
+          <div className="pt-4 border-t">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold text-md text-neutral-900">Snapmint (Cardless 0% EMI) Configuration</h3>
+              <span className="text-[10px] font-bold bg-[#004851] text-[#00e396] px-2 py-0.5 rounded">
+                0% EMI
+              </span>
+            </div>
+            <div className="p-4 bg-neutral-50 border border-neutral-200 rounded space-y-3">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-neutral-700 mb-1.5">
+                  Minimum Order Value for Snapmint EMI (₹)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step={100}
+                  placeholder="1500"
+                  className="w-full border border-neutral-300 rounded p-2.5 text-sm bg-white"
+                  value={settings.snapmintMinOrderValue ?? 1500}
+                  onKeyDown={(e) => {
+                    if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") {
+                      e.preventDefault();
+                    }
+                  }}
+                  onChange={(e) => {
+                    const num = Number(e.target.value);
+                    const val = isNaN(num) ? 0 : Math.max(0, num);
+                    setSettings({ ...settings, snapmintMinOrderValue: val });
+                  }}
+                />
+                <span className="text-[11px] text-neutral-500 mt-1 block">
+                  Orders below this amount will prompt the customer to add more items to unlock Snapmint 0% EMI.
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div className="pt-2">
-            <Button type="submit">Save Payment & COD Settings</Button>
+            <Button type="submit" isLoading={saving} disabled={saving}>
+              {saving ? "Saving Settings..." : "Save Payment Settings"}
+            </Button>
           </div>
         </form>
       </div>

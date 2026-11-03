@@ -274,6 +274,19 @@ export class OrderService {
       }
     }
 
+    if (paymentMethod === "snapmint") {
+      const snapmintMin = (typeof settings.snapmintMinOrderValue === "number" && settings.snapmintMinOrderValue > 0)
+        ? settings.snapmintMinOrderValue
+        : (Number(process.env.SNAPMINT_MIN_ORDER_VALUE) || 1500);
+
+      if (totalAmount < snapmintMin) {
+        throw new AppError(
+          `Snapmint Cardless EMI is applicable on orders above ₹${snapmintMin.toLocaleString("en-IN")} (Current order: ₹${Math.round(totalAmount)}). Please choose another payment method or add more items to your cart.`,
+          400
+        );
+      }
+    }
+
     const orderNumber = await this.generateOrderNumber();
 
     const session = await mongoose.startSession();
@@ -307,7 +320,7 @@ export class OrderService {
         
         if (paymentMethod !== "cod" || collectGatewayForCod) {
           const gateway = PaymentGatewayFactory.create(actualGatewayType);
-          const gatewayResult = await gateway.createOrder({ ...orderData, id: orderIdStr, userEmail: user?.email } as any, gatewayAmount);
+          const gatewayResult = await gateway.createOrder({ ...orderData, id: orderIdStr, userEmail: user?.email, snapmintMinOrderValue: settings.snapmintMinOrderValue } as any, gatewayAmount);
           gatewayOrderId = gatewayResult.gatewayOrderId;
           gatewayResponse = gatewayResult.gatewayResponse;
           

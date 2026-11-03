@@ -109,7 +109,7 @@ describe("SnapmintGateway — Checkout 3.0 S2S Integration", () => {
       } as any);
 
       await expect(gateway.createOrder(mockOrder, 3000)).rejects.toThrow(
-        /orders above ₹25,000/
+        /orders above ₹1,500/
       );
 
       fetchSpy.mockRestore();
