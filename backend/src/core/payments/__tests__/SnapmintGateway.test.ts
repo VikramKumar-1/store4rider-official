@@ -26,6 +26,7 @@ describe("SnapmintGateway — Checkout 3.0 S2S Integration", () => {
     orderNumber: "ORD-2026-0001",
     id: "ord_mongo_123",
     userEmail: "rider@store4riders.com",
+    snapmintMinOrderValue: 1500,
     shippingAddress: {
       fullName: "Vikram Kumar",
       phone: "+91 9876543210",

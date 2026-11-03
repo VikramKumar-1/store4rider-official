@@ -51,9 +51,9 @@ export class SnapmintGateway implements PaymentGateway {
   async createOrder(order: IOrder, amount: number): Promise<GatewayOrderResult> {
     const { merchantToken, mid, s2sApiUrl } = this.getCredentials();
 
-    // Proactive minimum order value check for Snapmint merchant tier (dynamic from DB settings on order / ENV, default ₹1,500)
-    const configuredMin = Number((order as any)?.snapmintMinOrderValue || ENV.SNAPMINT_MIN_ORDER_VALUE || process.env.SNAPMINT_MIN_ORDER_VALUE) || 1500;
-    if (amount < configuredMin) {
+    // Minimum order value — strictly from admin panel (DB settings passed via order)
+    const configuredMin = Number((order as any)?.snapmintMinOrderValue) || 0;
+    if (configuredMin > 0 && amount < configuredMin) {
       throw new AppError(
         `Snapmint Cardless EMI is applicable on orders above ₹${configuredMin.toLocaleString("en-IN")} (Current order: ₹${Math.round(amount)}). Please choose another payment method or add more items to your cart.`,
         400
@@ -150,7 +150,9 @@ export class SnapmintGateway implements PaymentGateway {
 
       if (errorCode === "ORDER_VALUE_LT_MIN") {
         throw new AppError(
-          `Order value ₹${amount} is below Snapmint's minimum. EMI purchases are applicable on orders above ₹${configuredMin.toLocaleString("en-IN")}.`,
+          configuredMin > 0
+            ? `Order value ₹${amount} is below Snapmint's minimum. EMI purchases are applicable on orders above ₹${configuredMin.toLocaleString("en-IN")}.`
+            : `Order value ₹${amount} is below Snapmint's minimum eligible amount.`,
           400
         );
       }
@@ -169,7 +171,9 @@ export class SnapmintGateway implements PaymentGateway {
       const lowerMsg = errorMsg.toLowerCase();
       if (lowerMsg.includes("minimum") || lowerMsg.includes("min order") || lowerMsg.includes("order value") || lowerMsg.includes("below")) {
         throw new AppError(
-          `Snapmint Cardless EMI is applicable on orders above ₹${configuredMin.toLocaleString("en-IN")} (Current order: ₹${Math.round(amount)}). Please choose another payment method or add more items to your cart.`,
+          configuredMin > 0
+            ? `Snapmint Cardless EMI is applicable on orders above ₹${configuredMin.toLocaleString("en-IN")} (Current order: ₹${Math.round(amount)}). Please choose another payment method or add more items to your cart.`
+            : `Snapmint: ${errorMsg}`,
           400
         );
       }

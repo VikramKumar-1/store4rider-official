@@ -44,7 +44,7 @@ export const CheckoutPaymentStep = ({
   total
 }: CheckoutPaymentStepProps) => {
   const { data: settings, isLoading } = usePublicSettings();
-  const snapmintMin = settings?.snapmintMinOrderValue ?? 1500;
+  const snapmintMin = settings?.snapmintMinOrderValue ?? 0;
 
   const GATEWAY_INFO: Record<string, { label: React.ReactNode; desc: string; icon: React.ReactNode }> = {
     payu: {
@@ -97,10 +97,12 @@ export const CheckoutPaymentStep = ({
       label: (
         <div className="flex items-center gap-2 flex-wrap">
           <span>Snapmint (Cardless 0% EMI)</span>
-          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-amber-50 text-amber-900 border border-amber-300 px-2 py-0.5 rounded shadow-2xs tracking-wide uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-            Min. Order ₹{snapmintMin.toLocaleString("en-IN")}
-          </span>
+          {snapmintMin > 0 && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-amber-50 text-amber-900 border border-amber-300 px-2 py-0.5 rounded shadow-2xs tracking-wide uppercase">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+              Min. Order ₹{snapmintMin.toLocaleString("en-IN")}
+            </span>
+          )}
         </div>
       ),
       desc: "Buy now, pay in easy monthly installments without credit card",
@@ -150,7 +152,7 @@ export const CheckoutPaymentStep = ({
 
   // Ensure an available and eligible gateway is selected
   React.useEffect(() => {
-    const isSnapmintIneligible = total !== undefined && total < snapmintMin;
+    const isSnapmintIneligible = snapmintMin > 0 && total !== undefined && total < snapmintMin;
     const eligibleGateways = availableGateways.filter(
       (g) => g !== "snapmint" || !isSnapmintIneligible
     );
@@ -350,7 +352,7 @@ export const CheckoutPaymentStep = ({
             if (!info) return null;
             
             const isSnapmint = method === "snapmint";
-            const isSnapmintIneligible = isSnapmint && total !== undefined && total < snapmintMin;
+            const isSnapmintIneligible = isSnapmint && snapmintMin > 0 && total !== undefined && total < snapmintMin;
             const isCodWithAdvance = method === "cod" && Boolean(settings?.codPartialPaymentEnabled) && (settings?.codPartialPaymentValue || 0) > 0;
             const isSelected = paymentOption === method;
 
@@ -371,7 +373,7 @@ export const CheckoutPaymentStep = ({
             const handleSelectMethod = () => {
               if (isSnapmintIneligible) {
                 toast.error(
-                  `Snapmint Cardless EMI requires a minimum order of ₹${snapmintMin.toLocaleString("en-IN")} (Current total: ₹{Number(total).toLocaleString('en-IN')})`
+                  `Snapmint Cardless EMI requires a minimum order of ₹${snapmintMin.toLocaleString("en-IN")} (Current total: ₹${Number(total).toLocaleString("en-IN")})`
                 );
                 return;
               }

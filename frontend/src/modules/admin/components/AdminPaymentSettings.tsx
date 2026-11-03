@@ -36,7 +36,7 @@ export function AdminPaymentSettings() {
       const data = res.data.data;
       setSettings({
         ...data,
-        snapmintMinOrderValue: data.snapmintMinOrderValue ?? 1500,
+        snapmintMinOrderValue: data.snapmintMinOrderValue !== undefined ? Number(data.snapmintMinOrderValue) : 0,
       });
     } catch (err) {
       toast.error("Failed to load settings");
@@ -63,7 +63,7 @@ export function AdminPaymentSettings() {
     try {
       setSaving(true);
       const { _id, __v, createdAt, updatedAt, id, ...payload } = settings as any;
-      payload.snapmintMinOrderValue = Number(settings.snapmintMinOrderValue) || 1500;
+      payload.snapmintMinOrderValue = typeof settings.snapmintMinOrderValue === "number" ? Math.max(0, settings.snapmintMinOrderValue) : (Number(settings.snapmintMinOrderValue) || 0);
       await apiClient.put("/admin/settings", payload);
       await queryClient.invalidateQueries({ queryKey: ["publicSettings"] });
       await queryClient.refetchQueries({ queryKey: ["publicSettings"] });
@@ -237,9 +237,9 @@ export function AdminPaymentSettings() {
                   type="number"
                   min={0}
                   step={100}
-                  placeholder="1500"
+                  placeholder="Enter min order value"
                   className="w-full border border-neutral-300 rounded p-2.5 text-sm bg-white"
-                  value={settings.snapmintMinOrderValue ?? 1500}
+                  value={settings.snapmintMinOrderValue ?? ""}
                   onKeyDown={(e) => {
                     if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") {
                       e.preventDefault();

@@ -20,10 +20,6 @@ export class SettingRepository {
       settings.codPartialPaymentEnabled = false;
       await settings.save();
     }
-    if (settings.snapmintMinOrderValue === undefined) {
-      settings.snapmintMinOrderValue = 1500;
-      await settings.save();
-    }
     
     // Add default presets to older database records
     if (!settings.packagePresets || settings.packagePresets.length === 0) {

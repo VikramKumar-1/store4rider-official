@@ -275,11 +275,9 @@ export class OrderService {
     }
 
     if (paymentMethod === "snapmint") {
-      const snapmintMin = (typeof settings.snapmintMinOrderValue === "number" && settings.snapmintMinOrderValue > 0)
-        ? settings.snapmintMinOrderValue
-        : (Number(process.env.SNAPMINT_MIN_ORDER_VALUE) || 1500);
+      const snapmintMin = typeof settings.snapmintMinOrderValue === "number" ? settings.snapmintMinOrderValue : 0;
 
-      if (totalAmount < snapmintMin) {
+      if (snapmintMin > 0 && totalAmount < snapmintMin) {
         throw new AppError(
           `Snapmint Cardless EMI is applicable on orders above ₹${snapmintMin.toLocaleString("en-IN")} (Current order: ₹${Math.round(totalAmount)}). Please choose another payment method or add more items to your cart.`,
           400
