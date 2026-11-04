@@ -92,7 +92,7 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
   const [newBrandSlug, setNewBrandSlug] = useState("");
   const [newBrandLogo, setNewBrandLogo] = useState("");
   const [newBrandShowInMenu, setNewBrandShowInMenu] = useState(true);
-  const [newBrandMenuGroup, setNewBrandMenuGroup] = useState("Featured Brands");
+  const [newBrandMenuGroup, setNewBrandMenuGroup] = useState("Popular Brands");
   const [isUploadingBrandLogo, setIsUploadingBrandLogo] = useState(false);
   const brandLogoInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -386,12 +386,34 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
         const raw = existingProduct.attributes;
         const mappedAttrs: Array<{ key: string; value: string }> = [];
         Object.entries(raw).forEach(([k, v]) => {
-          if (k === "attribute_set_code") setAttributeSetCode(String(v));
-          else if (k === "gender") setGender(String(v));
+          const cleanK = k.trim().toLowerCase();
+          const strV = typeof v === "string" ? v.trim() : String(v || "").trim();
+
+          // If legacy size chart was stored inside attributes map, route to sizeChart field
+          if ((cleanK.startsWith("size_chart") || cleanK.startsWith("sizechart")) && strV.includes("<table")) {
+            if (!existingProduct.sizeChart) {
+              setSizeChart(strV);
+            }
+            return;
+          }
+
+          // Filter out legacy junk keys and corrupt strings (e.g. |"Unisex",brand, Condition: New)
+          if (
+            cleanK === "condition" ||
+            cleanK.startsWith("size_chart") ||
+            cleanK.startsWith("sizechart") ||
+            /["'|,<>{}()[\]]/.test(cleanK) ||
+            cleanK.length > 35
+          ) {
+            return;
+          }
+
+          if (k === "attribute_set_code") setAttributeSetCode(strV);
+          else if (k === "gender") setGender(strV);
           else if (k === "weight_unit") setWeightUnit(v as any);
           else if (k === "ship_cost") setShippingFee(Number(v) || "");
           else if (k !== "brand") {
-            mappedAttrs.push({ key: k, value: String(v) });
+            mappedAttrs.push({ key: k, value: strV });
           }
         });
         setCustomAttributes(mappedAttrs);
@@ -1098,8 +1120,8 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
           visibility: v.visibility || "Catalog, Search",
           images: vImages,
           attributes: {
-            ...(cleanColor ? { color: cleanColor } : {}),
-            ...(v.size ? { size: v.size.trim() } : {}),
+            ...(cleanColor && !["standard", "default", "none"].includes(cleanColor.toLowerCase()) ? { color: cleanColor } : {}),
+            ...(v.size && !["standard", "default", "none"].includes(v.size.trim().toLowerCase()) ? { size: v.size.trim() } : {}),
           },
         };
       }),

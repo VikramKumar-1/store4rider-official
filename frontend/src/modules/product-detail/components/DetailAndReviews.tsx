@@ -112,7 +112,145 @@ const formatFeatureTitle = (rawText: string): string => {
   return text;
 };
 
+/* ─── Specification Label & Filtering Configuration ─── */
+const IGNORED_SPEC_KEYS = new Set([
+  "attribute_set_code",
+  "ship_cost",
+  "show_featured_badge",
+  "weight_unit",
+  "brand",
+  "gender",
+  "condition",
+  "status",
+  "sku",
+  "name",
+  "id",
+  "_id",
+  "color",
+  "colour",
+  "size",
+  "configurable_variations",
+  "tax_class_name",
+  "hsn_code",
+  "category",
+  "category_id",
+  "codazon_custom_tab",
+  "size_chart",
+  "size_chart_01",
+  "size_chart_02",
+  "size_chart_03",
+  "sizechart",
+  "options_container",
+  "has_options",
+  "required_options",
+  "gift_message_available",
+  "url_key",
+  "url_path",
+  "image",
+  "small_image",
+  "thumbnail",
+  "base_image",
+  "frameborder",
+  "allowfullscreen",
+  "jacket_kit",
+]);
 
+const isHtmlString = (str: string): boolean => {
+  return /<[a-z\d]+(?:\s+[^>]*>|>)/i.test(str) || str.includes("</") || str.includes("/>") || str.includes("<table") || str.includes("<div");
+};
+
+const isJunkKey = (key: string): boolean => {
+  const k = key.trim().toLowerCase();
+  // Reject keys with legacy punctuation corruption (e.g. |"Unisex",brand)
+  if (/["'|,<>{}()[\]]/.test(k)) return true;
+  // Reject keys that are too long or empty
+  if (!k || k.length > 35) return true;
+  // Reject ignored keys
+  if (IGNORED_SPEC_KEYS.has(k)) return true;
+  // Reject size chart variants
+  if (k.startsWith("size_chart") || k.startsWith("sizechart")) return true;
+  return false;
+};
+
+const isJunkValue = (val: string): boolean => {
+  const v = val.trim().toLowerCase();
+  if (!v || v.length > 200) return true;
+  // Reject HTML content (e.g. size chart tables)
+  if (isHtmlString(val)) return true;
+  // Reject generic filler or placeholder strings
+  const junkValues = new Set([
+    "new", "used", "refurbished",
+    "none", "null", "undefined", "n/a", "na",
+    "default", "standard", "-", "--", "0", "0.000000"
+  ]);
+  if (junkValues.has(v)) return true;
+  return false;
+};
+
+const FRIENDLY_SPEC_LABELS: Record<string, string> = {
+  material: "Shell / Outer Material",
+  shell_material: "Shell Construction",
+  outer_material: "Outer Shell Material",
+  certification: "Safety Standard & Certification",
+  safety_certification: "Safety Standard & Certification",
+  pinlock_ready: "Pinlock Anti-Fog Ready",
+  pinlock: "Pinlock Anti-Fog Ready",
+  sun_visor: "Internal Sun Visor",
+  closure_type: "Chin Strap / Fastener",
+  fastener: "Closure / Fastening System",
+  bluetooth_ready: "Bluetooth / Intercom Cavities",
+  intercom_ready: "Bluetooth / Intercom Ready",
+  armour_level: "Armour Protection Level",
+  armor_level: "Armour Protection Level",
+  protection_level: "Impact Protection Level",
+  chest_armour: "Chest Armour Readiness",
+  back_armour: "Back Armour Included",
+  waterproofing: "Weatherproofing & Rain Layer",
+  water_resistance: "Water Resistance",
+  thermal_liner: "Thermal / Winter Insulation",
+  ventilation: "Ventilation & Airflow Ports",
+  reflectives: "Night Reflectives (3M Scotchlite)",
+  knuckle_protector: "Knuckle Protection Slider",
+  palm_slider: "Palm Scaphoid Slider",
+  touchscreen: "Touchscreen Smart Compatibility",
+  finger_bridge: "Anti-Separation Finger Bridge",
+  motorcycle_model: "Motorcycle Compatibility",
+  bike_compatibility: "Bike Compatibility",
+  weight: "Weight / Mass",
+  country_of_origin: "Country of Origin",
+  country_of_manufacture: "Country of Origin",
+  warranty: "Manufacturer Warranty",
+  riding_style: "Riding Discipline & Style",
+  helmet_type: "Helmet Classification",
+};
+
+const formatSpecKey = (rawKey: string): string => {
+  const cleanKey = rawKey.trim().toLowerCase();
+  if (FRIENDLY_SPEC_LABELS[cleanKey]) {
+    return FRIENDLY_SPEC_LABELS[cleanKey];
+  }
+  return cleanKey
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const isHighlightSpec = (key: string, value: string): boolean => {
+  const k = key.toLowerCase();
+  const v = value.toLowerCase();
+  if (k.includes("cert") || k.includes("safety") || k.includes("armour") || k.includes("armor")) {
+    return true;
+  }
+  if (
+    v.includes("ece 22.06") ||
+    v.includes("ce level 2") ||
+    v.includes("carbon fiber") ||
+    v.includes("snell") ||
+    v.includes("double d")
+  ) {
+    return true;
+  }
+  return false;
+};
 
 /**
  * DetailAndReviews Component
@@ -128,10 +266,82 @@ export const DetailAndReviews: React.FC<{
   brand?: string;
   brandSlug?: string;
   brandLogo?: string;
-}> = ({ fullDescription, reviews, productId, productName, brand, brandSlug, brandLogo }) => {
+  attributes?: Record<string, string>;
+}> = ({ fullDescription, reviews, productId, productName, brand, brandSlug, brandLogo, attributes }) => {
   const router = useRouter();
   const parsedDescription = React.useMemo(() => cleanHtml(fullDescription), [fullDescription]);
   const [isMobileDescExpanded, setIsMobileDescExpanded] = React.useState(false);
+
+  // Formatted, strictly sanitized technical specifications
+  const displayableSpecs = React.useMemo(() => {
+    const result: Array<{ rawKey: string; label: string; value: string; isHighlight: boolean }> = [];
+    const seenLabels = new Set<string>();
+
+    // 1. Process structured attributes if present
+    if (attributes && typeof attributes === "object") {
+      const entries = Object.entries(attributes);
+      entries.forEach(([key, val]) => {
+        if (isJunkKey(key)) return;
+        const cleanVal = typeof val === "string" ? val.trim() : String(val || "").trim();
+        if (isJunkValue(cleanVal)) return;
+
+        const label = formatSpecKey(key);
+        // Prevent duplicate labels (e.g. country_of_origin and country_of_manufacture both mapping to "Country of Origin")
+        if (seenLabels.has(label.toLowerCase())) return;
+        seenLabels.add(label.toLowerCase());
+
+        result.push({
+          rawKey: key,
+          label,
+          value: cleanVal,
+          isHighlight: isHighlightSpec(key, cleanVal),
+        });
+      });
+    }
+
+    // 2. If structured attributes didn't yield specs (e.g. legacy Magento products),
+    // automatically extract verified manufacturer specs from the description bullet points
+    if (result.length < 2 && fullDescription) {
+      const liMatches = [...fullDescription.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)];
+      for (const m of liMatches) {
+        const text = m[1].replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+        const colonIdx = text.indexOf(':');
+        if (colonIdx > 1 && colonIdx < 35) {
+          const rawLabel = text.slice(0, colonIdx).trim();
+          const rawVal = text.slice(colonIdx + 1).trim();
+
+          if (
+            rawVal.length > 0 &&
+            rawVal.length < 220 &&
+            !isJunkKey(rawLabel) &&
+            !isJunkValue(rawVal) &&
+            !seenLabels.has(rawLabel.toLowerCase())
+          ) {
+            seenLabels.add(rawLabel.toLowerCase());
+            result.push({
+              rawKey: rawLabel.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+              label: formatSpecKey(rawLabel),
+              value: rawVal,
+              isHighlight: isHighlightSpec(rawLabel, rawVal),
+            });
+          }
+        }
+      }
+    }
+
+    // Sort logically: Core/Technical specs first, general metadata (Country of Origin, Warranty) at the end
+    result.sort((a, b) => {
+      const isAOrigin = a.label.toLowerCase().includes("origin") || a.label.toLowerCase().includes("manufacture");
+      const isBOrigin = b.label.toLowerCase().includes("origin") || b.label.toLowerCase().includes("manufacture");
+      if (isAOrigin && !isBOrigin) return 1;
+      if (!isAOrigin && isBOrigin) return -1;
+      if (a.isHighlight && !b.isHighlight) return -1;
+      if (!a.isHighlight && b.isHighlight) return 1;
+      return 0;
+    });
+
+    return result;
+  }, [attributes, fullDescription]);
 
   React.useEffect(() => {
     const handleExpand = () => setIsMobileDescExpanded(true);
@@ -260,6 +470,62 @@ export const DetailAndReviews: React.FC<{
                   </div>
                 )}
               </div>
+
+            {/* ─── Technical Specifications & Attributes Grid ─── */}
+            {displayableSpecs.length > 0 && (
+              <div className="mt-7 pt-6 border-t border-neutral-200/90 space-y-3.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-8 h-8 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center text-[#ab1509] shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <path d="m9 12 2 2 4-4"/>
+                      </svg>
+                    </span>
+                    <div>
+                      <h4 className="font-heading text-sm font-bold text-neutral-900 uppercase tracking-wide">
+                        Technical Specifications & Standards
+                      </h4>
+                      <p className="text-[11px] text-neutral-400 font-medium">
+                        Verified manufacturer parameters & rider protection
+                      </p>
+                    </div>
+                  </div>
+                  <span className="self-start sm:self-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    Verified Gear Specs
+                  </span>
+                </div>
+
+                <div className="border border-neutral-200 rounded-xl overflow-hidden shadow-2xs divide-y divide-neutral-100 bg-white">
+                  {displayableSpecs.map(({ rawKey, label, value, isHighlight }, idx) => (
+                    <div
+                      key={rawKey}
+                      className={`grid grid-cols-1 sm:grid-cols-12 px-4 sm:px-5 py-3 items-center text-xs sm:text-sm transition-colors ${
+                        idx % 2 === 0 ? "bg-white" : "bg-neutral-50/50"
+                      }`}
+                    >
+                      <div className="sm:col-span-5 font-bold text-neutral-700 flex items-center gap-2">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                            isHighlight ? "bg-[#ab1509]" : "bg-neutral-300"
+                          }`}
+                        />
+                        <span>{label}</span>
+                      </div>
+                      <div className="sm:col-span-7 font-medium text-neutral-900 mt-1 sm:mt-0 flex items-center justify-between gap-2">
+                        <span className="break-words">{value}</span>
+                        {isHighlight && (
+                          <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#ab1509] bg-red-50 border border-red-200/80 px-2 py-0.5 rounded-sm shrink-0">
+                            Core Spec
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ─── RIGHT: Reviews (Desktop only: side-by-side with specifications) ─── */}

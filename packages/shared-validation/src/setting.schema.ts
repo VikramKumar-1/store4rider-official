@@ -78,6 +78,8 @@ export const updateSettingSchema = z.object({
   brandsMetaTitle: z.string().max(200).optional().or(z.literal("")),
   brandsMetaDescription: z.string().max(500).optional().or(z.literal("")),
   brandsMetaKeywords: z.string().max(500).optional().or(z.literal("")),
+  brandsHeroTitle: z.string().max(300).optional().or(z.literal("")),
+  brandsHeroDescription: z.string().max(2500).optional().or(z.literal("")),
   guidesMetaTitle: z.string().max(200).optional().or(z.literal("")),
   guidesMetaDescription: z.string().max(500).optional().or(z.literal("")),
   guidesMetaKeywords: z.string().max(500).optional().or(z.literal("")),

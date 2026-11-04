@@ -66,11 +66,16 @@ export const generateNavItems = (categories: ICategoryTree[], brands: IBrand[]):
   if (menuBrands.length > 0) {
     const groupedBrands: Record<string, IBrand[]> = {};
     menuBrands.forEach((b) => {
-      const groupName = b.menuGroup?.trim() || "Featured Brands";
-      if (!groupedBrands[groupName]) {
-        groupedBrands[groupName] = [];
-      }
-      groupedBrands[groupName].push(b);
+      const assignedGroups = b.menuGroups && b.menuGroups.length > 0
+        ? b.menuGroups
+        : [b.menuGroup?.trim() || "Popular Brands"];
+
+      assignedGroups.forEach((groupName) => {
+        if (!groupedBrands[groupName]) {
+          groupedBrands[groupName] = [];
+        }
+        groupedBrands[groupName].push(b);
+      });
     });
 
     const megaMenuItems = Object.entries(groupedBrands).map(([group, items]) => ({

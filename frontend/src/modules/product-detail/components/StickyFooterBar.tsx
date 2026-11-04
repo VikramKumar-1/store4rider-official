@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { ColorOption } from "../types/product-detail.types";
 import { useCartStore } from "@/stores/useCartStore";
 import { useUIStore } from "@/stores/useUIStore";
+import { SizeChartModal } from "./SizeChartModal";
 
 interface StickyFooterBarProps {
   productName: string;
@@ -549,30 +550,13 @@ export const StickyFooterBar: React.FC<StickyFooterBarProps> = React.memo(({
 
       </div>
 
-      {/* Size Chart Modal */}
-      {showSizeChart && sizeChart && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-8">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full relative flex flex-col max-h-full overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-neutral-100 bg-neutral-50 shrink-0">
-              <h3 className="font-heading font-semibold text-lg uppercase tracking-wide text-neutral-900">Size Guide</h3>
-              <button onClick={() => setShowSizeChart(false)} className="text-neutral-400 hover:text-red-500 p-1">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <div className="p-4 pb-12 overflow-y-auto overflow-x-auto min-h-0">
-              {sizeChart.includes('<') ? (
-                <div 
-                  className="w-full text-[13px] sm:text-sm text-neutral-800 overflow-x-auto [&_table]:w-full [&_table]:border-collapse [&_th]:font-heading [&_th]:font-medium [&_th]:text-[13px] sm:[&_th]:text-sm [&_th]:border [&_th]:border-neutral-300 [&_th]:p-2 sm:[&_th]:p-3 [&_th]:bg-neutral-100 [&_th]:whitespace-nowrap [&_td]:font-sans [&_td]:text-[13px] sm:[&_td]:text-sm [&_td]:border [&_td]:border-neutral-300 [&_td]:p-2 sm:[&_td]:p-3 [&_td]:text-center [&_img]:w-full [&_img]:max-h-[60vh] [&_img]:object-contain [&_img]:mx-auto"
-                  dangerouslySetInnerHTML={{ __html: sizeChart.replace(/""/g, '"') }} 
-                />
-              ) : (
-                <img src={sizeChart} alt="Size Chart" className="w-full max-h-[70vh] object-contain rounded-md mx-auto" />
-              )}
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* Responsive Size Chart Modal */}
+      <SizeChartModal
+        isOpen={showSizeChart}
+        onClose={() => setShowSizeChart(false)}
+        sizeChart={sizeChart}
+        productName={productName}
+      />
     </div>
   );
 });

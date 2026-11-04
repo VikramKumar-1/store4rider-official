@@ -190,11 +190,11 @@ export const DirectUpiModal: React.FC<DirectUpiModalProps> = ({
         <div className="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 text-white p-4 sm:p-5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-white p-1 flex items-center justify-center shrink-0">
-              <Image src="/icons/payment/upi.svg" alt="UPI" width={26} height={16} className="object-contain" priority />
+              <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={28} height={18} className="object-contain" priority />
             </div>
             <div className="flex flex-col">
               <span className="font-extrabold text-sm sm:text-base tracking-tight flex items-center gap-1.5">
-                Direct UPI / Google Pay
+                Google Pay Direct Payment
               </span>
               <span className="text-[11px] text-neutral-300 font-mono">
                 Order: #{orderNumber}
@@ -253,57 +253,21 @@ export const DirectUpiModal: React.FC<DirectUpiModalProps> = ({
           ) : (
             <div className="flex flex-col gap-4">
               
-              {/* App Chooser / Intent Buttons (Prominent on Mobile) */}
-              <div className="flex flex-col gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
-                  {isMobileDevice ? "1. Tap to Pay via Installed App" : "Accepted UPI Apps"}
-                </span>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {/* Direct Google Pay App Launcher (Prominent on Mobile) */}
+              {isMobileDevice && (
+                <div className="flex flex-col gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                    1. Tap to Pay with Google Pay
+                  </span>
                   <a
                     href={upiUri}
-                    className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-lg border border-neutral-200 hover:border-neutral-900 bg-neutral-50 hover:bg-white transition-all group shadow-2xs"
+                    className="w-full bg-[#1a73e8] hover:bg-[#1557b0] text-white font-extrabold text-xs uppercase py-3.5 px-4 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.99]"
                   >
-                    <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={32} height={20} className="object-contain h-5 w-auto" />
-                    <span className="text-[10px] font-bold text-neutral-700 group-hover:text-neutral-900">Google Pay</span>
-                  </a>
-
-                  <a
-                    href={upiUri}
-                    className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-lg border border-neutral-200 hover:border-neutral-900 bg-neutral-50 hover:bg-white transition-all group shadow-2xs"
-                  >
-                    <Image src="/icons/payment/phonepe.svg" alt="PhonePe" width={28} height={20} className="object-contain h-5 w-auto" />
-                    <span className="text-[10px] font-bold text-neutral-700 group-hover:text-neutral-900">PhonePe</span>
-                  </a>
-
-                  <a
-                    href={upiUri}
-                    className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-lg border border-neutral-200 hover:border-neutral-900 bg-neutral-50 hover:bg-white transition-all group shadow-2xs"
-                  >
-                    <Image src="/icons/payment/paytm.svg" alt="Paytm" width={36} height={20} className="object-contain h-5 w-auto" />
-                    <span className="text-[10px] font-bold text-neutral-700 group-hover:text-neutral-900">Paytm</span>
-                  </a>
-
-                  <a
-                    href={upiUri}
-                    className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-lg border border-neutral-200 hover:border-neutral-900 bg-neutral-50 hover:bg-white transition-all group shadow-2xs"
-                  >
-                    <div className="h-5 flex items-center justify-center font-black text-xs text-neutral-900">
-                      CRED / ANY
-                    </div>
-                    <span className="text-[10px] font-bold text-neutral-700 group-hover:text-neutral-900">All UPI Apps</span>
+                    <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={36} height={20} className="object-contain h-5 w-auto brightness-0 invert" />
+                    <span>Pay ₹{Number(amount).toLocaleString("en-IN")} with Google Pay App</span>
                   </a>
                 </div>
-
-                {isMobileDevice && (
-                  <a
-                    href={upiUri}
-                    className="w-full mt-1 bg-banner hover:bg-orange-600 text-white font-extrabold text-xs uppercase py-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all"
-                  >
-                    <span>⚡ Pay ₹{Number(amount).toLocaleString("en-IN")} via Installed UPI App</span>
-                  </a>
-                )}
-              </div>
+              )}
 
               {/* Google Pay Web API (with Test Card Suite in TEST mode) */}
               <div className="flex flex-col gap-2 p-3.5 bg-neutral-50 rounded-xl border border-neutral-200">

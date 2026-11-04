@@ -34,13 +34,35 @@ const getCartStorageKey = (userId: string | null) => {
   return userId ? `s4r_cart_user_${userId}` : `s4r_cart_guest`;
 };
 
+const sanitizeCartItem = (item: LocalCartItem): LocalCartItem => {
+  if (!item) return item;
+  const isJunk = (v?: string) =>
+    Boolean(v && ["standard", "default", "none", "n/a", "na", "-", "--"].includes(v.trim().toLowerCase()));
+
+  let product = item.product;
+  if (product) {
+    let pCopy = { ...product };
+    let changed = false;
+    if (isJunk(pCopy.selectedColor)) {
+      delete pCopy.selectedColor;
+      changed = true;
+    }
+    if (isJunk(pCopy.selectedSize)) {
+      delete pCopy.selectedSize;
+      changed = true;
+    }
+    if (changed) product = pCopy;
+  }
+  return { ...item, product };
+};
+
 const loadItemsFromStorage = (userId: string | null): LocalCartItem[] => {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(getCartStorageKey(userId));
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) return parsed.map(sanitizeCartItem);
     }
   } catch (e) {
     console.error("Failed to load cart from storage", e);
@@ -142,7 +164,8 @@ export const useCartStore = create<CartState>((set, get) => ({
     });
   },
 
-  addItem: (item) => {
+  addItem: (rawItem) => {
+    const item = sanitizeCartItem(rawItem);
     const { items, currentUserId } = get();
     const normVariantId = item.variantId || "";
     const existingIndex = items.findIndex(

@@ -232,7 +232,7 @@ export const NavMobileDrawer: React.FC<NavMobileDrawerProps> = ({
                                               <span>{link.label}</span>
                                               {link.badge && (
                                                 <span
-                                                  className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider text-white ${
+                                                  className={`inline-flex items-center text-[8.5px] font-medium px-1.5 py-0.5 rounded-full uppercase tracking-wide text-white shadow-2xs leading-none shrink-0 ${
                                                     link.badgeColor || "bg-brand"
                                                   }`}
                                                 >

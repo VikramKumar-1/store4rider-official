@@ -40,6 +40,8 @@ export interface ISetting extends Document {
   brandsMetaTitle?: string;
   brandsMetaDescription?: string;
   brandsMetaKeywords?: string;
+  brandsHeroTitle?: string;
+  brandsHeroDescription?: string;
   guidesMetaTitle?: string;
   guidesMetaDescription?: string;
   guidesMetaKeywords?: string;
@@ -178,6 +180,12 @@ const settingSchema = new Schema<ISetting>(
     brandsMetaTitle: { type: String, default: "" },
     brandsMetaDescription: { type: String, default: "" },
     brandsMetaKeywords: { type: String, default: "" },
+    brandsHeroTitle: { type: String, default: "Shop By Brand" },
+    brandsHeroDescription: {
+      type: String,
+      default:
+        "Store4Riders is an online multi-brand riding gear store launched in 2016 for fellow riders looking out for quality motorcycle riding gear. We house brands ranging from premium brands to more affordable riding gear brands like etc. Other than riding gear, we offer a host of accessories, luggage and performance parts for bike riders. We deliver all products across India. Check out the brands we have on offer.",
+    },
     guidesMetaTitle: { type: String, default: "" },
     guidesMetaDescription: { type: String, default: "" },
     guidesMetaKeywords: { type: String, default: "" },

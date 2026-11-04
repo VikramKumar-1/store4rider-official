@@ -78,10 +78,11 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function BrandsPage() {
+export default async function BrandsPage() {
+  const pageConfig = await getBrandsPageSeo();
   return (
     <Suspense fallback={null}>
-      <BrandsDirectoryModule />
+      <BrandsDirectoryModule initialConfig={pageConfig} />
     </Suspense>
   );
 }

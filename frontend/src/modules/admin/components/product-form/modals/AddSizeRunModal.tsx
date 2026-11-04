@@ -25,7 +25,7 @@ const QUICK_COLORS = [
   { name: "Dark Grey", hex: "#374151" },
   { name: "Camo Green", hex: "#4A5D4E" },
   { name: "Fluo Green", hex: "#CCFF00" },
-  { name: "Standard", hex: "#6B7280" },
+  
 ];
 
 export function AddSizeRunModal({
@@ -44,13 +44,8 @@ export function AddSizeRunModal({
     if (isOpen) {
       // If there are existing colors, default to empty so admin picks a NEW color
       // If no existing colors, default to "Standard"
-      if (existingColors.length === 0) {
-        setColorName("Standard");
-        setSwatchCss("#6B7280");
-      } else {
-        setColorName("");
-        setSwatchCss("#111111");
-      }
+      setColorName("");
+      setSwatchCss("#111111");
       setSelectedSizes(suggestedSizes || []);
     }
   }, [isOpen, suggestedSizes, existingColors]);
@@ -75,7 +70,7 @@ export function AddSizeRunModal({
   };
 
   const handleConfirm = () => {
-    const finalColor = colorName.trim() || (existingColors.length === 0 ? "Standard" : "New Color");
+    const finalColor = colorName.trim();
     if (selectedSizes.length === 0) return;
 
     const finalSwatch = swatchCss || parseColorToBackground(finalColor) || "#111111";

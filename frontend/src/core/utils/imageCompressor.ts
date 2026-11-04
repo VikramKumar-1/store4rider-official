@@ -111,24 +111,40 @@ export async function compressImageToWebP(
  * Uploads a WebP file to AWS S3 using presigned URL
  */
 export async function uploadImageToS3(file: File): Promise<string> {
-  // 1. Get presigned URL from backend
-  const res = await apiClient.post<{ data: { url: string } }>("/upload/presigned-url", {
-    fileName: file.name,
-    fileType: file.type || "image/webp",
-  });
+  // 1. Attempt S3 direct upload via Presigned URL
+  try {
+    const res = await apiClient.post<{ data: { url: string } }>("/upload/presigned-url", {
+      fileName: file.name,
+      fileType: file.type || "image/webp",
+    });
 
-  const presignedUrl = res.data.data.url;
-  if (!presignedUrl) {
-    throw new Error("Did not receive a presigned URL from the server");
+    const presignedUrl = res.data?.data?.url;
+    if (presignedUrl) {
+      await axios.put(presignedUrl, file, {
+        headers: {
+          "Content-Type": file.type || "image/webp",
+        },
+      });
+      return presignedUrl.split("?")[0];
+    }
+  } catch (s3Err) {
+    // 2. Fallback to server-side direct upload if S3 direct PUT fails or credentials are missing
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const directRes = await apiClient.post<{ data: { url: string } }>("/upload/direct", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (directRes.data?.data?.url) {
+        return directRes.data.data.url;
+      }
+    } catch (fallbackErr: any) {
+      throw new Error(fallbackErr.response?.data?.message || fallbackErr.message || "Image upload failed");
+    }
   }
 
-  // 2. Direct PUT to S3
-  await axios.put(presignedUrl, file, {
-    headers: {
-      "Content-Type": file.type || "image/webp",
-    },
-  });
-
-  // 3. Clean public URL
-  return presignedUrl.split("?")[0];
+  throw new Error("Did not receive an upload URL from the server");
 }

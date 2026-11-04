@@ -155,24 +155,33 @@ export function QuickAddBrandModal() {
                 {[
                   "Helmet Brands",
                   "Riding Gear",
+                  "Boots & Protection",
                   "Luggage & Accessories",
                   "Parts & Performance",
                   "Care & Maintenance",
-                  "Featured Brands",
-                ].map((grp) => (
-                  <button
-                    key={grp}
-                    type="button"
-                    onClick={() => setNewBrandMenuGroup(grp)}
-                    className={`px-2 py-0.5 text-[11px] rounded font-medium border cursor-pointer transition-colors ${
-                      newBrandMenuGroup === grp
-                        ? "bg-brand text-white border-brand"
-                        : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    {grp}
-                  </button>
-                ))}
+                  "Popular Brands",
+                ].map((grp) => {
+                  const isGrpSelected = newBrandMenuGroup.split(",").map(s => s.trim()).includes(grp);
+                  return (
+                    <button
+                      key={grp}
+                      type="button"
+                      onClick={() => {
+                        const current = newBrandMenuGroup.split(",").map(s => s.trim()).filter(Boolean);
+                        const updated = current.includes(grp) ? current.filter(s => s !== grp) : [...current, grp];
+                        setNewBrandMenuGroup(updated.join(", "));
+                      }}
+                      className={`px-2 py-0.5 text-[11px] rounded font-medium border cursor-pointer transition-colors ${
+                        isGrpSelected
+                          ? "bg-brand text-white border-brand font-semibold shadow-xs"
+                          : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      {isGrpSelected && "✓ "}
+                      {grp}
+                    </button>
+                  );
+                })}
               </div>
               <input
                 type="text"
@@ -205,13 +214,15 @@ export function QuickAddBrandModal() {
               }
               const slugToUse =
                 newBrandSlug.trim() || newBrandName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+              const groupsArr = newBrandMenuGroup.split(",").map(s => s.trim()).filter(Boolean);
               try {
                 await createBrand.mutateAsync({
                   name: newBrandName.trim(),
                   slug: slugToUse,
                   logo: newBrandLogo || undefined,
                   showInMenu: newBrandShowInMenu,
-                  menuGroup: newBrandMenuGroup.trim() || "Featured Brands",
+                  menuGroup: groupsArr[0] || "Popular Brands",
+                  menuGroups: groupsArr.length > 0 ? groupsArr : ["Popular Brands"],
                   isActive: true,
                 });
                 setBrand(newBrandName.trim());

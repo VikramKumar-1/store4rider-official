@@ -14,6 +14,7 @@ export interface IBrand {
   isActive: boolean;
   showInMenu?: boolean;
   menuGroup?: string;
+  menuGroups?: string[];
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;

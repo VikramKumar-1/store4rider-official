@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -9,6 +9,7 @@ import { NavbarProps } from "../types/homepage.types";
 import { useCartStore } from "@/stores/useCartStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useLogout } from "@/core/hooks/useAuth";
+import { useBrands } from "@/core/hooks/useBrands";
 import { SearchAutocomplete } from "@/modules/search/components/SearchAutocomplete";
 import { NavItem } from "../types/homepage.types";
 import { DEFAULT_NAV_ITEMS } from "./navbar/nav.constants";
@@ -117,8 +118,67 @@ export const Navbar: React.FC<NavbarProps> = ({
   const totalItemCount = mounted ? items.reduce((sum, i) => sum + (i.quantity || 1), 0) : 0;
   const isLight = theme === "light" || isScrolled;
   
-  // ⚠️ CRITICAL: DO NOT MAKE NAVBAR DYNAMIC. The storefront navigation MUST strictly use DEFAULT_NAV_ITEMS.
-  const activeNavItems = navItems || DEFAULT_NAV_ITEMS;
+  const { data: dbBrands } = useBrands();
+
+  // Preserves strict DEFAULT_NAV_ITEMS structure, overlaying Popular badges dynamically only when configured in DB
+  const activeNavItems = useMemo(() => {
+    const baseItems = navItems || DEFAULT_NAV_ITEMS;
+    if (!dbBrands || !Array.isArray(dbBrands) || dbBrands.length === 0) {
+      return baseItems;
+    }
+
+    const popularBrandsList = dbBrands.filter(
+      (b) =>
+        b.isActive !== false &&
+        ((b.menuGroups && b.menuGroups.some((g) => g.toLowerCase().includes("popular"))) ||
+          (b.menuGroup && b.menuGroup.toLowerCase().includes("popular")))
+    );
+
+    return baseItems.map((item) => {
+      const isBrandNav =
+        item.id === "shop-by-brand" ||
+        item.href === "/brands" ||
+        item.label.toLowerCase().includes("brand");
+
+      if (!isBrandNav || !item.megaMenuItems) return item;
+
+      return {
+        ...item,
+        megaMenuItems: item.megaMenuItems.map((group) => ({
+          ...group,
+          items: group.items.map((subItem) => {
+            const targetSlug = subItem.href.replace(/^\/brands\/?/, "").trim().toLowerCase();
+            const targetLabel = subItem.label.trim().toLowerCase();
+
+            const isPopular = popularBrandsList.some((pb) => {
+              const pbSlug = pb.slug?.trim().toLowerCase();
+              const pbName = pb.name?.trim().toLowerCase();
+              const aliases = Array.isArray(pb.aliases)
+                ? pb.aliases.map((a) => a.trim().toLowerCase())
+                : [];
+
+              if (pbSlug && (pbSlug === targetSlug || targetSlug.startsWith(pbSlug) || pbSlug.startsWith(targetSlug))) {
+                return true;
+              }
+              if (aliases.includes(targetSlug)) {
+                return true;
+              }
+              if (pbName && (pbName === targetLabel || targetLabel.includes(pbName) || pbName.includes(targetLabel))) {
+                return true;
+              }
+              return false;
+            });
+
+            return {
+              ...subItem,
+              badge: isPopular ? "Popular" : undefined,
+              badgeColor: isPopular ? "bg-brand" : undefined,
+            };
+          }),
+        })),
+      };
+    });
+  }, [navItems, dbBrands]);
 
   return (
     <>

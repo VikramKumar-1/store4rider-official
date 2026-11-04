@@ -222,6 +222,11 @@ export const parseColorToBackground = (colorName: string): string => {
   if (!colorName) return "#111111";
   const clean = colorName.trim().toLowerCase();
 
+  // standard placeholder check: return neutral medium grey instead of pitch black
+  if (["standard", "default", "none", "n/a", "na", "-", "--"].includes(clean)) {
+    return "#9CA3AF";
+  }
+
   // Direct single color match
   if (singleColorMap[clean]) {
     return singleColorMap[clean];
@@ -520,6 +525,8 @@ const mapProductToPDP = (
   // Prefer extracting from rawVariants
   const colorSet = new Set<string>();
   const sizeSet = new Set<string>();
+  const isJunkVariantVal = (val?: string) =>
+    Boolean(val && ["standard", "default", "none", "n/a", "na", "-", "--"].includes(val.trim().toLowerCase()));
 
   if (rawVariants && rawVariants.length > 0) {
     rawVariants.forEach((variant: any) => {
@@ -527,7 +534,7 @@ const mapProductToPDP = (
         Object.entries(variant.attributes).forEach(([key, value]) => {
           const k = key.toLowerCase();
           const v = String(value).trim();
-          if (k === 'sku') return;
+          if (k === 'sku' || !v || isJunkVariantVal(v)) return;
           if (k.includes('color') || k.includes('colour')) {
             colorSet.add(v);
           } else {
@@ -544,8 +551,8 @@ const mapProductToPDP = (
   } else {
     // Fallback to parsing the legacy Magento string
     const parsed = parseVariations(product.configurableVariations, (product as any).configurableVariationLabels);
-    parsed.colors.forEach(c => colorSet.add(c));
-    parsed.sizes.forEach(s => sizeSet.add(s));
+    parsed.colors.forEach(c => { if (c && !isJunkVariantVal(c)) colorSet.add(c); });
+    parsed.sizes.forEach(s => { if (s && !isJunkVariantVal(s)) sizeSet.add(s); });
     sizeLabel = parsed.sizeLabel || "SIZE";
   }
 
@@ -576,8 +583,8 @@ const mapProductToPDP = (
     });
   }
 
-  colorNames = Array.from(colorSet);
-  sizes = Array.from(sizeSet);
+  colorNames = Array.from(colorSet).filter(c => !isJunkVariantVal(c));
+  sizes = Array.from(sizeSet).filter(s => !isJunkVariantVal(s));
 
   // 1. Collect all images for the product
   const rawGalleryImages: any[] = [];

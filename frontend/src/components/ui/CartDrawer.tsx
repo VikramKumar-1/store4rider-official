@@ -151,8 +151,10 @@ export const CartDrawer: React.FC = () => {
                 const name = product.name || "Riding Gear";
                 const price = product.basePrice || (item as any).price || 0;
                 const rawImg = getCartItemImage(item, FALLBACK_IMAGE);
-                const selectedColor = product.selectedColor || "";
-                const selectedSize = product.selectedSize || "";
+                const isRealOption = (v?: string) =>
+                  Boolean(v && !["standard", "default", "none", "n/a", "na", "-", "--"].includes(v.trim().toLowerCase()));
+                const selectedColor = isRealOption(product.selectedColor) ? product.selectedColor : "";
+                const selectedSize = isRealOption(product.selectedSize) ? product.selectedSize : "";
 
                 return (
                   <div key={`${item.productId}-${item.variantId || idx}`} className="pt-4 first:pt-0 flex gap-3.5 items-start">

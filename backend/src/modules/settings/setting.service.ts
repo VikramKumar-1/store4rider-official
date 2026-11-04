@@ -22,14 +22,26 @@ export class SettingService {
       metaTitle: settings.brandsMetaTitle || "",
       metaDescription: settings.brandsMetaDescription || "",
       metaKeywords: settings.brandsMetaKeywords || "",
+      heroTitle: settings.brandsHeroTitle || "Shop By Brand",
+      heroDescription:
+        settings.brandsHeroDescription ||
+        "Store4Riders is an online multi-brand riding gear store launched in 2016 for fellow riders looking out for quality motorcycle riding gear. We house brands ranging from premium brands to more affordable riding gear brands like etc. Other than riding gear, we offer a host of accessories, luggage and performance parts for bike riders. We deliver all products across India. Check out the brands we have on offer.",
     };
   }
 
-  static async updateBrandsPageSeo(seo: { metaTitle?: string; metaDescription?: string; metaKeywords?: string }) {
+  static async updateBrandsPageSeo(seo: {
+    metaTitle?: string;
+    metaDescription?: string;
+    metaKeywords?: string;
+    heroTitle?: string;
+    heroDescription?: string;
+  }) {
     const updateData: any = {};
     if (seo.metaTitle !== undefined) updateData.brandsMetaTitle = seo.metaTitle;
     if (seo.metaDescription !== undefined) updateData.brandsMetaDescription = seo.metaDescription;
     if (seo.metaKeywords !== undefined) updateData.brandsMetaKeywords = seo.metaKeywords;
+    if (seo.heroTitle !== undefined) updateData.brandsHeroTitle = seo.heroTitle;
+    if (seo.heroDescription !== undefined) updateData.brandsHeroDescription = seo.heroDescription;
     return SettingRepository.updateSettings(updateData);
   }
 

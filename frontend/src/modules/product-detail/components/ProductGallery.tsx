@@ -43,6 +43,7 @@ const Thumbnail = React.memo(
     return (
       <button
         type="button"
+        suppressHydrationWarning
         onClick={onClick}
         className={`relative w-20 sm:w-24 aspect-square shrink-0 border-2 rounded-sm overflow-hidden bg-[#f4f4f4] transition-all duration-150 cursor-pointer ${
           isActive ? "border-brand ring-2 ring-brand/30" : "border-neutral-200 hover:border-neutral-300"
@@ -368,6 +369,7 @@ export const ProductGallery: React.FC<{
       <div className="relative flex items-center group">
         <button
           type="button"
+          suppressHydrationWarning
           onClick={() => scroll("left")}
           className="absolute left-0 z-10 bg-white shadow-md border border-neutral-200 rounded-full p-1.5 hover:bg-neutral-50 transition-all -ml-3 hidden md:flex opacity-0 group-hover:opacity-100 cursor-pointer active:scale-95"
           aria-label="Scroll left"
@@ -396,6 +398,7 @@ export const ProductGallery: React.FC<{
           {videoEmbed && (
             <button
               type="button"
+              suppressHydrationWarning
               onClick={handleVideoClick}
               className={`relative w-20 sm:w-24 aspect-square shrink-0 border-2 rounded-sm overflow-hidden bg-slate-900 transition-all duration-150 flex flex-col items-center justify-center group cursor-pointer ${
                 isVideoActive
@@ -460,6 +463,7 @@ export const ProductGallery: React.FC<{
 
         <button
           type="button"
+          suppressHydrationWarning
           onClick={() => scroll("right")}
           className="absolute right-0 z-10 bg-white shadow-md border border-neutral-200 rounded-full p-1.5 hover:bg-neutral-50 transition-all -mr-3 hidden md:flex opacity-0 group-hover:opacity-100 cursor-pointer active:scale-95"
           aria-label="Scroll right"

@@ -293,44 +293,50 @@ export const CheckoutPaymentStep = ({
                     <div className="flex flex-col w-full">
                       <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span>UPI - Google Pay, PhonePe, Paytm & Any UPI App</span>
+                          <span>Google Pay (Direct UPI)</span>
                         </div>
-                        <div className="flex items-center ml-auto gap-1 shrink-0">
+                        <div className="flex items-center ml-auto gap-2 shrink-0">
+                          <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={42} height={22} className="object-contain h-5 w-auto" priority loading="eager" unoptimized />
                           <Image src="/icons/payment/upi.svg" alt="UPI" width={30} height={16} className="object-contain h-4 w-auto" priority loading="eager" unoptimized />
                         </div>
                       </div>
                       <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
-                        Instant payment via Google Pay, PhonePe, Paytm, CRED or scan Dynamic UPI QR code
+                        Instant payment via Google Pay or scan official Store4Riders GPay QR code
                       </span>
 
-                      {/* UPI Logo Strip */}
-                      <div className="flex items-center gap-2 mt-2 flex-wrap opacity-90">
-                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-                          <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                      {/* Google Pay Verification Strip */}
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="bg-white border border-neutral-200 rounded px-2 py-0.5 flex items-center justify-center h-7">
+                          <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={44} height={24} className="object-contain w-auto h-5" priority loading="eager" unoptimized />
                         </div>
-                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-                          <Image src="/icons/payment/phonepe.svg" alt="PhonePe" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-                        </div>
-                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-                          <Image src="/icons/payment/paytm.svg" alt="Paytm" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-                        </div>
-                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-                          <Image src="/icons/payment/upi.svg" alt="UPI" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-                        </div>
+                        <span className="text-[11px] text-neutral-600 font-medium font-mono">
+                          Merchant: 9834999284@okbizaxis
+                        </span>
                       </div>
 
-                      {/* Google Pay Official Button with Test Card Suite */}
+                      {/* Google Pay Direct UPI Action Card */}
                       {isSelected && (
-                        <div className="mt-3 pt-3 border-t border-neutral-200" onClick={(e) => e.stopPropagation()}>
-                          <GooglePayWebButton
-                            amount={Number(total || 0)}
-                            onPreOrderCreate={onPreOrderCreate}
-                            onSuccess={(confirmedOrderNumber) => {
-                              if (typeof window !== "undefined") {
-                                window.location.href = `/checkout?success=true&orderId=${encodeURIComponent(confirmedOrderNumber)}`;
-                              }
-                            }}
-                          />
+                        <div className="mt-3 pt-3 border-t border-neutral-200 flex flex-col gap-2.5" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-between text-xs text-neutral-700 bg-neutral-50 p-2.5 rounded border border-neutral-200">
+                            <span className="font-medium text-neutral-600">Merchant UPI VPA:</span>
+                            <span className="font-mono font-bold text-neutral-900 bg-white px-2 py-0.5 rounded border border-neutral-200">
+                              9834999284@okbizaxis
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={handleAgreeToPay}
+                            disabled={isProcessing}
+                            className="w-full bg-[#1a73e8] hover:bg-[#1557b0] text-white font-extrabold text-xs uppercase py-3 px-4 rounded shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-50"
+                          >
+                            <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={36} height={20} className="object-contain h-5 w-auto brightness-0 invert" />
+                            <span>{isProcessing ? "INITIALIZING GOOGLE PAY..." : `PAY VIA GOOGLE PAY UPI (₹${Number(total || 0).toLocaleString("en-IN")})`}</span>
+                          </button>
+
+                          <span className="text-[11px] text-neutral-500 text-center font-sans">
+                            Instant UPI transfer via Google Pay. Direct settlement to Store4Riders Axis Bank account.
+                          </span>
                         </div>
                       )}
                     </div>
@@ -668,9 +674,20 @@ export const CheckoutPaymentStep = ({
             type="button"
             onClick={handleAgreeToPay}
             disabled={isProcessing || !paymentOption}
-            className="flex-1 bg-banner hover:bg-orange-600 text-white font-bold tracking-wider text-xs uppercase py-3.5 px-6 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
+            className={`flex-1 ${
+              paymentOption === "upi" ? "bg-[#1a73e8] hover:bg-[#1557b0]" : "bg-banner hover:bg-orange-600"
+            } text-white font-bold tracking-wider text-xs uppercase py-3.5 px-6 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer`}
           >
-            {isProcessing ? "PROCESSING..." : "PLACE ORDER"}
+            {isProcessing ? (
+              "PROCESSING..."
+            ) : paymentOption === "upi" ? (
+              <>
+                <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={32} height={18} className="object-contain h-4 w-auto brightness-0 invert" />
+                <span>PAY VIA GOOGLE PAY</span>
+              </>
+            ) : (
+              "PLACE ORDER"
+            )}
           </button>
         </div>
       </div>

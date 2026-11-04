@@ -85,7 +85,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
     hasDropdown: true,
     megaMenuItems: [
       {
-        group: "Mountable Luggage",
+        group: "Touring Bags & Boxes",
         items: [
           { label: "Tank Bags", href: "/motorcycle-bags-bike-luggage/tank-bags-bikes" },
           { label: "Saddle Bags for bikes", href: "/motorcycle-bags-bike-luggage/saddle-bags-bikes" },
@@ -94,7 +94,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         ],
       },
       {
-        group: "Other Bags",
+        group: "Hydration & Other Luggage",
         items: [
           { label: "Hydration Bags", href: "/motorcycle-bags-bike-luggage/hydration-bag" },
           { label: "Other Luggage", href: "/motorcycle-bags-bike-luggage/motorcycle-other-luggage" },
@@ -109,7 +109,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
     hasDropdown: true,
     megaMenuItems: [
       {
-        group: "Auxiliary Lights / Filters / Accessories",
+        group: "Auxiliary Lights & Mounts",
         items: [
           { label: "Auxiliary Lights & Flashers", href: "/motorcycle-accessories-online/bike-auxiliary-lights-filters-flashers" },
           { label: "Auxiliary lights", href: "/motorcycle-accessories-online/bike-auxiliary-lights-filters-flashers/bike-auxiliary-lights" },
@@ -119,7 +119,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         ],
       },
       {
-        group: "More Accessories",
+        group: "Protection, Performance & Care",
         items: [
           { label: "Off-Beat Accessories", href: "/motorcycle-accessories-online/off-beat-motorcycle-accessories" },
           { label: "Performance Parts", href: "/motorcycle-accessories-online/performance-parts" },
@@ -179,24 +179,29 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         items: [
           { label: "Axor Helmets", href: "/brands/axor-helmets", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/axor-logo_bw_100x51.png" },
           { label: "SMK Helmets", href: "/brands/smk-helmets", logoUrl: "/brands/smk.svg" },
+        ],
+      },
+      {
+        group: "Riding Gear",
+        items: [
           { label: "Rynox Gear", href: "/brands/rynox-gear", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/new-rynox-logo-black.png" },
           { label: "Raida Gears", href: "/brands/raida-gears", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Raida.png" },
-          { label: "Furygan", href: "/brands/furygan", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/furygan_logo.jpg" },
-          { label: "Biking Brotherhood", href: "/brands/biking-brotherhood" },
-          { label: "Mototech Gear", href: "/brands/mototech-gear" },
-          { label: "Scala Gears", href: "/brands/scala-gears" },
+          { label: "Furygan", href: "/brands/furygan", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Furygan.png" },
+          { label: "Biking Brotherhood", href: "/brands/biking-brotherhood", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/9biking.png" },
+          { label: "Mototech Gear", href: "/brands/mototech-gear", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/MotoTech.png" },
+          { label: "Scala Gears", href: "/brands/scala-gears", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/scala.png" },
+          { label: "Invictus", href: "/brands/invictus", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Invictus.png" },
+          { label: "Lone Ranger", href: "/brands/lone-ranger", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Lone-Ranger.png" },
+          { label: "Fly Racing", href: "/brands/fly-racing", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Flyracing-logo_1_.png" },
         ],
       },
       {
         group: "Boots & Protection",
         items: [
-          { label: "Forma Boots", href: "/brands/forma-boots" },
-          { label: "Falco", href: "/brands/falco" },
-          { label: "Fly Racing", href: "/brands/fly-racing" },
-          { label: "Invictus", href: "/brands/invictus" },
-          { label: "Lone Ranger", href: "/brands/lone-ranger" },
-          { label: "Safe-tech Protectors", href: "/brands/safe-tech-protectors" },
-          { label: "Sas-tec", href: "/brands/sas-tec" },
+          { label: "Forma Boots", href: "/brands/forma-boots", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Forma.png" },
+          { label: "Falco", href: "/brands/falco", logoUrl: "https://www.store4riders.com/media/codazon_cache/brand/120x120/Background.png" },
+          { label: "Safe-tech Protectors", href: "/brands/safe-tech-protectors", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Safe-tech.jpg" },
+          { label: "Sas-tec", href: "/brands/sas-tec", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/SAS-TEC-Logo-.jpg" },
         ],
       },
       {
@@ -204,10 +209,10 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         items: [
           { label: "Maddog", href: "/brands/maddog", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/maddog-logo-2.png" },
           { label: "Parani", href: "/brands/parani", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/PARANI-LOGO.png" },
-          { label: "Moto Fusion", href: "/brands/moto-fusion" },
-          { label: "Motospunk", href: "/brands/motospunk" },
-          { label: "Quipco", href: "/brands/quipco" },
-          { label: "Shoerella", href: "/brands/shoerella" },
+          { label: "Moto Fusion", href: "/brands/moto-fusion", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/mf.png" },
+          { label: "Motospunk", href: "/brands/motospunk", logoUrl: "/brands/motospunk.svg" },
+          { label: "Quipco", href: "/brands/quipco", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Quipco.jpg" },
+          { label: "Shoerella", href: "/brands/shoerella", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Shoerella-logo.jpg" },
         ],
       },
       {
@@ -217,12 +222,12 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
           { label: "K&N Air Filter", href: "/brands/k-n-bike-air-filter", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/K_N-Logo.png" },
           { label: "BMC Air Filter", href: "/brands/bmc-air-filter", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/BMC_Air_filter_logo.png" },
           { label: "NGK Spark Plugs", href: "/brands/ngk-spark-plugs", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/NGK.png" },
-          { label: "Rolon Chains", href: "/brands/rolon" },
-          { label: "Barrel Exhaust", href: "/brands/barrel-exhaust" },
-          { label: "Moto Torque", href: "/brands/moto-torque" },
-          { label: "Pro-spec Parts", href: "/brands/pro-spec-performance-parts" },
-          { label: "Race Dynamics", href: "/brands/race-dynamics" },
-          { label: "Carberry", href: "/brands/carberry" },
+          { label: "Rolon Chains", href: "/brands/rolon", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/rolon.jpg" },
+          { label: "Barrel Exhaust", href: "/brands/barrel-exhaust", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Barrel-Exhaust.png" },
+          { label: "Moto Torque", href: "/brands/moto-torque", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/MOTO-TORQUE-LOGO.jpg" },
+          { label: "Pro-spec Parts", href: "/brands/pro-spec-performance-parts", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Pro-Spec-logo.png" },
+          { label: "Race Dynamics", href: "/brands/race-dynamics", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/RaceDynamics_Logohi-res_Primary.png" },
+          { label: "Carberry", href: "/brands/carberry", logoUrl: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Carberry.png" },
         ],
       }
     ],

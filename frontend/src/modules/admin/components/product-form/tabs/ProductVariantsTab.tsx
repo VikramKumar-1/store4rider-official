@@ -3,7 +3,7 @@
 import { parseColorToBackground } from "@/modules/product-detail/components/ProductDetailPageModule";
 import { buildVariantAltText } from "@/core/utils/mediaUrlHelper";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Image from "next/image";
 import { GitBranch, Plus, Check, Camera, Sliders, Trash2, Ruler, ChevronDown, ChevronUp, Lightbulb, Star } from "lucide-react";
 import Button from "@/components/ui/Button";
@@ -12,6 +12,8 @@ import { useProductFormContext } from "../ProductFormContext";
 import { COLOR_OPTIONS, SIZE_OPTIONS } from "../product-specs.constants";
 import { ColorSwatchModal } from "../modals/ColorSwatchModal";
 import { AddSizeRunModal } from "../modals/AddSizeRunModal";
+import { SizeChartUploader } from "../../SizeChartUploader";
+import { useCategoryTree } from "@/core/hooks/useCategories";
 
 export function generateVariantSku(
   baseSku: string | undefined,
@@ -43,7 +45,6 @@ export function generateVariantSku(
 
 export function ProductVariantsTab() {
   const [editingColorTarget, setEditingColorTarget] = useState<{ colorName: string; variantIndex?: number } | null>(null);
-  const [showSizeChartDrawer, setShowSizeChartDrawer] = useState(false);
   const [sizeRunModalConfig, setSizeRunModalConfig] = useState<{
     isOpen: boolean;
     attributeSetName: string;
@@ -65,7 +66,27 @@ export function ProductVariantsTab() {
     images,
     setImages,
     name,
+    categoryId,
   } = useProductFormContext();
+
+  const { data: categoryTree } = useCategoryTree();
+
+  const selectedCategory = useMemo(() => {
+    if (!categoryId || !categoryTree) return null;
+    const findCat = (nodes: any[]): any => {
+      for (const node of nodes) {
+        if (node._id === categoryId || node.id === categoryId || node.slug === categoryId) {
+          return node;
+        }
+        if (node.children?.length) {
+          const found = findCat(node.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    return findCat(categoryTree);
+  }, [categoryId, categoryTree]);
 
   const getSwatchBg = (colorName: string) => {
     if (!colorName) return "#111111";
@@ -142,7 +163,7 @@ export function ProductVariantsTab() {
 
   
   const handleAddSizeRun = (colorName: string, selectedSizes: string[], swatchCss?: string) => {
-    const finalColor = colorName.trim() || (variants.length === 0 ? "Standard" : "New Color");
+    const finalColor = colorName.trim();
     const existingSkus = new Set(variants.map((v) => (v.sku || "").toUpperCase()));
 
     const newVariants = selectedSizes.map((s) => {
@@ -533,75 +554,15 @@ export function ProductVariantsTab() {
             )}
           </div>
 
-          {/* Quick Size Chart Manager Bar */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Ruler size={16} className="text-brand shrink-0" />
-              <div>
-                <span className="text-xs font-bold text-slate-800">Product Size Guide / Chart: </span>
-                {sizeChart ? (
-                  <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded ml-1">
-                    ✓ Attached ({sizeChart.startsWith("http") ? "Image Link" : "HTML Table"})
-                  </span>
-                ) : (
-                  <span className="text-xs text-slate-400 italic">No size chart attached yet</span>
-                )}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowSizeChartDrawer(!showSizeChartDrawer)}
-              className="text-xs font-bold text-brand hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
-            >
-              <span>{sizeChart ? "Change Size Chart" : "+ Attach Size Chart"}</span>
-              {showSizeChartDrawer ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-            </button>
-          </div>
-
-          {showSizeChartDrawer && (
-            <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-3 animate-in fade-in-50 duration-150">
-              <label className="block text-xs font-bold text-slate-700">
-                Size Chart URL or HTML Table
-              </label>
-              <input
-                type="text"
-                value={sizeChart}
-                onChange={(e) => setSizeChart(e.target.value)}
-                placeholder="e.g. https://.../size-chart.webp or <table>...</table>"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-brand"
-              />
-              <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                <span className="text-slate-400 font-bold">Standard Presets:</span>
-                {[
-                  { label: "Helmets Chart", url: "https://store4riders.s3.ap-south-2.amazonaws.com/size-charts/helmets-size-guide.webp" },
-                  { label: "Jackets Chart", url: "https://store4riders.s3.ap-south-2.amazonaws.com/size-charts/jackets-size-guide.webp" },
-                  { label: "Gloves Chart", url: "https://store4riders.s3.ap-south-2.amazonaws.com/size-charts/gloves-size-guide.webp" },
-                  { label: "Boots Chart", url: "https://store4riders.s3.ap-south-2.amazonaws.com/size-charts/boots-size-guide.webp" },
-                ].map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() => {
-                      setSizeChart(preset.url);
-                      toast.success(`Attached ${preset.label}`);
-                    }}
-                    className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-200 font-medium cursor-pointer"
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-                {sizeChart && (
-                  <button
-                    type="button"
-                    onClick={() => setSizeChart("")}
-                    className="px-2 py-0.5 text-red-600 hover:bg-red-50 rounded font-medium cursor-pointer ml-auto"
-                  >
-                    Clear Chart
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Modern Size Chart Uploader & Extractor with Category Inheritance */}
+          <SizeChartUploader
+            value={sizeChart}
+            onChange={setSizeChart}
+            categoryDefaultChart={selectedCategory?.sizeChart}
+            categoryName={selectedCategory?.name}
+            title="Product Size Guide / Chart"
+            description="Upload or paste image URL to convert into sharp WebP. If left blank, this product automatically inherits the category size chart."
+          />
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">

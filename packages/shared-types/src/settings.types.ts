@@ -84,6 +84,16 @@ export interface ISetting {
   upiMcc?: string;
   googlePayMerchantId?: string;
   googlePayEnvironment?: "TEST" | "PRODUCTION";
+  brandsHeroTitle?: string;
+  brandsHeroDescription?: string;
+}
+
+export interface IBrandsPageConfig {
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  heroTitle?: string;
+  heroDescription?: string;
 }
 
 export interface IPublicSettings {
@@ -124,4 +134,6 @@ export interface IPublicSettings {
   upiMcc?: string;
   googlePayMerchantId?: string;
   googlePayEnvironment?: "TEST" | "PRODUCTION";
+  brandsHeroTitle?: string;
+  brandsHeroDescription?: string;
 }

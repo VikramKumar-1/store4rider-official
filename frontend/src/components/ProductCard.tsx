@@ -39,6 +39,17 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
     e.preventDefault();
     e.stopPropagation();
 
+    // If product is configurable or has variants, navigate to PDP so buyer selects their size & color
+    if (
+      product.productType === "configurable" ||
+      (product.variants && product.variants.length > 0) ||
+      (product.colors && product.colors.length > 0) ||
+      ((product as any).sizes && (product as any).sizes.length > 0)
+    ) {
+      router.push(product.slug ? `/${product.slug}` : `/products/${product.id || product._id}`);
+      return;
+    }
+
     addItem({
       id: crypto.randomUUID(),
       productId: product.id || product._id,
@@ -55,6 +66,16 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (
+      product.productType === "configurable" ||
+      (product.variants && product.variants.length > 0) ||
+      (product.colors && product.colors.length > 0) ||
+      ((product as any).sizes && (product as any).sizes.length > 0)
+    ) {
+      router.push(product.slug ? `/${product.slug}` : `/products/${product.id || product._id}`);
+      return;
+    }
 
     addItem({
       id: crypto.randomUUID(),

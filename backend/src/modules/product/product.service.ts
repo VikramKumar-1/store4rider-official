@@ -122,8 +122,11 @@ export class ProductService {
         children = await ProductModel.find({ sku: { $regex: new RegExp(`^${product.sku}[-_]`, "i") } }).lean().exec();
         children.forEach(c => {
           if (!skuToAttributes[c.sku]) {
-            const parts = c.sku.replace(new RegExp(`^${product.sku}[-_]`, "i"), "").split(/[-_]/);
-            skuToAttributes[c.sku] = { color: parts[0] || 'Standard', size: parts[1] || 'Standard' };
+            const parts = c.sku.replace(new RegExp(`^${product.sku}[-_]`, "i"), "").split(/[-_]/).filter(Boolean);
+            const attrs: Record<string, string> = {};
+            if (parts[0]) attrs.color = parts[0];
+            if (parts[1]) attrs.size = parts[1];
+            skuToAttributes[c.sku] = attrs;
           }
         });
       }
@@ -321,19 +324,21 @@ export class ProductService {
       }
 
       let matchedCats: any[] = [];
+      let subCat: any = null;
+      let parentCat: any = null;
       if (orConditions.length > 0) {
         matchedCats = await CategoryModel.find({ $or: orConditions }).lean().exec();
       }
 
       if (matchedCats.length > 0) {
         // Find if any matched category has a parentId (meaning it's a subcategory)
-        const subCat = matchedCats.find((c) => c.parentId && String(c.parentId).trim() !== "");
+        subCat = matchedCats.find((c) => c.parentId && String(c.parentId).trim() !== "");
         if (subCat) {
           subCategoryName = subCat.name;
           subCategorySlug = subCat.slug;
 
           // Find its parent category (either already in matchedCats or by parentId / slug)
-          let parentCat = matchedCats.find(
+          parentCat = matchedCats.find(
             (c) =>
               c._id?.toString() === subCat.parentId ||
               c.slug === subCat.parentId ||
@@ -400,6 +405,21 @@ export class ProductService {
       }
       if (subCategoryName) {
         categoryHierarchy.push({ name: subCategoryName, slug: subCategorySlug });
+      }
+
+      // DYNAMIC CATEGORY SIZE CHART INHERITANCE:
+      // If product has no explicit custom size chart, automatically inherit from its subcategory or parent category.
+      if (!product.sizeChart && !product.size_chart) {
+        const catWithChart =
+          (subCat && (subCat as any).sizeChart)
+            ? subCat
+            : (parentCat && (parentCat as any).sizeChart)
+              ? parentCat
+              : matchedCats.find((c) => (c as any).sizeChart);
+
+        if (catWithChart && (catWithChart as any).sizeChart) {
+          product.sizeChart = (catWithChart as any).sizeChart;
+        }
       }
     } catch {
       // Non-blocking fallback

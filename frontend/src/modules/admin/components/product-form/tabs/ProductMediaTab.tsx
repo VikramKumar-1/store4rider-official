@@ -2,16 +2,39 @@
 
 import React from "react";
 import Image from "next/image";
-import { ImageIcon, Upload, Star, ChevronLeft, ChevronRight, Trash2, Eye, Sparkles, Play } from "lucide-react";
+import {
+  ImageIcon,
+  Upload,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
+  Eye,
+  Sparkles,
+  Play,
+  Globe,
+  DownloadCloud,
+  Loader2,
+} from "lucide-react";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import { compressImageToWebP, uploadImageToS3 } from "@/core/utils/imageCompressor";
 import { StorefrontCardPreview } from "@/modules/admin/components/StorefrontCardPreview";
 import { normalizeExternalImageUrl, getVideoEmbedInfo } from "@/core/utils/mediaUrlHelper";
+import { apiClient } from "@/core/api/client";
 import { useProductFormContext } from "../ProductFormContext";
+import { ImportFromUrlModal, DiscoveredImageItem } from "../modals/ImportFromUrlModal";
 
 export function ProductMediaTab() {
   const [isAdminVideoPlaying, setIsAdminVideoPlaying] = React.useState(false);
+  const [isProcessingUrl, setIsProcessingUrl] = React.useState(false);
+  const [urlModalOpen, setUrlModalOpen] = React.useState(false);
+  const [scrapedData, setScrapedData] = React.useState<{
+    pageTitle: string;
+    sourceUrl: string;
+    images: DiscoveredImageItem[];
+  } | null>(null);
+
   const {
     name,
     brand,
@@ -81,24 +104,101 @@ export function ProductMediaTab() {
     }
   };
 
-  const handleAddManualImage = () => {
-    const cleanUrl = normalizeExternalImageUrl(manualImageUrl);
-    if (!cleanUrl) {
-      toast.error("Please enter a valid image URL");
+  /**
+   * Helper to parse pasted text and extract all URLs cleanly,
+   * regardless of whether they are separated by spaces, newlines, commas, or semicolons,
+   * or formatted with or without https:// protocol.
+   */
+  const extractUrls = (text: string): string[] => {
+    if (!text) return [];
+    const trimmed = text.trim();
+    if (!trimmed) return [];
+
+    const tokens = trimmed
+      .split(/[\r\n\s,;]+/)
+      .map((t) => t.trim().replace(/^["']|["']$/g, "").replace(/[,\s.;]+$/, ""))
+      .filter((t) => t.length > 3);
+
+    const cleanUrls: string[] = [];
+    for (const token of tokens) {
+      if (token.startsWith("http://") || token.startsWith("https://")) {
+        cleanUrls.push(token);
+      } else if (token.includes(".") && !token.includes("@")) {
+        cleanUrls.push(`https://${token}`);
+      }
+    }
+
+    return Array.from(new Set(cleanUrls));
+  };
+
+  const detectedUrlsCount = React.useMemo(() => {
+    return extractUrls(manualImageUrl).length;
+  }, [manualImageUrl]);
+
+  /**
+   * Step 1: Fetch & Preview
+   * Never uploads blindly. Fetches candidate images from webpage OR parses multiple URLs,
+   * then opens the Preview Modal so the user can inspect all photos and click "Upload Selected to S3" separately!
+   */
+  const handleFetchAndPreview = async () => {
+    const rawInput = manualImageUrl.trim();
+    if (!rawInput) {
+      toast.error("Please enter a webpage URL or image URL(s)");
       return;
     }
-    setImages((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        url: cleanUrl,
-        altText: manualImageAlt.trim() || name,
-        isBase: prev.length === 0,
-      },
-    ]);
-    setManualImageUrl("");
-    setManualImageAlt("");
-    toast.success("Image URL normalized & attached to gallery!");
+
+    const detectedUrls = extractUrls(rawInput);
+    if (detectedUrls.length === 0) {
+      toast.error("No valid URL found. Please include http:// or https://");
+      return;
+    }
+
+    // Case 1: Multiple URLs entered
+    if (detectedUrls.length > 1) {
+      setScrapedData({
+        pageTitle: name || "Multiple Image URLs",
+        sourceUrl: `${detectedUrls.length} image URLs entered`,
+        images: detectedUrls.map((u, i) => ({
+          url: u,
+          altText: `${manualImageAlt.trim() || name || "Product"} - Angle ${i + 1}`,
+          isPrimary: i === 0,
+        })),
+      });
+      setUrlModalOpen(true);
+      toast.info(`Found ${detectedUrls.length} image URLs! Review thumbnails in the preview modal.`);
+      return;
+    }
+
+    // Case 2: Single URL (either webpage or direct image)
+    const singleUrl = detectedUrls[0];
+    try {
+      setIsProcessingUrl(true);
+      toast.info("Inspecting URL for high-res product photos...");
+
+      const res = await apiClient.post("/upload/scrape-url", { url: singleUrl });
+      const data = res.data?.data;
+
+      if (!data || !data.images || data.images.length === 0) {
+        toast.warning("No images could be discovered at this URL.");
+        return;
+      }
+
+      setScrapedData({
+        pageTitle: data.pageTitle || name || "Product Photos",
+        sourceUrl: singleUrl,
+        images: data.images.map((img: any, i: number) => ({
+          ...img,
+          altText: img.altText || `${manualImageAlt.trim() || name || "Product"} - Angle ${i + 1}`,
+        })),
+      });
+      setUrlModalOpen(true);
+      toast.success(`Discovered ${data.images.length} photo(s)! Review preview and click upload.`);
+    } catch (err: any) {
+      console.error("Scrape URL error:", err);
+      toast.error(err.response?.data?.message || err.message || "Failed to inspect URL");
+    } finally {
+      setIsProcessingUrl(false);
+    }
   };
 
   const removeImage = (index: number) => {
@@ -127,10 +227,10 @@ export function ProductMediaTab() {
         <div>
           <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
             <ImageIcon className="text-brand" size={18} />
-            Gallery & Auto-WebP Compression
+            Gallery &amp; Auto-WebP Compression
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Drop multiple product photos — automatically compressed to lossless WebP in browser and uploaded to S3.
+            Drop multiple product photos or paste webpage URLs — preview first, then upload to Store4Riders S3 in WebP.
           </p>
         </div>
       </div>
@@ -173,7 +273,7 @@ export function ProductMediaTab() {
       <div className="border-2 border-dashed border-slate-200 hover:border-brand/50 rounded-xl p-8 text-center transition-colors bg-slate-50/50">
         <Upload className="mx-auto text-slate-400 mb-3" size={36} />
         <p className="text-sm font-medium text-slate-700">
-          Drag & Drop product images or{" "}
+          Drag &amp; Drop product images or{" "}
           <label className="text-brand hover:underline cursor-pointer">
             browse
             <input
@@ -198,29 +298,76 @@ export function ProductMediaTab() {
         )}
       </div>
 
-      {/* Manual URL input */}
-      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-wrap items-center gap-3">
-        <div className="flex-1 min-w-[240px]">
-          <input
-            type="text"
-            value={manualImageUrl}
-            onChange={(e) => setManualImageUrl(e.target.value)}
-            placeholder="Or paste external Image URL (e.g. S3 or CDN link)"
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand"
-          />
+      {/* Smart URL Importer Box (Pehle Preview, Fir Upload) */}
+      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+          <div className="flex items-center gap-2">
+            <Globe size={16} className="text-brand" />
+            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+              Import via URL (Webpage or Multiple Image Links)
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-500">
+            Paste product page link OR paste multiple image URLs (space, comma, or new line separated)
+          </span>
         </div>
-        <div className="w-48">
-          <input
-            type="text"
-            value={manualImageAlt}
-            onChange={(e) => setManualImageAlt(e.target.value)}
-            placeholder="Alt label (optional)"
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand"
-          />
+
+        <div className="space-y-2.5">
+          <div className="relative">
+            <textarea
+              rows={2}
+              value={manualImageUrl}
+              onChange={(e) => setManualImageUrl(e.target.value)}
+              placeholder="Paste a webpage URL (e.g. brand.com/helmet-123) OR paste multiple image links separated by spaces, commas, or new lines..."
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand font-mono text-xs leading-relaxed resize-y min-h-[56px]"
+            />
+            {detectedUrlsCount > 1 && (
+              <div className="absolute right-2 bottom-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs">
+                ✨ {detectedUrlsCount} URLs Detected
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+            <div className="w-full sm:w-64">
+              <input
+                type="text"
+                value={manualImageAlt}
+                onChange={(e) => setManualImageAlt(e.target.value)}
+                placeholder="Default Alt label (e.g. Sole, Safety, Angle)"
+                className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-brand"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                onClick={handleFetchAndPreview}
+                disabled={isProcessingUrl}
+                className="text-xs bg-brand hover:bg-brand/90 text-white font-bold gap-1.5 whitespace-nowrap cursor-pointer shadow-xs px-4 py-2"
+              >
+                {isProcessingUrl ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Fetching Photos...</span>
+                  </>
+                ) : (
+                  <>
+                    <Eye size={14} />
+                    <span>Fetch &amp; Preview Images</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
-        <Button type="button" variant="outline" onClick={handleAddManualImage} className="text-xs">
-          Add URL
-        </Button>
+
+        <div className="text-[11px] text-slate-600 bg-white/80 border border-slate-200/90 p-2.5 rounded-lg flex items-start gap-2">
+          <Sparkles size={14} className="text-brand shrink-0 mt-0.5" />
+          <span>
+            <strong>Pehle Preview, Fir Upload:</strong> Click karne par pehle saare photo thumbnails preview modal me khulenge. Aap jo photo chahiye select karke unka Alt text (jaise Sole, Safety) de sakte hain, aur phir alag se <strong>"Upload to S3"</strong> button dabakar WebP me upload kar sakte hain. Pehle se optimized photos re-compress nahi hongi.
+          </span>
+        </div>
       </div>
 
       {/* Images Grid */}
@@ -228,113 +375,125 @@ export function ProductMediaTab() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <h4 className="text-sm font-semibold text-slate-700">Product Gallery ({images.length} images)</h4>
           <p className="text-[11px] text-slate-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md">
-            💡 <strong>SEO & Swatch Tip:</strong> Set Alt text with the color name (e.g.{" "}
-            <em>&quot;{name || "Product"} - Matte Black&quot;</em>) to auto-link with customer color swatches!
+            💡 <strong>SEO &amp; Swatch Tip:</strong> Set Alt text with the color name (e.g.{" "}
+            <em>&quot;{name || "Product"} - Matte Black&quot;</em>) to auto-link with customer color swatches! Common photos (sole, safety, buckles) show for all colors.
           </p>
         </div>
         {images.length === 0 ? (
           <p className="text-sm text-slate-400 italic">No images attached yet.</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {images.map((img, idx) => (
-              <div
-                key={img.id}
-                className={`relative group bg-white border rounded-xl overflow-hidden shadow-2xs transition-all ${
-                  img.isBase ? "ring-2 ring-brand border-transparent" : "border-slate-200"
-                }`}
-              >
-                <div className="relative aspect-square w-full bg-slate-100">
-                  <Image
-                    src={normalizeExternalImageUrl(img.url)}
-                    alt={img.altText || "Product preview"}
-                    fill
-                    unoptimized
-                    referrerPolicy="no-referrer"
-                    sizes="200px"
-                    className="object-cover"
-                  />
-                  {img.isBase ? (
-                    <div className="absolute top-2 left-2 bg-amber-500 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
-                      <Star size={10} fill="currentColor" />
-                      <span>Parent Cover (Card Thumbnail)</span>
-                    </div>
-                  ) : (
-                    <div className="absolute top-2 left-2 bg-slate-900/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-xs">
-                      <span>Photo #{idx + 1}</span>
-                    </div>
-                  )}
+            {images.map((img, idx) => {
+              const isLinkedToVariant = variants.some((v) => v.imageUrl === img.url);
+              const linkedVariant = variants.find((v) => v.imageUrl === img.url);
 
-                  {/* Show if linked to a variant color */}
-                  {variants.some((v) => v.imageUrl === img.url) && (
-                    <div className="absolute bottom-2 left-2 bg-emerald-600/95 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm flex items-center gap-1 backdrop-blur-xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                      <span>Linked: {variants.find((v) => v.imageUrl === img.url)?.color}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-2 space-y-1.5 bg-white">
-                  <input
-                    type="text"
-                    value={img.altText}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setImages((prev) =>
-                        prev.map((item, i) => (i === idx ? { ...item, altText: val } : item))
-                      );
-                    }}
-                    placeholder="Required: Image Alt text (e.g. Red, Black)"
-                    required
-                    className="w-full text-[11px] px-1.5 py-1 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-brand"
-                  />
-
-                  <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                    <div className="flex items-center gap-0.5">
-                      <button
-                        type="button"
-                        disabled={idx === 0}
-                        onClick={() => moveImage(idx, idx - 1)}
-                        className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-25 disabled:cursor-not-allowed rounded hover:bg-slate-100 cursor-pointer"
-                        title="Move Left"
-                      >
-                        <ChevronLeft size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={idx === images.length - 1}
-                        onClick={() => moveImage(idx, idx + 1)}
-                        className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-25 disabled:cursor-not-allowed rounded hover:bg-slate-100 cursor-pointer"
-                        title="Move Right"
-                      >
-                        <ChevronRight size={13} />
-                      </button>
-                    </div>
-
-                    {!img.isBase ? (
-                      <button
-                        type="button"
-                        onClick={() => setPrimaryImage(idx)}
-                        className="text-[11px] text-slate-600 hover:text-brand font-medium flex items-center gap-1 cursor-pointer"
-                      >
-                        <Star size={12} />
-                        <span>Set Main</span>
-                      </button>
+              return (
+                <div
+                  key={img.id}
+                  className={`relative group bg-white border rounded-xl overflow-hidden shadow-2xs transition-all ${
+                    img.isBase ? "ring-2 ring-brand border-transparent" : "border-slate-200"
+                  }`}
+                >
+                  <div className="relative aspect-square w-full bg-slate-100">
+                    <Image
+                      src={normalizeExternalImageUrl(img.url)}
+                      alt={img.altText || "Product preview"}
+                      fill
+                      unoptimized
+                      referrerPolicy="no-referrer"
+                      sizes="200px"
+                      className="object-cover"
+                    />
+                    {img.isBase ? (
+                      <div className="absolute top-2 left-2 bg-amber-500 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
+                        <Star size={10} fill="currentColor" />
+                        <span>Parent Cover (Card Thumbnail)</span>
+                      </div>
                     ) : (
-                      <span className="text-[11px] text-emerald-600 font-semibold">Primary</span>
+                      <div className="absolute top-2 left-2 bg-slate-900/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-xs">
+                        <span>Photo #{idx + 1}</span>
+                      </div>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={() => removeImage(idx)}
-                      className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 cursor-pointer"
-                      title="Remove Image"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    {/* Show if linked to a variant color */}
+                    {isLinkedToVariant ? (
+                      <div className="absolute bottom-2 left-2 bg-emerald-600/95 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm flex items-center gap-1 backdrop-blur-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                        <span>Linked: {linkedVariant?.color}</span>
+                      </div>
+                    ) : (
+                      !img.isBase && (
+                        <div className="absolute bottom-2 left-2 bg-slate-800/85 text-sky-200 text-[9px] font-medium px-1.5 py-0.5 rounded-full shadow-xs flex items-center gap-1 backdrop-blur-xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                          <span>Common Photo (All Colors)</span>
+                        </div>
+                      )
+                    )}
+                  </div>
+
+                  <div className="p-2 space-y-1.5 bg-white">
+                    <input
+                      type="text"
+                      value={img.altText}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setImages((prev) =>
+                          prev.map((item, i) => (i === idx ? { ...item, altText: val } : item))
+                        );
+                      }}
+                      placeholder="Required: Image Alt text (e.g. Red, Black, Sole)"
+                      required
+                      className="w-full text-[11px] px-1.5 py-1 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-brand"
+                    />
+
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                      <div className="flex items-center gap-0.5">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => moveImage(idx, idx - 1)}
+                          className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-25 disabled:cursor-not-allowed rounded hover:bg-slate-100 cursor-pointer"
+                          title="Move Left"
+                        >
+                          <ChevronLeft size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === images.length - 1}
+                          onClick={() => moveImage(idx, idx + 1)}
+                          className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-25 disabled:cursor-not-allowed rounded hover:bg-slate-100 cursor-pointer"
+                          title="Move Right"
+                        >
+                          <ChevronRight size={13} />
+                        </button>
+                      </div>
+
+                      {!img.isBase ? (
+                        <button
+                          type="button"
+                          onClick={() => setPrimaryImage(idx)}
+                          className="text-[11px] text-slate-600 hover:text-brand font-medium flex items-center gap-1 cursor-pointer"
+                        >
+                          <Star size={12} />
+                          <span>Set Main</span>
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-emerald-600 font-semibold">Primary</span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 cursor-pointer"
+                        title="Remove Image"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -437,7 +596,7 @@ export function ProductMediaTab() {
         <div className="mb-4">
           <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
             <Eye className="text-brand" size={16} />
-            Live Customer Card & Thumbnail Preview
+            Live Customer Card &amp; Thumbnail Preview
           </h4>
           <p className="text-xs text-slate-500 mt-0.5">
             Verify how your primary cover photo, brand, price, and color swatches appear to customers on catalog pages.
@@ -464,6 +623,31 @@ export function ProductMediaTab() {
           }}
         />
       </div>
+
+      {/* Step 1 Preview & Step 2 Upload Modal */}
+      {scrapedData && (
+        <ImportFromUrlModal
+          isOpen={urlModalOpen}
+          onClose={() => setUrlModalOpen(false)}
+          pageTitle={scrapedData.pageTitle}
+          sourceUrl={scrapedData.sourceUrl}
+          images={scrapedData.images}
+          productName={name}
+          onSuccess={(newUploaded) => {
+            setImages((prev) => [
+              ...prev,
+              ...newUploaded.map((u) => ({
+                id: crypto.randomUUID(),
+                url: u.url,
+                altText: u.altText,
+                isBase: prev.length === 0 && u.isBase,
+              })),
+            ]);
+            setManualImageUrl("");
+            setManualImageAlt("");
+          }}
+        />
+      )}
     </div>
   );
 }

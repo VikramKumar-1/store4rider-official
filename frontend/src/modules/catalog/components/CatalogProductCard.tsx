@@ -34,13 +34,19 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
     e.preventDefault();
     e.stopPropagation();
 
+    // If product has colors, sizes, or variants, navigate to PDP so buyer selects their variant
+    if ((product.colors && product.colors.length > 0 && !selectedColorName) || (product as any).variants?.length > 0) {
+      router.push(dynamicHref);
+      return;
+    }
+
     const numericPrice = parseFloat(product.priceFormatted.replace(/[^0-9.]/g, "")) || 0;
 
     addItem({
       id: crypto.randomUUID(),
       productId: product.id,
       quantity: 1,
-      variantId: "default",
+      variantId: selectedColorName ? `color-${selectedColorName}` : "default",
       image: imgSrc || product.imageUrl,
       product: {
         _id: product.id,
@@ -51,8 +57,8 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
         image: imgSrc || product.imageUrl,
         images: [{ url: imgSrc || product.imageUrl, altText: product.name }],
         slug: product.productUrl.replace("/products/", ""),
-        selectedColor: selectedColorName || "Standard",
-        selectedSize: "Standard",
+        selectedColor: selectedColorName || undefined,
+        selectedSize: undefined,
       } as any,
     });
 

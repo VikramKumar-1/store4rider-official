@@ -1253,12 +1253,19 @@ export const CheckoutPageModule = () => {
                         type="button"
                         onClick={handleAgreeToPay}
                         disabled={isProcessing || isPlacingOrder || !paymentOption}
-                        className="w-full bg-banner hover:bg-orange-600 text-white font-bold tracking-wider text-xs uppercase py-4 px-6 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                        className={`w-full ${
+                          paymentOption === "upi" ? "bg-[#1a73e8] hover:bg-[#1557b0]" : "bg-banner hover:bg-orange-600"
+                        } text-white font-bold tracking-wider text-xs uppercase py-4 px-6 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer`}
                       >
                         {isProcessing || isPlacingOrder ? (
                           <>
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                             <span>PROCESSING...</span>
+                          </>
+                        ) : paymentOption === "upi" ? (
+                          <>
+                            <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={32} height={18} className="object-contain h-4 w-auto brightness-0 invert" />
+                            <span>PAY VIA GOOGLE PAY (₹{total.toLocaleString("en-IN")})</span>
                           </>
                         ) : (
                           "PLACE ORDER"

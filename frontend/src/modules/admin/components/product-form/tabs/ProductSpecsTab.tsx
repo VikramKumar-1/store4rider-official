@@ -72,7 +72,7 @@ export function ProductSpecsTab() {
     setNewBrandSlug("");
     setNewBrandLogo("");
     setNewBrandShowInMenu(true);
-    setNewBrandMenuGroup("Featured Brands");
+    setNewBrandMenuGroup("Popular Brands");
     setIsAddBrandOpen(true);
   };
 

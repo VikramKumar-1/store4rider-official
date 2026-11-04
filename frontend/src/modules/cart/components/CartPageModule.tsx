@@ -246,8 +246,10 @@ export const CartPageModule = () => {
                   : 0;
 
                 const rawImg = getCartItemImage(item, FALLBACK_IMAGE);
-                const selectedColor = product.selectedColor || "";
-                const selectedSize = product.selectedSize || "";
+                const isRealOption = (v?: string) =>
+                  Boolean(v && !["standard", "default", "none", "n/a", "na", "-", "--"].includes(v.trim().toLowerCase()));
+                const selectedColor = isRealOption(product.selectedColor) ? product.selectedColor : "";
+                const selectedSize = isRealOption(product.selectedSize) ? product.selectedSize : "";
                 const itemKey = `${item.productId}-${item.variantId || idx}`;
                 const isNoteOpen = expandedNotes[itemKey] !== false;
 
@@ -399,6 +401,10 @@ export const CartPageModule = () => {
                             <button
                               type="button"
                               onClick={() => {
+                                if (rec.productType === "configurable" || (rec.variants && rec.variants.length > 0)) {
+                                  router.push(`/${rec.slug}`);
+                                  return;
+                                }
                                 addItem({
                                   id: rec._id,
                                   productId: rec._id,

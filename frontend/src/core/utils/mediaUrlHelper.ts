@@ -286,13 +286,15 @@ export function buildVariantAltText(
 export function getCartItemImage(item: any, fallback: string = "/no-image.svg"): string {
   if (!item) return fallback;
   const product = item.product || {};
-  const selectedColor = (
+  const rawColor = (
     product.selectedColor ||
     item.selectedColor ||
     item.selectedAttributes?.Color ||
     item.selectedAttributes?.color ||
     ""
   ).toLowerCase().trim();
+  const isDummyColor = ["standard", "default", "none", "n/a", "na", "-", "--"].includes(rawColor);
+  const selectedColor = isDummyColor ? "" : rawColor;
 
   // 1. Explicit item image
   if (item.image && typeof item.image === "string" && item.image !== "/no-image.svg") {

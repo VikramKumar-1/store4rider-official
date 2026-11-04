@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { Plus, Edit2, Trash2, Upload, X, Check, Image as ImageIcon, ExternalLink, Globe, Download } from "lucide-react";
+import { Plus, Edit2, Trash2, Upload, X, Check, Image as ImageIcon, ExternalLink, Globe, Download, HelpCircle } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
@@ -15,14 +15,16 @@ import { compressImageToWebP, uploadImageToS3 } from "@/core/utils/imageCompress
 import { downloadBrandProductCsv } from "@/core/utils/exportCsv";
 import { apiClient } from "@/core/api/client";
 import { toast } from "sonner";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
 
 const PRESET_MENU_GROUPS = [
   "Helmet Brands",
   "Riding Gear",
+  "Boots & Protection",
   "Luggage & Accessories",
   "Parts & Performance",
   "Care & Maintenance",
-  "Featured Brands"
+  "Popular Brands"
 ];
 
 type BrandFormValues = {
@@ -33,6 +35,7 @@ type BrandFormValues = {
   isActive: boolean;
   showInMenu?: boolean;
   menuGroup?: string;
+  menuGroups?: string[];
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;
@@ -48,11 +51,15 @@ export function AdminBrands() {
   const [editingBrand, setEditingBrand] = useState<IBrand | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [faqs, setFaqs] = useState<Array<{ question: string; answer: string }>>([]);
 
-  // Parent /brands directory page SEO state
+  // Parent /brands directory page SEO and header content state
   const [isPageSeoModalOpen, setIsPageSeoModalOpen] = useState(false);
   const [isSavingPageSeo, setIsSavingPageSeo] = useState(false);
   const [pageSeo, setPageSeo] = useState({
+    heroTitle: "Shop By Brand",
+    heroDescription:
+      "Store4Riders is an online multi-brand riding gear store launched in 2016 for fellow riders looking out for quality motorcycle riding gear. We house brands ranging from premium brands to more affordable riding gear brands like etc. Other than riding gear, we offer a host of accessories, luggage and performance parts for bike riders. We deliver all products across India. Check out the brands we have on offer.",
     metaTitle: "",
     metaDescription: "",
     metaKeywords: "",
@@ -64,6 +71,10 @@ export function AdminBrands() {
       .then((res) => {
         if (res.data?.data) {
           setPageSeo({
+            heroTitle: res.data.data.heroTitle || "Shop By Brand",
+            heroDescription:
+              res.data.data.heroDescription ||
+              "Store4Riders is an online multi-brand riding gear store launched in 2016 for fellow riders looking out for quality motorcycle riding gear. We house brands ranging from premium brands to more affordable riding gear brands like etc. Other than riding gear, we offer a host of accessories, luggage and performance parts for bike riders. We deliver all products across India. Check out the brands we have on offer.",
             metaTitle: res.data.data.metaTitle || "",
             metaDescription: res.data.data.metaDescription || "",
             metaKeywords: res.data.data.metaKeywords || "",
@@ -77,10 +88,10 @@ export function AdminBrands() {
     try {
       setIsSavingPageSeo(true);
       await apiClient.put("/brands/page-seo", pageSeo);
-      toast.success("Shop by Brand directory (/brands) SEO updated successfully!");
+      toast.success("Shop by Brand directory (/brands) content and SEO updated successfully!");
       setIsPageSeoModalOpen(false);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to update page SEO");
+      toast.error(err.response?.data?.error || "Failed to update page settings");
     } finally {
       setIsSavingPageSeo(false);
     }
@@ -91,19 +102,36 @@ export function AdminBrands() {
     defaultValues: { 
       isActive: true, 
       showInMenu: true, 
-      menuGroup: "Featured Brands",
+      menuGroup: "",
+      menuGroups: [],
       metaTitle: "",
       metaDescription: "",
       metaKeywords: "",
     }
   });
 
+  useEffect(() => {
+    register("description");
+    register("menuGroups");
+  }, [register]);
+
   const logoValue = watch("logo");
   const showInMenuValue = watch("showInMenu");
   const menuGroupValue = watch("menuGroup");
+  const menuGroupsValue = watch("menuGroups") ?? (menuGroupValue ? [menuGroupValue] : []);
+
+  const toggleMenuGroup = (group: string) => {
+    const current = watch("menuGroups") || (menuGroupValue ? [menuGroupValue] : []);
+    const updated = current.includes(group)
+      ? current.filter((g) => g !== group)
+      : [...current, group];
+    setValue("menuGroups", updated, { shouldDirty: true, shouldValidate: true });
+    setValue("menuGroup", updated[0] || "", { shouldDirty: true });
+  };
 
   const openCreateModal = () => {
     setEditingBrand(null);
+    setFaqs([]);
     reset({ 
       name: "", 
       slug: "", 
@@ -111,7 +139,8 @@ export function AdminBrands() {
       description: "", 
       isActive: true, 
       showInMenu: true, 
-      menuGroup: "Featured Brands",
+      menuGroup: "",
+      menuGroups: [],
       metaTitle: "",
       metaDescription: "",
       metaKeywords: "",
@@ -121,6 +150,17 @@ export function AdminBrands() {
 
   const openEditModal = (brand: IBrand) => {
     setEditingBrand(brand);
+    setFaqs(
+      brand.faqs && Array.isArray(brand.faqs)
+        ? brand.faqs.map((f) => ({ question: f.question, answer: f.answer }))
+        : []
+    );
+    const initialGroups = brand.menuGroups && brand.menuGroups.length > 0
+      ? brand.menuGroups
+      : brand.menuGroup
+      ? [brand.menuGroup]
+      : [];
+
     reset({
       name: brand.name,
       slug: brand.slug,
@@ -128,7 +168,8 @@ export function AdminBrands() {
       description: brand.description || "",
       isActive: brand.isActive,
       showInMenu: brand.showInMenu !== false,
-      menuGroup: brand.menuGroup || "Featured Brands",
+      menuGroup: brand.menuGroup || initialGroups[0] || "",
+      menuGroups: initialGroups,
       metaTitle: brand.metaTitle || "",
       metaDescription: brand.metaDescription || "",
       metaKeywords: brand.metaKeywords || "",
@@ -156,13 +197,45 @@ export function AdminBrands() {
   };
 
   const onSubmit = (data: BrandFormValues) => {
+    const watchedGroups = watch("menuGroups");
+    const watchedSingle = watch("menuGroup");
+    const selectedGroups: string[] = (
+      Array.isArray(watchedGroups) && watchedGroups.length > 0
+        ? watchedGroups
+        : Array.isArray(data.menuGroups) && data.menuGroups.length > 0
+        ? data.menuGroups
+        : watchedSingle
+        ? [watchedSingle]
+        : []
+    ).filter((g): g is string => typeof g === "string");
+
+    const currentDesc = watch("description") ?? data.description ?? "";
+    const cleanFaqs = faqs.filter((f) => f.question.trim() && f.answer.trim());
+    const payload = {
+      ...data,
+      description: currentDesc,
+      menuGroup: selectedGroups[0] || "",
+      menuGroups: selectedGroups,
+      faqs: cleanFaqs,
+    };
     if (editingBrand) {
       updateBrand.mutate(
-        { id: editingBrand._id, data },
+        { id: editingBrand._id, data: payload },
         { onSuccess: () => setIsModalOpen(false) }
       );
     } else {
-      createBrand.mutate(data, { onSuccess: () => setIsModalOpen(false) });
+      createBrand.mutate(payload, { onSuccess: () => setIsModalOpen(false) });
+    }
+  };
+
+  const onInvalid = (fieldErrors: any) => {
+    const errorMsgs = Object.values(fieldErrors)
+      .map((e: any) => e?.message)
+      .filter(Boolean);
+    if (errorMsgs.length > 0) {
+      toast.error(errorMsgs[0] as string);
+    } else {
+      toast.error("Please verify brand form fields");
     }
   };
 
@@ -207,18 +280,18 @@ export function AdminBrands() {
         </div>
       </div>
 
-      {/* Brands Directory Page SEO Banner */}
+      {/* Brands Directory Page Content & SEO Banner */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-red-50 text-brand flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center shrink-0">
             <Globe size={18} />
           </div>
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Shop by Brand Root Directory SEO (<span className="text-brand font-mono">/brands</span>)
+              Shop by Brand Directory Content & SEO (<span className="text-slate-900 font-mono font-bold">/brands</span>)
             </h4>
             <p className="text-xs text-slate-500 mt-0.5 max-w-xl truncate">
-              {pageSeo.metaTitle ? pageSeo.metaTitle : "Default: Shop By Brand | All Motorcycle Brands A–Z | Store4Riders"}
+              {pageSeo.heroTitle}: {pageSeo.heroDescription ? pageSeo.heroDescription : "Store4Riders is an online multi-brand riding gear store..."}
             </p>
           </div>
         </div>
@@ -229,7 +302,7 @@ export function AdminBrands() {
           className="text-xs font-bold flex items-center gap-1.5 shrink-0"
         >
           <Edit2 size={13} />
-          <span>Edit /brands SEO</span>
+          <span>Edit /brands Page & SEO</span>
         </Button>
       </div>
 
@@ -273,8 +346,17 @@ export function AdminBrands() {
                       <div>
                         <span className="font-semibold text-slate-800 block">{brand.name}</span>
                         {brand.description && (
-                          <span className="text-xs text-slate-400 truncate max-w-xs block">
-                            {brand.description}
+                          <span
+                            className="text-xs text-slate-400 truncate max-w-xs block"
+                            title={brand.description.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim()}
+                          >
+                            {brand.description.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim()}
+                          </span>
+                        )}
+                        {brand.faqs && brand.faqs.length > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200 mt-1">
+                            <HelpCircle size={10} />
+                            {brand.faqs.length} FAQs
                           </span>
                         )}
                       </div>
@@ -283,14 +365,19 @@ export function AdminBrands() {
                   <td className="px-6 py-4 text-slate-500 font-mono text-xs">{brand.slug}</td>
                   <td className="px-6 py-4">
                     {brand.showInMenu !== false ? (
-                      <div className="flex items-center gap-1.5">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                           <Globe size={11} />
                           In Submenu
                         </span>
-                        <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                          {brand.menuGroup || "Featured Brands"}
-                        </span>
+                        {(brand.menuGroups && brand.menuGroups.length > 0
+                          ? brand.menuGroups
+                          : (brand.menuGroup ? [brand.menuGroup] : [])
+                        ).map((g) => (
+                          <span key={g} className="text-[11px] text-slate-700 bg-slate-100 font-medium px-2 py-0.5 rounded border border-slate-200">
+                            {g}
+                          </span>
+                        ))}
                       </div>
                     ) : (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
@@ -348,30 +435,33 @@ export function AdminBrands() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingBrand ? "Edit Brand" : "Add New Brand"}
+        maxWidth="max-w-4xl"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Input
-            label="Brand Name *"
-            placeholder="e.g. AGV, Alpinestars, Rynox, Motul"
-            {...register("name")}
-            error={errors.name?.message}
-            onChange={(e) => {
-              register("name").onChange(e);
-              if (!editingBrand) {
-                setValue(
-                  "slug", 
-                  e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
-                );
-              }
-            }}
-          />
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Brand Name *"
+              placeholder="e.g. AGV, Alpinestars, Rynox, Motul"
+              {...register("name")}
+              error={errors.name?.message}
+              onChange={(e) => {
+                register("name").onChange(e);
+                if (!editingBrand) {
+                  setValue(
+                    "slug", 
+                    e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+                  );
+                }
+              }}
+            />
 
-          <Input
-            label="URL Key / Slug *"
-            placeholder="e.g. agv, alpinestars, rynox"
-            {...register("slug")}
-            error={errors.slug?.message}
-          />
+            <Input
+              label="URL Key / Slug *"
+              placeholder="e.g. agv, alpinestars, rynox"
+              {...register("slug")}
+              error={errors.slug?.message}
+            />
+          </div>
 
           {/* Logo Upload + Preview */}
           <div>
@@ -434,11 +524,15 @@ export function AdminBrands() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-            <textarea
-              {...register("description")}
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-slate-700">Description</label>
+              <span className="text-[11px] text-slate-400">Visual Rich Text (HTML)</span>
+            </div>
+            <RichTextEditor
+              value={watch("description") || ""}
+              onChange={(val) => setValue("description", val, { shouldDirty: true })}
               placeholder="Brief description about the brand, heritage, or product specialties..."
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand outline-none transition-all resize-y min-h-[80px] text-sm"
+              minHeight="140px"
             />
             {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description.message}</p>}
           </div>
@@ -464,30 +558,54 @@ export function AdminBrands() {
 
             {showInMenuValue && (
               <div className="pt-2 border-t border-slate-200">
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Brand Section in Menu (Column)
-                </label>
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {PRESET_MENU_GROUPS.map((group) => (
-                    <button
-                      key={group}
-                      type="button"
-                      onClick={() => setValue("menuGroup", group)}
-                      className={`px-2.5 py-1 text-xs rounded-lg font-medium border transition-colors ${
-                        menuGroupValue === group
-                          ? "bg-brand text-white border-brand"
-                          : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      {group}
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Brand Section in Menu (Select All That Apply)
+                  </label>
+                  <span className="text-[11px] font-medium text-brand">Multi-Select Enabled</span>
                 </div>
-                <Input
-                  placeholder="Or enter custom group name (e.g. Adventure Brands)"
-                  {...register("menuGroup")}
-                  error={errors.menuGroup?.message}
-                />
+                <p className="text-[11px] text-slate-500 mb-2">
+                  Click to select multiple categories (e.g. choose both Helmet Brands &amp; Riding Gear if the brand makes both):
+                </p>
+                <div className="flex flex-wrap gap-1.5 mb-2.5">
+                  {PRESET_MENU_GROUPS.map((group) => {
+                    const isSelected = menuGroupsValue.includes(group);
+                    return (
+                      <button
+                        key={group}
+                        type="button"
+                        onClick={() => toggleMenuGroup(group)}
+                        className={`px-3 py-1.5 text-xs rounded-lg font-medium border flex items-center gap-1.5 transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-brand text-white border-brand shadow-xs font-semibold"
+                            : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                        }`}
+                      >
+                        {isSelected && <span className="font-bold text-xs">✓</span>}
+                        <span>{group}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="p-2.5 bg-slate-100/70 border border-slate-200 rounded-lg text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-slate-500 font-medium">Selected Sections:</span>
+                    {menuGroupsValue.length > 0 ? (
+                      menuGroupsValue.map((grp) => (
+                        <span key={grp} className="bg-white text-brand border border-brand/30 px-2 py-0.5 rounded font-semibold text-[11px]">
+                          {grp}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-slate-400 italic">None (No section assigned)</span>
+                    )}
+                  </div>
+                  {menuGroupsValue.length > 1 && (
+                    <span className="text-emerald-700 font-bold text-[10px] uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0 self-start sm:self-auto">
+                      Multi-Section ({menuGroupsValue.length})
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -502,13 +620,24 @@ export function AdminBrands() {
               Configure custom search engine metadata for this brand page. If left blank, default store formatting will be used.
             </p>
 
-            <div>
-              <Input
-                label="Meta Title"
-                placeholder="e.g. AGV Helmets India | Buy AGV Motorcycle Helmets Online"
-                {...register("metaTitle")}
-                error={errors.metaTitle?.message}
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Input
+                  label="Meta Title"
+                  placeholder="e.g. AGV Helmets India | Buy AGV Motorcycle Helmets Online"
+                  {...register("metaTitle")}
+                  error={errors.metaTitle?.message}
+                />
+              </div>
+
+              <div>
+                <Input
+                  label="Meta Keywords"
+                  placeholder="e.g. agv, helmets, agv pista gp rr, agv k6 s, motorcycle helmet india"
+                  {...register("metaKeywords")}
+                  error={errors.metaKeywords?.message}
+                />
+              </div>
             </div>
 
             <div>
@@ -520,15 +649,95 @@ export function AdminBrands() {
               />
               {errors.metaDescription && <p className="mt-1 text-sm text-red-500">{errors.metaDescription.message}</p>}
             </div>
+          </div>
 
-            <div>
-              <Input
-                label="Meta Keywords"
-                placeholder="e.g. agv, helmets, agv pista gp rr, agv k6 s, motorcycle helmet india"
-                {...register("metaKeywords")}
-                error={errors.metaKeywords?.message}
-              />
+          {/* BRAND FAQS SECTION (Google SEO & Rider Guidance) */}
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                  <HelpCircle size={16} className="text-brand" />
+                  <span>Brand FAQs &amp; Buyer Guidance ({faqs.length})</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Rendered on the brand catalog page (/brands/{watch("slug") || "brand-slug"}) with Google FAQ rich snippet schema.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setFaqs((prev) => [...prev, { question: "", answer: "" }])}
+                className="text-xs py-1 px-3 flex items-center gap-1 cursor-pointer bg-white border-slate-300 hover:bg-slate-100"
+              >
+                <Plus size={13} />
+                <span>Add FAQ</span>
+              </Button>
             </div>
+
+            {faqs.length === 0 ? (
+              <div className="p-4 bg-white border border-dashed border-slate-200 rounded-lg text-center">
+                <p className="text-xs text-slate-400 italic">No FAQs added for this brand yet.</p>
+                <button
+                  type="button"
+                  onClick={() => setFaqs((prev) => [...prev, { question: "", answer: "" }])}
+                  className="mt-1.5 text-xs text-brand font-semibold hover:underline cursor-pointer"
+                >
+                  + Click here to add the first FAQ
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                {faqs.map((faq, idx) => (
+                  <div key={idx} className="p-3.5 bg-white border border-slate-200 rounded-lg space-y-2 relative shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setFaqs((prev) => prev.filter((_, i) => i !== idx))}
+                      className="absolute top-2.5 right-2.5 text-slate-400 hover:text-red-500 p-1 rounded hover:bg-red-50 cursor-pointer transition-colors"
+                      title="Delete FAQ"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+
+                    <div className="w-[92%]">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Question #{idx + 1} *
+                      </label>
+                      <input
+                        type="text"
+                        value={faq.question}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFaqs((prev) =>
+                            prev.map((item, i) => (i === idx ? { ...item, question: val } : item))
+                          );
+                        }}
+                        placeholder={`e.g. Are ${watch("name") || "this brand"} helmets ECE or DOT certified?`}
+                        className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Answer *
+                      </label>
+                      <textarea
+                        value={faq.answer}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFaqs((prev) =>
+                            prev.map((item, i) => (i === idx ? { ...item, answer: val } : item))
+                          );
+                        }}
+                        rows={2}
+                        placeholder="Provide a clear, helpful answer for riders and Google search rich snippets..."
+                        className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand resize-y"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">
@@ -557,50 +766,86 @@ export function AdminBrands() {
         </form>
       </Modal>
 
-      {/* Brand Directory (/brands) Page SEO Modal */}
+      {/* Brand Directory (/brands) Page Header & SEO Modal */}
       <Modal
         isOpen={isPageSeoModalOpen}
         onClose={() => setIsPageSeoModalOpen(false)}
-        title="Edit Shop by Brand Directory SEO (/brands)"
+        title="Edit Brand Directory Page Content & SEO (/brands)"
       >
-        <div className="space-y-4 pt-1">
-          <p className="text-xs text-slate-500">
-            Configure the search engine meta title, description, and keywords for the parent <span className="font-semibold text-slate-700">/brands</span> page (the A–Z Brand Directory on your store).
-          </p>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-              Meta Title
-            </label>
-            <Input
-              value={pageSeo.metaTitle}
-              onChange={(e) => setPageSeo({ ...pageSeo, metaTitle: e.target.value })}
-              placeholder="e.g. Shop By Brand | All Motorcycle Brands A–Z | Store4Riders"
-            />
+        <div className="space-y-4 pt-1 max-h-[75vh] overflow-y-auto pr-1">
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-neutral-600">
+            Customize the live hero title, store heritage description, and search engine SEO tags for the public{" "}
+            <span className="font-semibold text-neutral-800">/brands</span> directory page.
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-              Meta Description
-            </label>
-            <textarea
-              value={pageSeo.metaDescription}
-              onChange={(e) => setPageSeo({ ...pageSeo, metaDescription: e.target.value })}
-              rows={3}
-              placeholder="e.g. Browse authentic motorcycle helmets, riding gear, accessories, and performance parts by brand. Explore our complete A-Z brand directory at Store4Riders."
-              className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:outline-hidden focus:border-brand focus:ring-1 focus:ring-brand"
-            />
+          <div className="space-y-3 pt-1">
+            <h5 className="text-xs font-black uppercase tracking-wider text-neutral-900">1. Storefront Page Content</h5>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                Directory Hero Title
+              </label>
+              <Input
+                value={pageSeo.heroTitle}
+                onChange={(e) => setPageSeo({ ...pageSeo, heroTitle: e.target.value })}
+                placeholder="e.g. Shop By Brand"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                Store Description / Riding Story
+              </label>
+              <textarea
+                value={pageSeo.heroDescription}
+                onChange={(e) => setPageSeo({ ...pageSeo, heroDescription: e.target.value })}
+                rows={4}
+                placeholder="Store4Riders is an online multi-brand riding gear store launched in 2016 for fellow riders looking out for quality motorcycle riding gear..."
+                className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:outline-hidden focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 leading-relaxed"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">
+                Displayed in the premium hero section on the /brands page. Highlights store heritage, multi-brand catalog, accessories, and all-India shipping.
+              </p>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-              Meta Keywords
-            </label>
-            <Input
-              value={pageSeo.metaKeywords}
-              onChange={(e) => setPageSeo({ ...pageSeo, metaKeywords: e.target.value })}
-              placeholder="e.g. motorcycle brands, riding gear brands, helmet brands, store4riders"
-            />
+          <div className="space-y-3 pt-3 border-t border-slate-100">
+            <h5 className="text-xs font-black uppercase tracking-wider text-neutral-900">2. Search Engine Optimization (SEO)</h5>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                Meta Title
+              </label>
+              <Input
+                value={pageSeo.metaTitle}
+                onChange={(e) => setPageSeo({ ...pageSeo, metaTitle: e.target.value })}
+                placeholder="e.g. Shop By Brand | All Motorcycle Brands A–Z | Store4Riders"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                Meta Description
+              </label>
+              <textarea
+                value={pageSeo.metaDescription}
+                onChange={(e) => setPageSeo({ ...pageSeo, metaDescription: e.target.value })}
+                rows={3}
+                placeholder="e.g. Browse authentic motorcycle helmets, riding gear, accessories, and performance parts by brand. Explore our complete A-Z brand directory at Store4Riders."
+                className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:outline-hidden focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                Meta Keywords
+              </label>
+              <Input
+                value={pageSeo.metaKeywords}
+                onChange={(e) => setPageSeo({ ...pageSeo, metaKeywords: e.target.value })}
+                placeholder="e.g. motorcycle brands, riding gear brands, helmet brands, store4riders"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100">
@@ -610,9 +855,9 @@ export function AdminBrands() {
             <Button
               disabled={isSavingPageSeo}
               onClick={handleSavePageSeo}
-              className="bg-brand text-white font-bold"
+              className="bg-neutral-900 hover:bg-neutral-800 text-white font-bold"
             >
-              {isSavingPageSeo ? "Saving..." : "Save /brands SEO"}
+              {isSavingPageSeo ? "Saving..." : "Save Page Settings"}
             </Button>
           </div>
         </div>

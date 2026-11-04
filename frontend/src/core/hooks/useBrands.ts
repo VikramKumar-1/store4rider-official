@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../api/client";
-import { IBrand } from "@store4riders/shared-types";
+import { IBrand, IBrandsPageConfig } from "@store4riders/shared-types";
 import { toast } from "sonner";
 
 export function useBrands() {
@@ -71,6 +71,34 @@ export function useDeleteBrand() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || "Failed to delete brand");
+    },
+  });
+}
+
+export function useBrandsPageConfig() {
+  return useQuery({
+    queryKey: ["brands-page-config"],
+    queryFn: async () => {
+      const response = await apiClient.get("/brands/page-seo");
+      return response.data.data as IBrandsPageConfig;
+    },
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useUpdateBrandsPageConfig() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: IBrandsPageConfig) => {
+      const response = await apiClient.put("/brands/page-seo", data);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["brands-page-config"] });
+      toast.success("Brand directory page settings saved successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || "Failed to save brand directory page settings");
     },
   });
 }

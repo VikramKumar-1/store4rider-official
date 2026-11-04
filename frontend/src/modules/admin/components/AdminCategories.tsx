@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { compressImageToWebP, uploadImageToS3 } from "@/core/utils/imageCompressor";
 import { ISpecFieldDefinition } from "@store4riders/shared-types";
 import { CATEGORY_SPEC_DEFINITIONS } from "./product-form/product-specs.constants";
+import { SizeChartUploader } from "./SizeChartUploader";
 
 const categoryFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -686,6 +687,15 @@ export const AdminCategories = () => {
               </div>
             </div>
           </div>
+
+          {/* CATEGORY DEFAULT SIZE CHART */}
+          <SizeChartUploader
+            value={watch("sizeChart") || ""}
+            onChange={(val) => setValue("sizeChart", val, { shouldDirty: true })}
+            title="Category Default Size Chart"
+            description="Upload or extract a size chart for this category. All products in this category will automatically inherit this chart unless overridden individually on a specific product."
+            isCategoryLevel={true}
+          />
 
           {/* CATEGORY SPECIFICATIONS & ATTRIBUTES TEMPLATE BUILDER */}
           <div className="p-4 bg-slate-50/90 rounded-xl border border-slate-200 space-y-3.5">

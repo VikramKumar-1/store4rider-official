@@ -236,14 +236,6 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
             },
           ]
         : []),
-      ...(product.brand
-        ? [
-            {
-              name: product.brand,
-              url: `/brands/${product.brandSlug || product.brand.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`,
-            },
-          ]
-        : []),
       { name: product.name, url: `/${candidateSlug}` },
     ];
 

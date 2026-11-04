@@ -1,9 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { Search } from "lucide-react";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { useProductFormContext } from "../ProductFormContext";
+import { SizeChartUploader } from "../../SizeChartUploader";
+import { useCategoryTree } from "@/core/hooks/useCategories";
 
 export function ProductSeoTab() {
   const {
@@ -21,7 +23,27 @@ export function ProductSeoTab() {
     setMetaKeywords,
     slug,
     name,
+    categoryId,
   } = useProductFormContext();
+
+  const { data: categoryTree } = useCategoryTree();
+
+  const selectedCategory = useMemo(() => {
+    if (!categoryId || !categoryTree) return null;
+    const findCat = (nodes: any[]): any => {
+      for (const node of nodes) {
+        if (node._id === categoryId || node.id === categoryId || node.slug === categoryId) {
+          return node;
+        }
+        if (node.children?.length) {
+          const found = findCat(node.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    return findCat(categoryTree);
+  }, [categoryId, categoryTree]);
 
   return (
     <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-6 space-y-6">
@@ -66,13 +88,12 @@ export function ProductSeoTab() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Size Chart (Image URL or Link)</label>
-        <input
-          type="text"
+        <SizeChartUploader
           value={sizeChart}
-          onChange={(e) => setSizeChart(e.target.value)}
-          placeholder="e.g. https://.../axor-size-chart.webp"
-          className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          onChange={setSizeChart}
+          categoryDefaultChart={selectedCategory?.sizeChart}
+          categoryName={selectedCategory?.name}
+          title="Product Size Guide / Chart"
         />
       </div>
 

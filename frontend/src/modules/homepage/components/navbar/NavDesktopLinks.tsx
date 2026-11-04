@@ -34,7 +34,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
       onMouseLeave={onNavLeave}
     >
       <div
-        className={`flex items-center gap-0 xl:gap-0.5 2xl:gap-1 transition-all duration-300 ${
+        className={`relative flex items-center gap-0 xl:gap-0.5 2xl:gap-1 transition-all duration-300 ${
           isLight
             ? ""
             : "bg-black/45 backdrop-blur-md border border-white/20 shadow-[0_8px_30px_rgba(0,0,0,0.3)] rounded-full px-1 lg:px-1.5 xl:px-2 py-0.5 xl:py-1 ring-1 ring-white/10"
@@ -198,7 +198,7 @@ export const NavDesktopLinks: React.FC<NavDesktopLinksProps> = ({
                                         <span className="group-hover:translate-x-1 transition-transform duration-150 flex-1 min-w-0 break-words whitespace-normal leading-snug flex items-center gap-1.5">
                                           <span>{link.label}</span>
                                           {link.badge && (
-                                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider text-white ${link.badgeColor || "bg-brand"}`}>
+                                            <span className={`inline-flex items-center text-[8.5px] font-medium px-1.5 py-0.5 rounded-full uppercase tracking-wide text-white shadow-2xs leading-none shrink-0 ${link.badgeColor || "bg-brand"}`}>
                                               {link.badge}
                                             </span>
                                           )}

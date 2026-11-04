@@ -124,7 +124,10 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         return kl === 'color' || kl === 'colour' || kl.includes('color') || kl.includes('colour');
       })?.[1] || "";
       
-      if (!selectedColor || normalizeColorKey(String(col)) === normalizeColorKey(selectedColor)) {
+      const colStr = String(col).trim();
+      const isColStandard = !colStr || ["standard", "default", "none", "n/a", "na", "-", "--"].includes(colStr.toLowerCase());
+
+      if (!selectedColor || isColStandard || normalizeColorKey(colStr) === normalizeColorKey(selectedColor)) {
         // Only mark size as valid if stock is strictly > 0 OR backorders are allowed
         if (v.stock > 0 || product.allowBackorders) {
           const sz = Object.entries(attrs).find(([k]) => {
@@ -138,7 +141,11 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
     });
 
     // If no size restrictions found for this color (e.g. all out of stock), disable all sizes
-    if (validSizesForColor.size === 0) return product.sizes || [];
+    if (validSizesForColor.size === 0) {
+      const hasAnyStock = product.rawVariants.some(v => v.stock > 0 || product.allowBackorders);
+      if (!hasAnyStock) return product.sizes || [];
+      return [];
+    }
 
     // Disable sizes that are not in validSizesForColor
     return (product.sizes || []).filter(s => !validSizesForColor.has(s));
@@ -157,12 +164,17 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
     const attrs = v.attributes || {};
     const colorMatch = !selectedColor || Object.entries(attrs).some(([k, val]) => {
       const kl = k.toLowerCase();
-      return (kl === 'color' || kl === 'colour' || kl.includes('color') || kl.includes('colour')) && String(val).trim().toLowerCase() === selectedColor.toLowerCase();
+      const valStr = String(val).trim().toLowerCase();
+      const isColStandard = ["standard", "default", "none", "n/a", "na", "-", "--"].includes(valStr);
+      return (kl === 'color' || kl === 'colour' || kl.includes('color') || kl.includes('colour')) &&
+        (valStr === selectedColor.toLowerCase() || (!selectedColor && isColStandard));
     });
     const sizeMatch = !selectedSize || Object.entries(attrs).some(([k, val]) => {
       const kl = k.toLowerCase();
       const isColor = kl === 'color' || kl === 'colour' || kl.includes('color') || kl.includes('colour');
-      return !isColor && String(val).trim() === selectedSize;
+      const valStr = String(val).trim().toLowerCase();
+      const isSzStandard = ["standard", "default", "none", "n/a", "na", "-", "--"].includes(valStr);
+      return !isColor && (String(val).trim() === selectedSize || (!selectedSize && isSzStandard));
     });
     return colorMatch && sizeMatch;
   });
@@ -296,7 +308,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         />
       </div>
 
-      {/* Breadcrumbs matching URL structure: /products/[slug] */}
+      {/* Breadcrumbs matching URL structure: /products/[slug] (Category hierarchy strictly) */}
       <Breadcrumb items={[
         { label: "HOME", href: "/" },
         { label: "PRODUCTS", href: "/products" },
@@ -307,10 +319,6 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         ...(product.subCategory ? [{ 
           label: product.subCategory.toUpperCase(), 
           href: product.subCategorySlug ? (product.subCategorySlug.startsWith("/") ? product.subCategorySlug : `/${product.subCategorySlug}`) : `/${product.subCategory.toLowerCase().replace(/\s+/g, '-')}` 
-        }] : []),
-        ...(product.brand && product.brandSlug ? [{ 
-          label: product.brand.toUpperCase(), 
-          href: `/brands/${product.brandSlug}` 
         }] : []),
         { label: product.name }
       ]} />
@@ -384,6 +392,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
             reviews={product.productReviews} 
             productId={product.id}
             productName={product.name}
+            attributes={product.attributes}
           />
         </div>
         
