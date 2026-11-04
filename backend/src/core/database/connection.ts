@@ -47,7 +47,7 @@ export function getDirectMongoUri(uri: string): string {
 export async function connectToDatabase() {
   const rawUri = (process.env.MONGODB_URI as string) || "";
   if (!rawUri) {
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV === "production" || process.env.NODE_ENV === "test") {
       logger.warn("MONGODB_URI is not defined. Skipping DB connection for static build phase.");
       return null;
     }
