@@ -1,4 +1,4 @@
-import { ClientSession, FilterQuery } from "mongoose";
+import mongoose, { ClientSession, FilterQuery } from "mongoose";
 import { BlogPostModel, BlogCategoryModel } from "./blog.model";
 import { IBlogPost, IBlogCategory, IBlogPostQuery } from "@store4riders/shared-types";
 
@@ -30,11 +30,20 @@ export class BlogRepository {
   }
 
   static async findPostById(id: string): Promise<IBlogPost | null> {
-    return BlogPostModel.findById(id).lean().exec() as unknown as Promise<IBlogPost | null>;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      const post = await BlogPostModel.findById(id).lean().exec();
+      if (post) return post as unknown as IBlogPost;
+    }
+    return BlogPostModel.findOne({ slug: id.toLowerCase() }).lean().exec() as unknown as Promise<IBlogPost | null>;
   }
 
   static async findPostBySlug(slug: string): Promise<IBlogPost | null> {
-    return BlogPostModel.findOne({ slug: slug.toLowerCase() }).lean().exec() as unknown as Promise<IBlogPost | null>;
+    const post = await BlogPostModel.findOne({ slug: slug.toLowerCase() }).lean().exec();
+    if (post) return post as unknown as IBlogPost;
+    if (mongoose.Types.ObjectId.isValid(slug)) {
+      return BlogPostModel.findById(slug).lean().exec() as unknown as Promise<IBlogPost | null>;
+    }
+    return null;
   }
 
   static async findRelatedPosts(
@@ -78,13 +87,25 @@ export class BlogRepository {
     data: Partial<IBlogPost>,
     session?: ClientSession
   ): Promise<IBlogPost | null> {
-    return BlogPostModel.findByIdAndUpdate(id, data, { new: true, session })
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      const post = await BlogPostModel.findByIdAndUpdate(id, data, { new: true, session })
+        .lean()
+        .exec();
+      if (post) return post as unknown as IBlogPost;
+    }
+    return BlogPostModel.findOneAndUpdate({ slug: id.toLowerCase() }, data, { new: true, session })
       .lean()
       .exec() as unknown as Promise<IBlogPost | null>;
   }
 
   static async deletePost(id: string, session?: ClientSession): Promise<IBlogPost | null> {
-    return BlogPostModel.findByIdAndDelete(id, { session })
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      const post = await BlogPostModel.findByIdAndDelete(id, { session })
+        .lean()
+        .exec();
+      if (post) return post as unknown as IBlogPost;
+    }
+    return BlogPostModel.findOneAndDelete({ slug: id.toLowerCase() }, { session })
       .lean()
       .exec() as unknown as Promise<IBlogPost | null>;
   }

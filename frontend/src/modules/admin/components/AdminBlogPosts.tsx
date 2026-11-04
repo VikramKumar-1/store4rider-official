@@ -338,7 +338,7 @@ export function AdminBlogPosts() {
                         </div>
                         <div className="min-w-0 max-w-md">
                           <Link
-                            href={`/admin/blog/edit/${post._id}`}
+                            href={`/admin/blog/${post._id}/edit`}
                             className="font-bold text-slate-800 hover:text-brand line-clamp-1"
                           >
                             {post.title}
@@ -399,7 +399,7 @@ export function AdminBlogPosts() {
                           <ExternalLink size={14} />
                         </Link>
                         <Link
-                          href={`/admin/blog/edit/${post._id}`}
+                          href={`/admin/blog/${post._id}/edit`}
                           className="p-1.5 text-slate-500 hover:text-brand hover:bg-red-50 rounded-md transition-colors"
                           title="Edit article"
                         >

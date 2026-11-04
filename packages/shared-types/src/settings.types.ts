@@ -24,6 +24,10 @@ export interface IFooterConfig {
   column1Links?: IFooterLink[];
   column2Title?: string;
   column2Links?: IFooterLink[];
+  column3Title?: string;
+  column3Links?: IFooterLink[];
+  column4Title?: string;
+  column4Links?: IFooterLink[];
   newsletterTitle?: string;
   newsletterSubtitle?: string;
   newsletterPlaceholder?: string;

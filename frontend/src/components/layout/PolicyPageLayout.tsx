@@ -101,13 +101,8 @@ export const POLICY_NAV_GROUPS: PolicyNavGroup[] = [
     ],
   },
   {
-    groupTitle: "About & Rider Hub",
+    groupTitle: "Support & Services",
     items: [
-      {
-        label: "About Store4Riders",
-        href: "/about-us",
-        icon: Info,
-      },
       {
         label: "Rider Assist & Sizing",
         href: "/rider-assist",
@@ -123,6 +118,16 @@ export const POLICY_NAV_GROUPS: PolicyNavGroup[] = [
         label: "Collaboration & Partners",
         href: "/collaboration",
         icon: HeartHandshake,
+      },
+    ],
+  },
+  {
+    groupTitle: "About Us",
+    items: [
+      {
+        label: "About Store4Riders",
+        href: "/about-us",
+        icon: Info,
       },
       {
         label: "Contact & Support",

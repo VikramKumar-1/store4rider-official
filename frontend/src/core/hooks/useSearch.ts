@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../api/client";
+import { ISearchRedirect, ISearchRedirectCheckResult } from "@store4riders/shared-types";
 
 export interface TrendingSearchResponse {
   trending: string[];
@@ -16,6 +17,7 @@ export interface SearchSuggestProduct {
   sku: string;
   brand?: string;
   image?: string;
+  thumbnail?: string;
   basePrice: number;
   specialPrice: number;
   inStock: boolean;
@@ -42,6 +44,11 @@ export interface SearchSuggestResponse {
   categories: SearchSuggestCategory[];
   brands: string[];
   scopedSuggestions?: ScopedSuggestion[];
+  redirect?: {
+    url: string;
+    title: string;
+    type: string;
+  } | null;
   isCorrected?: boolean;
   correctedQuery?: string;
 }
@@ -73,5 +80,88 @@ export function useSearchSuggestions(query: string) {
     },
     enabled: trimmed.length >= 2,
     staleTime: 60 * 1000,
+  });
+}
+
+/**
+ * Check if a specific query has an active redirect
+ */
+export async function checkSearchRedirect(query: string): Promise<ISearchRedirectCheckResult> {
+  const trimmed = query.trim();
+  if (!trimmed) return { hasRedirect: false };
+  try {
+    const res = await apiClient.get(`/search/redirect?q=${encodeURIComponent(trimmed)}`);
+    return res.data.data;
+  } catch {
+    return { hasRedirect: false };
+  }
+}
+
+/**
+ * Admin: Fetch paginated list of search redirect rules
+ */
+export function useSearchRedirects(page = 1, limit = 20, search?: string) {
+  return useQuery<{ items: ISearchRedirect[]; totalCount: number; totalPages: number }>({
+    queryKey: ["admin", "search-redirects", page, limit, search],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set("page", page.toString());
+      params.set("limit", limit.toString());
+      if (search && search.trim()) params.set("search", search.trim());
+
+      const res = await apiClient.get(`/search/redirects?${params.toString()}`);
+      return res.data.data;
+    },
+  });
+}
+
+/**
+ * Admin: Create a new search redirect
+ */
+export function useCreateSearchRedirect() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Partial<ISearchRedirect>) => {
+      const res = await apiClient.post("/search/redirects", data);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "search-redirects"] });
+      queryClient.invalidateQueries({ queryKey: ["search"] });
+    },
+  });
+}
+
+/**
+ * Admin: Update existing search redirect
+ */
+export function useUpdateSearchRedirect() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<ISearchRedirect> }) => {
+      const res = await apiClient.put(`/search/redirects/${id}`, data);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "search-redirects"] });
+      queryClient.invalidateQueries({ queryKey: ["search"] });
+    },
+  });
+}
+
+/**
+ * Admin: Delete a search redirect
+ */
+export function useDeleteSearchRedirect() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiClient.delete(`/search/redirects/${id}`);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "search-redirects"] });
+      queryClient.invalidateQueries({ queryKey: ["search"] });
+    },
   });
 }

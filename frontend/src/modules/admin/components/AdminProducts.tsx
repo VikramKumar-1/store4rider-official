@@ -33,6 +33,7 @@ import {
 import { useBrands } from "@/core/hooks/useBrands";
 import { downloadBrandProductCsv } from "@/core/utils/exportCsv";
 import { apiClient } from "@/core/api/client";
+import { isLegacyNonMenuCategory } from "@/core/utils/navCategories";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -80,7 +81,9 @@ export function AdminProducts() {
     const flatten = (nodes: ICategoryTree[], depth = 0): (ICategoryTree & { depth: number })[] => {
       let result: (ICategoryTree & { depth: number })[] = [];
       for (const node of nodes) {
-        result.push({ ...node, depth });
+        if (!isLegacyNonMenuCategory(node.slug) && node.includeInMenu !== false) {
+          result.push({ ...node, depth });
+        }
         if (node.children && node.children.length > 0) {
           result = result.concat(flatten(node.children, depth + 1));
         }

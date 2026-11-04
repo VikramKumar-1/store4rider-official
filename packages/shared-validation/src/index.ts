@@ -14,3 +14,4 @@ export * from "./homepage.schema";
 export * from "./contact.schema";
 export * from "./blog.schema";
 export * from "./newsletter.schema";
+export * from "./search.schema";

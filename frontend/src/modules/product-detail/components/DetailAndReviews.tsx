@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { handleRichTextClick } from "@/core/utils/cleanRichContent";
+import { resolveMagentoMediaUrls } from "@/core/utils/mediaUrlHelper";
 import { ReviewData } from "../types/product-detail.types";
 import { WriteReviewModal } from "./WriteReviewModal";
 
@@ -65,29 +66,15 @@ interface DescriptionSection {
 
 const cleanHtml = (html: string): string => {
   if (!html) return "";
-  let clean = html
-    // 1. Handle Magento {{media url=&quot;wysiwyg/path.jpg&quot;}}
-    .replace(
-      /\{\{media\s+url=(?:&quot;|"|')?(.*?)(?:&quot;|"|')?\}\}/gi,
-      (_match, path) => {
-        const cleanPath = path.replace(/&quot;/g, '').trim();
-        // S3 root is typically the media folder, so we remove 'media/' prefix if it exists
-        const finalPath = cleanPath.startsWith('media/') ? cleanPath.substring(6) : cleanPath;
-        // MUST encodeURI because filenames often have spaces (e.g. "Rynox H2GO Pro jacket.jpg")
-        return `https://store4riders.s3.ap-south-2.amazonaws.com/${encodeURI(finalPath)}`;
-      }
-    )
-    // 2. Handle raw <img src="/media/wysiwyg/..." />
-    .replace(
-      /src="\/media\//gi,
-      'src="https://store4riders.s3.ap-south-2.amazonaws.com/'
-    )
+  let clean = resolveMagentoMediaUrls(html);
+
+  clean = clean
     .replace(/(<p>\s*(&nbsp;|\s)*<\/p>\s*){2,}/gi, "<p>&nbsp;</p>")
     .replace(/(<br\s*\/?>\s*){3,}/gi, "<br/><br/>")
     .replace(/(<p>\s*(&nbsp;|\s)*<\/p>\s*)+$/gi, "")
     .trim();
 
-  // 3. Rewrite legacy URLs to Next.js routes
+  // Rewrite legacy URLs to Next.js routes
   clean = clean.replace(/href=["']https?:\/\/(?:www\.)?store4riders\.com\/?([^"']*)["']/gi, (_match, path) => {
     const cleanPath = path ? `/${path.replace(/\.html(\?.*)?$/i, "$1")}` : "/";
     return `href="${cleanPath}"`;
@@ -95,7 +82,7 @@ const cleanHtml = (html: string): string => {
   clean = clean.replace(/href=["']\/([^"']+)\.html(\?[^"']*)?(#[^"']*)?["']/gi, 'href="/$1$2$3"');
   clean = clean.replace(/href=["']([^"'\/][^"']+)\.html(\?[^"']*)?(#[^"']*)?["']/gi, 'href="/$1$2$3"');
 
-  // 4. Ensure hyperlinks are styled blue instead of red brand color
+  // Ensure hyperlinks are styled blue instead of red brand color
   clean = clean.replace(/<a\b[^>]*>/gi, (aTag) => {
     return aTag
       .replace(/\bhover:text-brand(?:\/\d+)?\b/gi, 'hover:text-blue-800')
@@ -425,7 +412,7 @@ export const DetailAndReviews: React.FC<{
               className="magento-layout text-neutral-700 text-[15px] sm:text-[16px] leading-[1.65]"
             >
                 <div
-                  className={!isMobileDescExpanded ? "max-h-[250px] sm:max-h-[350px] overflow-hidden relative" : ""}
+                  className={!isMobileDescExpanded ? "max-h-[280px] sm:max-h-[380px] lg:max-h-none overflow-hidden lg:overflow-visible relative" : ""}
                   dangerouslySetInnerHTML={{
                     __html:
                       parsedDescription ||
@@ -434,7 +421,7 @@ export const DetailAndReviews: React.FC<{
                 />
                 
                 {!isMobileDescExpanded && parsedDescription.length > 300 && (
-                  <div className="relative mt-2">
+                  <div className="relative mt-2 lg:hidden">
                     <div className="absolute bottom-full left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                     <div className="flex justify-center pt-2">
                       <button
@@ -450,7 +437,7 @@ export const DetailAndReviews: React.FC<{
                 )}
                 
                 {isMobileDescExpanded && (
-                  <div className="flex justify-center mt-6 pt-4 border-t border-neutral-100">
+                  <div className="flex justify-center mt-6 pt-4 border-t border-neutral-100 lg:hidden">
                     <button
                       type="button"
                       onClick={() => {

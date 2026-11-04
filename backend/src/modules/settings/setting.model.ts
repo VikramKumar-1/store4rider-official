@@ -96,27 +96,39 @@ const footerConfigMongooseSchema = new Schema(
     column1Links: {
       type: [footerLinkMongooseSchema],
       default: [
-        { label: "Exchange & Replacements", url: "/returns", openInNewTab: false },
+        { label: "Exchange & Replacements", url: "/returns-replacements-store4riders", openInNewTab: false },
         { label: "Warranty", url: "/warranty", openInNewTab: false },
-        { label: "Conditions of Sale & Use", url: "/terms", openInNewTab: false },
-        { label: "Privacy and Cookie Policy", url: "/privacy", openInNewTab: false },
-        { label: "Legal", url: "/legal", openInNewTab: false },
         { label: "Shipping Policies", url: "/shipping", openInNewTab: false },
-        { label: "Store Policies", url: "/store-policies", openInNewTab: false },
       ],
     },
     column2Title: { type: String, default: "SUPPORT AND SERVICES" },
     column2Links: {
       type: [footerLinkMongooseSchema],
       default: [
-        { label: "About us", url: "/about-us", openInNewTab: false },
-        { label: "Contact Us", url: "/contact-us", openInNewTab: false },
         { label: "Your Account", url: "/account", openInNewTab: false },
         { label: "Wish List", url: "/account/wishlist", openInNewTab: false },
         { label: "Rider Assist", url: "/rider-assist", openInNewTab: false },
         { label: "Cash on Delivery", url: "/cash-on-delivery", openInNewTab: false },
         { label: "Store4Riders Gpay/PhonePay", url: "/googlepay-phonepay", openInNewTab: false },
         { label: "Collaboration", url: "/collaboration", openInNewTab: false },
+      ],
+    },
+    column3Title: { type: String, default: "POLICIES & LEGAL" },
+    column3Links: {
+      type: [footerLinkMongooseSchema],
+      default: [
+        { label: "Conditions of Sale & Use", url: "/terms", openInNewTab: false },
+        { label: "Privacy and Cookie Policy", url: "/privacy", openInNewTab: false },
+        { label: "Legal", url: "/legal", openInNewTab: false },
+        { label: "Store Policies", url: "/store-policies", openInNewTab: false },
+      ],
+    },
+    column4Title: { type: String, default: "ABOUT US" },
+    column4Links: {
+      type: [footerLinkMongooseSchema],
+      default: [
+        { label: "About us", url: "/about-us", openInNewTab: false },
+        { label: "Contact Us", url: "/contact-us", openInNewTab: false },
       ],
     },
     newsletterTitle: { type: String, default: "SUBSCRIBE US" },

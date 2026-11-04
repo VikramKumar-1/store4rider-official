@@ -11,14 +11,18 @@ import { MagnifyingGlassIcon, BookOpenIcon } from "@heroicons/react/24/outline";
 interface GuidesHubModuleProps {
   heroTitle?: string;
   heroDescription?: string;
+  initialTag?: string;
+  initialSearch?: string;
 }
 
 export const GuidesHubModule: React.FC<GuidesHubModuleProps> = ({
   heroTitle = "Motorcycle Guides & Expert Advice",
   heroDescription = "Real-world gear tests, sizing walkthroughs, maintenance checklists, and touring preparation guides curated by riders for Indian roads and conditions.",
+  initialTag = "",
+  initialSearch = "",
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>(initialTag || initialSearch || "");
 
   const filteredPosts = useMemo(() => {
     return GUIDE_POSTS.filter((post) => {
@@ -28,7 +32,8 @@ export const GuidesHubModule: React.FC<GuidesHubModuleProps> = ({
         !searchQuery.trim() ||
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.categoryName.toLowerCase().includes(searchQuery.toLowerCase());
+        post.categoryName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (Array.isArray(post.tags) && post.tags.some((t: string) => t.toLowerCase().includes(searchQuery.toLowerCase().trim())));
       return matchesCat && matchesSearch;
     });
   }, [selectedCategory, searchQuery]);

@@ -31,6 +31,60 @@ export class SettingRepository {
       await settings.save();
     }
     
+    // Ensure footerConfig has dedicated columns for Policies & Legal and About Us
+    if (settings.footerConfig) {
+      const fc = settings.footerConfig as any;
+      let footerChanged = false;
+      const policyUrls = ["/terms", "/privacy", "/legal", "/store-policies"];
+      const aboutUrls = ["/about-us", "/contact-us"];
+
+      if (!fc.column3Title) {
+        fc.column3Title = "POLICIES & LEGAL";
+        footerChanged = true;
+      }
+      if (!fc.column4Title) {
+        fc.column4Title = "ABOUT US";
+        footerChanged = true;
+      }
+
+      if (Array.isArray(fc.column1Links) && fc.column1Links.some((l: any) => policyUrls.includes(l.url))) {
+        const extractedPolicies = fc.column1Links.filter((l: any) => policyUrls.includes(l.url));
+        fc.column1Links = fc.column1Links.filter((l: any) => !policyUrls.includes(l.url));
+        if (!fc.column3Links || fc.column3Links.length === 0) {
+          fc.column3Links = extractedPolicies;
+        }
+        footerChanged = true;
+      } else if (!fc.column3Links || fc.column3Links.length === 0) {
+        fc.column3Links = [
+          { label: "Conditions of Sale & Use", url: "/terms", openInNewTab: false },
+          { label: "Privacy and Cookie Policy", url: "/privacy", openInNewTab: false },
+          { label: "Legal", url: "/legal", openInNewTab: false },
+          { label: "Store Policies", url: "/store-policies", openInNewTab: false },
+        ];
+        footerChanged = true;
+      }
+
+      if (Array.isArray(fc.column2Links) && fc.column2Links.some((l: any) => aboutUrls.includes(l.url))) {
+        const extractedAbout = fc.column2Links.filter((l: any) => aboutUrls.includes(l.url));
+        fc.column2Links = fc.column2Links.filter((l: any) => !aboutUrls.includes(l.url));
+        if (!fc.column4Links || fc.column4Links.length === 0) {
+          fc.column4Links = extractedAbout;
+        }
+        footerChanged = true;
+      } else if (!fc.column4Links || fc.column4Links.length === 0) {
+        fc.column4Links = [
+          { label: "About us", url: "/about-us", openInNewTab: false },
+          { label: "Contact Us", url: "/contact-us", openInNewTab: false },
+        ];
+        footerChanged = true;
+      }
+
+      if (footerChanged) {
+        settings.markModified("footerConfig");
+        await settings.save();
+      }
+    }
+
     return settings;
   }
 

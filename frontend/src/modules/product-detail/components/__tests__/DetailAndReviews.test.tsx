@@ -115,4 +115,34 @@ describe("DetailAndReviews Component with Specifications", () => {
     expect(screen.getAllByText(/Homologation/i).length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText(/Double ECE 22.05/i).length).toBeGreaterThanOrEqual(2);
   });
+
+  it("resolves and displays fullDescription images with valid AWS S3 URLs", () => {
+    const descriptionWithImages = `
+      <p>Rynox Jacket Features</p>
+      <img src="{{media url=&quot;wysiwyg/Rynox product description photos/Rynox Urban X riding jacket Powertector Air-Tec Chest Protection.jpg&quot;}}" alt="Chest Protection" />
+      <img src="https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/wysiwyg/smk-twister-specification.JPG" alt="Twister Specs" />
+      <img src="https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/axor-apex-turbine-security.jpg" alt="Axor Security" />
+    `;
+
+    const { container } = render(
+      <DetailAndReviews
+        fullDescription={descriptionWithImages}
+        reviews={[]}
+        productName="Rynox Urban X"
+      />
+    );
+
+    const images = container.querySelectorAll("img");
+    expect(images.length).toBe(3);
+
+    expect(images[0].getAttribute("src")).toBe(
+      "https://store4riders.s3.ap-south-2.amazonaws.com/wysiwyg/Rynox%20product%20description%20photos/Rynox%20Urban%20X%20riding%20jacket%20Powertector%20Air-Tec%20Chest%20Protection.jpg"
+    );
+    expect(images[1].getAttribute("src")).toBe(
+      "https://store4riders.s3.ap-south-2.amazonaws.com/wysiwyg/smk-twister-specification.JPG"
+    );
+    expect(images[2].getAttribute("src")).toBe(
+      "https://store4riders.s3.ap-south-2.amazonaws.com/wysiwyg/axor-apex-turbine-security.jpg"
+    );
+  });
 });

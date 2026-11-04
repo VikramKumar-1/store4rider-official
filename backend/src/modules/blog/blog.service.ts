@@ -162,7 +162,7 @@ export class BlogService {
     if (data.slug && data.slug !== existing.slug) {
       slug = slugify(data.slug);
       const conflict = await BlogRepository.findPostBySlug(slug);
-      if (conflict && conflict._id?.toString() !== id) {
+      if (conflict && conflict._id?.toString() !== existing._id?.toString()) {
         throw new ConflictError(`Blog post with slug "${slug}" already exists`);
       }
     }
@@ -205,7 +205,7 @@ export class BlogService {
       publishedAt,
     };
 
-    const updated = await BlogRepository.updatePost(id, updatePayload);
+    const updated = await BlogRepository.updatePost(existing._id?.toString() || id, updatePayload);
     if (!updated) {
       throw new NotFoundError("Failed to update blog post");
     }

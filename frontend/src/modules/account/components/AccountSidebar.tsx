@@ -28,9 +28,9 @@ export function AccountSidebar() {
 
   useEffect(() => {
     if (mounted && !isAuthenticated) {
-      router.push("/");
+      router.replace(`/login?redirect=${encodeURIComponent(pathname || "/account")}`);
     }
-  }, [mounted, isAuthenticated, router]);
+  }, [mounted, isAuthenticated, pathname, router]);
 
   const logoutMutation = useLogout();
   const handleLogout = () => {

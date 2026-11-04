@@ -373,6 +373,12 @@ These rules apply to **every query, component, and API call** you write:
   - Active filter tags with clear buttons
 - [x] **3.7** Add sort dropdown to catalog page
   - Newest, Bestselling, Price Lowâ†’High, Price Highâ†’Low, Rating
+- [x] **3.8** Search Terms & Category Redirects (Magento-grade Query-to-Category Redirection Engine)
+  - Admin CRUD for Search Terms with target Category/URL (`/admin/search-terms` & `/admin/settings?tab=search`)
+  - Exact, partial (contains), and synonym typo mapping (`ISearchRedirect`)
+  - Frontend auto-redirect interception on search submission (`SearchAutocomplete.tsx`)
+  - Server-side instant query redirect in `/search/page.tsx`
+  - Autocomplete direct-match promotion pill in mobile & desktop views
 
 ### Verification
 

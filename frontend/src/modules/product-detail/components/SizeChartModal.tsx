@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { normalizeExternalImageUrl } from "@/core/utils/mediaUrlHelper";
+import { normalizeExternalImageUrl, resolveMagentoMediaUrls, S3_MEDIA_BASE } from "@/core/utils/mediaUrlHelper";
 
 interface SizeChartModalProps {
   isOpen: boolean;
@@ -23,20 +23,7 @@ interface SizeChartModalProps {
 export function cleanSizeChartHtml(rawHtml: string): string {
   if (!rawHtml) return "";
 
-  let clean = rawHtml
-    // 1. Double quotes from CSV exports: "" -> "
-    .replace(/""/g, '"')
-    // 2. Resolve Magento {{media url=...}} tokens
-    .replace(
-      /\{\{media\s+url=(?:&quot;|"|')?(.*?)(?:&quot;|"|')?\}\}/gi,
-      (_match, path) => {
-        const cleanPath = path.replace(/&quot;/g, "").trim();
-        const finalPath = cleanPath.startsWith("media/") ? cleanPath.substring(6) : cleanPath;
-        return `https://store4riders.s3.ap-south-2.amazonaws.com/${encodeURI(finalPath)}`;
-      }
-    )
-    // 3. Resolve raw /media/ paths
-    .replace(/src=(["'])\/media\//gi, 'src=$1https://store4riders.s3.ap-south-2.amazonaws.com/')
+  let clean = resolveMagentoMediaUrls(rawHtml)
     // 4. Remove unscoped <style> blocks
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
     // 5. Sanitize style attributes by removing rigid dimensions and floats
@@ -78,21 +65,13 @@ export function resolveSizeChartImageUrl(rawUrl?: string): string {
   if (!rawUrl) return "";
   let url = rawUrl.trim().replace(/^["']|["']$/g, "");
 
-  if (url.includes("{{media")) {
-    const match = url.match(/\{\{media\s+url=(?:&quot;|"|')?(.*?)(?:&quot;|"|')?\}\}/i);
-    if (match && match[1]) {
-      const cleanPath = match[1].replace(/&quot;/g, "").trim();
-      const finalPath = cleanPath.startsWith("media/") ? cleanPath.substring(6) : cleanPath;
-      return `https://store4riders.s3.ap-south-2.amazonaws.com/${encodeURI(finalPath)}`;
+  if (url.includes("{{media") || url.startsWith("/media/") || url.startsWith("media/") || url.includes("wysiwyg") || url.includes("store4riders.com")) {
+    const wrapped = `<img src="${url}" />`;
+    const resolved = resolveMagentoMediaUrls(wrapped);
+    const srcMatch = resolved.match(/src="([^"]+)"/i);
+    if (srcMatch && srcMatch[1]) {
+      return srcMatch[1];
     }
-  }
-
-  if (url.startsWith("/media/")) {
-    return `https://store4riders.s3.ap-south-2.amazonaws.com/${encodeURI(url.substring(7))}`;
-  }
-
-  if (url.startsWith("media/")) {
-    return `https://store4riders.s3.ap-south-2.amazonaws.com/${encodeURI(url.substring(6))}`;
   }
 
   return normalizeExternalImageUrl(url);

@@ -55,6 +55,74 @@ const CORE_PRODUCT_PARENTS: Record<string, { name: string; slug: string; linkUrl
 };
 
 /**
+ * Set of legacy Magento categories that are NOT part of the storefront menu / taxonomy.
+ * These were imported from legacy CSVs (standalone model names, duplicate slugs, legacy sale/merchandise buckets).
+ * Excluded from the default Admin Category and Filter views so the admin panel strictly mirrors
+ * the official store menu and submenus (+ newly created categories).
+ */
+export const LEGACY_NON_MENU_SLUGS = new Set<string>([
+  "helmets",
+  "saddle-bags-for-bikes-panniers",
+  "tank-bags-for-bike",
+  "other-luggage",
+  "hydration-bags",
+  "saddle-stay-crash-guard-leg-guard",
+  "riding-jackets-bike-jackets",
+  "riding-jackets-motorcycle-jackets",
+  "knee-guards-for-bikers",
+  "riding-jeans",
+  "racing-suits",
+  "sport-riding-shoes",
+  "premium-riding-boots",
+  "off-road-riding-boots-motocross-boots",
+  "short-city-riding-biking-boots",
+  "riding-gloves-biker-gloves",
+  "short-cuff-biker-gloves",
+  "premium-full-gauntlet-riding-gloves",
+  "semi-gauntlet-bike-riding-gloves",
+  "rynox-riding-jacket",
+  "rynox-saddle-bags",
+  "tank-bags",
+  "rynox-tail-bags",
+  "rynox-tank-bags",
+  "helmet-accessories-helmet-visors",
+  "full-face-helmet",
+  "premium-full-face-helmets",
+  "off-road-helmets-motocross-helmet",
+  "smk-glide-modular-helmet",
+  "smk-twister-helmet",
+  "smk-stellar-helmet",
+  "sale",
+  "women-riding-gear",
+  "merchandise",
+  "biker-t-shirts-motorcycle-t-shirts",
+  "protectors",
+  "radiator-guard",
+  "bike-auxiliary-light-clamps-and-mounts",
+  "auxiliary-light-wiring-harness-and-switch",
+  "off-beat-bike-accessories-online",
+  "bike-phone-holders-mobile-holder-for-bike",
+  "smk-hybrid-evo-helmet",
+  "royal-enfield-himalayan-accessories",
+  "smk-titan-carbon-fibre-helmets",
+  "axor-apex-helmet-sport-touring-performance",
+  "certified-safety",
+  "axor-stealth-motorcycle-helmet",
+  "axor-retro-helmets",
+  "oils-lubes",
+  "motorcycle-care",
+  "axor-street-helmets",
+  "performance-air-filters-for-bikes",
+  "smk-gullwing-helmets",
+  "smk-typhoon-helmets",
+]);
+
+export function isLegacyNonMenuCategory(slug?: string): boolean {
+  if (!slug) return false;
+  return LEGACY_NON_MENU_SLUGS.has(slug.toLowerCase().trim());
+}
+
+/**
  * Returns the authoritative Store Category Tree strictly based on the
  * official Storefront Navigation taxonomy (Helmets, Riding Gear, Luggage, etc.)
  * with their organized subcategories.

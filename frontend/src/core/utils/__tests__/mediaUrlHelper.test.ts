@@ -6,6 +6,8 @@ import {
   deduplicateProductImages,
   buildVariantAltText,
   getCartItemImage,
+  resolveMagentoMediaUrls,
+  S3_MEDIA_BASE,
 } from "../mediaUrlHelper";
 
 describe("mediaUrlHelper - Enterprise Gallery & Color Swapping", () => {
@@ -161,6 +163,50 @@ describe("mediaUrlHelper - Enterprise Gallery & Color Swapping", () => {
         },
       };
       expect(getCartItemImage(item)).toBe("https://store4riders.com/default-helmet.jpg");
+    });
+  });
+
+  describe("resolveMagentoMediaUrls - Rich Description & CMS Media URL Resolution", () => {
+    it("resolves Magento {{media url=...}} directives with spaces to encoded S3 URLs", () => {
+      const input = '<img src="{{media url="wysiwyg/Rynox product description photos/Rynox Urban X riding jacket Powertector Air-Tec Chest Protection.jpg"}}">';
+      const output = resolveMagentoMediaUrls(input);
+      expect(output).toContain("https://store4riders.s3.ap-south-2.amazonaws.com/wysiwyg/Rynox%20product%20description%20photos/Rynox%20Urban%20X%20riding%20jacket%20Powertector%20Air-Tec%20Chest%20Protection.jpg");
+    });
+
+    it("fixes corrupted catalog/product/wysiwyg paths to valid wysiwyg paths on S3", () => {
+      const input = '<img src="https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/wysiwyg/smk-twister-specification.JPG">';
+      const output = resolveMagentoMediaUrls(input);
+      expect(output).toBe('<img src="https://store4riders.s3.ap-south-2.amazonaws.com/wysiwyg/smk-twister-specification.JPG">');
+    });
+
+    it("cleans &quot; and catalog/product corruption from imported paths", () => {
+      const input = '<img src="https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/&quot;wysiwyg/PARANI-M10-_9_.jpg&quot;">';
+      const output = resolveMagentoMediaUrls(input);
+      expect(output).toBe('<img src="https://store4riders.s3.ap-south-2.amazonaws.com/wysiwyg/PARANI-M10-_9_.jpg">');
+    });
+
+    it("redirects catalog/product/ description images without subfolder to wysiwyg", () => {
+      const input = '<img src="https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/axor-apex-turbine-security.jpg">';
+      const output = resolveMagentoMediaUrls(input);
+      expect(output).toBe('<img src="https://store4riders.s3.ap-south-2.amazonaws.com/wysiwyg/axor-apex-turbine-security.jpg">');
+    });
+
+    it("rewrites legacy mmpl.store4riders.com domain to active S3 bucket", () => {
+      const input = '<img src=https://www.mmpl.store4riders.com/pub/media/SMK-Stellar-design-helmet-1.jpg />';
+      const output = resolveMagentoMediaUrls(input);
+      expect(output).toBe('<img src="https://store4riders.s3.ap-south-2.amazonaws.com/wysiwyg/SMK-Stellar-design-helmet-1.jpg" />');
+    });
+
+    it("cleans CSV doubled quotes and resolves media tags", () => {
+      const input = '<img src=""{{media url=""wysiwyg/smk-typhoon.jpg""}}"" width=""350"">';
+      const output = resolveMagentoMediaUrls(input);
+      expect(output).toBe('<img src="https://store4riders.s3.ap-south-2.amazonaws.com/wysiwyg/smk-typhoon.jpg" width="350">');
+    });
+
+    it("decodes escaped HTML entities containing tags and resolves media inside", () => {
+      const input = '&lt;p&gt;&lt;img src="{{media url=&quot;wysiwyg/test-chart.jpg&quot;}}" /&gt;&lt;/p&gt;';
+      const output = resolveMagentoMediaUrls(input);
+      expect(output).toBe('<p><img src="https://store4riders.s3.ap-south-2.amazonaws.com/wysiwyg/test-chart.jpg" /></p>');
     });
   });
 });

@@ -83,7 +83,14 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function GuidesPage() {
+export default async function GuidesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tag?: string; q?: string }>;
+}) {
+  const resolvedParams = searchParams ? await searchParams : {};
+  const initialTag = resolvedParams?.tag || "";
+  const initialSearch = resolvedParams?.q || "";
   const seo = await getGuidesPageSeo();
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
@@ -123,6 +130,8 @@ export default async function GuidesPage() {
       <GuidesHubModule
         heroTitle={seo?.heroTitle}
         heroDescription={seo?.heroDescription}
+        initialTag={initialTag}
+        initialSearch={initialSearch}
       />
     </>
   );

@@ -1,3 +1,5 @@
+import { resolveMagentoMediaUrls } from "./mediaUrlHelper";
+
 /**
  * Utility to sanitize, clean, and format rich HTML content from Magento / CMS.
  * Ensures:
@@ -31,6 +33,9 @@ export function cleanRichContent(rawHtml: string): string {
   if (faqSplit.length > 1) {
     clean = faqSplit[0];
   }
+
+  // 1b. Resolve Magento media directives, legacy domains, and S3 description paths
+  clean = resolveMagentoMediaUrls(clean);
 
   // 2. Strip inline typography & legacy colors/widths to enforce site fonts & brand theme
   clean = clean.replace(/style="([^"]*)"/gi, (_match, styles) => {

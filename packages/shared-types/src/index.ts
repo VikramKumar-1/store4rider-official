@@ -17,3 +17,4 @@ export * from "./settings.types";
 export * from "./homepage.types";
 export * from "./contact.types";
 export * from "./newsletter.types";
+export * from "./search.types";

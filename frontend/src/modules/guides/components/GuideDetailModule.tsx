@@ -17,6 +17,7 @@ import {
   Check,
   ArrowLeft,
   BookOpen,
+  Tag,
 } from "lucide-react";
 
 interface GuideDetailModuleProps {
@@ -225,6 +226,28 @@ export const GuideDetailModule: React.FC<GuideDetailModuleProps> = ({ slug, init
               prose-img:rounded-xl prose-img:shadow-md"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
+
+          {/* Article Topic Tags */}
+          {Array.isArray(post.tags) && post.tags.length > 0 && (
+            <div className="mt-8 pt-6 border-t border-neutral-100">
+              <div className="flex items-center gap-2 mb-3 text-xs font-bold uppercase tracking-wider text-neutral-500">
+                <Tag className="w-3.5 h-3.5 text-brand" />
+                <span>Related Topics &amp; Tags:</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {post.tags.map((tag: string) => (
+                  <Link
+                    key={tag}
+                    href={`/guides?tag=${encodeURIComponent(tag)}`}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-neutral-100 hover:bg-brand/10 text-neutral-700 hover:text-brand border border-neutral-200/80 hover:border-brand/30 transition-all duration-200"
+                    title={`View more guides tagged "${tag}"`}
+                  >
+                    <span>#{tag}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Social Share Bar */}
           <div className="mt-12 pt-8 border-t border-neutral-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

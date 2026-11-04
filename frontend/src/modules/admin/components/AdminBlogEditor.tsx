@@ -141,7 +141,7 @@ export function AdminBlogEditor({ id }: AdminBlogEditorProps) {
         excerpt: post.excerpt || "",
         featuredImage: post.featuredImage || "",
         videoUrl: post.videoUrl || "",
-        categoryId: post.categoryId || "",
+        categoryId: post.categoryId || post.categorySlug || "",
         categoryName: post.categoryName || "",
         categorySlug: post.categorySlug || "",
         tags: post.tags || [],
@@ -369,6 +369,23 @@ export function AdminBlogEditor({ id }: AdminBlogEditorProps) {
       <div className="p-20 text-center flex flex-col items-center justify-center gap-3">
         <div className="w-8 h-8 border-3 border-brand border-t-transparent rounded-full animate-spin" />
         <p className="text-xs font-semibold text-slate-500">Loading article editor...</p>
+      </div>
+    );
+  }
+
+  if (isEditing && !isLoadingPost && !post) {
+    return (
+      <div className="p-16 text-center bg-white rounded-xl border border-slate-200 flex flex-col items-center justify-center gap-3">
+        <AlertCircle size={36} className="text-amber-500" />
+        <p className="text-base font-bold text-slate-800">Article Not Found</p>
+        <p className="text-xs text-slate-500 max-w-md">
+          The requested article could not be found or may have been removed.
+        </p>
+        <Link href="/admin/blog">
+          <Button className="mt-2 bg-brand text-white text-xs font-bold">
+            Back to Articles
+          </Button>
+        </Link>
       </div>
     );
   }
@@ -942,6 +959,39 @@ export function AdminBlogEditor({ id }: AdminBlogEditorProps) {
                 >
                   <Plus size={14} className="mr-1" /> Add
                 </Button>
+              </div>
+
+              {/* Explanatory helper for Admin in simple English */}
+              <div className="mt-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-2">
+                <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                  <Info size={14} className="text-brand shrink-0" />
+                  <span>Why add Topic Tags &amp; where do they appear?</span>
+                </div>
+                
+                <ul className="space-y-1.5 text-[11px] text-slate-600 pl-1">
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-brand font-bold shrink-0">•</span>
+                    <span>
+                      <strong className="text-slate-800">Visible to Readers:</strong> Displayed as clickable topic badges (e.g. <span className="font-semibold text-slate-700">#Helmets, #RainCare</span>) at the bottom of the article.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-brand font-bold shrink-0">•</span>
+                    <span>
+                      <strong className="text-slate-800">Automatic Related Articles:</strong> Connects matching articles under the <span className="font-semibold text-slate-700">&ldquo;Related Guides &amp; Tips&rdquo;</span> section.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-brand font-bold shrink-0">•</span>
+                    <span>
+                      <strong className="text-slate-800">Site Search &amp; Google SEO:</strong> Allows visitors to find this guide via search bar and sends keywords to Google Search bots.
+                    </span>
+                  </li>
+                </ul>
+
+                <span className="block text-[10px] text-slate-400 italic pt-1 border-t border-slate-200/70">
+                  Tip: Adding tags is optional. You can add 2 to 5 relevant keywords per guide.
+                </span>
               </div>
             </div>
 

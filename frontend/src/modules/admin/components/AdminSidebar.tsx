@@ -97,6 +97,12 @@ const navItems: NavItem[] = [
     allowedRoles: ["super_admin", "admin"] 
   },
   { 
+    name: "Search Redirects", 
+    href: "/admin/search-terms", 
+    icon: Search, 
+    allowedRoles: ["super_admin", "admin"] 
+  },
+  { 
     name: "Bulk Upload", 
     href: "/admin/products/migration", 
     icon: Database, 

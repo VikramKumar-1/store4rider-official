@@ -19,6 +19,7 @@ import { compressImageToWebP, uploadImageToS3 } from "@/core/utils/imageCompress
 import { ISpecFieldDefinition } from "@store4riders/shared-types";
 import { CATEGORY_SPEC_DEFINITIONS } from "./product-form/product-specs.constants";
 import { SizeChartUploader } from "./SizeChartUploader";
+import { isLegacyNonMenuCategory } from "@/core/utils/navCategories";
 
 const categoryFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -50,6 +51,7 @@ export const AdminCategories = () => {
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
 
+  const [categoryViewTab, setCategoryViewTab] = useState<"menu" | "all">("menu");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ICategoryTree | null>(null);
   const [parentForNewSubcategory, setParentForNewSubcategory] = useState<ICategoryTree | null>(null);
@@ -81,17 +83,27 @@ export const AdminCategories = () => {
     return flatten(tree);
   }, [tree]);
 
-  
+  const canonicalMenuCategories = useMemo(() => {
+    return flatCategories.filter((cat) => {
+      // Must not be a legacy non-menu slug and must not be explicitly hidden
+      if (isLegacyNonMenuCategory(cat.slug)) return false;
+      if (cat.includeInMenu === false) return false;
+      return true;
+    });
+  }, [flatCategories]);
+
+  const activeCategoriesSource = categoryViewTab === "menu" ? canonicalMenuCategories : flatCategories;
+
   const filteredCategoriesList = useMemo(() => {
-    if (!categorySearch.trim()) return flatCategories;
+    if (!categorySearch.trim()) return activeCategoriesSource;
     const q = categorySearch.toLowerCase();
-    return flatCategories.filter(
+    return activeCategoriesSource.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.slug.toLowerCase().includes(q) ||
         (c.menuGroup && c.menuGroup.toLowerCase().includes(q))
     );
-  }, [flatCategories, categorySearch]);
+  }, [activeCategoriesSource, categorySearch]);
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<CategoryFormValues>({
     resolver: zodResolver(categoryFormSchema),
@@ -117,7 +129,7 @@ export const AdminCategories = () => {
 
     return [
       { label: "None (Top Level Category)", value: "", description: "Root Category (No Parent)" },
-      ...flatCategories
+      ...canonicalMenuCategories
         .filter(c => !descendantIds.has(c._id))
         .map(c => ({
           label: `${c.depth > 0 ? "— ".repeat(c.depth) : ""}${c.name}`,
@@ -126,10 +138,10 @@ export const AdminCategories = () => {
           badge: c.depth === 0 ? "Root" : `Level ${c.depth}`,
         }))
     ];
-  }, [flatCategories, editingCategory]);
+  }, [canonicalMenuCategories, editingCategory]);
 
   const heroCandidateOptions: Option[] = useMemo(() => 
-    flatCategories
+    canonicalMenuCategories
       .filter(c => c._id !== editingCategory?._id && !selectedHeroCategoryIds.includes(c._id))
       .map(c => ({
         label: `${c.depth > 0 ? "— ".repeat(c.depth) : ""}${c.name}`,
@@ -137,7 +149,7 @@ export const AdminCategories = () => {
         description: `/${c.slug}`,
         badge: c.depth === 0 ? "Root" : `Level ${c.depth}`,
       })),
-    [flatCategories, editingCategory, selectedHeroCategoryIds]
+    [canonicalMenuCategories, editingCategory, selectedHeroCategoryIds]
   );
 
   const attributeSetOptions: Option[] = useMemo(() => [
@@ -426,6 +438,34 @@ export const AdminCategories = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        {/* View Tabs: Storefront Menu vs All Categories */}
+        <div className="flex items-center gap-2 border-b border-slate-200 px-4 pt-3 bg-white">
+          <button
+            type="button"
+            onClick={() => setCategoryViewTab("menu")}
+            className={`pb-2.5 px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+              categoryViewTab === "menu"
+                ? "border-brand text-brand"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <FolderTree className="w-3.5 h-3.5" />
+            <span>Storefront Menu &amp; Submenus ({canonicalMenuCategories.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCategoryViewTab("all")}
+            className={`pb-2.5 px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+              categoryViewTab === "all"
+                ? "border-brand text-brand"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>All Categories (Catalog + Legacy) ({flatCategories.length})</span>
+          </button>
+        </div>
+
         {/* Category & Submenu Quick Filter Bar */}
         <div className="p-3.5 sm:p-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between flex-wrap gap-3">
           <div className="relative flex-1 min-w-[260px]">
@@ -448,7 +488,7 @@ export const AdminCategories = () => {
             )}
           </div>
           <div className="text-xs text-slate-500 font-medium">
-            Showing <span className="font-bold text-slate-800">{filteredCategoriesList.length}</span> of {flatCategories.length} categories &amp; submenus
+            Showing <span className="font-bold text-slate-800">{filteredCategoriesList.length}</span> of {activeCategoriesSource.length} categories &amp; submenus
           </div>
         </div>
 

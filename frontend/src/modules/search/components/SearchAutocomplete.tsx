@@ -71,7 +71,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     };
   }, [isMobileFull]);
 
-  const handleSubmit = (
+  const handleSubmit = async (
     e?: React.FormEvent, 
     searchQuery?: string,
     categorySlug?: string,
@@ -82,6 +82,24 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     if (finalQuery) {
       setIsOpen(false);
       if (onClose) onClose();
+
+      // Check if autocomplete already found an active redirect for this exact query
+      if (data?.redirect?.url && (!searchQuery || searchQuery.toLowerCase() === debouncedQuery.toLowerCase())) {
+        router.push(data.redirect.url);
+        return;
+      }
+
+      // Check live redirect for the final query (Magento-grade redirection)
+      try {
+        const { checkSearchRedirect } = await import("@/core/hooks/useSearch");
+        const redirectRes = await checkSearchRedirect(finalQuery);
+        if (redirectRes.hasRedirect && redirectRes.redirectUrl) {
+          router.push(redirectRes.redirectUrl);
+          return;
+        }
+      } catch {
+        // Fallback to normal search
+      }
 
       const params = new URLSearchParams();
       params.set("q", finalQuery);
@@ -190,6 +208,30 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
           ) : (
             /* Results List */
             <div className="space-y-4">
+              {/* Direct Category Redirect Banner (Magento-style) */}
+              {data?.redirect && (
+                <Link
+                  href={data.redirect.url}
+                  onClick={handleProductClick}
+                  className="flex items-center justify-between p-2.5 bg-brand/5 hover:bg-brand/10 border border-brand/20 rounded-xl transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-7 h-7 rounded-lg bg-brand text-white flex items-center justify-center shrink-0 shadow-2xs">
+                      <TagIcon className="w-4 h-4 stroke-[2.25]" />
+                    </span>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold text-brand uppercase tracking-wider block leading-none">
+                        Direct Category Match
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-brand transition-colors truncate block mt-0.5">
+                        {data.redirect.title}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRightIcon className="w-4 h-4 text-brand shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+              )}
+
               {/* Matching Categories & Brands Tags */}
               {(categories.length > 0 || brands.length > 0) && (
                 <div className="flex flex-wrap gap-1.5 pb-2 border-b border-slate-100">
@@ -387,6 +429,32 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
           ) : (
             /* Results Panel */
             <div className="flex flex-col">
+              {/* Direct Category Redirect Banner (Desktop) */}
+              {data?.redirect && (
+                <div className="p-2 border-b border-slate-100 bg-brand/5">
+                  <Link
+                    href={data.redirect.url}
+                    onClick={handleProductClick}
+                    className="flex items-center justify-between p-2 rounded-xl bg-white border border-brand/20 hover:border-brand/40 shadow-2xs group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-6 h-6 rounded-md bg-brand text-white flex items-center justify-center shrink-0">
+                        <TagIcon className="w-3.5 h-3.5 stroke-[2.25]" />
+                      </span>
+                      <div className="min-w-0">
+                        <span className="text-[9px] font-bold text-brand uppercase tracking-wider block leading-none">
+                          Direct Category Match
+                        </span>
+                        <span className="text-xs font-bold text-slate-900 group-hover:text-brand transition-colors truncate block">
+                          {data.redirect.title}
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronRightIcon className="w-3.5 h-3.5 text-brand shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
+                </div>
+              )}
+
               {/* Quick Category & Brand Badges (1 compact row with actual category URLs) */}
               {(categories.length > 0 || brands.length > 0) && (
                 <div className="px-3 py-2 bg-slate-50/90 border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar">

@@ -52,22 +52,28 @@ const INITIAL_DEFAULTS: IFooterConfig = {
   column1Links: [
     { label: "Exchange & Replacements", url: "/returns-replacements-store4riders", openInNewTab: false },
     { label: "Warranty", url: "/warranty", openInNewTab: false },
-    { label: "Conditions of Sale & Use", url: "/terms", openInNewTab: false },
-    { label: "Privacy and Cookie Policy", url: "/privacy", openInNewTab: false },
-    { label: "Legal", url: "/legal", openInNewTab: false },
     { label: "Shipping Policies", url: "/shipping", openInNewTab: false },
-    { label: "Store Policies", url: "/store-policies", openInNewTab: false },
   ],
   column2Title: "SUPPORT AND SERVICES",
   column2Links: [
-    { label: "About us", url: "/about-us", openInNewTab: false },
-    { label: "Contact Us", url: "/contact-us", openInNewTab: false },
     { label: "Your Account", url: "/account", openInNewTab: false },
     { label: "Wish List", url: "/account/wishlist", openInNewTab: false },
     { label: "Rider Assist", url: "/rider-assist", openInNewTab: false },
     { label: "Cash on Delivery", url: "/cash-on-delivery", openInNewTab: false },
     { label: "Store4Riders Gpay/PhonePay", url: "/googlepay-phonepay", openInNewTab: false },
     { label: "Collaboration", url: "/collaboration", openInNewTab: false },
+  ],
+  column3Title: "POLICIES & LEGAL",
+  column3Links: [
+    { label: "Conditions of Sale & Use", url: "/terms", openInNewTab: false },
+    { label: "Privacy and Cookie Policy", url: "/privacy", openInNewTab: false },
+    { label: "Legal", url: "/legal", openInNewTab: false },
+    { label: "Store Policies", url: "/store-policies", openInNewTab: false },
+  ],
+  column4Title: "ABOUT US",
+  column4Links: [
+    { label: "About us", url: "/about-us", openInNewTab: false },
+    { label: "Contact Us", url: "/contact-us", openInNewTab: false },
   ],
   newsletterTitle: "SUBSCRIBE US",
   newsletterSubtitle: "Get updates on new riding gear arrivals, exclusive discount coupons, and offers.",
@@ -95,6 +101,39 @@ export function AdminFooterSettings() {
       const res = await apiClient.get("/admin/settings");
       if (res.data?.data) {
         const fetchedFooter = res.data.data.footerConfig || {};
+        const policyUrls = new Set(["/terms", "/privacy", "/legal", "/store-policies"]);
+        const aboutUrls = new Set(["/about-us", "/contact-us"]);
+
+        let c1Links = fetchedFooter.column1Links && fetchedFooter.column1Links.length > 0
+          ? fetchedFooter.column1Links
+          : INITIAL_DEFAULTS.column1Links;
+        let c2Links = fetchedFooter.column2Links && fetchedFooter.column2Links.length > 0
+          ? fetchedFooter.column2Links
+          : INITIAL_DEFAULTS.column2Links;
+        let c3Links = fetchedFooter.column3Links && fetchedFooter.column3Links.length > 0
+          ? fetchedFooter.column3Links
+          : null;
+        let c4Links = fetchedFooter.column4Links && fetchedFooter.column4Links.length > 0
+          ? fetchedFooter.column4Links
+          : null;
+
+        // Auto-extract policies from column1 if legacy
+        if (!c3Links && Array.isArray(c1Links)) {
+          const policies = c1Links.filter((l: any) => policyUrls.has(l.url));
+          if (policies.length > 0) {
+            c3Links = policies;
+            c1Links = c1Links.filter((l: any) => !policyUrls.has(l.url));
+          }
+        }
+        // Auto-extract about from column2 if legacy
+        if (!c4Links && Array.isArray(c2Links)) {
+          const about = c2Links.filter((l: any) => aboutUrls.has(l.url));
+          if (about.length > 0) {
+            c4Links = about;
+            c2Links = c2Links.filter((l: any) => !aboutUrls.has(l.url));
+          }
+        }
+
         setConfig({
           aboutText: fetchedFooter.aboutText ?? "",
           showContact: fetchedFooter.showContact ?? true,
@@ -103,13 +142,13 @@ export function AdminFooterSettings() {
           contactAddress: fetchedFooter.contactAddress ?? "",
           showSocialLinks: fetchedFooter.showSocialLinks ?? true,
           column1Title: fetchedFooter.column1Title || INITIAL_DEFAULTS.column1Title,
-          column1Links: fetchedFooter.column1Links && fetchedFooter.column1Links.length > 0
-            ? fetchedFooter.column1Links
-            : INITIAL_DEFAULTS.column1Links,
+          column1Links: c1Links && c1Links.length > 0 ? c1Links : INITIAL_DEFAULTS.column1Links,
           column2Title: fetchedFooter.column2Title || INITIAL_DEFAULTS.column2Title,
-          column2Links: fetchedFooter.column2Links && fetchedFooter.column2Links.length > 0
-            ? fetchedFooter.column2Links
-            : INITIAL_DEFAULTS.column2Links,
+          column2Links: c2Links && c2Links.length > 0 ? c2Links : INITIAL_DEFAULTS.column2Links,
+          column3Title: fetchedFooter.column3Title || INITIAL_DEFAULTS.column3Title,
+          column3Links: c3Links && c3Links.length > 0 ? c3Links : INITIAL_DEFAULTS.column3Links,
+          column4Title: fetchedFooter.column4Title || INITIAL_DEFAULTS.column4Title,
+          column4Links: c4Links && c4Links.length > 0 ? c4Links : INITIAL_DEFAULTS.column4Links,
           newsletterTitle: fetchedFooter.newsletterTitle || INITIAL_DEFAULTS.newsletterTitle,
           newsletterSubtitle: fetchedFooter.newsletterSubtitle ?? INITIAL_DEFAULTS.newsletterSubtitle,
           newsletterPlaceholder: fetchedFooter.newsletterPlaceholder || INITIAL_DEFAULTS.newsletterPlaceholder,
@@ -149,7 +188,7 @@ export function AdminFooterSettings() {
   };
 
   // Helper functions for link management
-  const addLink = (columnKey: "column1Links" | "column2Links" | "bottomLinks") => {
+  const addLink = (columnKey: "column1Links" | "column2Links" | "column3Links" | "column4Links" | "bottomLinks") => {
     setConfig((prev) => ({
       ...prev,
       [columnKey]: [
@@ -160,7 +199,7 @@ export function AdminFooterSettings() {
   };
 
   const updateLink = (
-    columnKey: "column1Links" | "column2Links" | "bottomLinks",
+    columnKey: "column1Links" | "column2Links" | "column3Links" | "column4Links" | "bottomLinks",
     index: number,
     field: keyof IFooterLink,
     value: any
@@ -173,7 +212,7 @@ export function AdminFooterSettings() {
   };
 
   const removeLink = (
-    columnKey: "column1Links" | "column2Links" | "bottomLinks",
+    columnKey: "column1Links" | "column2Links" | "column3Links" | "column4Links" | "bottomLinks",
     index: number
   ) => {
     setConfig((prev) => {
@@ -184,7 +223,7 @@ export function AdminFooterSettings() {
   };
 
   const moveLink = (
-    columnKey: "column1Links" | "column2Links" | "bottomLinks",
+    columnKey: "column1Links" | "column2Links" | "column3Links" | "column4Links" | "bottomLinks",
     index: number,
     direction: "up" | "down"
   ) => {
@@ -271,7 +310,7 @@ export function AdminFooterSettings() {
             <span className="text-[11px] bg-neutral-800 px-2 py-0.5 rounded text-neutral-300">Desktop View</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-xs">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 text-xs">
             {/* Col 1 Preview */}
             <div className="space-y-2">
               <span className="font-bold text-white block">STORE LOGO</span>
@@ -285,7 +324,17 @@ export function AdminFooterSettings() {
               )}
             </div>
 
-            {/* Col 2 Preview */}
+            {/* Col 2 Preview: ABOUT US */}
+            <div className="space-y-2">
+              <span className="font-bold text-white block uppercase tracking-wider">{config.column4Title || "ABOUT US"}</span>
+              <ul className="text-neutral-400 space-y-1.5 text-[11px]">
+                {config.column4Links?.map((l, i) => (
+                  <li key={i}>{l.label}</li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Col 3 Preview: EXCHANGE & REPLACEMENTS */}
             <div className="space-y-2">
               <span className="font-bold text-white block uppercase tracking-wider">{config.column1Title || "EXCHANGE & REPLACEMENTS"}</span>
               <ul className="text-neutral-400 space-y-1.5 text-[11px]">
@@ -295,7 +344,17 @@ export function AdminFooterSettings() {
               </ul>
             </div>
 
-            {/* Col 3 Preview */}
+            {/* Col 4 Preview: POLICIES & LEGAL */}
+            <div className="space-y-2">
+              <span className="font-bold text-white block uppercase tracking-wider">{config.column3Title || "POLICIES & LEGAL"}</span>
+              <ul className="text-neutral-400 space-y-1.5 text-[11px]">
+                {config.column3Links?.map((l, i) => (
+                  <li key={i}>{l.label}</li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Col 5 Preview: SUPPORT AND SERVICES */}
             <div className="space-y-2">
               <span className="font-bold text-white block uppercase tracking-wider">{config.column2Title || "SUPPORT AND SERVICES"}</span>
               <ul className="text-neutral-400 space-y-1.5 text-[11px]">
@@ -305,7 +364,7 @@ export function AdminFooterSettings() {
               </ul>
             </div>
 
-            {/* Col 4 Preview */}
+            {/* Col 6 Preview: Newsletter */}
             <div className="space-y-2">
               <span className="font-bold text-white block uppercase tracking-wider">{config.newsletterTitle || "SUBSCRIBE US"}</span>
               <p className="text-neutral-400 text-[11px]">{config.newsletterSubtitle}</p>
@@ -716,12 +775,294 @@ export function AdminFooterSettings() {
         </div>
       </div>
 
-      {/* SECTION 4: COLUMN 4 NEWSLETTER (SUBSCRIBE US) */}
+      {/* SECTION 4: COLUMN 4 NAVIGATION LINKS (Default: POLICIES & LEGAL) */}
+      <div className="bg-white rounded-xl border border-neutral-200 p-6 shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 pb-4">
+          <div>
+            <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wider flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-purple-600" />
+              Column 4: Policies &amp; Legal
+            </h3>
+            <p className="text-xs text-neutral-500 mt-1">
+              Add, edit, reorder, or remove links in the Policies &amp; Legal column (Conditions of Sale &amp; Use, Privacy, Legal, Store Policies).
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => addLink("column3Links")}
+            className="px-3 py-1.5 text-xs font-bold bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer w-fit"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Link</span>
+          </button>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-neutral-700 mb-1">Column Title</label>
+          <input
+            type="text"
+            value={config.column3Title || ""}
+            onChange={(e) => setConfig({ ...config, column3Title: e.target.value })}
+            placeholder="POLICIES & LEGAL"
+            className="w-full max-w-md text-xs p-2.5 border border-neutral-200 rounded-lg font-bold focus:outline-none focus:border-brand"
+          />
+        </div>
+
+        {/* Links Table */}
+        <div className="border border-neutral-200 rounded-lg overflow-hidden">
+          <div className="bg-neutral-50 px-4 py-2.5 text-[11px] font-bold text-neutral-600 grid grid-cols-[80px_1fr_1fr_100px_50px] gap-3 items-center">
+            <span>Order</span>
+            <span>Link Label</span>
+            <span>Destination URL</span>
+            <span className="text-center">New Tab</span>
+            <span className="text-center">Action</span>
+          </div>
+
+          <div className="divide-y divide-neutral-100">
+            {config.column3Links?.map((link, idx) => (
+              <div key={idx} className="p-3 grid grid-cols-[80px_1fr_1fr_100px_50px] gap-3 items-center hover:bg-neutral-50/60 transition-colors">
+                {/* Reorder Buttons */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => moveLink("column3Links", idx, "up")}
+                    className="p-1 rounded text-neutral-400 hover:text-neutral-800 disabled:opacity-30 cursor-pointer"
+                    title="Move Up"
+                  >
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === (config.column3Links?.length || 0) - 1}
+                    onClick={() => moveLink("column3Links", idx, "down")}
+                    className="p-1 rounded text-neutral-400 hover:text-neutral-800 disabled:opacity-30 cursor-pointer"
+                    title="Move Down"
+                  >
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="text-[11px] text-neutral-400 font-mono ml-1">{idx + 1}</span>
+                </div>
+
+                {/* Label Input */}
+                <input
+                  type="text"
+                  value={link.label}
+                  onChange={(e) => updateLink("column3Links", idx, "label", e.target.value)}
+                  placeholder="e.g. Conditions of Sale & Use"
+                  className="w-full text-xs p-2 bg-white border border-neutral-200 rounded focus:outline-none focus:border-brand"
+                />
+
+                {/* URL Input with Safe Preset Selector */}
+                <div className="space-y-1">
+                  <div className="flex gap-1.5 items-center">
+                    <select
+                      value={STORE_ROUTE_PRESETS.some((p) => p.url === link.url) ? link.url : "custom"}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val !== "custom") {
+                          updateLink("column3Links", idx, "url", val);
+                          const matched = STORE_ROUTE_PRESETS.find((p) => p.url === val);
+                          if (matched && (!link.label || link.label === "New Link" || STORE_ROUTE_PRESETS.some((p) => p.label === link.label))) {
+                            updateLink("column3Links", idx, "label", matched.label);
+                          }
+                        }
+                      }}
+                      className="text-[10px] py-1 px-1.5 bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 rounded font-medium text-neutral-700 focus:outline-none focus:border-brand cursor-pointer shrink-0 max-w-[125px] truncate"
+                    >
+                      <option value="custom">Preset Page ▾</option>
+                      {STORE_ROUTE_PRESETS.map((p) => (
+                        <option key={p.url} value={p.url}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      type="text"
+                      value={link.url}
+                      onChange={(e) => updateLink("column3Links", idx, "url", e.target.value)}
+                      placeholder="e.g. /terms"
+                      className="w-full text-xs p-2 bg-white border border-neutral-200 rounded font-mono focus:outline-none focus:border-brand"
+                    />
+                  </div>
+                </div>
+
+                {/* Open in New Tab */}
+                <div className="flex justify-center items-center">
+                  <input
+                    type="checkbox"
+                    checked={!!link.openInNewTab}
+                    onChange={(e) => updateLink("column3Links", idx, "openInNewTab", e.target.checked)}
+                    className="w-4 h-4 text-brand rounded focus:ring-brand cursor-pointer"
+                  />
+                </div>
+
+                {/* Delete */}
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => removeLink("column3Links", idx)}
+                    className="p-1.5 text-neutral-400 hover:text-red-600 transition-colors cursor-pointer"
+                    title="Remove Link"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 5: COLUMN 5 NAVIGATION LINKS (Default: ABOUT US) */}
+      <div className="bg-white rounded-xl border border-neutral-200 p-6 shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 pb-4">
+          <div>
+            <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wider flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-cyan-600" />
+              Column 5: About Us &amp; Contact
+            </h3>
+            <p className="text-xs text-neutral-500 mt-1">
+              Add, edit, reorder, or remove links in the About Us column (About Us, Contact Us).
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => addLink("column4Links")}
+            className="px-3 py-1.5 text-xs font-bold bg-cyan-50 text-cyan-700 hover:bg-cyan-100 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer w-fit"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Link</span>
+          </button>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-neutral-700 mb-1">Column Title</label>
+          <input
+            type="text"
+            value={config.column4Title || ""}
+            onChange={(e) => setConfig({ ...config, column4Title: e.target.value })}
+            placeholder="ABOUT US"
+            className="w-full max-w-md text-xs p-2.5 border border-neutral-200 rounded-lg font-bold focus:outline-none focus:border-brand"
+          />
+        </div>
+
+        {/* Links Table */}
+        <div className="border border-neutral-200 rounded-lg overflow-hidden">
+          <div className="bg-neutral-50 px-4 py-2.5 text-[11px] font-bold text-neutral-600 grid grid-cols-[80px_1fr_1fr_100px_50px] gap-3 items-center">
+            <span>Order</span>
+            <span>Link Label</span>
+            <span>Destination URL</span>
+            <span className="text-center">New Tab</span>
+            <span className="text-center">Action</span>
+          </div>
+
+          <div className="divide-y divide-neutral-100">
+            {config.column4Links?.map((link, idx) => (
+              <div key={idx} className="p-3 grid grid-cols-[80px_1fr_1fr_100px_50px] gap-3 items-center hover:bg-neutral-50/60 transition-colors">
+                {/* Reorder Buttons */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => moveLink("column4Links", idx, "up")}
+                    className="p-1 rounded text-neutral-400 hover:text-neutral-800 disabled:opacity-30 cursor-pointer"
+                    title="Move Up"
+                  >
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === (config.column4Links?.length || 0) - 1}
+                    onClick={() => moveLink("column4Links", idx, "down")}
+                    className="p-1 rounded text-neutral-400 hover:text-neutral-800 disabled:opacity-30 cursor-pointer"
+                    title="Move Down"
+                  >
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="text-[11px] text-neutral-400 font-mono ml-1">{idx + 1}</span>
+                </div>
+
+                {/* Label Input */}
+                <input
+                  type="text"
+                  value={link.label}
+                  onChange={(e) => updateLink("column4Links", idx, "label", e.target.value)}
+                  placeholder="e.g. About us"
+                  className="w-full text-xs p-2 bg-white border border-neutral-200 rounded focus:outline-none focus:border-brand"
+                />
+
+                {/* URL Input with Safe Preset Selector */}
+                <div className="space-y-1">
+                  <div className="flex gap-1.5 items-center">
+                    <select
+                      value={STORE_ROUTE_PRESETS.some((p) => p.url === link.url) ? link.url : "custom"}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val !== "custom") {
+                          updateLink("column4Links", idx, "url", val);
+                          const matched = STORE_ROUTE_PRESETS.find((p) => p.url === val);
+                          if (matched && (!link.label || link.label === "New Link" || STORE_ROUTE_PRESETS.some((p) => p.label === link.label))) {
+                            updateLink("column4Links", idx, "label", matched.label);
+                          }
+                        }
+                      }}
+                      className="text-[10px] py-1 px-1.5 bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 rounded font-medium text-neutral-700 focus:outline-none focus:border-brand cursor-pointer shrink-0 max-w-[125px] truncate"
+                    >
+                      <option value="custom">Preset Page ▾</option>
+                      {STORE_ROUTE_PRESETS.map((p) => (
+                        <option key={p.url} value={p.url}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      type="text"
+                      value={link.url}
+                      onChange={(e) => updateLink("column4Links", idx, "url", e.target.value)}
+                      placeholder="e.g. /about-us"
+                      className="w-full text-xs p-2 bg-white border border-neutral-200 rounded font-mono focus:outline-none focus:border-brand"
+                    />
+                  </div>
+                </div>
+
+                {/* Open in New Tab */}
+                <div className="flex justify-center items-center">
+                  <input
+                    type="checkbox"
+                    checked={!!link.openInNewTab}
+                    onChange={(e) => updateLink("column4Links", idx, "openInNewTab", e.target.checked)}
+                    className="w-4 h-4 text-brand rounded focus:ring-brand cursor-pointer"
+                  />
+                </div>
+
+                {/* Delete */}
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => removeLink("column4Links", idx)}
+                    className="p-1.5 text-neutral-400 hover:text-red-600 transition-colors cursor-pointer"
+                    title="Remove Link"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 6: COLUMN 6 NEWSLETTER (SUBSCRIBE US) */}
       <div className="bg-white rounded-xl border border-neutral-200 p-6 shadow-xs space-y-4">
         <div className="border-b border-neutral-100 pb-4">
           <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wider flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-amber-500" />
-            Column 4: Newsletter Subscription
+            Column 6: Newsletter Subscription
           </h3>
           <p className="text-xs text-neutral-500 mt-1">
             Configure the newsletter signup title, promotional subtitle, and input placeholder.
@@ -764,7 +1105,7 @@ export function AdminFooterSettings() {
         </div>
       </div>
 
-      {/* SECTION 5: SUB-FOOTER COPYRIGHT & LEGAL LINKS */}
+      {/* SECTION 7: SUB-FOOTER COPYRIGHT & LEGAL LINKS */}
       <div className="bg-white rounded-xl border border-neutral-200 p-6 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 pb-4">
           <div>

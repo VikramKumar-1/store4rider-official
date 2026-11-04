@@ -1,6 +1,9 @@
 import { meiliClient } from "../../core/search/meilisearch";
 import { CategoryRepository } from "../category/category.repository";
 import { resolveFuzzySearchTerms, getGearAccessoryExclusion } from "../../core/utils/fuzzySearch";
+import { SearchRepository } from "./search.repository";
+import { ISearchRedirect, ISearchRedirectCheckResult } from "@store4riders/shared-types";
+import { NotFoundError } from "../../core/errors/AppError";
 
 const STOREFRONT_CANONICAL_CATEGORIES = [
   { name: "Motorcycle Helmets", slug: "motorcycle-helmets", url: "/motorcycle-helmets", keywords: ["helmet", "helmets", "headgear", "motorcycle helmet"] },
@@ -41,6 +44,21 @@ export class SearchService {
     const { terms, correctedTerms, isCorrected, correctedQuery } = resolveFuzzySearchTerms(query);
     const effectiveTerms = correctedTerms.length > 0 ? correctedTerms : terms;
     const effectiveQuery = isCorrected ? correctedQuery : query.trim();
+
+    // 0. Check for Search Term Redirect (Magento-style)
+    let redirectMatch: { url: string; title: string; type: string } | null = null;
+    try {
+      const redirect = await SearchRepository.findMatchingRedirect(query);
+      if (redirect) {
+        redirectMatch = {
+          url: redirect.redirectUrl,
+          title: redirect.targetTitle || redirect.searchTerm,
+          type: redirect.targetType,
+        };
+      }
+    } catch {
+      // Non-blocking redirect check
+    }
 
     const inStockCondition = {
       $or: [
@@ -340,9 +358,65 @@ export class SearchService {
       categories: matchedCategories,
       brands: matchedBrands,
       scopedSuggestions,
+      redirect: redirectMatch,
       isCorrected,
       correctedQuery: isCorrected ? correctedQuery : undefined,
     };
+  }
+
+  /**
+   * Resolves whether an active search redirect exists for the given user query.
+   * Increments redirect counter non-blockingly upon resolution.
+   */
+  static async resolveRedirect(query: string): Promise<ISearchRedirectCheckResult> {
+    const match = await SearchRepository.findMatchingRedirect(query);
+    if (!match) {
+      return { hasRedirect: false };
+    }
+
+    if (match._id) {
+      SearchRepository.incrementRedirectCount(match._id).catch(() => {});
+    }
+
+    return {
+      hasRedirect: true,
+      redirectUrl: match.redirectUrl,
+      targetTitle: match.targetTitle,
+      targetType: match.targetType,
+      searchTerm: match.searchTerm,
+    };
+  }
+
+  static async listRedirects(page = 1, limit = 20, search?: string) {
+    return await SearchRepository.listRedirects(page, limit, search);
+  }
+
+  static async getRedirectById(id: string) {
+    const redirect = await SearchRepository.getById(id);
+    if (!redirect) {
+      throw new NotFoundError("Search redirect rule not found");
+    }
+    return redirect;
+  }
+
+  static async createRedirect(data: Partial<ISearchRedirect>) {
+    return await SearchRepository.create(data);
+  }
+
+  static async updateRedirect(id: string, data: Partial<ISearchRedirect>) {
+    const updated = await SearchRepository.update(id, data);
+    if (!updated) {
+      throw new NotFoundError("Search redirect rule not found");
+    }
+    return updated;
+  }
+
+  static async deleteRedirect(id: string) {
+    const deleted = await SearchRepository.delete(id);
+    if (!deleted) {
+      throw new NotFoundError("Search redirect rule not found");
+    }
+    return true;
   }
 
   /**

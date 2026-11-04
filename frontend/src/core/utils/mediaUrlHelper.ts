@@ -333,3 +333,133 @@ export function getCartItemImage(item: any, fallback: string = "/no-image.svg"):
   return fallback;
 }
 
+export const S3_MEDIA_BASE = "https://store4riders.s3.ap-south-2.amazonaws.com";
+
+/**
+ * Resolves legacy Magento media directives, wysiwyg paths, and corrupted image URLs
+ * into valid, high-resolution direct AWS S3 URLs.
+ */
+export function resolveMagentoMediaUrls(html: string): string {
+  if (!html) return "";
+
+  let clean = html;
+
+  // 1. Decode escaped HTML entities if content contains escaped tags (e.g. from CSV exports)
+  if (/&lt;[a-z\/][\s\S]*?&gt;/i.test(clean)) {
+    clean = clean
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, "&");
+  }
+
+  // 2. Normalize doubled quotes from CSV exports ("" -> ")
+  clean = clean.replace(/""/g, '"');
+
+  // 3. Fix broken /catalog/product/ URLs in S3 image paths for description/wysiwyg images.
+  // In the imported catalog, CMS/wysiwyg images were mistakenly prefixed with /catalog/product/.
+  // S3 stores all CMS description images under /wysiwyg/ (e.g. wysiwyg/smk-twister-specification.JPG).
+  clean = clean.replace(
+    /https?:\/\/store4riders\.s3\.ap-south-2\.amazonaws\.com\/catalog\/product\/([^"'\s>]+)/gi,
+    (_match, filePath) => {
+      let cleanPath = filePath
+        .replace(/&quot;/g, "")
+        .replace(/^["']|["']$/g, "")
+        .replace(/^wysiwyg\//i, "")
+        .trim();
+      const encoded = cleanPath
+        .split("/")
+        .map((seg: string) => encodeURIComponent(decodeURIComponent(seg)))
+        .join("/");
+      return `${S3_MEDIA_BASE}/wysiwyg/${encoded}`;
+    }
+  );
+
+  // 4. Resolve Magento {{media url="..."}} tokens
+  clean = clean.replace(
+    /\{\{media\s+url=(?:&quot;|""|"|'|\\")?(.*?)(?:&quot;|""|"|'|\\")?\}\}/gi,
+    (_match, rawPath) => {
+      let cleanPath = rawPath
+        .replace(/&quot;/g, "")
+        .replace(/^["'\\]+|["'\\]+$/g, "")
+        .trim();
+
+      if (cleanPath.startsWith("pub/media/")) {
+        cleanPath = cleanPath.substring(10);
+      } else if (cleanPath.startsWith("media/")) {
+        cleanPath = cleanPath.substring(6);
+      }
+
+      // If it doesn't already start with wysiwyg/ or catalog/, CMS media belongs under wysiwyg/
+      if (!cleanPath.startsWith("wysiwyg/") && !cleanPath.startsWith("catalog/")) {
+        cleanPath = `wysiwyg/${cleanPath}`;
+      }
+
+      const encoded = cleanPath
+        .split("/")
+        .map((seg: string) => encodeURIComponent(decodeURIComponent(seg)))
+        .join("/");
+      return `${S3_MEDIA_BASE}/${encoded}`;
+    }
+  );
+
+  // 5. Resolve legacy mmpl.store4riders.com or store4riders.com media domains in img src
+  clean = clean.replace(
+    /src=(["']?)https?:\/\/(?:www\.)?(?:mmpl\.)?store4riders\.com\/(?:pub\/)?media\/(?:wysiwyg\/)?([^"'\s>]+)\1/gi,
+    (_match, _quote, filePath) => {
+      const cleanPath = filePath.replace(/&quot;/g, "").trim();
+      const encoded = cleanPath
+        .split("/")
+        .map((seg: string) => encodeURIComponent(decodeURIComponent(seg)))
+        .join("/");
+      return `src="${S3_MEDIA_BASE}/wysiwyg/${encoded}"`;
+    }
+  );
+
+  // 6. Resolve raw relative media paths: src="/media/...", src="/pub/media/...", src="media/..."
+  clean = clean.replace(
+    /src=(["']?)\/?(?:pub\/)?media\/(?:wysiwyg\/)?([^"'\s>]+)\1/gi,
+    (_match, _quote, filePath) => {
+      const cleanPath = filePath.replace(/&quot;/g, "").trim();
+      const encoded = cleanPath
+        .split("/")
+        .map((seg: string) => encodeURIComponent(decodeURIComponent(seg)))
+        .join("/");
+      return `src="${S3_MEDIA_BASE}/wysiwyg/${encoded}"`;
+    }
+  );
+
+  // 7. Resolve raw wysiwyg paths: src="/wysiwyg/..." or src="wysiwyg/..."
+  clean = clean.replace(
+    /src=(["']?)\/?wysiwyg\/([^"'\s>]+)\1/gi,
+    (_match, _quote, filePath) => {
+      const cleanPath = filePath.replace(/&quot;/g, "").trim();
+      const encoded = cleanPath
+        .split("/")
+        .map((seg: string) => encodeURIComponent(decodeURIComponent(seg)))
+        .join("/");
+      return `src="${S3_MEDIA_BASE}/wysiwyg/${encoded}"`;
+    }
+  );
+
+  // 8. Ensure any spaces inside existing S3 image URLs are URL-encoded
+  clean = clean.replace(
+    /src=(["'])(https?:\/\/store4riders\.s3\.ap-south-2\.amazonaws\.com\/[^"'\s>]+(?:\s+[^"'\s>]+)*)\1/gi,
+    (_match, _quote, fullUrl) => {
+      try {
+        const urlObj = new URL(fullUrl);
+        const encodedPath = urlObj.pathname
+          .split("/")
+          .map((seg: string) => encodeURIComponent(decodeURIComponent(seg)))
+          .join("/");
+        return `src="${urlObj.origin}${encodedPath}${urlObj.search}"`;
+      } catch {
+        return `src="${encodeURI(fullUrl)}"`;
+      }
+    }
+  );
+
+  return clean;
+}
+

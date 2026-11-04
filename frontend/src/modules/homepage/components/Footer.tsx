@@ -6,25 +6,33 @@ import Image from "next/image";
 import { Mail, ArrowRight, Instagram, Facebook, Youtube, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { IFooterLink } from "@store4riders/shared-types";
 
-const DEFAULT_COLUMN1_LINKS: IFooterLink[] = [
+const DEFAULT_ABOUT_LINKS: IFooterLink[] = [
+  { label: "About us", url: "/about-us", openInNewTab: false },
+  { label: "Contact Us", url: "/contact-us", openInNewTab: false },
+];
+
+const DEFAULT_EXCHANGE_LINKS: IFooterLink[] = [
   { label: "Exchange & Replacements", url: "/returns-replacements-store4riders", openInNewTab: false },
   { label: "Warranty", url: "/warranty", openInNewTab: false },
+  { label: "Shipping Policies", url: "/shipping", openInNewTab: false },
+];
+
+const DEFAULT_POLICIES_LINKS: IFooterLink[] = [
   { label: "Conditions of Sale & Use", url: "/terms", openInNewTab: false },
   { label: "Privacy and Cookie Policy", url: "/privacy", openInNewTab: false },
   { label: "Legal", url: "/legal", openInNewTab: false },
-  { label: "Shipping Policies", url: "/shipping", openInNewTab: false },
   { label: "Store Policies", url: "/store-policies", openInNewTab: false },
 ];
 
-const DEFAULT_COLUMN2_LINKS: IFooterLink[] = [
-  { label: "About us", url: "/about-us", openInNewTab: false },
-  { label: "Contact Us", url: "/contact-us", openInNewTab: false },
+const DEFAULT_SUPPORT_LINKS: IFooterLink[] = [
   { label: "Your Account", url: "/account", openInNewTab: false },
   { label: "Wish List", url: "/account/wishlist", openInNewTab: false },
   { label: "Rider Assist", url: "/rider-assist", openInNewTab: false },
   { label: "Cash on Delivery", url: "/cash-on-delivery", openInNewTab: false },
+  { label: "Store4Riders Gpay/PhonePay", url: "/googlepay-phonepay", openInNewTab: false },
   { label: "Collaboration", url: "/collaboration", openInNewTab: false },
 ];
 
@@ -46,11 +54,19 @@ const DEFAULT_BOTTOM_LINKS: IFooterLink[] = [
  */
 export const Footer: React.FC = () => {
   const { data: settings } = usePublicSettings();
+  const { isAuthenticated } = useAuthStore();
   const [email, setEmail] = useState("");
   const [openSection, setOpenSection] = useState<string | null>(null);
 
   const toggleSection = (section: string) => {
     setOpenSection((prev) => (prev === section ? null : section));
+  };
+
+  const resolveLinkHref = (url: string) => {
+    if (!isAuthenticated && (url === "/account" || url.startsWith("/account/"))) {
+      return `/login?redirect=${encodeURIComponent(url)}`;
+    }
+    return url;
   };
 
   const footer = settings?.footerConfig;
@@ -68,19 +84,45 @@ export const Footer: React.FC = () => {
   const facebookUrl = settings?.facebookUrl || "https://www.facebook.com/store4riders/";
   const youtubeUrl = settings?.youtubeUrl || "https://www.youtube.com/channel/UCfXjs09-TOC1WJnutHUjphg";
 
-  // Column 2 Navigation Links
-  const column1Title = footer?.column1Title?.trim() || "EXCHANGE & REPLACEMENTS";
-  const column1Links = footer?.column1Links && footer.column1Links.length > 0 
-    ? footer.column1Links 
-    : DEFAULT_COLUMN1_LINKS;
+  // Strict URL sets to guarantee About Us and Policies are separated from Support and Exchange
+  const policyUrls = new Set(["/terms", "/privacy", "/legal", "/store-policies"]);
+  const aboutUrls = new Set(["/about-us", "/contact-us"]);
 
-  // Column 3 Navigation Links
-  const column2Title = footer?.column2Title?.trim() || "SUPPORT AND SERVICES";
-  const column2Links = footer?.column2Links && footer.column2Links.length > 0 
-    ? footer.column2Links 
-    : DEFAULT_COLUMN2_LINKS;
+  // Tab 1: ABOUT US
+  const aboutTitle = footer?.column4Title?.trim() || "ABOUT US";
+  let rawAboutLinks = footer?.column4Links && footer.column4Links.length > 0
+    ? footer.column4Links
+    : null;
+  if (!rawAboutLinks && footer?.column2Links) {
+    const extracted = footer.column2Links.filter((l) => aboutUrls.has(l.url));
+    if (extracted.length > 0) rawAboutLinks = extracted;
+  }
+  const aboutLinks = rawAboutLinks && rawAboutLinks.length > 0 ? rawAboutLinks : DEFAULT_ABOUT_LINKS;
 
-  // Column 4 Newsletter
+  // Tab 2: EXCHANGE & REPLACEMENTS
+  const exchangeTitle = footer?.column1Title?.trim() || "EXCHANGE & REPLACEMENTS";
+  let exchangeLinks = (footer?.column1Links && footer.column1Links.length > 0 ? footer.column1Links : DEFAULT_EXCHANGE_LINKS)
+    .filter((link) => !policyUrls.has(link.url));
+  if (exchangeLinks.length === 0) exchangeLinks = DEFAULT_EXCHANGE_LINKS;
+
+  // Tab 3: POLICIES & LEGAL
+  const policiesTitle = footer?.column3Title?.trim() || "POLICIES & LEGAL";
+  let rawPoliciesLinks = footer?.column3Links && footer.column3Links.length > 0
+    ? footer.column3Links
+    : null;
+  if (!rawPoliciesLinks && footer?.column1Links) {
+    const extracted = footer.column1Links.filter((l) => policyUrls.has(l.url));
+    if (extracted.length > 0) rawPoliciesLinks = extracted;
+  }
+  const policiesLinks = rawPoliciesLinks && rawPoliciesLinks.length > 0 ? rawPoliciesLinks : DEFAULT_POLICIES_LINKS;
+
+  // Tab 4: SUPPORT AND SERVICES
+  const supportTitle = footer?.column2Title?.trim() || "SUPPORT AND SERVICES";
+  let supportLinks = (footer?.column2Links && footer.column2Links.length > 0 ? footer.column2Links : DEFAULT_SUPPORT_LINKS)
+    .filter((link) => !aboutUrls.has(link.url));
+  if (supportLinks.length === 0) supportLinks = DEFAULT_SUPPORT_LINKS;
+
+  // Newsletter
   const newsletterTitle = footer?.newsletterTitle?.trim() || "SUBSCRIBE US";
   const newsletterSubtitle = footer?.newsletterSubtitle?.trim() || "Get updates on new riding gear arrivals, exclusive discount coupons, and offers.";
   const newsletterPlaceholder = footer?.newsletterPlaceholder?.trim() || "Enter your email address";
@@ -108,10 +150,10 @@ export const Footer: React.FC = () => {
   return (
     <footer className="w-full bg-black text-white pt-10 md:pt-16 pb-12 border-t border-neutral-900">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 lg:gap-6 xl:gap-8">
           
           {/* Column 1: Brand Logo, About, Contact info & Social Media */}
-          <div className="flex flex-col gap-4 sm:gap-6 sm:col-span-2 lg:col-span-1 pb-4 border-b border-neutral-900 lg:border-none lg:pb-0">
+          <div className="flex flex-col gap-4 sm:gap-6 sm:col-span-2 md:col-span-1 pb-4 border-b border-neutral-900 lg:border-none lg:pb-0">
             <div className="relative h-[46px] w-[184px] md:h-12 md:w-48 -ml-1 sm:-ml-2 mb-1 overflow-hidden rounded-sm">
               <Image 
                 src="/Store4riders-Logo.jpg" 
@@ -198,30 +240,30 @@ export const Footer: React.FC = () => {
             )}
           </div>
 
-          {/* Column 2: Navigation Links (Collapsible accordion on mobile) */}
+          {/* Column 2: ABOUT US (Collapsible accordion on mobile) */}
           <div className="flex flex-col border-b border-neutral-900 pb-4 lg:border-none lg:pb-0">
             <button
               type="button"
               suppressHydrationWarning
-              onClick={() => toggleSection("column1")}
+              onClick={() => toggleSection("about")}
               className="w-full flex items-center justify-between py-2 lg:py-0 text-left cursor-pointer group"
             >
               <h3 className="text-xs sm:text-sm font-semibold tracking-wider text-white uppercase lg:mb-6">
-                {column1Title}
+                {aboutTitle}
               </h3>
               <ChevronDown 
                 className={`w-4 h-4 text-neutral-400 group-hover:text-white transition-transform duration-300 lg:hidden ${
-                  openSection === "column1" ? "rotate-180 text-white" : ""
+                  openSection === "about" ? "rotate-180 text-white" : ""
                 }`} 
               />
             </button>
             <ul className={`flex flex-col gap-2.5 sm:gap-3 text-xs sm:text-sm text-neutral-400 pt-3 lg:pt-0 ${
-              openSection === "column1" ? "flex" : "hidden lg:flex"
+              openSection === "about" ? "flex" : "hidden lg:flex"
             }`}>
-              {column1Links.map((link, idx) => (
-                <li key={`col1-link-${idx}`}>
+              {aboutLinks.map((link, idx) => (
+                <li key={`about-link-${idx}`}>
                   <Link 
-                    href={link.url}
+                    href={resolveLinkHref(link.url)}
                     target={link.openInNewTab ? "_blank" : undefined}
                     rel={link.openInNewTab ? "noopener noreferrer" : undefined}
                     className="hover:text-white transition-colors"
@@ -233,30 +275,30 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Column 3: Navigation Links (Collapsible accordion on mobile) */}
+          {/* Column 3: EXCHANGE & REPLACEMENTS (Collapsible accordion on mobile) */}
           <div className="flex flex-col border-b border-neutral-900 pb-4 lg:border-none lg:pb-0">
             <button
               type="button"
               suppressHydrationWarning
-              onClick={() => toggleSection("column2")}
+              onClick={() => toggleSection("exchange")}
               className="w-full flex items-center justify-between py-2 lg:py-0 text-left cursor-pointer group"
             >
               <h3 className="text-xs sm:text-sm font-semibold tracking-wider text-white uppercase lg:mb-6">
-                {column2Title}
+                {exchangeTitle}
               </h3>
               <ChevronDown 
                 className={`w-4 h-4 text-neutral-400 group-hover:text-white transition-transform duration-300 lg:hidden ${
-                  openSection === "column2" ? "rotate-180 text-white" : ""
+                  openSection === "exchange" ? "rotate-180 text-white" : ""
                 }`} 
               />
             </button>
             <ul className={`flex flex-col gap-2.5 sm:gap-3 text-xs sm:text-sm text-neutral-400 pt-3 lg:pt-0 ${
-              openSection === "column2" ? "flex" : "hidden lg:flex"
+              openSection === "exchange" ? "flex" : "hidden lg:flex"
             }`}>
-              {column2Links.map((link, idx) => (
-                <li key={`col2-link-${idx}`}>
+              {exchangeLinks.map((link, idx) => (
+                <li key={`exchange-link-${idx}`}>
                   <Link 
-                    href={link.url}
+                    href={resolveLinkHref(link.url)}
                     target={link.openInNewTab ? "_blank" : undefined}
                     rel={link.openInNewTab ? "noopener noreferrer" : undefined}
                     className="hover:text-white transition-colors"
@@ -268,8 +310,78 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Column 4: Subscribe Us */}
-          <div className="flex flex-col sm:col-span-2 lg:col-span-1 pt-2 lg:pt-0">
+          {/* Column 4: POLICIES & LEGAL (Collapsible accordion on mobile) */}
+          <div className="flex flex-col border-b border-neutral-900 pb-4 lg:border-none lg:pb-0">
+            <button
+              type="button"
+              suppressHydrationWarning
+              onClick={() => toggleSection("policies")}
+              className="w-full flex items-center justify-between py-2 lg:py-0 text-left cursor-pointer group"
+            >
+              <h3 className="text-xs sm:text-sm font-semibold tracking-wider text-white uppercase lg:mb-6">
+                {policiesTitle}
+              </h3>
+              <ChevronDown 
+                className={`w-4 h-4 text-neutral-400 group-hover:text-white transition-transform duration-300 lg:hidden ${
+                  openSection === "policies" ? "rotate-180 text-white" : ""
+                }`} 
+              />
+            </button>
+            <ul className={`flex flex-col gap-2.5 sm:gap-3 text-xs sm:text-sm text-neutral-400 pt-3 lg:pt-0 ${
+              openSection === "policies" ? "flex" : "hidden lg:flex"
+            }`}>
+              {policiesLinks.map((link, idx) => (
+                <li key={`policies-link-${idx}`}>
+                  <Link 
+                    href={resolveLinkHref(link.url)}
+                    target={link.openInNewTab ? "_blank" : undefined}
+                    rel={link.openInNewTab ? "noopener noreferrer" : undefined}
+                    className="hover:text-white transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Column 5: SUPPORT AND SERVICES (Collapsible accordion on mobile) */}
+          <div className="flex flex-col border-b border-neutral-900 pb-4 lg:border-none lg:pb-0">
+            <button
+              type="button"
+              suppressHydrationWarning
+              onClick={() => toggleSection("support")}
+              className="w-full flex items-center justify-between py-2 lg:py-0 text-left cursor-pointer group"
+            >
+              <h3 className="text-xs sm:text-sm font-semibold tracking-wider text-white uppercase lg:mb-6">
+                {supportTitle}
+              </h3>
+              <ChevronDown 
+                className={`w-4 h-4 text-neutral-400 group-hover:text-white transition-transform duration-300 lg:hidden ${
+                  openSection === "support" ? "rotate-180 text-white" : ""
+                }`} 
+              />
+            </button>
+            <ul className={`flex flex-col gap-2.5 sm:gap-3 text-xs sm:text-sm text-neutral-400 pt-3 lg:pt-0 ${
+              openSection === "support" ? "flex" : "hidden lg:flex"
+            }`}>
+              {supportLinks.map((link, idx) => (
+                <li key={`support-link-${idx}`}>
+                  <Link 
+                    href={resolveLinkHref(link.url)}
+                    target={link.openInNewTab ? "_blank" : undefined}
+                    rel={link.openInNewTab ? "noopener noreferrer" : undefined}
+                    className="hover:text-white transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Column 6: Subscribe Us */}
+          <div className="flex flex-col sm:col-span-2 md:col-span-1 pt-2 lg:pt-0">
             <h3 className="text-xs sm:text-sm font-semibold tracking-wider text-white uppercase mb-4 sm:mb-6">
               {newsletterTitle}
             </h3>
