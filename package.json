@@ -10,7 +10,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "test": "turbo run test",
     "test:e2e": "playwright test",
-    "prepare": "husky"
+    "prepare": "node -e \"if (!process.env.CI && process.env.NODE_ENV !== 'production') { try { (await import('husky')).default() } catch {} }\""
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

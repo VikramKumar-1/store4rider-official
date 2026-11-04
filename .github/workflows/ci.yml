@@ -34,7 +34,7 @@ jobs:
           cache: "pnpm"
 
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prod=false
 
       - name: Typecheck Frontend
         run: pnpm --filter frontend exec tsc --noEmit
@@ -61,7 +61,7 @@ jobs:
           cache: "pnpm"
 
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prod=false
 
       - name: Run All Vitest Suites (Monorepo Turborepo)
         run: pnpm test
@@ -98,7 +98,7 @@ jobs:
           cache: "pnpm"
 
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prod=false
 
       - name: Build Shared Packages
         run: pnpm turbo run build --filter="@store4riders/*"
