@@ -72,16 +72,20 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_ENV: production
+      FRONTEND_URL: https://store4riders.com
+      API_URL: https://api.store4riders.com/api/v1
       NEXT_PUBLIC_API_URL: https://api.store4riders.com/api/v1
       DATABASE_URL: mongodb://localhost:27017/store4riders_ci
       JWT_SECRET: test_ci_jwt_secret_key_minimum_32_characters_long_12345
+      JWT_ACCESS_SECRET: test_ci_jwt_access_secret_key_min_32_chars_12345
+      JWT_REFRESH_SECRET: test_ci_jwt_refresh_secret_key_min_32_chars_12345
       REDIS_URL: redis://localhost:6379
-      PAYU_KEY: ci_payu_key
+      PAYU_MERCHANT_KEY: ci_payu_key
       PAYU_SALT: ci_payu_salt
       CCAVENUE_MERCHANT_ID: ci_ccavenue_merchant
       CCAVENUE_ACCESS_CODE: ci_ccavenue_code
       CCAVENUE_WORKING_KEY: ci_ccavenue_key
-      SNAPMINT_KEY: ci_snapmint_key
+      SNAPMINT_MERCHANT_ID: ci_snapmint_key
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

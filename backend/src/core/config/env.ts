@@ -64,15 +64,16 @@ const envSchema = z.object({
 });
 
 const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
+const isCi = Boolean(process.env.CI);
 
 export const ENV = envSchema.parse({
-  DATABASE_URL: process.env.DATABASE_URL || process.env.MONGODB_URI || (isProd ? "" : "mongodb://localhost:27017/store4riders"),
-  REDIS_URL: process.env.REDIS_URL || (isProd ? "" : "redis://localhost:6379"),
-  FRONTEND_URL: process.env.FRONTEND_URL || (isProd ? "" : "http://localhost:3000"),
-  API_URL: process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || (isProd ? "" : "http://localhost:4000"),
-  NEXT_PUBLIC_API_URL: process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || (isProd ? "" : "http://localhost:4000"),
-  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || (isProd ? "" : "dev-access-secret-do-not-use-in-prod"),
-  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || (isProd ? "" : "dev-refresh-secret-do-not-use-in-prod"),
+  DATABASE_URL: process.env.DATABASE_URL || process.env.MONGODB_URI || (isProd && !isCi ? "" : "mongodb://localhost:27017/store4riders"),
+  REDIS_URL: process.env.REDIS_URL || (isProd && !isCi ? "" : "redis://localhost:6379"),
+  FRONTEND_URL: process.env.FRONTEND_URL || (isProd && !isCi ? "" : "http://localhost:3000"),
+  API_URL: process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || (isProd && !isCi ? "" : "http://localhost:4000"),
+  NEXT_PUBLIC_API_URL: process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || (isProd && !isCi ? "" : "http://localhost:4000"),
+  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || (isProd && !isCi ? "" : "dev-access-secret-do-not-use-in-prod"),
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || (isProd && !isCi ? "" : "dev-refresh-secret-do-not-use-in-prod"),
   NODE_ENV: process.env.NODE_ENV,
   PAYU_MERCHANT_KEY: process.env.PAYU_MERCHANT_KEY,
   PAYU_SALT: process.env.PAYU_SALT,
