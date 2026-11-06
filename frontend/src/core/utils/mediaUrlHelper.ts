@@ -333,6 +333,166 @@ export function getCartItemImage(item: any, fallback: string = "/no-image.svg"):
   return fallback;
 }
 
+/**
+ * Resolves the primary thumbnail/display image for any product across catalog,
+ * homepage, search, admin, and cart.
+ *
+ * Priority:
+ * 1. If preferredColor is supplied, finds matching image from colorImages, variants, or images
+ * 2. product.thumbnail (explicit thumbnail)
+ * 3. product.images[0].url (first valid gallery image)
+ * 4. product.image (legacy image field)
+ * 5. First image from product.colorImages map
+ * 6. First variant image from product.variants
+ * 7. Fallback: fallback string (defaults to "/no-image.svg")
+ */
+export function getProductThumbnailUrl(
+  product: any,
+  preferredColor?: string,
+  fallback: string = "/no-image.svg"
+): string {
+  if (!product) return fallback;
+
+  // 1. If preferredColor is specified, try to match it first
+  if (preferredColor) {
+    const normColor = preferredColor.trim().toLowerCase();
+
+    // 1a. Check colorImages map
+    if (product.colorImages) {
+      const cMap: Record<string, string> = product.colorImages instanceof Map
+        ? Object.fromEntries(product.colorImages)
+        : product.colorImages;
+      const matchedKey = Object.keys(cMap).find(
+        (k) => k.trim().toLowerCase() === normColor || normColor.includes(k.trim().toLowerCase())
+      );
+      if (matchedKey && cMap[matchedKey] && cMap[matchedKey] !== fallback) {
+        const clean = normalizeExternalImageUrl(cMap[matchedKey]);
+        if (clean) return clean;
+      }
+    }
+
+    // 1b. Check variants
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      const matchedVariant = product.variants.find((v: any) => {
+        const vAttrs = v?.attributes instanceof Map ? Object.fromEntries(v.attributes) : (v?.attributes || {});
+        const vColor = (vAttrs.color || vAttrs.colour || "").trim().toLowerCase();
+        return vColor && (vColor === normColor || vColor.includes(normColor) || normColor.includes(vColor));
+      });
+      const vUrl = matchedVariant?.imageUrl || matchedVariant?.images?.[0]?.url;
+      if (vUrl && vUrl !== fallback) {
+        const clean = normalizeExternalImageUrl(vUrl);
+        if (clean) return clean;
+      }
+    }
+
+    // 1c. Check images altText or url
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      const matchedImg = product.images.find((img: any) => {
+        const alt = (img?.altText || "").toLowerCase();
+        const url = (typeof img === "string" ? img : img?.url || "").toLowerCase();
+        return alt.includes(normColor) || url.includes(normColor.replace(/\s+/g, "-"));
+      });
+      const mUrl = typeof matchedImg === "string" ? matchedImg : matchedImg?.url;
+      if (mUrl && mUrl !== fallback) {
+        const clean = normalizeExternalImageUrl(mUrl);
+        if (clean) return clean;
+      }
+    }
+  }
+
+  // 2. Explicit thumbnail
+  if (product.thumbnail && typeof product.thumbnail === "string" && product.thumbnail !== fallback) {
+    const clean = normalizeExternalImageUrl(product.thumbnail);
+    if (clean) return clean;
+  }
+
+  // 3. First valid gallery image
+  if (Array.isArray(product.images) && product.images.length > 0) {
+    for (const img of product.images) {
+      const u = typeof img === "string" ? img : img?.url;
+      if (u && u !== fallback) {
+        const clean = normalizeExternalImageUrl(u);
+        if (clean) return clean;
+      }
+    }
+  }
+
+  // 4. Explicit image field
+  if (product.image && typeof product.image === "string" && product.image !== fallback) {
+    const clean = normalizeExternalImageUrl(product.image);
+    if (clean) return clean;
+  }
+
+  // 5. colorImages map (first available)
+  if (product.colorImages) {
+    const cMap = product.colorImages instanceof Map
+      ? Object.fromEntries(product.colorImages)
+      : product.colorImages;
+    for (const val of Object.values(cMap)) {
+      if (typeof val === "string" && val && val !== fallback) {
+        const clean = normalizeExternalImageUrl(val);
+        if (clean) return clean;
+      }
+    }
+  }
+
+  // 6. Variants imageUrl (first available)
+  if (Array.isArray(product.variants) && product.variants.length > 0) {
+    for (const v of product.variants) {
+      const vUrl = v?.imageUrl || v?.images?.[0]?.url;
+      if (vUrl && vUrl !== fallback) {
+        const clean = normalizeExternalImageUrl(vUrl);
+        if (clean) return clean;
+      }
+    }
+  }
+
+  return fallback;
+}
+
+/**
+ * Returns all distinct, valid candidate image URLs available for a product.
+ * Useful for image error fallback chains before falling back to placeholder.
+ */
+export function getProductCandidateImages(product: any): string[] {
+  if (!product) return [];
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+
+  const add = (raw?: string | null) => {
+    if (!raw || typeof raw !== "string" || raw === "/no-image.svg") return;
+    const clean = normalizeExternalImageUrl(raw);
+    if (clean && !seen.has(clean)) {
+      seen.add(clean);
+      candidates.push(clean);
+    }
+  };
+
+  if (product.thumbnail) add(product.thumbnail);
+  if (product.image) add(product.image);
+  if (Array.isArray(product.images)) {
+    product.images.forEach((img: any) => {
+      add(typeof img === "string" ? img : img?.url);
+    });
+  }
+  if (product.colorImages) {
+    const cMap = product.colorImages instanceof Map
+      ? Object.fromEntries(product.colorImages)
+      : product.colorImages;
+    Object.values(cMap).forEach((val: any) => add(val));
+  }
+  if (Array.isArray(product.variants)) {
+    product.variants.forEach((v: any) => {
+      add(v?.imageUrl);
+      if (Array.isArray(v?.images)) {
+        v.images.forEach((im: any) => add(typeof im === "string" ? im : im?.url));
+      }
+    });
+  }
+
+  return candidates;
+}
+
 export const S3_MEDIA_BASE = "https://store4riders.s3.ap-south-2.amazonaws.com";
 
 /**

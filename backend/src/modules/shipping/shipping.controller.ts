@@ -26,6 +26,7 @@ export class ShippingController {
       length: body.length !== undefined ? Number(body.length) : undefined,
       breadth: body.breadth !== undefined ? Number(body.breadth) : undefined,
       height: body.height !== undefined ? Number(body.height) : undefined,
+      autoAssignAwb: Boolean(body.autoAssignAwb),
     });
     return ApiResponse.success(result.shipment, result.message, 200);
   }

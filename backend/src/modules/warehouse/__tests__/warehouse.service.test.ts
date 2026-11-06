@@ -94,4 +94,43 @@ describe("WarehouseService - Multi-Warehouse Management", () => {
       expect(result?.isDefault).toBe(true);
     });
   });
+
+  describe("Sync Shiprocket Warehouses", () => {
+    it("successfully fetches and syncs pickup locations from Shiprocket into warehouse repository", async () => {
+      vi.mock("../../../core/shipping/ShiprocketProvider", () => ({
+        ShiprocketProvider: vi.fn().mockImplementation(() => ({
+          getPickupLocations: vi.fn().mockResolvedValue([
+            {
+              id: 991,
+              pickup_location: "Main_Godown",
+              name: "Vikram Kumar",
+              email: "shipping@store4riders.com",
+              phone: "9876543210",
+              address: "123 Street",
+              address_2: "Suite 4",
+              city: "Pune",
+              state: "Maharashtra",
+              country: "India",
+              pin_code: "411030",
+              is_primary: 1,
+              status: 1,
+            },
+          ]),
+        })),
+      }));
+
+      (WarehouseRepository.upsertShiprocketWarehouse as any).mockImplementation((data: any) => Promise.resolve({
+        _id: "wh_synced_1",
+        ...data,
+      }));
+      (WarehouseRepository.findDefault as any).mockResolvedValue({ _id: "wh_synced_1", isDefault: true });
+
+      const result = await WarehouseService.syncShiprocketWarehouses();
+
+      expect(result.syncedCount).toBe(1);
+      expect(result.warehouses[0].name).toBe("Main_Godown");
+      expect(result.warehouses[0].shiprocketLocationId).toBe("Main_Godown");
+      expect(WarehouseRepository.unsetAllDefault).toHaveBeenCalled();
+    });
+  });
 });

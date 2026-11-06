@@ -131,6 +131,38 @@ export interface ITestimonialsSectionConfig {
   sectionTitle: string;
 }
 
+export interface IRidersFavouritesItem {
+  id?: string;
+  name: string;
+  brand?: string;
+  priceFormatted: string;
+  imageUrl: string;
+  productUrl: string;
+}
+
+export interface IRidersFavouritesSectionConfig {
+  sectionTitle: string;
+  subtitle?: string;
+  items?: IRidersFavouritesItem[];
+}
+
+export interface ICategoryShowcaseCardConfig {
+  id?: string;
+  title: string;
+  description: string;
+  linkUrl: string;
+  imageUrl?: string;
+  placeholderText?: string;
+  guideLinkText?: string;
+  guideLinkUrl?: string;
+}
+
+export interface ICategoryShowcaseSectionConfig {
+  sectionTitle: string;
+  subtitle?: string;
+  cards?: ICategoryShowcaseCardConfig[];
+}
+
 export interface ITopBannerConfig {
   message: string;
   highlightText: string;
@@ -145,6 +177,8 @@ export interface IHomepageSectionsConfig {
   touringGear: ITouringGearSectionConfig;
   socialMedia: ISocialMediaSectionConfig;
   testimonials: ITestimonialsSectionConfig;
+  ridersFavourites?: IRidersFavouritesSectionConfig;
+  categoryShowcase?: ICategoryShowcaseSectionConfig;
 }
 
 export interface IHomepageConfig {

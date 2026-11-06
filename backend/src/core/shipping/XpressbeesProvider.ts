@@ -20,7 +20,7 @@ export class XpressbeesProvider implements ShippingProvider {
   private getHeaders() {
     const token = ENV.XPRESSBEES_API_KEY;
     if (!token) {
-      throw new AppError("Xpressbees API credentials not configured", 500);
+      throw new AppError("Xpressbees API credentials not configured. Please add XPRESSBEES_API_KEY in backend/.env or select Shiprocket.", 400);
     }
     return {
       "Authorization": `Bearer ${token}`,

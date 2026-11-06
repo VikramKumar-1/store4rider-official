@@ -3,11 +3,12 @@
 import React, { useState } from "react";
 import { ShipmentListTable } from "./ShipmentListTable";
 import { AdminLogisticsDashboard } from "./AdminLogisticsDashboard";
-import { TruckIcon, TableCellsIcon } from "@heroicons/react/24/outline";
+import { WarehouseManager } from "./WarehouseManager";
+import { TruckIcon, TableCellsIcon, BuildingStorefrontIcon } from "@heroicons/react/24/outline";
 import { useAdminLogisticsStats } from "@/core/hooks/useAdminDashboard";
 
 export const AdminShippingDashboard = () => {
-  const [activeTab, setActiveTab] = useState<"intake" | "shipments">("intake");
+  const [activeTab, setActiveTab] = useState<"intake" | "shipments" | "warehouses">("intake");
   const { data: stats, isLoading } = useAdminLogisticsStats();
 
   return (
@@ -26,7 +27,7 @@ export const AdminShippingDashboard = () => {
         <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-fit">
           <button
             onClick={() => setActiveTab("intake")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === "intake"
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
@@ -38,7 +39,7 @@ export const AdminShippingDashboard = () => {
           
           <button
             onClick={() => setActiveTab("shipments")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === "shipments"
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
@@ -46,6 +47,18 @@ export const AdminShippingDashboard = () => {
           >
             <TableCellsIcon className="w-4 h-4 text-slate-600" />
             <span>Carrier Shipments</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("warehouses")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
+              activeTab === "warehouses"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <BuildingStorefrontIcon className="w-4 h-4 text-orange-600" />
+            <span>Pickup Warehouses</span>
           </button>
         </div>
       </div>
@@ -92,6 +105,13 @@ export const AdminShippingDashboard = () => {
           {/* Main Shipment Table */}
           <ShipmentListTable />
           
+        </div>
+      )}
+
+      {/* Tab 3: Pickup Warehouses & Shiprocket Locations */}
+      {activeTab === "warehouses" && (
+        <div className="animate-in fade-in duration-200">
+          <WarehouseManager />
         </div>
       )}
 

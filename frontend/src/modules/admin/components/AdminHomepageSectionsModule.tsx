@@ -36,16 +36,61 @@ import {
   Clock,
   AlertTriangle,
   Sparkles,
+  Shield,
+  Star,
 } from "lucide-react";
 import { useHomepageConfig, useUpdateHomepageSections } from "@/core/hooks/useHomepage";
 import { useSyncInstagramFeed } from "@/core/hooks/useInstagramSync";
-import { IHomepageSectionsConfig, IBrowseProductItem, IInstagramReel } from "@store4riders/shared-types";
+import {
+  IHomepageSectionsConfig,
+  IBrowseProductItem,
+  IInstagramReel,
+  ICategoryShowcaseCardConfig,
+  IRidersFavouritesItem,
+} from "@store4riders/shared-types";
 import { ImageUploadWebP } from "./ImageUploadWebP";
 import { MultiImageUploadWebP } from "./MultiImageUploadWebP";
 import { LinkSelectorInput } from "./LinkSelectorInput";
 import { ProductCategoryPicker, SelectedItemData } from "./ProductCategoryPicker";
 import { ReelEditorModal } from "./ReelEditorModal";
 import { toast } from "sonner";
+
+const DEFAULT_SHOWCASE_CARDS: ICategoryShowcaseCardConfig[] = [
+  {
+    id: "boots",
+    title: "RIDING BOOTS",
+    description: "Short biking boots, sports riding shoes and off-road boots with ankle and shin protection.",
+    linkUrl: "/riding-gear/riding-boots",
+    imageUrl: "",
+    placeholderText: "PHOTO: RIDING BOOTS",
+  },
+  {
+    id: "pants",
+    title: "RIDING PANTS",
+    description: "Riding pants, riding jeans and touring pants with removable knee and hip armour.",
+    linkUrl: "/riding-gear/riding-pants",
+    imageUrl: "",
+    placeholderText: "PHOTO: RIDING PANTS WITH KNEE ARMOUR",
+  },
+  {
+    id: "luggage",
+    title: "MOTORCYCLE LUGGAGE",
+    description: "Tank bags, saddle bags, tail bags and top boxes for weekend rides and long tours.",
+    linkUrl: "/luggage",
+    imageUrl: "",
+    placeholderText: "PHOTO: TAIL BAG ON A TOURING BIKE",
+  },
+  {
+    id: "accessories-spares",
+    title: "BIKE ACCESSORIES AND SPARES",
+    description: "Auxiliary lights, spark plugs, performance air filters, chains and chain care. New to chain maintenance? Start with our ",
+    linkUrl: "/bike-accessories",
+    imageUrl: "",
+    placeholderText: "PHOTO: AUXILIARY LIGHTS AND CHAIN CARE",
+    guideLinkText: "chain lubing guide.",
+    guideLinkUrl: "/products?q=chain+lube",
+  },
+];
 
 export function AdminHomepageSectionsModule() {
   const searchParams = useSearchParams();
@@ -66,6 +111,10 @@ export function AdminHomepageSectionsModule() {
   // Section 2: Browse Riding Gear Modal & Edit State
   const [pickerSlotIdx, setPickerSlotIdx] = useState<number | null>(null);
   const [editingSlotIdx, setEditingSlotIdx] = useState<number | null>(null);
+
+  // Section: Riders' Favourites Modal & Edit State
+  const [favPickerSlotIdx, setFavPickerSlotIdx] = useState<number | null>(null);
+  const [favEditingSlotIdx, setFavEditingSlotIdx] = useState<number | null>(null);
 
   // Section 4: Instagram Reels Modal & Edit State
   const [isReelModalOpen, setIsReelModalOpen] = useState<boolean>(false);
@@ -105,6 +154,21 @@ export function AdminHomepageSectionsModule() {
       sectionTitle: "BEST GEAR FOR TOURING",
       seeMoreText: "SEE MORE",
       seeMoreLink: "/products?q=touring",
+    },
+    categoryShowcase: {
+      sectionTitle: "RIDER'S ESSENTIAL GEAR",
+      subtitle: "",
+      cards: DEFAULT_SHOWCASE_CARDS,
+    },
+    ridersFavourites: {
+      sectionTitle: "RIDERS' FAVOURITES",
+      subtitle: "",
+      items: [
+        { id: "fav-1", name: "", brand: "STORE4RIDERS", priceFormatted: "", imageUrl: "", productUrl: "/products" },
+        { id: "fav-2", name: "", brand: "STORE4RIDERS", priceFormatted: "", imageUrl: "", productUrl: "/products" },
+        { id: "fav-3", name: "", brand: "STORE4RIDERS", priceFormatted: "", imageUrl: "", productUrl: "/products" },
+        { id: "fav-4", name: "", brand: "STORE4RIDERS", priceFormatted: "", imageUrl: "", productUrl: "/products" },
+      ],
     },
     socialMedia: {
       sectionTitle: "Store4Riders on Insta",
@@ -190,6 +254,20 @@ export function AdminHomepageSectionsModule() {
             ...prev.browseCategories,
             ...config.sections?.browseCategories,
             items: config.sections?.browseCategories?.items || [],
+          },
+          categoryShowcase: {
+            sectionTitle: config.sections?.categoryShowcase?.sectionTitle || "RIDER'S ESSENTIAL GEAR",
+            subtitle: config.sections?.categoryShowcase?.subtitle || "",
+            cards: config.sections?.categoryShowcase?.cards && config.sections.categoryShowcase.cards.length > 0
+              ? config.sections.categoryShowcase.cards
+              : (prev.categoryShowcase?.cards || DEFAULT_SHOWCASE_CARDS),
+          },
+          ridersFavourites: {
+            sectionTitle: config.sections?.ridersFavourites?.sectionTitle || "RIDERS' FAVOURITES",
+            subtitle: config.sections?.ridersFavourites?.subtitle || "",
+            items: config.sections?.ridersFavourites?.items && config.sections.ridersFavourites.items.length > 0
+              ? config.sections.ridersFavourites.items
+              : (prev.ridersFavourites?.items || []),
           },
           socialMedia: {
             ...prev.socialMedia,
@@ -417,6 +495,146 @@ export function AdminHomepageSectionsModule() {
     handlePersistSections(updatedSections, "Reels reordered & saved!");
   };
 
+  // -------------------------------------------------------------
+  // Category Showcase (Rider's Essential Gear) Handlers
+  // -------------------------------------------------------------
+  const handleUpdateShowcaseCard = (idx: number, updates: Partial<ICategoryShowcaseCardConfig>) => {
+    setSectionsState((prev) => {
+      const existingCards = prev.categoryShowcase?.cards && prev.categoryShowcase.cards.length > 0
+        ? [...prev.categoryShowcase.cards]
+        : [...DEFAULT_SHOWCASE_CARDS];
+      while (existingCards.length <= idx) {
+        existingCards.push({
+          id: `card-${existingCards.length + 1}`,
+          title: "",
+          description: "",
+          linkUrl: "/products",
+          imageUrl: "",
+        });
+      }
+      existingCards[idx] = {
+        ...existingCards[idx],
+        ...updates,
+      };
+      return {
+        ...prev,
+        categoryShowcase: {
+          ...prev.categoryShowcase,
+          sectionTitle: prev.categoryShowcase?.sectionTitle || "RIDER'S ESSENTIAL GEAR",
+          subtitle: prev.categoryShowcase?.subtitle || "",
+          cards: existingCards,
+        },
+      };
+    });
+  };
+
+  const handleResetShowcaseCards = () => {
+    setSectionsState((prev) => ({
+      ...prev,
+      categoryShowcase: {
+        ...prev.categoryShowcase,
+        sectionTitle: "RIDER'S ESSENTIAL GEAR",
+        subtitle: "",
+        cards: DEFAULT_SHOWCASE_CARDS.map((c) => ({ ...c })),
+      },
+    }));
+    toast.success("Reset Rider's Essential Gear cards to defaults!");
+  };
+
+  // -------------------------------------------------------------
+  // Riders' Favourites Handlers
+  // -------------------------------------------------------------
+  const handleUpdateFavItem = (idx: number, updates: Partial<IRidersFavouritesItem>) => {
+    setSectionsState((prev) => {
+      const existingItems = prev.ridersFavourites?.items ? [...prev.ridersFavourites.items] : [];
+      while (existingItems.length <= idx) {
+        existingItems.push({
+          id: `fav-${existingItems.length + 1}`,
+          name: "",
+          brand: "STORE4RIDERS",
+          priceFormatted: "",
+          imageUrl: "",
+          productUrl: "/products",
+        });
+      }
+      existingItems[idx] = {
+        ...existingItems[idx],
+        ...updates,
+      };
+      return {
+        ...prev,
+        ridersFavourites: {
+          ...prev.ridersFavourites,
+          sectionTitle: prev.ridersFavourites?.sectionTitle || "RIDERS' FAVOURITES",
+          subtitle: prev.ridersFavourites?.subtitle || "",
+          items: existingItems,
+        },
+      };
+    });
+  };
+
+  const handleClearFavSlot = (idx: number) => {
+    setSectionsState((prev) => {
+      const existingItems = prev.ridersFavourites?.items ? [...prev.ridersFavourites.items] : [];
+      if (existingItems[idx]) {
+        existingItems[idx] = {
+          id: `fav-${idx + 1}`,
+          name: "",
+          brand: "STORE4RIDERS",
+          priceFormatted: "",
+          imageUrl: "",
+          productUrl: "/products",
+        };
+      }
+      return {
+        ...prev,
+        ridersFavourites: {
+          ...prev.ridersFavourites,
+          sectionTitle: prev.ridersFavourites?.sectionTitle || "RIDERS' FAVOURITES",
+          subtitle: prev.ridersFavourites?.subtitle || "",
+          items: existingItems,
+        },
+      };
+    });
+    if (favEditingSlotIdx === idx) setFavEditingSlotIdx(null);
+    toast.info(`Slot #${idx + 1} reset to automatic bestseller item.`);
+  };
+
+  const handleClearAllFavSlots = () => {
+    setSectionsState((prev) => ({
+      ...prev,
+      ridersFavourites: {
+        ...prev.ridersFavourites,
+        sectionTitle: prev.ridersFavourites?.sectionTitle || "RIDERS' FAVOURITES",
+        subtitle: "",
+        items: [0, 1, 2, 3].map((i) => ({
+          id: `fav-${i + 1}`,
+          name: "",
+          brand: "STORE4RIDERS",
+          priceFormatted: "",
+          imageUrl: "",
+          productUrl: "/products",
+        })),
+      },
+    }));
+    setFavEditingSlotIdx(null);
+    toast.success("All Riders' Favourites slots reset to automatic bestsellers!");
+  };
+
+  const handleProductSelectedForRidersFav = (selected: SelectedItemData) => {
+    if (favPickerSlotIdx === null) return;
+    const targetIdx = favPickerSlotIdx;
+    handleUpdateFavItem(targetIdx, {
+      name: selected.title,
+      brand: selected.categoryName || "STORE4RIDERS",
+      priceFormatted: selected.priceFormatted || "₹ 0",
+      imageUrl: selected.imageUrl || "",
+      productUrl: selected.linkUrl || "/products",
+    });
+    setFavPickerSlotIdx(null);
+    toast.success(`Assigned "${selected.title}" to Slot #${targetIdx + 1}!`);
+  };
+
   const handleSave = () => {
     updateMutation.mutate(
       { sections: sectionsState },
@@ -453,6 +671,8 @@ export function AdminHomepageSectionsModule() {
     { id: "featuredCategories", name: "Shop By Category", icon: FolderTree, desc: "Masonry category tiles" },
     { id: "browseCategories", name: "Browse Riding Gear", icon: Compass, desc: "Scrollable gear carousel" },
     { id: "touringGear", name: "Best Gear for Touring", icon: Luggage, desc: "Touring gear & See More" },
+    { id: "categoryShowcase", name: "Rider's Essential Gear", icon: Shield, desc: "Boots, Pants, Luggage & Spares" },
+    { id: "ridersFavourites", name: "Riders' Favourites", icon: Star, desc: "4 Best-seller product cards" },
     { id: "socialMedia", name: "Store4Riders on Insta", icon: Instagram, desc: "Reels grid & promo cards" },
     { id: "testimonials", name: "Customer Reviews", icon: MessageSquareQuote, desc: "Testimonial section title" },
     { id: "topBanner", name: "Top Announcement Bar", icon: Megaphone, desc: "Header discount marquee" },
@@ -1484,6 +1704,476 @@ export function AdminHomepageSectionsModule() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* SECTION: RIDER'S ESSENTIAL GEAR (CATEGORY SHOWCASE) */}
+          {/* ========================================================= */}
+          {activeSection === "categoryShowcase" && (
+            <div className="space-y-4">
+              <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-4">
+                <div className="border-b border-slate-100 pb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                      <Shield className="w-4 h-4 text-brand" />
+                      Rider's Essential Gear (4 Core Gear Tiles)
+                    </h2>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Configure titles, descriptions, destination links, and upload custom square WebP images for Boots, Pants, Luggage, and Spares.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleResetShowcaseCards}
+                    className="text-[11px] px-2.5 py-1 rounded border border-slate-300 text-slate-600 hover:text-red-600 hover:border-red-300 transition-colors cursor-pointer flex items-center gap-1 font-medium bg-slate-50 self-start sm:self-auto"
+                    title="Reset all cards to defaults"
+                  >
+                    <RefreshCw size={12} />
+                    <span>Reset Defaults</span>
+                  </button>
+                </div>
+
+                {/* Section Title & Subtitle */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Section Heading (Title)
+                    </label>
+                    <input
+                      type="text"
+                      value={sectionsState.categoryShowcase?.sectionTitle ?? "RIDER'S ESSENTIAL GEAR"}
+                      onChange={(e) =>
+                        setSectionsState((prev) => ({
+                          ...prev,
+                          categoryShowcase: {
+                            ...prev.categoryShowcase,
+                            sectionTitle: e.target.value,
+                            subtitle: prev.categoryShowcase?.subtitle ?? "",
+                            cards: prev.categoryShowcase?.cards ?? [],
+                          },
+                        }))
+                      }
+                      placeholder="e.g. RIDER'S ESSENTIAL GEAR"
+                      className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-3 py-1.5 rounded-md focus:outline-none focus:border-brand font-semibold shadow-2xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Section Subtitle (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={sectionsState.categoryShowcase?.subtitle ?? ""}
+                      onChange={(e) =>
+                        setSectionsState((prev) => ({
+                          ...prev,
+                          categoryShowcase: {
+                            ...prev.categoryShowcase,
+                            sectionTitle: prev.categoryShowcase?.sectionTitle ?? "RIDER'S ESSENTIAL GEAR",
+                            subtitle: e.target.value,
+                            cards: prev.categoryShowcase?.cards ?? [],
+                          },
+                        }))
+                      }
+                      placeholder="Leave blank or enter custom subtitle"
+                      className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-3 py-1.5 rounded-md focus:outline-none focus:border-brand font-medium shadow-2xs"
+                    />
+                  </div>
+                </div>
+
+                {/* 4 Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  {(sectionsState.categoryShowcase?.cards && sectionsState.categoryShowcase.cards.length > 0
+                    ? sectionsState.categoryShowcase.cards
+                    : DEFAULT_SHOWCASE_CARDS
+                  ).map((card, idx) => {
+                    return (
+                      <div
+                        key={card.id || `card-${idx}`}
+                        className="border border-slate-200 rounded-lg p-3.5 bg-slate-50/50 space-y-3"
+                      >
+                        <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                          <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-brand shrink-0" />
+                            Card #{idx + 1}: {card.title || `Tile ${idx + 1}`}
+                          </span>
+                          {card.imageUrl ? (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Custom Image Active
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                              Catalog Fallback
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Title & Description */}
+                        <div className="space-y-2">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                              Card Title
+                            </label>
+                            <input
+                              type="text"
+                              value={card.title}
+                              onChange={(e) => handleUpdateShowcaseCard(idx, { title: e.target.value })}
+                              placeholder="e.g. RIDING BOOTS"
+                              className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-2.5 py-1.5 rounded font-semibold focus:outline-none focus:border-brand"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                              Description
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={card.description}
+                              onChange={(e) => handleUpdateShowcaseCard(idx, { description: e.target.value })}
+                              placeholder="Short card description..."
+                              className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-brand resize-none"
+                            />
+                          </div>
+
+                          <div>
+                            <LinkSelectorInput
+                              label="Destination Link"
+                              value={card.linkUrl || "/products"}
+                              onChange={(url) => handleUpdateShowcaseCard(idx, { linkUrl: url })}
+                              placeholder="e.g. /riding-gear/riding-boots"
+                            />
+                          </div>
+
+                          {idx === 3 && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200">
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                                  Guide Link Text (Optional)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={card.guideLinkText || ""}
+                                  onChange={(e) => handleUpdateShowcaseCard(idx, { guideLinkText: e.target.value })}
+                                  placeholder="e.g. chain lubing guide."
+                                  className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-2 py-1 rounded"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                                  Guide Link URL (Optional)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={card.guideLinkUrl || ""}
+                                  onChange={(e) => handleUpdateShowcaseCard(idx, { guideLinkUrl: e.target.value })}
+                                  placeholder="e.g. /products?q=chain+lube"
+                                  className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-2 py-1 rounded"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Image Upload WebP */}
+                        <div className="pt-1">
+                          <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                            Card Photo (Auto WebP & S3 Upload)
+                          </label>
+                          <ImageUploadWebP
+                            value={card.imageUrl || ""}
+                            onChange={(url) => handleUpdateShowcaseCard(idx, { imageUrl: url })}
+                            aspectRatio="aspect-square"
+                            hint="Square 1:1 image. Converted automatically to WebP and saved directly to S3."
+                            recommendedDimensions="600 x 600 px (Square)"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* SECTION: RIDERS' FAVOURITES */}
+          {/* ========================================================= */}
+          {activeSection === "ridersFavourites" && (
+            <div className="space-y-4">
+              <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-4">
+                <div className="border-b border-slate-100 pb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                      <Star className="w-4 h-4 text-brand" />
+                      Riders' Favourites (4 Best-Selling Products)
+                    </h2>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Select 4 featured products from your store catalog, or upload custom images and pricing overrides.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClearAllFavSlots}
+                    className="text-[11px] px-2.5 py-1 rounded border border-slate-300 text-slate-600 hover:text-red-600 hover:border-red-300 transition-colors cursor-pointer flex items-center gap-1 font-medium bg-slate-50 self-start sm:self-auto"
+                    title="Clear all manual selections (reverts to automatic bestseller catalog curation)"
+                  >
+                    <Trash2 size={12} />
+                    <span>Reset All to Auto</span>
+                  </button>
+                </div>
+
+                {/* Section Title & Subtitle */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Section Heading (Title)
+                    </label>
+                    <input
+                      type="text"
+                      value={sectionsState.ridersFavourites?.sectionTitle ?? "RIDERS' FAVOURITES"}
+                      onChange={(e) =>
+                        setSectionsState((prev) => ({
+                          ...prev,
+                          ridersFavourites: {
+                            ...prev.ridersFavourites,
+                            sectionTitle: e.target.value,
+                            subtitle: prev.ridersFavourites?.subtitle ?? "",
+                            items: prev.ridersFavourites?.items ?? [],
+                          },
+                        }))
+                      }
+                      placeholder="e.g. RIDERS' FAVOURITES"
+                      className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-3 py-1.5 rounded-md focus:outline-none focus:border-brand font-semibold shadow-2xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Section Subtitle (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={sectionsState.ridersFavourites?.subtitle ?? ""}
+                      onChange={(e) =>
+                        setSectionsState((prev) => ({
+                          ...prev,
+                          ridersFavourites: {
+                            ...prev.ridersFavourites,
+                            sectionTitle: prev.ridersFavourites?.sectionTitle ?? "RIDERS' FAVOURITES",
+                            subtitle: e.target.value,
+                            items: prev.ridersFavourites?.items ?? [],
+                          },
+                        }))
+                      }
+                      placeholder="Leave blank or enter custom subtitle"
+                      className="w-full bg-white border border-slate-300 text-slate-900 text-xs px-3 py-1.5 rounded-md focus:outline-none focus:border-brand font-medium shadow-2xs"
+                    />
+                  </div>
+                </div>
+
+                {/* 4 Product Slots */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[0, 1, 2, 3].map((idx) => {
+                    const item = sectionsState.ridersFavourites?.items?.[idx];
+                    const isAssigned = !!(item && (item.name || item.imageUrl));
+                    const isEditing = favEditingSlotIdx === idx;
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`border rounded-lg p-3 transition-all ${
+                          isAssigned
+                            ? "border-slate-300 bg-white shadow-xs"
+                            : "border-dashed border-slate-300 bg-slate-50/50 hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-brand shrink-0" />
+                            Slot #{idx + 1}
+                          </span>
+                          {isAssigned ? (
+                            <div className="flex items-center gap-1">
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                Assigned
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleClearFavSlot(idx)}
+                                className="text-slate-400 hover:text-red-500 p-0.5 transition-colors cursor-pointer"
+                                title="Clear slot"
+                              >
+                                <Trash2 size={11} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                              Empty (Auto)
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Assigned Preview */}
+                        {isAssigned && !isEditing ? (
+                          <div className="space-y-2">
+                            <div className="flex items-start gap-2.5">
+                              <div className="relative w-14 h-14 bg-slate-100 rounded border border-slate-200 shrink-0 overflow-hidden p-1">
+                                <Image
+                                  src={item.imageUrl || "/no-image.svg"}
+                                  alt={item.name || `Slot ${idx + 1}`}
+                                  fill
+                                  className="object-contain"
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[9px] font-bold text-brand uppercase tracking-wider block">
+                                  {item.brand || "STORE4RIDERS"}
+                                </span>
+                                <p className="text-xs font-bold text-slate-900 line-clamp-1 mt-0.5" title={item.name}>
+                                  {item.name}
+                                </p>
+                                <p className="text-xs font-bold text-emerald-700 mt-0.5">
+                                  {item.priceFormatted || "₹ 0"}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="text-[10px] text-slate-500 font-mono truncate bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 flex items-center gap-1">
+                              <ExternalLink size={10} className="shrink-0 text-slate-400" />
+                              <span className="truncate">{item.productUrl || "/products"}</span>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px]">
+                              <button
+                                type="button"
+                                onClick={() => setFavPickerSlotIdx(idx)}
+                                className="font-bold text-brand hover:text-brand/80 flex items-center gap-1 cursor-pointer"
+                              >
+                                <Search size={11} />
+                                <span>Change Product</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setFavEditingSlotIdx(idx)}
+                                className="font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-0.5 cursor-pointer"
+                              >
+                                <Sliders size={11} />
+                                <span>Edit / Image</span>
+                              </button>
+                            </div>
+                          </div>
+                        ) : isEditing ? (
+                          <div className="space-y-2 bg-slate-50/70 p-2.5 rounded border border-slate-200">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold text-slate-700 uppercase">Edit Product Slot</span>
+                              <button
+                                type="button"
+                                onClick={() => setFavEditingSlotIdx(null)}
+                                className="text-[10px] font-bold text-slate-500 hover:text-slate-800"
+                              >
+                                Close
+                              </button>
+                            </div>
+
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-600 uppercase mb-0.5">Name</label>
+                              <input
+                                type="text"
+                                value={item?.name || ""}
+                                onChange={(e) => handleUpdateFavItem(idx, { name: e.target.value })}
+                                placeholder="Product Name"
+                                className="w-full bg-white border border-slate-300 text-xs px-2 py-1 rounded font-medium"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-600 uppercase mb-0.5">Brand</label>
+                              <input
+                                type="text"
+                                value={item?.brand || ""}
+                                onChange={(e) => handleUpdateFavItem(idx, { brand: e.target.value })}
+                                placeholder="e.g. AXOR, RYNOX"
+                                className="w-full bg-white border border-slate-300 text-xs px-2 py-1 rounded"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-600 uppercase mb-0.5">Price Display</label>
+                              <input
+                                type="text"
+                                value={item?.priceFormatted || ""}
+                                onChange={(e) => handleUpdateFavItem(idx, { priceFormatted: e.target.value })}
+                                placeholder="e.g. ₹ 4,999"
+                                className="w-full bg-white border border-slate-300 text-xs px-2 py-1 rounded"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-600 uppercase mb-0.5">Link URL</label>
+                              <input
+                                type="text"
+                                value={item?.productUrl || "/products"}
+                                onChange={(e) => handleUpdateFavItem(idx, { productUrl: e.target.value })}
+                                placeholder="/products/..."
+                                className="w-full bg-white border border-slate-300 text-xs px-2 py-1 rounded"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-600 uppercase mb-0.5">Photo (WebP & S3)</label>
+                              <ImageUploadWebP
+                                value={item?.imageUrl || ""}
+                                onChange={(url) => handleUpdateFavItem(idx, { imageUrl: url })}
+                                aspectRatio="aspect-square"
+                                hint="Square 1:1 image. Converted automatically to WebP and saved directly to S3."
+                                recommendedDimensions="600 x 600 px (Square)"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="py-6 flex flex-col items-center justify-center text-center space-y-2">
+                            <Box size={24} className="text-slate-300" />
+                            <p className="text-[11px] text-slate-400">Automatic Catalog Item</p>
+                            <div className="flex flex-col gap-1 w-full pt-1">
+                              <button
+                                type="button"
+                                onClick={() => setFavPickerSlotIdx(idx)}
+                                className="w-full py-1.5 px-2 bg-brand hover:bg-brand/90 text-white rounded text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
+                              >
+                                <Search size={12} />
+                                <span>Choose Product</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleUpdateFavItem(idx, { name: "Custom Product", productUrl: "/products" });
+                                  setFavEditingSlotIdx(idx);
+                                }}
+                                className="w-full py-1 px-2 border border-slate-300 hover:bg-white text-slate-600 rounded text-[10px] font-medium flex items-center justify-center gap-1 cursor-pointer"
+                              >
+                                <Upload size={11} />
+                                <span>Custom / Upload</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Product Category Picker Modal for Riders Favourites */}
+              <ProductCategoryPicker
+                isOpen={favPickerSlotIdx !== null}
+                onClose={() => setFavPickerSlotIdx(null)}
+                onSelect={handleProductSelectedForRidersFav}
+                mode="product-only"
+                title={favPickerSlotIdx !== null ? `Select Product for Slot #${favPickerSlotIdx + 1}` : "Select Product"}
+              />
             </div>
           )}
 

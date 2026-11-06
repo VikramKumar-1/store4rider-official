@@ -20,8 +20,8 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { formatPrice } from "@store4riders/shared-utils";
 import { useAdminOrderById } from "@/core/hooks/useOrderById";
-import { useWarehouses } from "@/core/hooks/useWarehouses";
-import { useCreateManualShipment, usePushToShiprocket } from "@/core/hooks/useAdminShipments";
+import { useWarehouses, useSyncShiprocketWarehouses } from "@/core/hooks/useWarehouses";
+import { usePushToShiprocket, useCreateDirectShipment } from "@/core/hooks/useAdminShipments";
 import { ShippingLabelModal } from "./ShippingLabelModal";
 import { AdminTrackingModal } from "./AdminTrackingModal";
 
@@ -70,14 +70,15 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
 
   const { data: order, isLoading: isOrderLoading } = useAdminOrderById(orderId);
   const { data: warehouses = [], isLoading: isWarehousesLoading } = useWarehouses();
-  const createManualMutation = useCreateManualShipment();
+  const directShipmentMutation = useCreateDirectShipment();
   const pushToShiprocketMutation = usePushToShiprocket();
+  const syncShiprocketMutation = useSyncShiprocketWarehouses();
 
   const [selectedCourierId, setSelectedCourierId] = useState<string>("shiprocket");
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>("");
   const [packageWeight, setPackageWeight] = useState<string>("1.0");
   const [dimensions, setDimensions] = useState({ length: 15, breadth: 15, height: 10 });
-  const [awbNumber, setAwbNumber] = useState<string>("");
+  const [autoAssignAwb, setAutoAssignAwb] = useState<boolean>(false);
   const [createdShipment, setCreatedShipment] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showLabelModal, setShowLabelModal] = useState<boolean>(false);
@@ -98,11 +99,22 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
     }
   }, [warehouses, order?.warehouseId, selectedWarehouseId]);
 
-  // Pre-calculate weight from order items
+  // Pre-calculate weight from order items (handles kg, g, ml, L automatically)
   useEffect(() => {
     if (order?.items && order.items.length > 0) {
-      const totalUnits = order.items.reduce((sum: number, i: any) => sum + (i.quantity || 1), 0);
-      const estWeight = Math.max(0.5, Number((totalUnits * 0.5).toFixed(2)));
+      let total = 0;
+      for (const item of order.items) {
+        const rawW = Number((item as any).weight || (item as any).product?.weight || 0.5);
+        const u = String((item as any).weightUnit || (item as any).product?.weightUnit || "kg").toLowerCase();
+        let inKg = rawW;
+        if (u === "g" || u === "ml") {
+          inKg = rawW / 1000;
+        } else if (u === "l") {
+          inKg = rawW; // 1 Litre approx 1 Kg
+        }
+        total += (inKg > 0 ? inKg : 0.5) * (item.quantity || 1);
+      }
+      const estWeight = Math.max(0.1, Number(total.toFixed(2)));
       setPackageWeight(String(estWeight));
     }
   }, [order?.items]);
@@ -134,12 +146,13 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
         length: numLength,
         breadth: numBreadth,
         height: numHeight,
+        autoAssignAwb,
       },
       {
         onSuccess: (data: any) => {
           setCreatedShipment({
             ...data,
-            courierName: data?.courierName || "Shiprocket",
+            courierName: data?.courierName || (data?.awb ? "Shiprocket" : "Shiprocket Dashboard"),
             provider: "shiprocket",
             awb: data?.awb || null,
             labelUrl: data?.labelUrl || null,
@@ -148,7 +161,7 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
           toast.success(
             data?.awb
               ? `AWB ${data.awb} generated and order dispatched via Shiprocket!`
-              : "Order dispatched via Shiprocket!"
+              : "Order sent to Shiprocket Dashboard successfully!"
           );
         },
         onError: (err: any) => {
@@ -160,44 +173,53 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
     );
   };
 
-  const handleConfirmPacked = () => {
+  const handleDirectDispatch = () => {
     setErrorMessage(null);
-
-    const finalAwb = awbNumber.trim();
-    if (!finalAwb) {
-      const msg = "Please enter or scan the courier AWB tracking barcode.";
+    const weightVal = parseFloat(packageWeight);
+    if (isNaN(weightVal) || weightVal <= 0) {
+      const msg = "Please enter a valid package weight (e.g. 0.5 kg).";
       setErrorMessage(msg);
       toast.error(msg);
       return;
     }
 
-    let trackingUrl = `https://shiprocket.co/tracking/${finalAwb}`;
-    if (selectedCourier.id === "xpressbees") {
-      trackingUrl = `https://www.xpressbees.com/shipment/tracking/${finalAwb}`;
-    } else if (selectedCourier.id === "delhivery") {
-      trackingUrl = `https://www.delhivery.com/track/package/${finalAwb}`;
+    if (!selectedWarehouseId) {
+      const msg = "Please select a pickup warehouse location.";
+      setErrorMessage(msg);
+      toast.error(msg);
+      return;
     }
 
-    createManualMutation.mutate(
+    directShipmentMutation.mutate(
       {
         orderId,
-        courierName: selectedCourier.name,
-        awb: finalAwb,
-        trackingUrl,
+        provider: selectedCourierId as "delhivery" | "xpressbees",
+        warehouseId: selectedWarehouseId,
+        weightKg: weightVal,
+        length: numLength,
+        breadth: numBreadth,
+        height: numHeight,
       },
       {
         onSuccess: (data: any) => {
           setCreatedShipment({
             ...data,
-            courierName: selectedCourier.name,
-            awb: finalAwb,
-            trackingUrl,
+            courierName: data?.courierName || selectedCourier.name,
+            provider: selectedCourierId,
+            awb: data?.awb || null,
+            labelUrl: data?.labelUrl || null,
             packedAt: new Date().toISOString(),
           });
-          toast.success(`Order marked as packed & assigned to ${selectedCourier.name}!`);
+          toast.success(
+            data?.awb
+              ? `AWB ${data.awb} generated and dispatched via ${selectedCourier.name}!`
+              : `Order dispatched via ${selectedCourier.name}!`
+          );
         },
         onError: (err: any) => {
-          setErrorMessage(err.response?.data?.message || err.message || "Failed to confirm shipment");
+          setErrorMessage(
+            err.response?.data?.message || err.message || `Failed to dispatch via ${selectedCourier.name}`
+          );
         },
       }
     );
@@ -260,23 +282,27 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                 <h3 className="text-lg font-bold text-slate-900">
                   {createdShipment.awb
                     ? "Order Dispatched & AWB Assigned!"
-                    : "Order Packed & Dispatched via Shiprocket!"}
+                    : "Order Sent to Shiprocket Dashboard!"}
                 </h3>
                 <p className="text-slate-500 mt-1 text-xs max-w-sm mx-auto">
-                  Package registered at {format(new Date(createdShipment.packedAt || Date.now()), "dd MMM, hh:mm a")}. Handover scheduled via {createdShipment.courierName || "Courier Partner"}.
+                  {createdShipment.awb
+                    ? `Package registered at ${format(new Date(createdShipment.packedAt || Date.now()), "dd MMM, hh:mm a")}. Handover scheduled via ${createdShipment.courierName || "Courier Partner"}.`
+                    : `Order created in your Shiprocket account (Shipment ID: #${createdShipment.providerShipmentId || createdShipment.shipmentId}). You can now open Shiprocket Dashboard, verify specs, and manually select your courier partner.`}
                 </p>
               </div>
 
               <div className="bg-slate-50 border border-slate-200 p-4 w-full text-left rounded-xl space-y-2">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Courier Partner</span>
-                    <p className="text-sm font-bold text-slate-900 mt-0.5">{createdShipment.courierName || "Shiprocket"}</p>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Courier Status</span>
+                    <p className="text-sm font-bold text-slate-900 mt-0.5">{createdShipment.courierName || (createdShipment.awb ? "Shiprocket" : "Manual Courier Selection")}</p>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tracking AWB</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      {createdShipment.awb ? "Tracking AWB" : "Shiprocket Shipment ID"}
+                    </span>
                     <p className="font-mono text-sm font-bold text-brand mt-0.5">
-                      {createdShipment.awb || "Generated via API"}
+                      {createdShipment.awb || `#${createdShipment.providerShipmentId || createdShipment.shipmentId}`}
                     </p>
                   </div>
                 </div>
@@ -286,7 +312,7 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                     <button
                       type="button"
                       onClick={() => setShowTrackingModal(true)}
-                      className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5"
+                      className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5 cursor-pointer"
                     >
                       <TruckIcon className="w-4 h-4 text-blue-600" />
                       <span>View Live Status in Modal</span>
@@ -296,24 +322,36 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (createdShipment.labelUrl) {
-                      window.open(createdShipment.labelUrl, "_blank");
-                    } else {
-                      setShowLabelModal(true);
-                    }
-                  }}
-                  className="w-full py-2.5 bg-neutral-900 hover:bg-brand text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
-                >
-                  <PrinterIcon className="w-4 h-4" />
-                  <span>Print 4×6″ Shipping Label</span>
-                </button>
+                {createdShipment.awb ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (createdShipment.labelUrl) {
+                        window.open(createdShipment.labelUrl, "_blank");
+                      } else {
+                        setShowLabelModal(true);
+                      }
+                    }}
+                    className="w-full py-2.5 bg-neutral-900 hover:bg-brand text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <PrinterIcon className="w-4 h-4" />
+                    <span>Print 4×6″ Shipping Label</span>
+                  </button>
+                ) : (
+                  <a
+                    href="https://app.shiprocket.in/orders"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <TruckIcon className="w-4 h-4" />
+                    <span>Open Shiprocket Dashboard ↗</span>
+                  </a>
+                )}
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors border border-slate-200"
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors border border-slate-200 cursor-pointer"
                 >
                   Done &amp; Close
                 </button>
@@ -511,15 +549,46 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
 
                 {/* Warehouse Selector */}
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-700 flex items-center justify-between">
-                    <span>Pickup Warehouse Location <span className="text-red-500">*</span></span>
-                    <span className="text-[10px] font-normal text-slate-500">Where courier will pick up parcel</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                      <span>Pickup Warehouse Location <span className="text-red-500">*</span></span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        syncShiprocketMutation.mutate(undefined, {
+                          onSuccess: (res: any) => {
+                            toast.success(res?.message || "Shiprocket warehouse addresses imported successfully!");
+                          },
+                          onError: (err: any) => {
+                            toast.error(err.response?.data?.message || err.message || "Failed to import from Shiprocket");
+                          }
+                        });
+                      }}
+                      disabled={syncShiprocketMutation.isPending}
+                      className="text-[10px] text-orange-600 hover:text-orange-700 font-bold flex items-center gap-1 py-0.5 px-2 rounded hover:bg-orange-50 border border-orange-200 transition-colors cursor-pointer"
+                    >
+                      <ArrowPathIcon className={`w-3 h-3 ${syncShiprocketMutation.isPending ? "animate-spin" : ""}`} />
+                      <span>{syncShiprocketMutation.isPending ? "Importing..." : "Sync Shiprocket Warehouses"}</span>
+                    </button>
+                  </div>
                   {isWarehousesLoading ? (
                     <div className="h-9 bg-slate-200 animate-pulse rounded-lg" />
                   ) : warehouses.length === 0 ? (
-                    <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
-                      No warehouses found. Please add a warehouse in Settings &gt; Logistics.
+                    <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 space-y-2">
+                      <p className="font-medium">No pickup warehouses found on the website.</p>
+                      <button
+                        type="button"
+                        onClick={() => syncShiprocketMutation.mutate(undefined, {
+                          onSuccess: () => toast.success("Shiprocket warehouse addresses imported!"),
+                          onError: (err: any) => toast.error(err.response?.data?.message || err.message)
+                        })}
+                        disabled={syncShiprocketMutation.isPending}
+                        className="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-bold text-xs px-3 py-1.5 rounded flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <ArrowPathIcon className={`w-3.5 h-3.5 ${syncShiprocketMutation.isPending ? "animate-spin" : ""}`} />
+                        <span>{syncShiprocketMutation.isPending ? "Importing..." : "Import Warehouses from Shiprocket"}</span>
+                      </button>
                     </div>
                   ) : (
                     <select
@@ -529,7 +598,7 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                     >
                       {warehouses.filter((w) => w.isActive !== false).map((w: any) => {
                         const wId = String(w._id || w.id);
-                        const srNick = w.shiprocketLocationId ? ` • Shiprocket Nickname: "${w.shiprocketLocationId}"` : "";
+                        const srNick = w.shiprocketLocationId ? ` • Shiprocket: "${w.shiprocketLocationId}"` : "";
                         return (
                           <option key={wId} value={wId}>
                             {w.name} — {w.city}, {w.state} ({w.pincode}){w.isDefault ? " [Default]" : ""}{srNick}
@@ -540,14 +609,33 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                   )}
                   {(() => {
                     const selectedWh = warehouses.find((w: any) => String(w._id || w.id) === selectedWarehouseId);
-                    if (selectedWh && !selectedWh.shiprocketLocationId && selectedCourierId === "shiprocket") {
-                      return (
-                        <p className="text-[11px] text-amber-600 font-medium">
-                          ⚠️ Note: &quot;{selectedWh.name}&quot; does not have a Shiprocket Location Nickname set. Shiprocket will fall back to your primary pickup address or pincode ({selectedWh.pincode}).
+                    if (!selectedWh) return null;
+                    return (
+                      <div className="mt-2 p-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 space-y-1 shadow-xs">
+                        <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                          <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                            <BuildingStorefrontIcon className="w-3.5 h-3.5 text-brand" />
+                            <span>{selectedWh.name}</span>
+                          </span>
+                          {selectedWh.shiprocketLocationId && (
+                            <span className="font-mono text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded">
+                              Shiprocket: &quot;{selectedWh.shiprocketLocationId}&quot;
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-slate-800 font-medium leading-relaxed pt-0.5">
+                          {[selectedWh.addressLine1, selectedWh.addressLine2].filter(Boolean).join(", ")}
                         </p>
-                      );
-                    }
-                    return null;
+                        <p className="text-slate-500 font-medium">
+                          {selectedWh.city}, {selectedWh.state} — <span className="font-mono font-bold text-slate-800">{selectedWh.pincode}</span> ({selectedWh.country || "India"})
+                        </p>
+                        <p className="text-slate-500 text-[11px] pt-1 border-t border-slate-100/80 flex items-center gap-2">
+                          <span><strong>Contact:</strong> {selectedWh.contactPerson || "Manager"}</span>
+                          <span>•</span>
+                          <span><strong>Phone:</strong> {selectedWh.phone}</span>
+                        </p>
+                      </div>
+                    );
                   })()}
                 </div>
 
@@ -628,24 +716,35 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                 </div>
               </div>
 
-              {/* Step 3: AWB Tracking Barcode (Manual Couriers only) */}
-              {selectedCourierId !== "shiprocket" && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
-                    3. AWB Tracking Barcode <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
+              {/* Shiprocket Mode Option: Dashboard vs Immediate AWB */}
+              {selectedCourierId === "shiprocket" && (
+                <div className="p-3 bg-orange-50/70 border border-orange-200/80 rounded-xl space-y-1.5">
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none">
                     <input
-                      type="text"
-                      value={awbNumber}
-                      onChange={(e) => setAwbNumber(e.target.value)}
-                      placeholder="Enter or scan courier waybill barcode from label..."
-                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-brand bg-white"
+                      type="checkbox"
+                      checked={autoAssignAwb}
+                      onChange={(e) => setAutoAssignAwb(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
                     />
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    Scan the physical package barcode or paste the AWB assigned by {selectedCourier.name}.
-                  </p>
+                    <div className="text-xs text-slate-800 leading-snug">
+                      <span className="font-bold text-slate-900 block">
+                        Auto-assign courier partner &amp; generate AWB immediately
+                      </span>
+                      <span className="text-[11px] text-slate-600 block mt-0.5">
+                        {autoAssignAwb
+                          ? "Shiprocket API will instantly book courier and generate waybill label."
+                          : "Recommended: Sends order to your Shiprocket Dashboard so you can inspect dimensions and manually select your preferred courier inside Shiprocket."}
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              )}
+
+              {/* Direct Carrier Info Badge (Delhivery / Xpressbees) */}
+              {selectedCourierId !== "shiprocket" && (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs text-slate-700">
+                  <span className="font-semibold">Direct Automated Dispatch via {selectedCourier.name} API</span>
+                  <span className="text-[11px] text-slate-500">Instant AWB &amp; Label Generation</span>
                 </div>
               )}
 
@@ -663,27 +762,27 @@ export const OrderFulfillmentPanel: React.FC<OrderFulfillmentPanelProps> = ({ or
                     type="button"
                     disabled={pushToShiprocketMutation.isPending || isUnsettled}
                     onClick={handlePushToShiprocket}
-                    className="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <TruckIcon className="w-4 h-4" />
                     <span>
                       {pushToShiprocketMutation.isPending
-                        ? "Generating AWB via Shiprocket..."
-                        : "Dispatch & Generate AWB via Shiprocket"}
+                        ? (autoAssignAwb ? "Generating AWB via Shiprocket..." : "Sending to Shiprocket Dashboard...")
+                        : (autoAssignAwb ? "Dispatch & Generate AWB via Shiprocket" : "Send Order to Shiprocket Dashboard")}
                     </span>
                   </button>
                 ) : (
                   <button
                     type="button"
-                    disabled={createManualMutation.isPending || isUnsettled}
-                    onClick={handleConfirmPacked}
-                    className="w-full py-3 bg-brand hover:bg-brand/90 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+                    disabled={directShipmentMutation.isPending || isUnsettled}
+                    onClick={handleDirectDispatch}
+                    className="w-full py-3 bg-slate-900 hover:bg-brand text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <CheckCircleIcon className="w-4 h-4" />
+                    <TruckIcon className="w-4 h-4" />
                     <span>
-                      {createManualMutation.isPending
-                        ? "Confirming Packaging..."
-                        : `Confirm Packed & Dispatch with ${selectedCourier.name}`}
+                      {directShipmentMutation.isPending
+                        ? `Booking Shipment with ${selectedCourier.name}...`
+                        : `Dispatch via ${selectedCourier.name} API (Auto AWB)`}
                     </span>
                   </button>
                 )}

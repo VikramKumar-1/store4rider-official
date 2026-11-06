@@ -43,4 +43,31 @@ export class WarehouseRepository {
     }
     await WarehouseModel.updateMany(query, { $set: { isDefault: false } }).exec();
   }
+
+  static async findByShiprocketLocationId(locationId: string): Promise<LeanWarehouse | null> {
+    return WarehouseModel.findOne({ shiprocketLocationId: locationId }).lean<LeanWarehouse>().exec();
+  }
+
+  static async upsertShiprocketWarehouse(data: Partial<IWarehouse>): Promise<LeanWarehouse> {
+    const existing = await WarehouseModel.findOne({
+      $or: [
+        { shiprocketLocationId: data.shiprocketLocationId },
+        { warehouseCode: data.warehouseCode },
+      ],
+    }).exec();
+
+    if (existing) {
+      // Preserve admin's disabled choice if they explicitly deactivated this warehouse in Store4Riders
+      if (existing.isActive === false) {
+        delete data.isActive;
+      }
+      Object.assign(existing, data);
+      await existing.save();
+      return existing.toObject() as LeanWarehouse;
+    } else {
+      const created = new WarehouseModel(data);
+      await created.save();
+      return created.toObject() as LeanWarehouse;
+    }
+  }
 }

@@ -32,6 +32,8 @@ const GridProductCard: React.FC<{ product: BrowseProductData }> = ({
           fill
           className="object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500 ease-out will-change-transform"
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          unoptimized={true}
+          referrerPolicy="no-referrer"
         />
         
         {/* Solid Orange Rating Badge */}

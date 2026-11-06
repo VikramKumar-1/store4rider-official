@@ -63,3 +63,16 @@ export function useSetDefaultWarehouse() {
     }
   });
 }
+
+export function useSyncShiprocketWarehouses() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.post("/warehouses/sync/shiprocket");
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["warehouses"] });
+    }
+  });
+}

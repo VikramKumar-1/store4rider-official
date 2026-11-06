@@ -39,8 +39,48 @@ playwright/.cache/
 
 *.tsbuildinfo
 
-# Data Files
+# Product Catalog, CSV & Tabular Data Files
 *.csv
+*.tsv
+*.xlsx
+*.xls
+
+# Database & SQL Dumps
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+backup-data/*.sql
+backup-data/db.sql
+
+# Product Media, Images & Extracted Assets
+backup-data/extracted_media/
+backup-data/product_image/
+backup-data/product_image
+backup-data/media/
+backup-data/images/
+backup-data/cache/
+extracted_media/
+product_image/
+product_images/
+
+# Archives & Compressed Backups
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Temporary Data Exports & Audit Scripts
+temp_categories.json
+unique_csv_categories.json
+temp*.json
+*categories.json
+backup-data/*.json
+backup-data/audit-*.js
+backup-data/sync-*.js
 
 # Scratch Files
 backup-data/analyze-*.ts

@@ -31,6 +31,25 @@ export async function warehouseRouter(req: NextRequest, routePath: string[]): Pr
     return await WarehouseController.create(req);
   }
 
+  /**
+   * @swagger
+   * /warehouses/sync/shiprocket:
+   *   post:
+   *     summary: Import and synchronize warehouse pickup locations from Shiprocket
+   *     tags: [Warehouses]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Successfully synced pickup locations from Shiprocket
+   *       400:
+   *         description: Shiprocket credentials missing or invalid
+   */
+  // POST /api/v1/warehouses/sync/shiprocket
+  if (method === "POST" && normalizedPath.length === 2 && normalizedPath[0] === "sync" && normalizedPath[1] === "shiprocket") {
+    return await WarehouseController.syncShiprocketWarehouses(req);
+  }
+
   // GET /api/v1/warehouses/default
   if (method === "GET" && normalizedPath.length === 1 && normalizedPath[0] === "default") {
     return await WarehouseController.getDefault(req);

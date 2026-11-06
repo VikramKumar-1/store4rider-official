@@ -119,6 +119,15 @@ function resolveCategoryHref(item: SubcategoryItem, currentPathname: string): st
   if (slug === "bike-top-box" || slug === "top-box") {
     return "/motorcycle-bags-bike-luggage/bike-top-box";
   }
+  if (slug === "crash-bar-bags" || slug === "crash-bar-bag") {
+    return "/motorcycle-bags-bike-luggage/crash-bar-bags";
+  }
+  if (slug === "thigh-bags" || slug === "thigh-bag") {
+    return "/motorcycle-bags-bike-luggage/thigh-bags";
+  }
+  if (slug === "helmet-bags" || slug === "helmet-bag") {
+    return "/motorcycle-bags-bike-luggage/helmet-bags";
+  }
   if (slug === "hydration-bag" || slug === "hydration-bags") {
     return "/motorcycle-bags-bike-luggage/hydration-bag";
   }
@@ -149,10 +158,12 @@ export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
   }
 
   // Render up to 5 featured / sibling cards as requested for mobile hero section
-  const displayItems = subcategories.slice(0, 5);
+  const displayItems = subcategories.slice(0, 12);
   const count = displayItems.length;
   const gridLayoutClass =
-    count === 5
+    count > 5
+      ? "grid-cols-3 min-[480px]:grid-cols-4 sm:grid-cols-5 gap-2 min-[380px]:gap-2.5 sm:gap-3 max-w-2xl"
+      : count === 5
       ? "grid-cols-5 gap-1.5 min-[380px]:gap-2 sm:gap-3 max-w-2xl"
       : count === 4
       ? "grid-cols-4 gap-2 min-[380px]:gap-2.5 sm:gap-3.5 max-w-xl"

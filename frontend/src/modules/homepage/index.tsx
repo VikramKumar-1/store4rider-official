@@ -5,16 +5,19 @@ import TopBanner from "./components/TopBanner";
 import Navbar from "./components/Navbar";
 import HeroSection from "./components/HeroSection";
 import FeaturedCategories from "./components/FeaturedCategories";
+import CategoryShowcaseSection from "./components/CategoryShowcaseSection";
+import RidersFavouritesSection from "./components/RidersFavouritesSection";
 import BrowseProductsSection from "./components/BrowseProductsSection";
 import SocialMediaSection from "./components/SocialMediaSection";
 import TestimonialsSection from "./components/TestimonialsSection";
 import Footer from "./components/Footer";
-import { NavLinkItem, HeroProductCardData, CategoryCardData, BrowseProductData, TestimonialData } from "./types/homepage.types";
+import { NavLinkItem, HeroProductCardData, CategoryCardData, BrowseProductData, TestimonialData, RidersFavouritesProductData, CategoryShowcaseCardData } from "./types/homepage.types";
 import { IHomepageConfig } from "@store4riders/shared-types";
 import { useStoreReviews } from "@/core/hooks/useStoreReviews";
 import { useUIStore } from "@/stores/useUIStore";
 import { usePublicHomepageConfig } from "@/core/hooks/useHomepage";
 import { useProducts } from "@/core/hooks/useProducts";
+import { getProductThumbnailUrl } from "@/core/utils/mediaUrlHelper";
 
 /**
  * HomepageModule Component
@@ -66,7 +69,7 @@ export const HomepageModule: React.FC<{
           id: p._id || `feat-${idx}`,
           title: p.name,
           priceFormatted: `₹ ${Math.round(displayPrice)?.toLocaleString('en-IN') || '0'}`,
-          imageUrl: (p.images && p.images.length > 0 && p.images[0].url) ? p.images[0].url : "/no-image.svg",
+          imageUrl: getProductThumbnailUrl(p),
           ctaText: "SHOP NOW",
           ctaUrl: `/${p.slug || p._id}`,
         };
@@ -220,7 +223,7 @@ export const HomepageModule: React.FC<{
           category: p.displayCategory || "RIDING GEAR",
           name: p.name,
           priceFormatted: `₹ ${Math.round(displayPrice)?.toLocaleString('en-IN') || '0'}`,
-          imageUrl: (p.images && p.images.length > 0 && p.images[0].url) ? p.images[0].url : "/no-image.svg",
+          imageUrl: getProductThumbnailUrl(p),
           rating: 4.8,
           productUrl: `/${p.slug || p._id}`
         };
@@ -296,6 +299,181 @@ export const HomepageModule: React.FC<{
         };
       })
     : [];
+
+  // Curate real products for the 4 Category Showcase cards (supports Admin Panel custom images & links)
+  const categoryShowcaseCards: CategoryShowcaseCardData[] = React.useMemo(() => {
+    const configuredCards = homepageConfig?.sections?.categoryShowcase?.cards;
+
+    const bootProd = (backendProductsList || []).find((p: any) => {
+      const cat = (p.magentoCategories || "").toLowerCase();
+      const name = (p.name || "").toLowerCase();
+      return (/boot/i.test(cat) || /boot/i.test(name)) && p.images?.[0]?.url;
+    });
+
+    const pantProd = (backendProductsList || []).find((p: any) => {
+      const cat = (p.magentoCategories || "").toLowerCase();
+      const name = (p.name || "").toLowerCase();
+      return (/pant|trouser|jean/i.test(cat) || /pant|trouser|jean/i.test(name)) && p.images?.[0]?.url;
+    });
+
+    const luggageProd = (backendProductsList || []).find((p: any) => {
+      const cat = (p.magentoCategories || "").toLowerCase();
+      const name = (p.name || "").toLowerCase();
+      return (/luggage|bag|tail/i.test(cat) || /luggage|bag|tail/i.test(name)) && p.images?.[0]?.url;
+    });
+
+    const sparesProd = (backendProductsList || []).find((p: any) => {
+      const cat = (p.magentoCategories || "").toLowerCase();
+      const name = (p.name || "").toLowerCase();
+      return (/spare|light|chain|filter|spark|lube/i.test(cat) || /spare|light|chain|filter|spark|lube/i.test(name)) && p.images?.[0]?.url;
+    });
+
+    const defaultCards: CategoryShowcaseCardData[] = [
+      {
+        id: "boots",
+        title: "RIDING BOOTS",
+        description: "Short biking boots, sports riding shoes and off-road boots with ankle and shin protection.",
+        linkUrl: bootProd ? `/${bootProd.slug || bootProd._id}` : "/riding-gear/riding-boots",
+        imageUrl: bootProd?.images?.[0]?.url,
+        placeholderText: "PHOTO: RIDING BOOTS",
+      },
+      {
+        id: "pants",
+        title: "RIDING PANTS",
+        description: "Riding pants, riding jeans and touring pants with removable knee and hip armour.",
+        linkUrl: pantProd ? `/${pantProd.slug || pantProd._id}` : "/riding-gear/riding-pants",
+        imageUrl: pantProd?.images?.[0]?.url,
+        placeholderText: "PHOTO: RIDING PANTS WITH KNEE ARMOUR",
+      },
+      {
+        id: "luggage",
+        title: "MOTORCYCLE LUGGAGE",
+        description: "Tank bags, saddle bags, tail bags and top boxes for weekend rides and long tours.",
+        linkUrl: luggageProd ? `/${luggageProd.slug || luggageProd._id}` : "/luggage",
+        imageUrl: luggageProd?.images?.[0]?.url,
+        placeholderText: "PHOTO: TAIL BAG ON A TOURING BIKE",
+      },
+      {
+        id: "accessories-spares",
+        title: "BIKE ACCESSORIES AND SPARES",
+        description: "Auxiliary lights, spark plugs, performance air filters, chains and chain care. New to chain maintenance? Start with our ",
+        linkUrl: sparesProd ? `/${sparesProd.slug || sparesProd._id}` : "/bike-accessories",
+        imageUrl: sparesProd?.images?.[0]?.url,
+        placeholderText: "PHOTO: AUXILIARY LIGHTS AND CHAIN CARE",
+        guideLinkText: "chain lubing guide.",
+        guideLinkUrl: "/products?q=chain+lube",
+      },
+    ];
+
+    if (configuredCards && configuredCards.length > 0) {
+      return defaultCards.map((defCard, idx) => {
+        const custom = configuredCards[idx];
+        if (!custom) return defCard;
+        return {
+          id: custom.id || defCard.id,
+          title: custom.title || defCard.title,
+          description: custom.description !== undefined ? custom.description : defCard.description,
+          linkUrl: custom.linkUrl || defCard.linkUrl,
+          imageUrl: custom.imageUrl || defCard.imageUrl,
+          placeholderText: custom.placeholderText || defCard.placeholderText,
+          guideLinkText: custom.guideLinkText !== undefined ? custom.guideLinkText : defCard.guideLinkText,
+          guideLinkUrl: custom.guideLinkUrl !== undefined ? custom.guideLinkUrl : defCard.guideLinkUrl,
+        };
+      });
+    }
+
+    return defaultCards;
+  }, [backendProductsList, homepageConfig]);
+
+  // Curate products for Riders' Favourites section (supports Admin Panel custom images & assigned items)
+  const ridersFavouritesProducts: RidersFavouritesProductData[] = React.useMemo(() => {
+    const configuredItems = homepageConfig?.sections?.ridersFavourites?.items;
+    if (configuredItems && configuredItems.length > 0) {
+      const validCustomItems = configuredItems.filter(
+        (it) => it && (it.name || it.imageUrl || (it.productUrl && it.productUrl !== "/products"))
+      );
+      if (validCustomItems.length > 0) {
+        return configuredItems.slice(0, 4).map((it, idx) => ({
+          id: it.id || `fav-${idx + 1}`,
+          name: it.name || "[PRODUCT NAME]",
+          brand: it.brand || "STORE4RIDERS",
+          priceFormatted: it.priceFormatted || "₹ 0",
+          imageUrl: it.imageUrl || undefined,
+          productUrl: it.productUrl || "/products",
+        }));
+      }
+    }
+
+    if (!backendProductsList || backendProductsList.length === 0) return [];
+
+    const helmet = backendProductsList.find((p: any) => {
+      const cat = (p.magentoCategories || "").toLowerCase();
+      const name = (p.name || "").toLowerCase();
+      return (/helmet|visor/i.test(cat) || /helmet|visor/i.test(name)) && p.images?.[0]?.url;
+    });
+
+    const jacket = backendProductsList.find((p: any) => {
+      const cat = (p.magentoCategories || "").toLowerCase();
+      const name = (p.name || "").toLowerCase();
+      return (/jacket/i.test(cat) || /jacket/i.test(name)) && p.images?.[0]?.url;
+    });
+
+    const glove = backendProductsList.find((p: any) => {
+      const cat = (p.magentoCategories || "").toLowerCase();
+      const name = (p.name || "").toLowerCase();
+      return (/glove|gauntlet/i.test(cat) || /glove|gauntlet/i.test(name)) && p.images?.[0]?.url;
+    });
+
+    const gadget = backendProductsList.find((p: any) => {
+      const cat = (p.magentoCategories || "").toLowerCase();
+      const name = (p.name || "").toLowerCase();
+      return (
+        /intercom|mount|light|spares|gadget|camera|luggage|bag|lock|charger|bluetooth|gps/i.test(cat) ||
+        /intercom|mount|light|spares|gadget|camera|luggage|bag|lock|charger|bluetooth|gps/i.test(name)
+      ) && p.images?.[0]?.url;
+    });
+
+    const selectedSet = new Set<string>();
+    const combined: any[] = [];
+
+    [helmet, jacket, glove, gadget].filter(Boolean).forEach((p) => {
+      if (!selectedSet.has(p._id)) {
+        selectedSet.add(p._id);
+        combined.push(p);
+      }
+    });
+
+    // Fill up to 4 distinct items with valid images if any category had no match
+    if (combined.length < 4) {
+      for (const p of backendProductsList) {
+        if (!selectedSet.has(p._id) && p.images?.[0]?.url) {
+          selectedSet.add(p._id);
+          combined.push(p);
+          if (combined.length === 4) break;
+        }
+      }
+    }
+
+    return combined.slice(0, 4).map((p: any, idx: number) => {
+      let effectivePrice = p.basePrice || 0;
+      if (effectivePrice === 0 && Array.isArray(p.variants) && p.variants.length > 0) {
+        const vp = p.variants.map((v: any) => v.price).filter((pr: number) => pr > 0);
+        if (vp.length > 0) effectivePrice = Math.min(...vp);
+      }
+      if (effectivePrice === 0 && p.specialPrice && p.specialPrice > 0) effectivePrice = p.specialPrice;
+      const displayPrice = (p.specialPrice && p.specialPrice > 0 && effectivePrice > 0 && p.specialPrice < effectivePrice)
+        ? p.specialPrice : effectivePrice;
+
+      return {
+        id: p._id || p.id || `fav-${idx}`,
+        name: p.name,
+        brand: p.brand || "STORE4RIDERS",
+        priceFormatted: `₹ ${Math.round(displayPrice)?.toLocaleString('en-IN') || '0'}`,
+        imageUrl: (p.images && p.images.length > 0 && p.images[0].url) ? p.images[0].url : undefined,
+        productUrl: `/${p.slug || p._id}`,
+      };
+    });
+  }, [backendProductsList]);
 
   const { data: storeReviewsQuery } = useStoreReviews({ random: true, limit: 10 });
   const queryReviews = storeReviewsQuery?.pages.flatMap((p) => p.data) || [];
@@ -416,6 +594,20 @@ export const HomepageModule: React.FC<{
         <TestimonialsSection
           title={homepageConfig?.sections?.testimonials?.sectionTitle || "WHAT CUSTOMERS SAY ABOUT US"}
           testimonials={testimonialsData}
+        />
+
+        {/* 9. Rider's Essential Gear Section (Boots, Pants, Luggage, Accessories & Spares) */}
+        <CategoryShowcaseSection
+          title={homepageConfig?.sections?.categoryShowcase?.sectionTitle || "RIDER'S ESSENTIAL GEAR"}
+          subtitle={homepageConfig?.sections?.categoryShowcase?.subtitle}
+          cards={categoryShowcaseCards}
+        />
+
+        {/* 10. Riders' Favourites Section (4 Real Best Sellers across Helmets, Jackets, Gloves, Gadgets) */}
+        <RidersFavouritesSection
+          title={homepageConfig?.sections?.ridersFavourites?.sectionTitle || "RIDERS' FAVOURITES"}
+          subtitle={homepageConfig?.sections?.ridersFavourites?.subtitle}
+          products={ridersFavouritesProducts}
         />
       </main>
 

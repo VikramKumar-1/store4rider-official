@@ -149,3 +149,53 @@ export interface TestimonialData {
   location?: string;
   link?: string;
 }
+
+/**
+ * Data model for Category Showcase Card (Section 1).
+ */
+export interface CategoryShowcaseCardData {
+  id: string;
+  title: string;
+  description: string;
+  linkUrl: string;
+  imageUrl?: string;
+  placeholderText: string;
+  guideLinkText?: string;
+  guideLinkUrl?: string;
+}
+
+/**
+ * Props for CategoryShowcaseSection component.
+ */
+export interface CategoryShowcaseSectionProps {
+  title?: string;
+  subtitle?: string;
+  cards?: CategoryShowcaseCardData[];
+  bottomNoteText?: string;
+  bottomNoteLinkText?: string;
+  bottomNoteLinkUrl?: string;
+  className?: string;
+}
+
+/**
+ * Data model for Riders' Favourites Product Card (Section 2).
+ */
+export interface RidersFavouritesProductData {
+  id: string;
+  name: string;
+  brand?: string;
+  priceFormatted: string;
+  imageUrl?: string;
+  productUrl: string;
+}
+
+/**
+ * Props for RidersFavouritesSection component.
+ */
+export interface RidersFavouritesSectionProps {
+  title?: string;
+  subtitle?: string;
+  products?: RidersFavouritesProductData[];
+  viewAllLink?: string;
+  className?: string;
+}

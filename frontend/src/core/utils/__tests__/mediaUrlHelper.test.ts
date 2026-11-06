@@ -6,6 +6,8 @@ import {
   deduplicateProductImages,
   buildVariantAltText,
   getCartItemImage,
+  getProductThumbnailUrl,
+  getProductCandidateImages,
   resolveMagentoMediaUrls,
   S3_MEDIA_BASE,
 } from "../mediaUrlHelper";
@@ -207,6 +209,93 @@ describe("mediaUrlHelper - Enterprise Gallery & Color Swapping", () => {
       const input = '&lt;p&gt;&lt;img src="{{media url=&quot;wysiwyg/test-chart.jpg&quot;}}" /&gt;&lt;/p&gt;';
       const output = resolveMagentoMediaUrls(input);
       expect(output).toBe('<p><img src="https://store4riders.s3.ap-south-2.amazonaws.com/wysiwyg/test-chart.jpg" /></p>');
+    });
+  });
+
+  describe("getProductThumbnailUrl & getProductCandidateImages", () => {
+    it("resolves preferredColor from colorImages map", () => {
+      const product = {
+        name: "Axor Saber Spark Helmet",
+        colorImages: {
+          "Black/Red": "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/a/x/axor-saber-spark-helmet-black-red-_9__1.jpg",
+          "Black/Grey": "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/s/a/saber-spark-helmet-black-grey-_9__1.jpg"
+        },
+        images: [
+          { url: "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/a/x/axor-saber-spark-helmet-black-red-_9_.jpg" }
+        ]
+      };
+      const url = getProductThumbnailUrl(product, "Black/Grey");
+      expect(url).toBe("https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/s/a/saber-spark-helmet-black-grey-_9__1.jpg");
+    });
+
+    it("resolves primary thumbnail from product.thumbnail", () => {
+      const product = {
+        name: "Axor Saber Spark Helmet",
+        thumbnail: "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/a/x/axor-saber-spark-helmet-black-red-_9_.jpg",
+        images: []
+      };
+      const url = getProductThumbnailUrl(product);
+      expect(url).toBe("https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/a/x/axor-saber-spark-helmet-black-red-_9_.jpg");
+    });
+
+    it("resolves primary thumbnail from product.images[0] when thumbnail is missing", () => {
+      const product = {
+        name: "Axor Saber Spark Helmet",
+        images: [
+          { url: "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/a/x/axor-saber-spark-helmet-black-red-_9_.jpg" }
+        ]
+      };
+      const url = getProductThumbnailUrl(product);
+      expect(url).toBe("https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/a/x/axor-saber-spark-helmet-black-red-_9_.jpg");
+    });
+
+    it("resolves from colorImages if images array is empty", () => {
+      const product = {
+        name: "Helmet",
+        colorImages: {
+          "Red": "https://store4riders.s3.ap-south-2.amazonaws.com/red.jpg"
+        }
+      };
+      const url = getProductThumbnailUrl(product);
+      expect(url).toBe("https://store4riders.s3.ap-south-2.amazonaws.com/red.jpg");
+    });
+
+    it("resolves from variants if images and colorImages are empty", () => {
+      const product = {
+        name: "Helmet",
+        variants: [
+          { sku: "H-1", imageUrl: "https://store4riders.s3.ap-south-2.amazonaws.com/variant.jpg" }
+        ]
+      };
+      const url = getProductThumbnailUrl(product);
+      expect(url).toBe("https://store4riders.s3.ap-south-2.amazonaws.com/variant.jpg");
+    });
+
+    it("returns /no-image.svg when product has no images anywhere", () => {
+      const product = { name: "No image product" };
+      const url = getProductThumbnailUrl(product);
+      expect(url).toBe("/no-image.svg");
+    });
+
+    it("collects distinct candidate images for fallback retry", () => {
+      const product = {
+        name: "Axor Saber Spark Helmet",
+        thumbnail: "https://store4riders.s3.ap-south-2.amazonaws.com/thumb.jpg",
+        images: [
+          { url: "https://store4riders.s3.ap-south-2.amazonaws.com/img1.jpg" },
+          { url: "https://store4riders.s3.ap-south-2.amazonaws.com/img2.jpg" }
+        ],
+        variants: [
+          { imageUrl: "https://store4riders.s3.ap-south-2.amazonaws.com/v1.jpg" }
+        ]
+      };
+      const candidates = getProductCandidateImages(product);
+      expect(candidates).toEqual([
+        "https://store4riders.s3.ap-south-2.amazonaws.com/thumb.jpg",
+        "https://store4riders.s3.ap-south-2.amazonaws.com/img1.jpg",
+        "https://store4riders.s3.ap-south-2.amazonaws.com/img2.jpg",
+        "https://store4riders.s3.ap-south-2.amazonaws.com/v1.jpg"
+      ]);
     });
   });
 });

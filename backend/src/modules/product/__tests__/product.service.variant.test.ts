@@ -3,13 +3,13 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import mongoose from 'mongoose';
 import { ProductService } from '../product.service';
 import { ProductRepository } from '../product.repository';
+import { ProductModel } from '../product.model';
 import { connectToDatabase } from '../../../core/database/connection';
 
-// Skip live database integration tests in CI or when MONGODB_URI is absent
+// Run live database integration tests whenever MONGODB_URI is provided
 const shouldRunLiveDbTests = Boolean(
   process.env.MONGODB_URI &&
-  process.env.MONGODB_URI !== '' &&
-  !process.env.CI
+  process.env.MONGODB_URI !== ''
 );
 
 describe.skipIf(!shouldRunLiveDbTests)(
@@ -19,6 +19,81 @@ describe.skipIf(!shouldRunLiveDbTests)(
     beforeAll(async () => {
       try {
         await connectToDatabase();
+        if (mongoose.connection.readyState === 1) {
+          // 1. Ensure 'test-helmet' fixture exists for Test 1
+          const helmet = await ProductModel.findOne({ slug: 'test-helmet' }).lean().exec();
+          if (!helmet) {
+            await ProductModel.create({
+              name: 'Test Helmet',
+              slug: 'test-helmet',
+              sku: 'TEST-HELMET-FIXTURE',
+              description: 'Test Helmet Description',
+              basePrice: 2499,
+              specialPrice: 1999,
+              productType: 'configurable',
+              status: 'published',
+              visibility: 'Catalog, Search',
+              variants: [
+                {
+                  id: 'var-helmet-1',
+                  sku: 'TEST-HELMET-M',
+                  price: 2499,
+                  specialPrice: 1899,
+                  stock: 10,
+                  attributes: { size: 'M', color: 'Gloss Black' },
+                },
+              ],
+            });
+          }
+
+          // 2. Ensure parent & child fixtures exist for Test 2 & Test 3
+          const fixtureSkus = [
+            {
+              sku: 'BARJ',
+              name: 'Barj Jacket',
+              variants: [{ id: 'v-barj-1', sku: 'BARJ-S-Black', price: 1000, stock: 5 }],
+              visibility: 'Catalog, Search',
+            },
+            {
+              sku: 'AASBG',
+              name: 'Aasbg Bag',
+              variants: [{ id: 'v-aasbg-1', sku: 'AASBG-XL-Black/Flu. Green', price: 1000, stock: 5 }],
+              visibility: 'Catalog, Search',
+            },
+            {
+              sku: 'S4R-PROD-UPLO-763',
+              name: 'S4R Upload Product',
+              variants: [],
+              visibility: 'Catalog, Search',
+            },
+            {
+              sku: 'AATGFFH-S-Black/Blue',
+              name: 'Standalone Child Variant',
+              variants: [],
+              visibility: 'Catalog, Search',
+            },
+          ];
+
+          for (const item of fixtureSkus) {
+            const exists = await ProductModel.findOne({
+              $or: [{ sku: item.sku }, { 'variants.sku': item.sku }],
+            }).lean().exec();
+
+            if (!exists) {
+              await ProductModel.create({
+                name: item.name,
+                slug: `fixture-${item.sku.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+                sku: item.sku,
+                description: `${item.name} description`,
+                basePrice: 1000,
+                productType: item.variants.length > 0 ? 'configurable' : 'simple',
+                status: 'published',
+                visibility: item.visibility,
+                variants: item.variants,
+              });
+            }
+          }
+        }
       } catch {
         // Handled if database is unreachable
       }

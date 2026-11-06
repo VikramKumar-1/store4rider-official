@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
-  ArrowLeft, Save, Eye, Layers, DollarSign, Image as ImageIcon, 
+  ArrowLeft, Save, Eye, Layers, IndianRupee, Image as ImageIcon, 
   Sliders, GitBranch, Share2, Search, ChevronLeft, ChevronRight,
   AlertCircle, CheckCircle2 
 } from "lucide-react";
@@ -854,7 +854,7 @@ export function ProductForm({ mode, initialSlugOrId }: ProductFormProps) {
       id: "pricing",
       label: "Pricing & Stock",
       shortLabel: "Pricing",
-      icon: DollarSign,
+      icon: IndianRupee,
       isCompleted: Boolean(basePrice !== "" && Number(basePrice) > 0),
       isRequired: true,
     },

@@ -95,6 +95,7 @@ export const CategorySEOAccordion: React.FC<CategorySEOAccordionProps> = ({
               <h3 id={item.id} className="m-0">
                 <button
                   type="button"
+                  suppressHydrationWarning
                   onClick={() => togglePanel(item.id)}
                   aria-expanded={isOpen}
                   aria-controls={`accordion-content-${item.id}`}

@@ -7,21 +7,71 @@ import { useRouter } from "next/navigation";
 import { StarIcon, ShoppingBagIcon, CheckIcon } from "@heroicons/react/24/solid";
 import { CatalogProduct } from "../types/catalog.types";
 import { useCartStore } from "@/stores/useCartStore";
-import { parseColorToBackground } from "@/modules/product-detail/components/ProductDetailPageModule";
+import { parseColorToBackground, isValidCssSwatch } from "@/modules/product-detail/components/ProductDetailPageModule";
+import { getProductCandidateImages } from "@/core/utils/mediaUrlHelper";
+import { QuickAddModal } from "./QuickAddModal";
 
 const FALLBACK_IMAGE = "/no-image.svg";
+
+const resolveSwatchBg = (bg?: string, name?: string): string => {
+  return (bg && isValidCssSwatch(bg)) ? bg : parseColorToBackground(name || "");
+};
 
 export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ product }) => {
   const router = useRouter();
   const [imgSrc, setImgSrc] = useState(product.imageUrl);
   const [fadeKey, setFadeKey] = useState(0);
+  const triedUrlsRef = React.useRef<Set<string>>(new Set());
+
   React.useEffect(() => { 
     setImgSrc(product.imageUrl); 
     setFadeKey(prev => prev + 1);
+    triedUrlsRef.current.clear();
   }, [product.imageUrl]);
+
+  const handleImageError = () => {
+    if (imgSrc) {
+      triedUrlsRef.current.add(imgSrc);
+    }
+    if (product.rawProduct) {
+      const candidates = getProductCandidateImages(product.rawProduct);
+      const nextCandidate = candidates.find((url) => url && !triedUrlsRef.current.has(url));
+      if (nextCandidate) {
+        setImgSrc(nextCandidate);
+        setFadeKey((prev) => prev + 1);
+        return;
+      }
+    }
+    setImgSrc(FALLBACK_IMAGE);
+  };
   const [isAdded, setIsAdded] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
   const [selectedColorName, setSelectedColorName] = useState<string | null>(null);
+
+  // Deduplicate product colors so duplicate swatches never appear
+  const uniqueColors = React.useMemo(() => {
+    if (!product.colors || product.colors.length === 0) return [];
+    const seenNames = new Set<string>();
+    const seenVisuals = new Set<string>();
+    const result: typeof product.colors = [];
+
+    for (const colorObj of product.colors) {
+      if (!colorObj || !colorObj.name) continue;
+      const normName = colorObj.name.trim().toLowerCase();
+      const resolvedBg = resolveSwatchBg(colorObj.background, colorObj.name);
+      const visualKey = `${resolvedBg}::${colorObj.imageUrl || ""}`;
+
+      if (seenNames.has(normName) || (colorObj.imageUrl && seenVisuals.has(visualKey))) {
+        continue;
+      }
+
+      seenNames.add(normName);
+      if (colorObj.imageUrl) seenVisuals.add(visualKey);
+      result.push(colorObj);
+    }
+    return result;
+  }, [product.colors]);
 
   const updateImage = (newUrl: string) => {
     if (newUrl && newUrl !== imgSrc) {
@@ -33,39 +83,7 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    // If product has colors, sizes, or variants, navigate to PDP so buyer selects their variant
-    if ((product.colors && product.colors.length > 0 && !selectedColorName) || (product as any).variants?.length > 0) {
-      router.push(dynamicHref);
-      return;
-    }
-
-    const numericPrice = parseFloat(product.priceFormatted.replace(/[^0-9.]/g, "")) || 0;
-
-    addItem({
-      id: crypto.randomUUID(),
-      productId: product.id,
-      quantity: 1,
-      variantId: selectedColorName ? `color-${selectedColorName}` : "default",
-      image: imgSrc || product.imageUrl,
-      product: {
-        _id: product.id,
-        id: product.id,
-        name: product.name,
-        basePrice: numericPrice,
-        price: numericPrice,
-        image: imgSrc || product.imageUrl,
-        images: [{ url: imgSrc || product.imageUrl, altText: product.name }],
-        slug: product.productUrl.replace("/products/", ""),
-        selectedColor: selectedColorName || undefined,
-        selectedSize: undefined,
-      } as any,
-    });
-
-    setIsAdded(true);
-    setTimeout(() => {
-      setIsAdded(false);
-    }, 1500);
+    setIsQuickAddOpen(true);
   };
 
   const dynamicHref = selectedColorName 
@@ -84,14 +102,16 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
 
       {/* 1. MOBILE CARD (Exact Wireframe Match: Portrait Aspect with Bottom Gradient Overlay & Orange Rating Badge) */}
       <div className="sm:hidden relative aspect-[4/5] w-full bg-[#f4f4f4] overflow-hidden rounded-lg border border-neutral-200/70 shadow-xs pointer-events-none z-10">
-        <img
+        <Image
           key={`mob-${fadeKey}`}
           src={imgSrc}
           alt={product.name}
-          loading="lazy"
-          decoding="async"
-          className="w-full h-full absolute inset-0 object-contain pb-8 group-active:scale-95 transition-opacity duration-200 mix-blend-multiply"
-          onError={() => setImgSrc(FALLBACK_IMAGE)}
+          fill
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          className="object-contain pb-8 group-active:scale-95 transition-opacity duration-200 mix-blend-multiply"
+          onError={handleImageError}
+          unoptimized={true}
+          referrerPolicy="no-referrer"
         />
 
         {/* Optional Featured Badge (Top Left - only if explicitly enabled) */}
@@ -125,7 +145,7 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
                       ? "ring-2 ring-neutral-900 ring-offset-1 ring-offset-white scale-110 z-10"
                       : "hover:scale-105"
                   }`}
-                  style={{ background: colorObj.background || parseColorToBackground(colorObj.name) }}
+                  style={{ background: resolveSwatchBg(colorObj.background, colorObj.name) }}
                   title={colorObj.name}
                   aria-label={`View ${colorObj.name} variant`}
                 />
@@ -138,23 +158,35 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
           <p className="text-[11px] font-bold text-white line-clamp-1 leading-snug drop-shadow-xs">
             {product.name}
           </p>
-          <p className="text-xs font-black text-white/95 mt-0.5 drop-shadow-xs">
-            {product.priceFormatted}
-          </p>
+          <div className="flex items-center justify-between mt-0.5">
+            <p className="text-xs font-black text-white/95 drop-shadow-xs">
+              {product.priceFormatted}
+            </p>
+            <button
+              type="button"
+              onClick={handleQuickAdd}
+              aria-label="Quick add to cart"
+              className="pointer-events-auto p-1.5 rounded-full bg-banner text-white shadow-md active:scale-90 transition-transform flex items-center justify-center shrink-0 hover:bg-orange-600"
+            >
+              <ShoppingBagIcon className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* 2. DESKTOP CARD (Standard E-Commerce Clean Layout with Hover Quick-Add) */}
       <div className="hidden sm:flex flex-col gap-3 w-full pointer-events-none relative z-10">
         <div className="relative aspect-square w-full bg-[#f4f4f4] overflow-hidden rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-neutral-100">
-          <img
+          <Image
             key={`desk-${fadeKey}`}
             src={imgSrc}
             alt={product.name}
-            loading="lazy"
-          decoding="async"
-          className="w-full h-full absolute inset-0 object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 ease-out will-change-transform"
-            onError={() => setImgSrc(FALLBACK_IMAGE)}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 ease-out will-change-transform"
+            onError={handleImageError}
+            unoptimized={true}
+            referrerPolicy="no-referrer"
           />
           
           {/* Optional Featured Badge (Top Left - only if explicitly enabled) */}
@@ -173,9 +205,9 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
           {/* Hover Overlay: Swatches + Quick Add */}
           <div className="absolute inset-x-2.5 bottom-2.5 z-20 flex flex-col gap-2 opacity-0 translate-y-3 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 pointer-events-auto">
             {/* Color Swatches */}
-            {product.colors && product.colors.length > 0 && (
+            {uniqueColors && uniqueColors.length > 0 && (
               <div className="flex w-fit mx-auto items-center justify-center gap-1.5 bg-white/95 backdrop-blur-md border border-neutral-200/90 shadow-[0_4px_16px_rgba(0,0,0,0.12)] px-2.5 py-1.5 rounded-full transition-colors">
-                {product.colors.slice(0, 5).map((colorObj, idx) => (
+                {uniqueColors.slice(0, 5).map((colorObj, idx) => (
                   <div key={`${idx}-${colorObj.name}`} className="relative group/swatch">
                     <button
                       onClick={(e) => {
@@ -189,20 +221,20 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
                           ? "ring-2 ring-neutral-900 ring-offset-2 ring-offset-white scale-110 z-10 shadow-xs"
                           : "hover:border-neutral-500"
                       }`}
-                      style={{ background: colorObj.background || parseColorToBackground(colorObj.name) }}
+                      style={{ background: resolveSwatchBg(colorObj.background, colorObj.name) }}
                       aria-label={`View ${colorObj.name} variant`}
                     />
                     {/* Hover Tooltip */}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/swatch:flex flex-col items-center bg-white shadow-xl rounded-md p-1.5 z-50 border border-neutral-200 min-w-[95px] animate-in fade-in zoom-in-95 duration-200">
-                      <div className="w-full aspect-square mb-1.5 rounded-sm border border-neutral-200 shadow-2xs" style={{ background: colorObj.background || parseColorToBackground(colorObj.name) }} />
+                      <div className="w-full aspect-square mb-1.5 rounded-sm border border-neutral-200 shadow-2xs" style={{ background: resolveSwatchBg(colorObj.background, colorObj.name) }} />
                       <span className="text-[10px] text-center font-semibold text-neutral-800 truncate w-full px-1">{colorObj.name}</span>
                       <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-neutral-200 rotate-45" />
                     </div>
                   </div>
                 ))}
-                {product.colors.length > 5 && (
+                {uniqueColors.length > 5 && (
                   <span className="text-[10px] text-neutral-700 font-bold bg-neutral-100 border border-neutral-200 px-1.5 py-0.5 rounded-full shadow-2xs">
-                    +{product.colors.length - 5}
+                    +{uniqueColors.length - 5}
                   </span>
                 )}
               </div>
@@ -247,6 +279,13 @@ export const CatalogProductCard: React.FC<{ product: CatalogProduct }> = ({ prod
           </span>
         </div>
       </div>
+
+      <QuickAddModal
+        isOpen={isQuickAddOpen}
+        onClose={() => setIsQuickAddOpen(false)}
+        product={product}
+        initialSelectedColor={selectedColorName}
+      />
     </div>
   );
 };

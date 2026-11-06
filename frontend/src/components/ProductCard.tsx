@@ -15,6 +15,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useWishlist } from "@/core/hooks/useWishlist";
 
 import { parseColorToBackground } from "@/modules/product-detail/components/ProductDetailPageModule";
+import { QuickAddModal } from "@/modules/catalog/components/QuickAddModal";
+import { getProductThumbnailUrl, getProductCandidateImages } from "@/core/utils/mediaUrlHelper";
 
 interface ProductCardProps {
   product: any;
@@ -26,6 +28,7 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const addItem = useCartStore((state) => state.addItem);
   const [isAdded, setIsAdded] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const queryClient = useQueryClient();
   const { data: wishlistIds = [] } = useWishlist();
@@ -39,14 +42,15 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // If product is configurable or has variants, navigate to PDP so buyer selects their size & color
+    // If product has options/variants, ask size and colour via QuickAddModal
     if (
       product.productType === "configurable" ||
       (product.variants && product.variants.length > 0) ||
       (product.colors && product.colors.length > 0) ||
-      ((product as any).sizes && (product as any).sizes.length > 0)
+      ((product as any).sizes && (product as any).sizes.length > 0) ||
+      (product as any).configurableVariations
     ) {
-      router.push(product.slug ? `/${product.slug}` : `/products/${product.id || product._id}`);
+      setIsQuickAddOpen(true);
       return;
     }
 
@@ -89,72 +93,32 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
 
   const searchParams = useSearchParams();
   const activeColorParam = searchParams?.get("colour") || searchParams?.get("color");
-  const activeColors = activeColorParam ? activeColorParam.split(",").map(c => c.trim().toLowerCase()) : [];
+  const preferredColor = activeColorParam ? activeColorParam.split(",")[0]?.trim() : undefined;
 
-  let bestRawUrl =
-    product.thumbnail ||
-    (Array.isArray(product.images) && product.images.length > 0
-      ? (typeof product.images[0] === "string" ? product.images[0] : product.images[0]?.url)
-      : "") ||
-    product.image ||
-    "/no-image.svg";
-
-  // If a color filter is active, find the matching color image
-  if (activeColors.length > 0) {
-    // 1. Check colorImages dictionary (most accurate mapping)
-    if (product.colorImages && typeof product.colorImages === "object") {
-      const colorImagesKeys = Object.keys(product.colorImages);
-      for (const color of activeColors) {
-        const matchingKey = colorImagesKeys.find(
-          (k) => k.toLowerCase() === color || k.toLowerCase().includes(color) || color.includes(k.toLowerCase())
-        );
-        if (matchingKey && product.colorImages[matchingKey]) {
-          bestRawUrl = product.colorImages[matchingKey];
-          break;
-        }
-      }
-    }
-
-    // 2. Check variants array for matching variant image
-    if (bestRawUrl === (product.images?.[0]?.url || product.image || "/no-image.svg") && product.variants && product.variants.length > 0) {
-      const matchedVariant = product.variants.find((v: any) => {
-        const vCol = (v.attributes?.color || v.attributes?.colour || "").toLowerCase();
-        return v.imageUrl && activeColors.some((c) => vCol === c || vCol.includes(c) || c.includes(vCol));
-      });
-      if (matchedVariant?.imageUrl) {
-        bestRawUrl = matchedVariant.imageUrl;
-      }
-    }
-
-    // 3. Fallback to product.images array
-    if (bestRawUrl === (product.images?.[0]?.url || product.image || "/no-image.svg") && product.images && product.images.length > 0) {
-      const matchedImage = product.images.find((img: any) => {
-        const altText = (img.altText || "").toLowerCase();
-        const urlText = (img.url || "").toLowerCase();
-        return activeColors.some((color) => {
-          const cleanColor = color.replace(/\s+/g, "-");
-          const parts = color.split(/[\/\s.-]+/).filter((p: string) => p.length > 2 && p !== "black");
-          return altText.includes(color) || urlText.includes(cleanColor) || parts.some((p: string) => urlText.includes(p) || altText.includes(p));
-        });
-      });
-      if (matchedImage?.url) {
-        bestRawUrl = matchedImage.url;
-      }
-    }
-  }
-
-  // Ensure compressed parameters on CDN URLs for lightning fast load
-  const imageUrl = bestRawUrl.includes("unsplash.com") && !bestRawUrl.includes("q=75")
-    ? `${bestRawUrl.split("?")[0]}?q=75&w=600&auto=format&fit=crop`
-    : bestRawUrl;
+  const imageUrl = getProductThumbnailUrl(product, preferredColor);
 
   const FALLBACK_IMAGE = "/no-image.svg";
   const [imgSrc, setImgSrc] = useState(imageUrl);
+  const triedUrlsRef = useState<Set<string>>(() => new Set())[0];
 
   // Update image if URL changes (e.g. filter changes)
   useEffect(() => {
     setImgSrc(imageUrl);
-  }, [imageUrl]);
+    triedUrlsRef.clear();
+  }, [imageUrl, triedUrlsRef]);
+
+  const handleImageError = () => {
+    if (imgSrc) {
+      triedUrlsRef.add(imgSrc);
+    }
+    const candidates = getProductCandidateImages(product);
+    const nextCandidate = candidates.find((u) => u && !triedUrlsRef.has(u));
+    if (nextCandidate) {
+      setImgSrc(nextCandidate);
+      return;
+    }
+    setImgSrc(FALLBACK_IMAGE);
+  };
 
   const basePrice = product.basePrice || product.price || 0;
   const specialPrice = product.specialPrice || 0;
@@ -234,7 +198,9 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
             placeholder="blur"
             blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PC9zdmc+"
             className="object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500 ease-out will-change-transform"
-            onError={() => setImgSrc(FALLBACK_IMAGE)}
+            onError={handleImageError}
+            unoptimized={true}
+            referrerPolicy="no-referrer"
           />
 
           {/* Sleek Liquid Glassmorphism Rating Badge */}
@@ -365,6 +331,25 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
         </div>
 
       </div>
+
+      {isQuickAddOpen && (
+        <QuickAddModal
+          isOpen={isQuickAddOpen}
+          onClose={() => setIsQuickAddOpen(false)}
+          product={{
+            id: product.id || product._id,
+            name: product.name,
+            category: typeof product.category === "string" ? product.category : product.category?.name || "",
+            priceFormatted: formatPrice(price),
+            imageUrl,
+            rating: 4.9,
+            productUrl: `/${product.slug || product.id || product._id}`,
+            rawSlug: product.slug,
+            rawProduct: product,
+            colors: uniqueColors.map((c) => ({ name: c })),
+          }}
+        />
+      )}
     </Link>
   );
 };

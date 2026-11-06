@@ -10,6 +10,7 @@ export interface CatalogProduct {
   rawSlug?: string;
   isFeatured?: boolean;
   showFeaturedBadge?: boolean;
+  rawProduct?: any;
 }
 
 export interface CatalogProps {

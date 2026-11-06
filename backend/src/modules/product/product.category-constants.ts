@@ -67,7 +67,8 @@ export const CATEGORY_ALIAS_MAP: Record<string, string[]> = {
   "short-cuff-biker-gloves": ["short-motorbike-gloves", "short-cuff-biker-glove"],
 
   // ── Riding Boots ──
-  "motorcycle-riding-boots": ["motorcycle-riding-boots", "premium-riding-boots"],
+  "riding-boots": ["motorcycle-riding-boots", "premium-riding-boots", "short-biking-boots", "sports-riding-shoes"],
+  "motorcycle-riding-boots": ["motorcycle-riding-boots", "premium-riding-boots", "riding-boots"],
   "short-biking-boots": ["short-city-riding-biking-boots", "short-biking-boots", "short-biking-boot"],
   "short-city-riding-biking-boots": ["short-biking-boots", "short-biking-boot"],
   "sports-riding-shoes": ["sport-riding-shoes", "sports-riding-shoes", "sport-riding-shoe"],
@@ -89,8 +90,18 @@ export const CATEGORY_ALIAS_MAP: Record<string, string[]> = {
   "bike-top-box": ["top-box", "top-boxes", "bike-top-box"],
   "hydration-bag": ["hydration-bag", "hydration-bags"],
   "hydration-bags": ["hydration-bag", "hydration-bags"],
+  "crash-bar-bags": ["crash-bar-bags", "crash-bar-bag", "frame-bags"],
+  "crash-bar-bag": ["crash-bar-bags", "crash-bar-bag", "frame-bags"],
+  "thigh-bags": ["thigh-bags", "thigh-bag", "thigh-pouch"],
+  "thigh-bag": ["thigh-bags", "thigh-bag", "thigh-pouch"],
+  "helmet-bags": ["helmet-bags", "helmet-bag"],
+  "helmet-bag": ["helmet-bags", "helmet-bag"],
   "other-luggage": ["other-luggage"],
   "motorcycle-other-luggage": ["other-luggage", "other-luggages", "motorcycle-other-luggage"],
+
+  // ── Sale & Merchandise ──
+  "sale": ["sale"],
+  "merchandise": ["merchandise"],
 
   // ── Accessories ──
   "motorcycle-accessories-online": ["motorcycle-accessories-bike-accessories", "motorcycle-accessories-online", "bike-accessories"],
@@ -117,6 +128,7 @@ export const CATEGORY_ALIAS_MAP: Record<string, string[]> = {
   "motorcycle-care": ["chain-care", "motorcycle-care"],
 
   // ── Gadgets ──
+  "gadgets": ["gadgets", "bike-phone-holders", "bike-phone-holders-mobile-holder-for-bike", "communicators", "bluetooth-intercoms"],
   "bike-phone-holders": ["bike-phone-holders-mobile-holder-for-bike", "mobile-holder-for-bike", "bike-phone-holders"],
   "bike-phone-holders-mobile-holder-for-bike": ["bike-phone-holders", "mobile-holder-for-bike"],
 
@@ -160,6 +172,9 @@ export const CATEGORY_DOMAIN_GROUPS = {
     "saddle-bags-bikes", "saddle-bags", "saddle-bags-for-bikes-panniers",
     "motorcycle-tail-bags", "tail-bags",
     "bike-top-box", "top-box",
+    "crash-bar-bags", "crash-bar-bag", "frame-bags",
+    "thigh-bags", "thigh-bag", "thigh-pouch",
+    "helmet-bags", "helmet-bag",
     "hydration-bag", "hydration-bags",
     "motorcycle-other-luggage", "other-luggage",
   ],
@@ -299,7 +314,10 @@ export const NAVBAR_TO_DB_SLUG_MAP: Record<string, string> = {
   "saddle-bags-bikes": "saddle-bags-bikes",
   "motorcycle-tail-bags": "motorcycle-tail-bags",
   "tail-bags": "motorcycle-tail-bags",
-  "bike-top-box": "top-box",
+  "bike-top-box": "bike-top-box",
+  "crash-bar-bags": "crash-bar-bags",
+  "thigh-bags": "thigh-bags",
+  "helmet-bags": "helmet-bags",
   "hydration-bag": "hydration-bag",
   "motorcycle-other-luggage": "other-luggage",
   "women-riding-gear": "riding-gear-for-women",
@@ -471,18 +489,95 @@ export const MAGENTO_PATH_TO_NAVBAR_SLUG: Record<string, string> = {
   "motorcycle care": "chain-care",
   "bike phone holders": "bike-phone-holders",
   "mobile holder for bike": "bike-phone-holders",
-  "gadgets": "bike-phone-holders",
+  "gadgets": "gadgets",
+  "action cameras": "motorcycle-accessories-online",
+  "camera accessories": "motorcycle-accessories-online",
 
   // Spares
   "spares": "spares",
   "bike spare parts online": "spares",
   "bike spares": "spares",
   "chain sprocket kits": "chain-sprocket-kits",
+  "chain/sprocket kits": "chain-sprocket-kits",
+  "chain / sprocket kits": "chain-sprocket-kits",
+  "chain-sprocket kits": "chain-sprocket-kits",
   "iridium spark plugs": "iridium-spark-plugs",
   "iridium spark plug": "iridium-spark-plugs",
   "performance air filters": "performance-air-filters",
   "performance air filters for bikes": "performance-air-filters",
   "brake pads": "brake-pads",
+  "oils & lubes": "spares",
+  "oils lubes": "spares",
+
+  // Generic parent categories & additional CSV mappings
+  "sale": "sale",
+  "merchandise": "merchandise",
+  "off road helmets / motocross helmet": "off-road-helmets",
+  "modular helmets / flip up helmets": "modular-helmets",
+  "helmets": "motorcycle-helmets",
+  "motorcycle helmets": "motorcycle-helmets",
+  "motorcycle-helmets": "motorcycle-helmets",
+  "riding gear": "riding-gear",
+  "riding-gear": "riding-gear",
+  "luggage": "motorcycle-bags-bike-luggage",
+  "motorcycle bags": "motorcycle-bags-bike-luggage",
+  "bike luggage": "motorcycle-bags-bike-luggage",
+  "motorcycle bags / bike luggage": "motorcycle-bags-bike-luggage",
+  "motorcycle bags bike luggage": "motorcycle-bags-bike-luggage",
+  "motorcycle-bags-bike-luggage": "motorcycle-bags-bike-luggage",
+  "motorcycle rain gear for bikers": "monsoon-gear-for-riders",
+  "rain gear": "monsoon-gear-for-riders",
+  "off-road / motocross riding gear": "off-road-motocross-riding-gear",
+  "off-road-motocross": "off-road-motocross-riding-gear",
+  "motorcycle touring gear": "touring-gear",
+  "motorcycle balaclavas": "balaclava",
+  "thigh bags for motorcycle riders": "thigh-bags",
+  "thigh bags": "thigh-bags",
+  "thigh pouch": "thigh-bags",
+  "crash bar bags for motorcycles": "crash-bar-bags",
+  "crash bar bags": "crash-bar-bags",
+  "frame bags for re himalayan": "crash-bar-bags",
+  "rynox saddle bags": "saddle-bags-bikes",
+  "rynox tail bags": "motorcycle-tail-bags",
+  "rynox tank bags": "tank-bags-bikes",
+  "bike top boxes / aluminium top box": "bike-top-box",
+  "bike top boxes aluminium top box": "bike-top-box",
+  "bike top boxes | aluminium top box": "bike-top-box",
+  "top case": "bike-top-box",
+  "biker t-shirts | motorcycle t shirts": "merchandise",
+  "biker t-shirts motorcycle t shirts": "merchandise",
+  "biker t-shirts": "merchandise",
+  "biker t shirts": "merchandise",
+  "keychains for bike": "merchandise",
+  "keychains": "merchandise",
+  "bandana / buff / face covering": "balaclava",
+  "bandana buff face covering": "balaclava",
+  "motorcycle base layers": "riding-gear",
+  "base layers": "riding-gear",
+  "royal enfield full face helmet": "full-face-helmets",
+  "royal enfield open face helmet": "open-face-helmets",
+  "royal enfield flip up helmets / re modular helmet": "modular-helmets",
+  "royal enfield flip up helmets re modular helmet": "modular-helmets",
+  "royal enfield helmets": "motorcycle-helmets",
+  "axor retro helmets": "motorcycle-helmets",
+  "axor street helmets": "full-face-helmets",
+  "axor rage helmets": "full-face-helmets",
+  "axor stealth motorcycle helmet": "full-face-helmets",
+  "smk retro helmet": "motorcycle-helmets",
+  "smk hybrid evo helmet": "off-road-helmets",
+  "tvs xpod helmets": "motorcycle-helmets",
+  "mt stinger helmet": "full-face-helmets",
+  "mt revenge 2 helmet": "full-face-helmets",
+  "mt mugello helmets": "full-face-helmets",
+  "mt blade 2 helmets": "full-face-helmets",
+  "mt thunder 3 helmets": "full-face-helmets",
+  "mt targo helmet": "full-face-helmets",
+  "mt rapide helmet": "full-face-helmets",
+  "mt hummer helmets": "full-face-helmets",
+  "helmet bags for bike riders": "helmet-bags",
+  "helmet bags": "helmet-bags",
+  "biker hoodies": "merchandise",
+  "royal enfield himalayan accessories": "motorcycle-accessories-online",
 };
 
 /**
@@ -492,6 +587,7 @@ export const LEAF_TO_PARENT_MAP: Record<string, string> = {
   // Helmets
   "full-face-helmets": "motorcycle-helmets",
   "modular-helmets": "motorcycle-helmets",
+  "modular-helmets-flip-up-helmets": "motorcycle-helmets",
   "off-road-helmets": "motorcycle-helmets",
   "open-face-helmets": "motorcycle-helmets",
   "helmet-accessories": "motorcycle-helmets",
@@ -524,6 +620,9 @@ export const LEAF_TO_PARENT_MAP: Record<string, string> = {
   "saddle-bags-bikes": "motorcycle-bags-bike-luggage",
   "motorcycle-tail-bags": "motorcycle-bags-bike-luggage",
   "bike-top-box": "motorcycle-bags-bike-luggage",
+  "crash-bar-bags": "motorcycle-bags-bike-luggage",
+  "thigh-bags": "motorcycle-bags-bike-luggage",
+  "helmet-bags": "motorcycle-bags-bike-luggage",
   "hydration-bag": "motorcycle-bags-bike-luggage",
   "motorcycle-other-luggage": "motorcycle-bags-bike-luggage",
 
@@ -538,7 +637,10 @@ export const LEAF_TO_PARENT_MAP: Record<string, string> = {
   "rally-tower": "motorcycle-accessories-online",
   "bike-covers": "motorcycle-accessories-online",
   "chain-care": "motorcycle-accessories-online",
-  "bike-phone-holders": "motorcycle-accessories-online",
+  "bike-phone-holders": "gadgets",
+  "communicators": "gadgets",
+  "merchandise": "motorcycle-accessories-online",
+  "sale": "sale",
 
   // Spares
   "chain-sprocket-kits": "spares",
@@ -566,60 +668,451 @@ export function resolveCanonicalCategorySlugs(product: {
   categorySlugs?: string[];
 }): string[] {
   const resolved = new Set<string>();
+  const n = (product.name || '').toLowerCase();
+  const mc = (product.magentoCategories || '');
 
-  // 1. From existing categorySlugs array (if provided)
-  if (product.categorySlugs && Array.isArray(product.categorySlugs)) {
-    for (const rawSlug of product.categorySlugs) {
-      if (!rawSlug) continue;
-      const clean = rawSlug.toLowerCase().trim();
-      
-      // If it contains slashes, treat as path
-      if (clean.includes('/') || clean.includes('\\')) {
-        const preserved = clean.replace(/\\\//g, '##SLASH##');
-        const segments = preserved.split('/').map(s => s.replace(/##SLASH##/g, '/').trim()).filter(Boolean);
-        const leaf = segments[segments.length - 1];
-        if (leaf) {
-          const mapped = MAGENTO_PATH_TO_NAVBAR_SLUG[leaf.toLowerCase()] || MAGENTO_PATH_TO_NAVBAR_SLUG[leaf.toLowerCase().replace(/[^a-z0-9]+/g, '-')];
-          if (mapped) {
-            resolved.add(mapped);
-            const parent = LEAF_TO_PARENT_MAP[mapped];
-            if (parent) resolved.add(parent);
-          }
-        }
-      } else {
-        const mapped = MAGENTO_PATH_TO_NAVBAR_SLUG[clean] || (NAVBAR_TO_DB_SLUG_MAP[clean] ? clean : null);
-        if (mapped) {
-          resolved.add(mapped);
-          const parent = LEAF_TO_PARENT_MAP[mapped];
-          if (parent) resolved.add(parent);
+  // Flags for specific product nature
+  const isHelmetAccessory =
+    /\b(pinlock|pin-lock|visor\s*insert|lens\s*insert|antifog\s*insert)\b/i.test(n) ||
+    /\b(pivot\s*kit|side\s*pivot|ratchet|visor\s*mechanism)\b/i.test(n) ||
+    /\b(cheek\s*pad|cheek\s*padding|inner\s*liner|full\s*padding)\b/i.test(n) ||
+    /\b(air\s*vent|chin\s*vent|breath\s*deflector|nose\s*deflector|chin\s*curtain|nose\s*guard)\b/i.test(n) ||
+    /\b(spare\s*visor|replacement\s*visor)\b/i.test(n) ||
+    /\bhelmet\s*visor\b/i.test(n) ||
+    (/\bvisor\b/i.test(n) && !/\b(helmet|helmets)\b/i.test(n)) ||
+    (/\bvisor\b/i.test(n) && /\b(for\s+\w+\s+helmets?|for\s+kre|for\s+sirius|for\s+titan|for\s+stellar|v12|v14|v09|v12\s*b)\b/i.test(n));
+
+  const isCommunicator = /(bluetooth|intercom|communicator|headset|earphone)/i.test(n) && !/(mount|holder)/i.test(n) && !/smart\s*bluetooth\s*helmet|smart\s*helmet/i.test(n);
+  const isHelmetBag = /(helmet\s*bag)/i.test(n) || /helmet bags/i.test(mc);
+  const isActualHelmet = /\b(helmet|helmets)\b/i.test(n) && !isHelmetAccessory && !isCommunicator && !isHelmetBag;
+  const isGoggles = /goggle/i.test(n);
+  const isBalaclava = /balaclava/i.test(n);
+  const isBikeGuard = /(headlight\s*protector|radiator\s*guard|engine\s*guard|crash\s*guard|heel\s*plate|handguard|bash\s*plate|sump\s*guard|brake\s*reservoir\s*guard|fork\s*guard|chain\s*guard|disc\s*guard|exhaust\s*guard|sensor\s*guard)/i.test(n);
+  // Helmets must never be classified as rider armour (e.g. Axor XBHP Bionic Helmet)
+  const isRiderArmour = /(chest\s*guard|chest\s*protector|back\s*protector|spine\s*protector|armour\s*insert|armor\s*insert|elbow\s*guard|bionic|protective\s*base\s*layer|hip\s*protector|shoulder\s*protector|knee\s*protector|armour\s*vest)/i.test(n) && !isBikeGuard && !/helmet/i.test(n);
+  const isSocks = /socks?/i.test(n);
+  const isTopBox = /(top\s*box|top\s*case)/i.test(n) || /bike top boxes/i.test(mc);
+  const isSprocket = /sprocket/i.test(n) || /sprocket/i.test(mc);
+  const isPhoneHolder = /(phone\s*holder|mobile\s*holder|mobile\s*mount|phone\s*mount|jaw-grip|claw)/i.test(n) && !isCommunicator;
+  const isChainCare = /(chain\s*(lube|clean|cleaner|spray|brush|paste|wax)|(lube|clean|cleaner|spray|wax)\s*chain|bike\s*cleaner)/i.test(n);
+  const isBungee = /(bungee|cargo\s*net|tie-down)/i.test(n);
+  const isRallyTower = /rally\s*tower|navigation\s*tower/i.test(n);
+  const isCrashBarBag = /(crash\s*bar\s*bag|frame\s*bag)/i.test(n) || /crash bar bags|frame bags/i.test(mc);
+  const isThighBag = /(thigh\s*bag|thigh\s*pouch)/i.test(n) || /thigh bags/i.test(mc);
+
+  // Helmet Subtype Flags
+  const isModularHelmet = isActualHelmet && /(modular|flip\s*up)/i.test(n);
+  const isOpenFaceHelmet = isActualHelmet && /(open\s*face|half\s*face|jet\b)/i.test(n);
+  const isOffRoadHelmet = isActualHelmet && /(off\s*road|motocross|dirt\s*bike|allterra|x-cross)/i.test(n);
+  const isFullFaceHelmet = isActualHelmet && (/full\s*face/i.test(n) || (!isModularHelmet && !isOpenFaceHelmet && !isOffRoadHelmet)) && !isBalaclava && !isGoggles;
+
+  // Luggage Subtype Flags
+  const isPureTankBag = /(tank\s*bag|tankbag)/i.test(n) && !/(tail\s*bag|hybrid)/i.test(n);
+  const isPureTailBag = /(tail\s*bag|tailbag)/i.test(n) && !/(tank\s*bag|hybrid)/i.test(n);
+  const isPureSaddleBag = /(saddle\s*bag|saddlebag|panniers?)/i.test(n) && !/(tail\s*bag|tank\s*bag)/i.test(n);
+  const isHydration = /hydration/i.test(n);
+  const isLuggageItem = isPureTankBag || isPureTailBag || isPureSaddleBag || isTopBox || isCrashBarBag || isThighBag || isHelmetBag || isHydration || isBungee || /(luggage|backpack|duffle|waist\s*pack|dry\s*bag)/i.test(n);
+
+  const matchSegment = (seg: string): string | null => {
+    if (!seg) return null;
+    const clean = seg.toLowerCase().trim().replace(/\s+/g, ' ');
+    const slug = clean.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    return MAGENTO_PATH_TO_NAVBAR_SLUG[clean] ||
+      MAGENTO_PATH_TO_NAVBAR_SLUG[slug] ||
+      (NAVBAR_TO_DB_SLUG_MAP[clean] ? clean : null) ||
+      (NAVBAR_TO_DB_SLUG_MAP[slug] ? slug : null);
+  };
+
+  const processCategoryPath = (rawPath: string) => {
+    if (!rawPath) return;
+    const protectedPath = rawPath.replace(/\\+\//g, '##ESCAPED_SLASH##');
+    const segments = protectedPath
+      .split('/')
+      .map(s => s.replace(/##ESCAPED_SLASH##/g, ' / ').replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+
+    const isPathBikeAccessories = segments.some(s => /motorcycle accessories|bike accessories/i.test(s));
+
+    for (let i = segments.length - 1; i >= 0; i--) {
+      const seg = segments[i].toLowerCase();
+      if (/^(root|default category)/i.test(seg)) continue;
+
+      // Handle Protectors ambiguity: bike protector vs rider protector
+      if (seg === 'protectors') {
+        if (isPathBikeAccessories || isBikeGuard) {
+          resolved.add('motorcycle-accessories-online');
+          break;
+        } else if (isRiderArmour) {
+          resolved.add('protectors-armour');
+          resolved.add('riding-gear');
+          break;
         }
       }
-    }
-  }
 
-  // 2. From raw magentoCategories CSV column (if present)
+      // Handle Gadgets: don't map to phone holders blindly
+      if (seg === 'gadgets') {
+        resolved.add('gadgets');
+        if (isCommunicator) {
+          resolved.add('communicators');
+          resolved.add('bluetooth-intercoms');
+          resolved.delete('motorcycle-helmets');
+        } else if (isPhoneHolder) {
+          resolved.add('bike-phone-holders');
+          resolved.add('motorcycle-accessories-online');
+        }
+        break;
+      }
+
+      // Handle Top Box segment
+      if (seg.includes('top box') || seg.includes('top case') || seg.includes('top boxes')) {
+        resolved.add('bike-top-box');
+        resolved.add('motorcycle-bags-bike-luggage');
+        break;
+      }
+
+      // Handle Sprocket segment
+      if (seg.includes('sprocket')) {
+        resolved.add('chain-sprocket-kits');
+        resolved.add('spares');
+        break;
+      }
+
+      const mapped = matchSegment(seg);
+      if (mapped) {
+        if ((isHelmetAccessory || isGoggles) && (mapped === 'full-face-helmets' || mapped === 'modular-helmets' || mapped === 'off-road-helmets' || mapped === 'open-face-helmets')) {
+          resolved.add('helmet-accessories');
+          resolved.add('motorcycle-helmets');
+          break;
+        }
+
+        if (isSocks && (mapped === 'motorcycle-riding-boots' || mapped === 'short-biking-boots' || mapped === 'sports-riding-shoes' || mapped === 'off-road-riding-boots')) {
+          resolved.add('monsoon-gear-for-riders');
+          resolved.add('riding-gear');
+          break;
+        }
+
+        if (isBikeGuard && (mapped === 'protectors-armour' || mapped === 'riding-gear')) {
+          resolved.add('motorcycle-accessories-online');
+          break;
+        }
+
+        // Do not add generic "saddle-bags-bikes" from "rynox saddle bags" if product is a tail bag or tank bag
+        if (mapped === 'saddle-bags-bikes' && (isPureTankBag || isPureTailBag)) {
+          break;
+        }
+
+        resolved.add(mapped);
+        const parent = LEAF_TO_PARENT_MAP[mapped];
+        if (parent) resolved.add(parent);
+        break;
+      }
+    }
+  };
+
+  // 1. From raw magentoCategories CSV column
   if (product.magentoCategories && typeof product.magentoCategories === 'string') {
     const paths = product.magentoCategories.split(',').map(p => p.trim()).filter(Boolean);
     for (const catPath of paths) {
-      const preserved = catPath.replace(/\\\//g, '##SLASH##');
-      const segments = preserved.split('/').map(s => s.replace(/##SLASH##/g, '/').trim()).filter(Boolean);
-      if (segments.length > 0) {
-        const leaf = segments[segments.length - 1].toLowerCase().trim();
-        const mapped = MAGENTO_PATH_TO_NAVBAR_SLUG[leaf] || MAGENTO_PATH_TO_NAVBAR_SLUG[leaf.replace(/[^a-z0-9]+/g, '-')];
-        if (mapped) {
-          resolved.add(mapped);
-          const parent = LEAF_TO_PARENT_MAP[mapped];
-          if (parent) resolved.add(parent);
-        }
-      }
+      processCategoryPath(catPath);
     }
   }
 
-  // 3. Title-based safeguard for ambiguous items
-  const nameLower = (product.name || '').toLowerCase();
-  if (nameLower.includes('hydration')) {
+  // 2. Explicit safeguards based on validated product nature
+  if (isHelmetAccessory) {
+    resolved.add('helmet-accessories');
+    resolved.delete('motorcycle-helmets');
+    resolved.delete('full-face-helmets');
+    resolved.delete('modular-helmets');
+    resolved.delete('off-road-helmets');
+    resolved.delete('open-face-helmets');
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+  }
+
+  if (isActualHelmet) {
+    resolved.add('motorcycle-helmets');
+    resolved.delete('helmet-accessories');
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+  }
+
+  if (isGoggles) {
+    resolved.add('helmet-accessories');
+    resolved.add('motorcycle-helmets');
+    resolved.add('off-road-motocross-riding-gear');
+    resolved.add('riding-gear');
+    resolved.delete('off-road-helmets');
+    resolved.delete('full-face-helmets');
+  }
+
+  if (isBalaclava) {
+    resolved.add('balaclava');
+    resolved.add('motorcycle-helmets');
+  }
+
+  if (isCommunicator) {
+    resolved.add('communicators');
+    resolved.add('bluetooth-intercoms');
+    resolved.add('gadgets');
+    resolved.delete('motorcycle-helmets');
+    resolved.delete('full-face-helmets');
+    resolved.delete('modular-helmets');
+    resolved.delete('open-face-helmets');
+    resolved.delete('off-road-helmets');
+    resolved.delete('bike-phone-holders');
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+  }
+
+  if (isPhoneHolder) {
+    resolved.add('bike-phone-holders');
+    resolved.add('gadgets');
+    resolved.add('motorcycle-accessories-online');
+    resolved.delete('communicators');
+    resolved.delete('bluetooth-intercoms');
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+  }
+
+  if (isTopBox) {
+    resolved.add('bike-top-box');
+    resolved.add('motorcycle-bags-bike-luggage');
+    resolved.delete('motorcycle-tail-bags');
+    resolved.delete('saddle-bags-bikes');
+    resolved.delete('tank-bags-bikes');
+  }
+
+  if (isSprocket) {
+    resolved.add('chain-sprocket-kits');
+    resolved.add('spares');
+  }
+
+  if (isBikeGuard) {
+    resolved.add('motorcycle-accessories-online');
+    resolved.delete('protectors-armour');
+    resolved.delete('riding-gear');
+  }
+
+  if (isRiderArmour) {
+    resolved.add('protectors-armour');
+    resolved.add('riding-gear');
+    resolved.delete('motorcycle-accessories-online');
+  }
+
+  if (isSocks) {
+    resolved.add('monsoon-gear-for-riders');
+    resolved.add('riding-gear');
+    resolved.delete('motorcycle-riding-boots');
+    resolved.delete('short-biking-boots');
+    resolved.delete('sports-riding-shoes');
+    resolved.delete('off-road-riding-boots');
+  }
+
+  if (isBungee) {
+    resolved.delete('chain-care');
+    resolved.add('motorcycle-other-luggage');
+    resolved.add('motorcycle-bags-bike-luggage');
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+  }
+
+  if (isChainCare) {
+    resolved.add('chain-care');
+    resolved.add('motorcycle-accessories-online');
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('spares');
+  }
+
+  if (isRallyTower) {
+    resolved.add('rally-tower');
+    resolved.add('motorcycle-accessories-online');
+  }
+
+  if (isCrashBarBag) {
+    resolved.add('crash-bar-bags');
+    resolved.add('motorcycle-bags-bike-luggage');
+    resolved.delete('motorcycle-other-luggage');
+  }
+
+  if (isThighBag) {
+    resolved.add('thigh-bags');
+    resolved.add('motorcycle-bags-bike-luggage');
+    resolved.delete('motorcycle-other-luggage');
+    resolved.delete('merchandise');
+    resolved.delete('saddle-bags-bikes');
+  }
+
+  if (isHelmetBag) {
+    resolved.add('helmet-bags');
+    resolved.add('motorcycle-bags-bike-luggage');
+    resolved.delete('motorcycle-other-luggage');
+    resolved.delete('motorcycle-helmets');
+    resolved.delete('full-face-helmets');
+    resolved.delete('modular-helmets');
+    resolved.delete('open-face-helmets');
+    resolved.delete('off-road-helmets');
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+  }
+
+  // 3. Strict Helmet Subtype Resolution
+  if (isModularHelmet) {
+    resolved.add('modular-helmets');
+    resolved.add('motorcycle-helmets');
+    resolved.delete('full-face-helmets');
+    resolved.delete('open-face-helmets');
+    resolved.delete('off-road-helmets');
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+  } else if (isOpenFaceHelmet) {
+    resolved.add('open-face-helmets');
+    resolved.add('motorcycle-helmets');
+    resolved.delete('full-face-helmets');
+    resolved.delete('modular-helmets');
+    resolved.delete('off-road-helmets');
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+  } else if (isOffRoadHelmet) {
+    resolved.add('off-road-helmets');
+    resolved.add('motorcycle-helmets');
+    resolved.delete('full-face-helmets');
+    resolved.delete('modular-helmets');
+    resolved.delete('open-face-helmets');
+    resolved.delete('riding-gear');
+  } else if (isFullFaceHelmet) {
+    resolved.add('full-face-helmets');
+    resolved.add('motorcycle-helmets');
+    resolved.delete('modular-helmets');
+    resolved.delete('open-face-helmets');
+    resolved.delete('off-road-helmets');
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+  }
+
+  // 4. Strict Luggage Subtype Resolution
+  if (isPureTankBag) {
+    resolved.add('tank-bags-bikes');
+    resolved.add('motorcycle-bags-bike-luggage');
+    resolved.delete('saddle-bags-bikes');
+    resolved.delete('motorcycle-tail-bags');
+  }
+  if (isPureTailBag) {
+    resolved.add('motorcycle-tail-bags');
+    resolved.add('motorcycle-bags-bike-luggage');
+    resolved.delete('saddle-bags-bikes');
+    resolved.delete('tank-bags-bikes');
+  }
+  if (isPureSaddleBag) {
+    resolved.add('saddle-bags-bikes');
+    resolved.add('motorcycle-bags-bike-luggage');
+    resolved.delete('tank-bags-bikes');
+    resolved.delete('motorcycle-tail-bags');
+  }
+
+  if (isHydration) {
     resolved.add('hydration-bag');
     resolved.add('motorcycle-bags-bike-luggage');
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+    resolved.delete('saddle-bags-bikes');
+    resolved.delete('motorcycle-tail-bags');
+    resolved.delete('tank-bags-bikes');
+  }
+
+  // Stacker / Modulayer / Dry bags / Duffles are universal/tail bag, never saddle bag
+  if (/\b(stacker|modulayer|dry\s*bag|duffle|duffel)\b/i.test(n) && !/\bsaddle\b/i.test(n)) {
+    resolved.delete('saddle-bags-bikes');
+  }
+
+  // Armour Inserts (Chest/Back/Shoulder/Elbow/Hip inserts) vs Jackets/Pants
+  const isArmourInsert = /\b(back\s*protector|chest\s*protector|armour\s*insert|armor\s*insert|armour\s*pair|shoulder\s*armour|elbow\s*armour|hip\s*armour|hip\s*protector)\b/i.test(n) && !/\b(jacket|jacket-pair)\b/i.test(n);
+  if (isArmourInsert) {
+    resolved.delete('riding-jackets');
+    resolved.delete('riding-jackets-bike-jackets');
+    resolved.delete('riding-pants');
+    resolved.delete('touring-pants');
+    resolved.add('protectors-armour');
+    resolved.add('riding-gear');
+  }
+
+  // Knee Guards vs Riding Pants
+  const isKneeGuard = /\b(knee\s*guard|shin\s*guard|bionic\s*action\s*knee)\b/i.test(n);
+  if (isKneeGuard) {
+    resolved.delete('riding-pants');
+    resolved.delete('motorcycle-riding-jeans');
+    resolved.delete('touring-pants');
+    resolved.add('knee-guards-bikers');
+    resolved.add('riding-gear');
+  }
+
+  // Riding Pants / Jeans vs Knee Guards
+  const isRidingPant = /\b(riding\s*pants?|touring\s*pants?|riding\s*jeans?|motorcycle\s*jeans?)\b/i.test(n) && !isKneeGuard && !isArmourInsert;
+  if (isRidingPant) {
+    resolved.delete('knee-guards-bikers');
+  }
+
+  // 5. Luggage items must NEVER be in Riding Gear
+  if (isLuggageItem) {
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+    resolved.delete('riding-jackets');
+    resolved.delete('riding-jackets-bike-jackets');
+    resolved.delete('riding-gloves');
+    resolved.delete('riding-gloves-biker-gloves');
+    resolved.delete('motorcycle-riding-boots');
+    resolved.delete('riding-pants');
+    resolved.delete('protectors-armour');
+  }
+
+  // 6. Jackets / Vests must NEVER be in Luggage
+  if (/(vest|jacket)/i.test(n) && !/(bag|backpack)/i.test(n)) {
+    resolved.delete('motorcycle-bags-bike-luggage');
+    resolved.delete('motorcycle-other-luggage');
+  }
+
+  // 7. Helmets must NEVER be in Riding Gear
+  if (/helmet/i.test(n) && !isHelmetAccessory && !isBalaclava) {
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+  }
+
+  // Boot sub-classification for products with motorcycle-riding-boots
+  if (resolved.has('motorcycle-riding-boots')) {
+    if (n.includes('short') || n.includes('sneaker') || n.includes('urban') || n.includes('city') || n.includes('ankle')) {
+      resolved.add('short-biking-boots');
+    }
+    if (n.includes('off-road') || n.includes('off road') || n.includes('motocross') || n.includes('mx') || n.includes('enduro') || n.includes('terrain') || n.includes('adventure')) {
+      resolved.add('off-road-riding-boots');
+    }
+    if (n.includes('sport') || n.includes('racing') || n.includes('track') || n.includes('gp') || n.includes('speed')) {
+      resolved.add('sports-riding-shoes');
+    }
+  }
+
+  // Name-based category resolution fallback if no category matched
+  if (resolved.size === 0) {
+    if (n.includes('glove')) {
+      resolved.add('riding-gloves');
+      resolved.add('riding-gear');
+    } else if (n.includes('boot') || n.includes('shoe')) {
+      resolved.add('motorcycle-riding-boots');
+      resolved.add('riding-gear');
+    } else if (n.includes('pant') || n.includes('jean')) {
+      resolved.add('riding-pants');
+      resolved.add('riding-gear');
+    } else if (n.includes('jacket') || n.includes('suit')) {
+      resolved.add('riding-jackets');
+      resolved.add('riding-gear');
+    } else if (n.includes('helmet')) {
+      resolved.add('motorcycle-helmets');
+      resolved.add('full-face-helmets');
+    } else if (n.includes('shad') || n.includes('bag') || n.includes('pannier') || n.includes('luggage')) {
+      resolved.add('motorcycle-bags-bike-luggage');
+    } else if (n.includes('mount') || n.includes('kit') || n.includes('guard')) {
+      resolved.add('motorcycle-accessories-online');
+    }
   }
 
   return [...resolved];

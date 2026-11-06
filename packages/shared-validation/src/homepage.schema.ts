@@ -130,6 +130,38 @@ export const testimonialsSectionSchema = z.object({
   sectionTitle: z.string().min(1, "Section title is required").max(100),
 });
 
+export const ridersFavouritesItemSchema = z.object({
+  id: z.string().optional().default("fav-1"),
+  name: z.string().max(200).default(""),
+  brand: z.string().max(100).optional().default("STORE4RIDERS"),
+  priceFormatted: z.string().max(50).default(""),
+  imageUrl: z.string().default(""),
+  productUrl: z.string().max(500).default("/products"),
+});
+
+export const ridersFavouritesSectionSchema = z.object({
+  sectionTitle: z.string().min(1, "Section title is required").max(100).default("RIDERS' FAVOURITES"),
+  subtitle: z.string().max(300).optional().default(""),
+  items: z.array(ridersFavouritesItemSchema).max(8).optional().default([]),
+});
+
+export const categoryShowcaseCardSchema = z.object({
+  id: z.string().optional().default("card-1"),
+  title: z.string().max(100).default(""),
+  description: z.string().max(500).default(""),
+  linkUrl: z.string().max(500).default("/products"),
+  imageUrl: z.string().optional().default(""),
+  placeholderText: z.string().optional().default(""),
+  guideLinkText: z.string().optional().default(""),
+  guideLinkUrl: z.string().optional().default(""),
+});
+
+export const categoryShowcaseSectionSchema = z.object({
+  sectionTitle: z.string().min(1, "Section title is required").max(100).default("RIDER'S ESSENTIAL GEAR"),
+  subtitle: z.string().max(300).optional().default(""),
+  cards: z.array(categoryShowcaseCardSchema).max(8).optional().default([]),
+});
+
 export const topBannerSchema = z.object({
   message: z.string().max(200).default(""),
   highlightText: z.string().max(100).default(""),
@@ -144,6 +176,16 @@ export const homepageSectionsSchema = z.object({
   touringGear: touringGearSectionSchema,
   socialMedia: socialMediaSectionSchema,
   testimonials: testimonialsSectionSchema,
+  ridersFavourites: ridersFavouritesSectionSchema.optional().default({
+    sectionTitle: "RIDERS' FAVOURITES",
+    subtitle: "",
+    items: [],
+  }),
+  categoryShowcase: categoryShowcaseSectionSchema.optional().default({
+    sectionTitle: "RIDER'S ESSENTIAL GEAR",
+    subtitle: "",
+    cards: [],
+  }),
 });
 
 export const updateHeroAndSeoSchema = z.object({

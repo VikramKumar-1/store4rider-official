@@ -6,7 +6,8 @@ import { useCategoryTree } from "@/core/hooks/useCategories";
 import { useBrand } from "@/core/hooks/useBrands";
 import { CatalogModule } from "@/modules/catalog";
 import { CatalogProduct } from "@/modules/catalog/types/catalog.types";
-import { inferRichColorFromUrl } from "@/modules/product-detail/components/ProductDetailPageModule";
+import { inferRichColorFromUrl, isValidCssSwatch, parseColorToBackground } from "@/modules/product-detail/components/ProductDetailPageModule";
+import { getProductThumbnailUrl, normalizeExternalImageUrl } from "@/core/utils/mediaUrlHelper";
 
 export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNode?: any }) => {
   const searchParams = useSearchParams();
@@ -88,11 +89,17 @@ export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNod
   const mappedProducts: CatalogProduct[] = uniqueProducts.map((p) => {
     let cleanCat = "ACCESSORIES";
     const pAny = p as any;
+    const BROAD_ROOT_SLUGS = new Set([
+      "motorcycle-helmets", "riding-gear", "motorcycle-bags-bike-luggage",
+      "motorcycle-accessories-online", "bike-spares", "gadgets"
+    ]);
+
     if (pAny.category && pAny.category.name) {
       cleanCat = pAny.category.name;
     } else if (pAny.categorySlugs && pAny.categorySlugs.length > 0) {
-      const lastSlug = pAny.categorySlugs[pAny.categorySlugs.length - 1];
-      cleanCat = lastSlug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+      const leafSlugs = pAny.categorySlugs.filter((s: string) => !BROAD_ROOT_SLUGS.has(s));
+      const chosenSlug = leafSlugs.length > 0 ? leafSlugs[leafSlugs.length - 1] : pAny.categorySlugs[0];
+      cleanCat = chosenSlug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
     } else if (p.magentoCategories) {
       const parts = p.magentoCategories.split(/[\/,|]/).map((s: string) => s.trim()).filter((s: string) => s && !s.toLowerCase().includes("root test") && !s.toLowerCase().includes("default"));
       cleanCat = parts.length > 0 ? parts[parts.length - 1] : "ACCESSORIES";
@@ -144,63 +151,8 @@ export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNod
       category: cleanCat,
       priceFormatted,
       imageUrl: (() => {
-        const defaultUrl = p.images?.[0]?.url || "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80";
-        if (!activeColorParam) return defaultUrl;
-        
-        const activeColors = activeColorParam.split(",").map((c: string) => c.trim().toLowerCase());
-        
-        // 1. Try colorImages map (case-insensitive key lookup)
-        if (p.colorImages) {
-          const imageKeys = Object.keys(p.colorImages);
-          for (const color of activeColors) {
-            const matchedKey = imageKeys.find(k => k.toLowerCase() === color);
-            if (matchedKey && p.colorImages[matchedKey]) {
-              return p.colorImages[matchedKey];
-            }
-          }
-        }
-        
-        // 2. Try variant imageUrl matching the active color
-        if (p.variants && Array.isArray(p.variants)) {
-          for (const color of activeColors) {
-            const matchedVariant = p.variants.find((v: any) => {
-              const vColor = v.attributes?.color || v.attributes?.colour;
-              return vColor && vColor.toLowerCase() === color && v.imageUrl;
-            });
-            if (matchedVariant?.imageUrl) return matchedVariant.imageUrl;
-          }
-        }
-        
-        // 3. Try to guess from parent images array (URL or Alt Text)
-        if (p.images && Array.isArray(p.images)) {
-          const ALL_COLORS = ["black", "white", "red", "blue", "green", "yellow", "orange", "grey", "gray", "pink", "purple", "brown", "silver", "gold", "neon", "flu", "matte", "gloss"];
-          for (const color of activeColors) {
-            const colorWords = color.split(/[\/\s-]/).filter((w: string) => w.length > 2 && w.toLowerCase() !== 'flu.');
-            
-            let bestImg = null;
-            let bestScore = -1;
-
-            for (const img of p.images) {
-              const textToSearch = (img.url + " " + (img.altText || "")).toLowerCase();
-              if (colorWords.length > 0 && colorWords.every((w: string) => textToSearch.includes(w))) {
-                let penalty = 0;
-                for (const c of ALL_COLORS) {
-                  if (!colorWords.map((w: string) => w.toLowerCase()).includes(c) && textToSearch.includes(c)) {
-                    penalty += 10;
-                  }
-                }
-                const score = 100 - penalty;
-                if (score > bestScore) {
-                  bestScore = score;
-                  bestImg = img;
-                }
-              }
-            }
-            if (bestImg) return bestImg.url;
-          }
-        }
-        
-        return defaultUrl;
+        const preferredColor = activeColorParam ? activeColorParam.split(",")[0]?.trim() : undefined;
+        return getProductThumbnailUrl(p, preferredColor);
       })(),
       rating: 4.9,
       isFeatured: Boolean(p.isFeatured),
@@ -238,7 +190,7 @@ export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNod
           const colorKey = Object.keys(attrs).find(k => k.toLowerCase().includes('color') || k.toLowerCase().includes('colour'));
           if (colorKey && attrs[colorKey]) colorNames.add(attrs[colorKey]);
         }
-        return Array.from(colorNames).map(name => {
+        const rawList = Array.from(colorNames).map(name => {
           const colorLower = name.trim().toLowerCase();
           let imageUrl = undefined;
           
@@ -309,9 +261,13 @@ export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNod
             if (bestImg) imageUrl = bestImg.url;
           }
           
-          let enhancedName = name;
-          if (imageUrl) {
-            enhancedName = inferRichColorFromUrl(imageUrl, name.trim());
+          let enhancedName = name.trim();
+          // Only infer color from image URL if original name is generic placeholder or numeric code
+          const isJunkOrCode = !enhancedName ||
+            ["standard", "default", "none", "n/a", "na", "-", "--"].includes(enhancedName.toLowerCase()) ||
+            /^[A-Z0-9_-]{2,8}$/i.test(enhancedName);
+          if (isJunkOrCode && imageUrl) {
+            enhancedName = inferRichColorFromUrl(imageUrl, enhancedName);
           }
           
           const swatchMap = (p as any).colorSwatches
@@ -319,10 +275,32 @@ export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNod
                 ? Object.fromEntries((p as any).colorSwatches)
                 : (p as any).colorSwatches)
             : {};
-          const bg = swatchMap[name] || swatchMap[enhancedName] || swatchMap[colorLower];
+          const rawBg = swatchMap[name] || swatchMap[enhancedName] || swatchMap[colorLower];
+          const bg = (rawBg && isValidCssSwatch(rawBg)) ? rawBg : parseColorToBackground(enhancedName || name);
           return { name: enhancedName, imageUrl, background: bg };
         });
+
+        // Deduplicate swatches so duplicate color buttons never appear on the card
+        const uniqueSwatches: { name: string; imageUrl?: string; background?: string }[] = [];
+        const seenNames = new Set<string>();
+        const seenVisuals = new Set<string>();
+
+        for (const item of rawList) {
+          const norm = item.name.toLowerCase().replace(/\s*\/\s*/g, '/').replace(/\s+/g, ' ').trim();
+          const visualKey = `${item.background}::${item.imageUrl || ''}`;
+
+          if (seenNames.has(norm) || (item.imageUrl && seenVisuals.has(visualKey))) {
+            continue;
+          }
+
+          seenNames.add(norm);
+          if (item.imageUrl) seenVisuals.add(visualKey);
+          uniqueSwatches.push(item);
+        }
+
+        return uniqueSwatches;
       })(),
+      rawProduct: p,
     };
   });
 

@@ -160,6 +160,24 @@ export class HomepageService {
         config.sections.featuredCategories.gloves.linkUrl = "/riding-gear/riding-gloves";
       }
     }
+
+    if (config.sections) {
+      if (!config.sections.ridersFavourites) {
+        config.sections.ridersFavourites = {
+          sectionTitle: "RIDERS' FAVOURITES",
+          subtitle: "",
+          items: [],
+        };
+      }
+      if (!config.sections.categoryShowcase) {
+        config.sections.categoryShowcase = {
+          sectionTitle: "RIDER'S ESSENTIAL GEAR",
+          subtitle: "",
+          cards: [],
+        };
+      }
+    }
+
     return config;
   }
 

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { 
-  DollarSign, 
+  IndianRupee, 
   ShoppingBag, 
   Users, 
   AlertCircle, 
@@ -132,7 +132,7 @@ export function AdminDashboard() {
         <KpiCard
           title="Total Store Revenue"
           value={statsLoading ? "..." : formatPrice(stats?.totalRevenue || 0)}
-          icon={<DollarSign className="w-5 h-5 text-emerald-600" />}
+          icon={<IndianRupee className="w-5 h-5 text-emerald-600" />}
           trend="All completed & active orders"
           trendUp={true}
           bgClass="bg-emerald-50"

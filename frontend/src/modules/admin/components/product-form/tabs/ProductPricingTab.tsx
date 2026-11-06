@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { DollarSign } from "lucide-react";
+import { IndianRupee } from "lucide-react";
 import { useProductFormContext } from "../ProductFormContext";
 
 export function ProductPricingTab() {
@@ -47,7 +47,7 @@ export function ProductPricingTab() {
   return (
     <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-6 space-y-6">
       <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
-        <DollarSign className="text-brand" size={18} />
+        <IndianRupee className="text-brand" size={18} />
         Pricing Rules & Warehouse Inventory
       </h3>
 

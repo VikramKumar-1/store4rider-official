@@ -40,10 +40,11 @@ dotenv.config({ path: path.join(process.cwd(), 'backend', '.env') });
 // ──────────────────────────────────────────────────────────────
 // Configuration
 // ──────────────────────────────────────────────────────────────
-const CSV_FILE_PATH = 'C:\\Users\\vikur\\Downloads\\All product export csv-17.9.26.csv';
+const CSV_FILE_PATH = path.join(__dirname, 'csv_nov.csv');
+const IS_DRY_RUN = process.argv.includes('--dry-run');
 const S3_BASE_URL = 'https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product';
 const MAGENTO_MEDIA_BASE = 'https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product';
-const BATCH_SIZE = 50;
+const BATCH_SIZE = 100;
 
 // ──────────────────────────────────────────────────────────────
 // Mongoose Schema (mirrors backend/src/modules/product/product.model.ts EXACTLY)
@@ -81,6 +82,7 @@ const productSchema = new mongoose.Schema(
     sizeChart: { type: String },
     size_chart: { type: String },
     isFreeShipping: { type: Boolean, default: false },
+    attributes: { type: mongoose.Schema.Types.Mixed, default: {} },
     images: [
       {
         id: { type: String },
@@ -88,6 +90,8 @@ const productSchema = new mongoose.Schema(
         altText: { type: String },
       },
     ],
+    colorImages: { type: mongoose.Schema.Types.Mixed, default: {} },
+    colorSwatches: { type: mongoose.Schema.Types.Mixed, default: {} },
     variants: [
       {
         id: { type: String },
@@ -96,6 +100,17 @@ const productSchema = new mongoose.Schema(
         specialPrice: { type: Number },
         stock: { type: Number, default: 0 },
         attributes: { type: Map, of: String },
+        imageUrl: { type: String },
+        status: { type: String, default: 'enabled' },
+        visibility: { type: String },
+        weight: { type: Number },
+        images: [
+          {
+            id: { type: String },
+            url: { type: String, required: true },
+            altText: { type: String },
+          },
+        ],
       },
     ],
     status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft' },
@@ -112,7 +127,7 @@ const productSchema = new mongoose.Schema(
     avgRating: { type: Number, default: 0 },
     reviewCount: { type: Number, default: 0 },
   },
-  { timestamps: true }
+  { timestamps: true, strict: false }
 );
 
 // High-performance query and sorting indexes
@@ -562,6 +577,15 @@ async function processProducts(): Promise<void> {
   const processBatch = async (): Promise<void> => {
     if (batch.length === 0) return;
 
+    if (IS_DRY_RUN) {
+      totalImported += batch.length;
+      if (totalImported % 500 === 0) {
+        console.log(`   [DRY-RUN] Checked and verified ${totalImported} products...`);
+      }
+      batch = [];
+      return;
+    }
+
     try {
       const ops = batch.map((doc) => ({
         updateOne: {
@@ -620,8 +644,10 @@ async function processProducts(): Promise<void> {
 
           if (isConfigurable && row.configurable_variations) {
             const variationEntries = row.configurable_variations.split('|');
-            let lowestChildPrice = Infinity;
-            let lowestChildSpecialPrice = Infinity;
+            let lowestAnyChildPrice = Infinity;
+            let lowestInStockChildPrice = Infinity;
+            let lowestAnyChildSpecialPrice = Infinity;
+            let lowestInStockChildSpecialPrice = Infinity;
             let totalChildQty = 0;
             let anyChildInStock = false;
 
@@ -654,15 +680,21 @@ async function processProducts(): Promise<void> {
               const childStock = childInfo?.qty || 0;
               const childInStock = (childInfo?.isInStock || 0) > 0;
 
-              // Track lowest prices
-              if (childPrice > 0 && childPrice < lowestChildPrice) {
-                lowestChildPrice = childPrice;
+              // Track lowest prices (both overall and in-stock)
+              if (childPrice > 0) {
+                if (childPrice < lowestAnyChildPrice) lowestAnyChildPrice = childPrice;
+                if (childInStock && childPrice < lowestInStockChildPrice) {
+                  lowestInStockChildPrice = childPrice;
+                }
               }
 
-              // Track lowest genuine special price
+              // Track lowest genuine special price (both overall and in-stock)
               const validChildSP = getValidSpecialPrice(childPrice, childSpecialPrice);
-              if (validChildSP !== undefined && validChildSP < lowestChildSpecialPrice) {
-                lowestChildSpecialPrice = validChildSP;
+              if (validChildSP !== undefined) {
+                if (validChildSP < lowestAnyChildSpecialPrice) lowestAnyChildSpecialPrice = validChildSP;
+                if (childInStock && validChildSP < lowestInStockChildSpecialPrice) {
+                  lowestInStockChildSpecialPrice = validChildSP;
+                }
               }
 
               // Track stock
@@ -675,7 +707,7 @@ async function processProducts(): Promise<void> {
                 colorImagesMap[vColor] = buildImageUrl(childInfo.baseImage);
               }
 
-                            // Process Child Images
+              // Process Child Images
               const childImages: any[] = [];
               if (childInfo?.baseImage) {
                 childImages.push({
@@ -714,14 +746,16 @@ async function processProducts(): Promise<void> {
             }
 
             // ─── CONFIGURABLE PRICE DERIVATION ───
-            // If parent has no price, use lowest child price
-            if (basePrice === 0 && lowestChildPrice !== Infinity) {
-              basePrice = lowestChildPrice;
+            // Rule 2: Derive basePrice from in-stock variants first, fallback to all variants
+            const effectiveChildPrice = lowestInStockChildPrice !== Infinity ? lowestInStockChildPrice : lowestAnyChildPrice;
+            if (basePrice === 0 && effectiveChildPrice !== Infinity) {
+              basePrice = effectiveChildPrice;
             }
 
-            // Special price for configurable = lowest genuine child discount
-            if (lowestChildSpecialPrice !== Infinity) {
-              specialPrice = lowestChildSpecialPrice;
+            // Special price for configurable = lowest genuine child discount (in-stock first)
+            const effectiveChildSP = lowestInStockChildSpecialPrice !== Infinity ? lowestInStockChildSpecialPrice : lowestAnyChildSpecialPrice;
+            if (effectiveChildSP !== Infinity) {
+              specialPrice = effectiveChildSP;
             }
 
             // Stock for configurable = aggregated from children
@@ -842,9 +876,11 @@ async function processProducts(): Promise<void> {
             sizeChart,
             size_chart: sizeChart, // Stored in both fields for compatibility
             isFreeShipping: freeShipping,
+            attributes: attrs,
             images,
             variants,
             colorImages: Object.keys(colorImagesMap).length > 0 ? colorImagesMap : undefined,
+            colorSwatches: undefined,
             status: 'published', // All imported products are published
             isFeatured: false,
             tags: [],
@@ -909,6 +945,10 @@ async function processProducts(): Promise<void> {
 // ──────────────────────────────────────────────────────────────
 
 async function verifyImport(): Promise<void> {
+  if (IS_DRY_RUN) {
+    console.log('\n📊 DRY RUN SUMMARY: All product rows parsed and validated successfully.');
+    return;
+  }
   console.log('\n🔍 Post-Import Verification...\n');
 
   const totalProducts = await ProductModel.countDocuments();
@@ -922,6 +962,9 @@ async function verifyImport(): Promise<void> {
   const withSpecialPrice = await ProductModel.countDocuments({ specialPrice: { $gt: 0 } });
   const withBrand = await ProductModel.countDocuments({ brand: { $exists: true, $ne: '' } });
   const withGender = await ProductModel.countDocuments({ gender: { $exists: true, $ne: null } });
+  const withColorImages = await ProductModel.countDocuments({ colorImages: { $exists: true, $ne: null } });
+  const withCategorySlugs = await ProductModel.countDocuments({ 'categorySlugs.0': { $exists: true } });
+  const withoutCategorySlugs = await ProductModel.countDocuments({ 'categorySlugs.0': { $exists: false } });
   const freeShipCount = await ProductModel.countDocuments({ isFreeShipping: true });
   const zeroPriceCount = await ProductModel.countDocuments({ basePrice: { $lte: 0 } });
   const publishedCount = await ProductModel.countDocuments({ status: 'published' });
@@ -935,6 +978,9 @@ async function verifyImport(): Promise<void> {
   console.log(`  │ Simple (standalone):      ${String(simpleCount).padStart(6)}          │`);
   console.log(`  │ With Variants:            ${String(withVariants).padStart(6)}          │`);
   console.log(`  │ With Images:              ${String(withImages).padStart(6)}          │`);
+  console.log(`  │ With Color Images:        ${String(withColorImages).padStart(6)}          │`);
+  console.log(`  │ With Category Slugs:      ${String(withCategorySlugs).padStart(6)}          │`);
+  console.log(`  │ Without Category Slugs:   ${String(withoutCategorySlugs).padStart(6)}          │`);
   console.log(`  │ With Related SKUs:        ${String(withRelated).padStart(6)}          │`);
   console.log(`  │ With Upsell SKUs:         ${String(withUpsell).padStart(6)}          │`);
   console.log(`  │ With Crosssell SKUs:      ${String(withCrosssell).padStart(6)}          │`);
@@ -1013,16 +1059,15 @@ async function run(): Promise<void> {
     // Connect to database
     await connectToDatabase();
 
-    // Drop existing products for a clean import
-    console.log('\n🗑️  Dropping existing products collection for clean import...');
-    try {
-      await ProductModel.collection.drop();
-      console.log('   ✅ Collection dropped.');
-    } catch (err: any) {
-      if (err.code === 26) {
-        console.log('   ℹ️  Collection does not exist, skipping drop.');
-      } else {
-        console.error('   ⚠️  Error dropping collection:', err.message);
+    if (IS_DRY_RUN) {
+      console.log('\n🔍 DRY RUN MODE — Validating CSV and mappings without touching the database.');
+    } else {
+      console.log('\n🗑️  Clearing all existing products (preserving collection table & indexes)...');
+      try {
+        const delRes = await ProductModel.deleteMany({});
+        console.log(`   ✅ Cleared ${delRes.deletedCount} existing products. Table structure & indexes preserved.`);
+      } catch (err: any) {
+        console.error('   ⚠️  Error clearing products:', err.message);
       }
     }
 

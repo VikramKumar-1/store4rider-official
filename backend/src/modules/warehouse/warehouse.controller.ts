@@ -35,4 +35,13 @@ export class WarehouseController {
     await WarehouseService.deleteWarehouse(id);
     return ApiResponse.success(null, "Warehouse deleted successfully");
   }
+
+  static async syncShiprocketWarehouses(req: NextRequest) {
+    const result = await WarehouseService.syncShiprocketWarehouses();
+    return ApiResponse.success(
+      result,
+      `Successfully synced ${result.syncedCount} warehouse location${result.syncedCount === 1 ? "" : "s"} from Shiprocket`,
+      200
+    );
+  }
 }

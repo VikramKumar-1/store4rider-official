@@ -22,6 +22,8 @@ function AccordionSection({ title, children, defaultOpen = true }: { title: stri
   return (
     <div className="border-b border-solid border-neutral-200 py-3.5">
       <button 
+        type="button"
+        suppressHydrationWarning
         onClick={() => setIsOpen(!isOpen)} 
         className="w-full flex items-center justify-between text-left cursor-pointer group outline-none"
       >

@@ -267,6 +267,56 @@ const testimonialsSectionSchema = new Schema(
   { _id: false }
 );
 
+const ridersFavouritesItemSchema = new Schema(
+  {
+    id: { type: String, default: "fav-1" },
+    name: { type: String, default: "" },
+    brand: { type: String, default: "STORE4RIDERS" },
+    priceFormatted: { type: String, default: "" },
+    imageUrl: { type: String, default: "" },
+    productUrl: { type: String, default: "/products" },
+  },
+  { _id: false }
+);
+
+const ridersFavouritesSectionSchema = new Schema(
+  {
+    sectionTitle: { type: String, default: "RIDERS' FAVOURITES" },
+    subtitle: { type: String, default: "" },
+    items: {
+      type: [ridersFavouritesItemSchema],
+      default: [],
+    },
+  },
+  { _id: false }
+);
+
+const categoryShowcaseCardSchema = new Schema(
+  {
+    id: { type: String, default: "card-1" },
+    title: { type: String, default: "" },
+    description: { type: String, default: "" },
+    linkUrl: { type: String, default: "/products" },
+    imageUrl: { type: String, default: "" },
+    placeholderText: { type: String, default: "" },
+    guideLinkText: { type: String, default: "" },
+    guideLinkUrl: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
+const categoryShowcaseSectionSchema = new Schema(
+  {
+    sectionTitle: { type: String, default: "RIDER'S ESSENTIAL GEAR" },
+    subtitle: { type: String, default: "" },
+    cards: {
+      type: [categoryShowcaseCardSchema],
+      default: [],
+    },
+  },
+  { _id: false }
+);
+
 const homepageSectionsSchema = new Schema(
   {
     topBanner: { type: topBannerSchema, default: () => ({}) },
@@ -275,6 +325,8 @@ const homepageSectionsSchema = new Schema(
     touringGear: { type: touringGearSectionSchema, default: () => ({}) },
     socialMedia: { type: socialMediaSectionSchema, default: () => ({}) },
     testimonials: { type: testimonialsSectionSchema, default: () => ({}) },
+    ridersFavourites: { type: ridersFavouritesSectionSchema, default: () => ({}) },
+    categoryShowcase: { type: categoryShowcaseSectionSchema, default: () => ({}) },
   },
   { _id: false }
 );

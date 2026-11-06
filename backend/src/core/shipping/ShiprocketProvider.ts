@@ -7,7 +7,8 @@ import {
   ShippingRate, 
   TrackingInfoResult,
   GetRatesInput,
-  PickupResult
+  PickupResult,
+  ShiprocketPickupLocation
 } from "./ShippingProvider";
 import { AppError } from "../errors/AppError";
 import { ENV } from "../config/env";
@@ -119,12 +120,13 @@ export class ShiprocketProvider implements ShippingProvider {
       });
 
       const shipmentId = String(response.data.shipment_id);
+      const providerOrderId = response.data.order_id ? String(response.data.order_id) : undefined;
       let awb = response.data.awb_code;
       let courierName = response.data.courier_name;
       let labelUrl: string | undefined;
 
-      // Automatically assign courier partner & generate AWB via Shiprocket API
-      if (!awb && shipmentId) {
+      // Automatically assign courier partner & generate AWB via Shiprocket API only if explicitly requested
+      if (input.autoAssignAwb && !awb && shipmentId) {
         try {
           const awbRes = await shippingPost(`${this.baseUrl}/courier/assign/awb`, {
             shipment_id: Number(shipmentId)
@@ -158,10 +160,13 @@ export class ShiprocketProvider implements ShippingProvider {
       return {
         success: true,
         shipmentId,
+        providerOrderId,
         awb: awb || undefined,
-        courierName: courierName || "Shiprocket",
+        courierName: courierName || (awb ? "Shiprocket" : undefined),
         labelUrl: labelUrl,
-        message: awb ? `AWB ${awb} generated successfully via ${courierName}` : "Shipment created successfully in Shiprocket"
+        message: awb 
+          ? `AWB ${awb} generated successfully via ${courierName || "Shiprocket"}` 
+          : "Order created successfully in Shiprocket Dashboard. You can select courier and place order in Shiprocket."
       };
     } catch (error: any) {
       const errorMsg = error.response?.data?.message || 
@@ -206,6 +211,35 @@ export class ShiprocketProvider implements ShippingProvider {
     } catch (error: any) {
       logger.error(`Shiprocket Generate Label Error: ${error.response?.data?.message || error.message}`);
       return null;
+    }
+  }
+
+  async getPickupLocations(): Promise<ShiprocketPickupLocation[]> {
+    const token = await this.getAuthToken();
+    try {
+      const response = await shippingGet(`${this.baseUrl}/settings/company/pickup`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const locations = response.data?.shipping_address || response.data?.data?.shipping_address || [];
+      return locations;
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.message || "Failed to fetch pickup locations from Shiprocket";
+      logger.error(`Shiprocket Get Pickup Locations Error: ${errorMsg}`);
+      throw new AppError(`Shiprocket Error: ${errorMsg}`, 500);
+    }
+  }
+
+  async getOrderDetails(orderId: string): Promise<any> {
+    const token = await this.getAuthToken();
+    try {
+      const response = await shippingGet(`${this.baseUrl}/orders/show/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.data?.data || response.data;
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.message || "Failed to fetch order details from Shiprocket";
+      logger.error(`Shiprocket Get Order Details Error: ${errorMsg}`);
+      throw new AppError(`Shiprocket Error: ${errorMsg}`, 500);
     }
   }
 

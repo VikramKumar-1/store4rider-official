@@ -110,7 +110,7 @@ const extractCategoryName = (product: IBackendProduct): string => {
  * Helper: Parse configurableVariations string into colors & sizes arrays.
  * Input format: "sku=CL-FR-BL-7,eu_size_for_boots=41,color=Black|sku=CL-FR-BR-7,eu_size_for_boots=41,color=Brown"
  */
-const parseVariations = (
+export const parseVariations = (
   variationsStr?: string,
   variationLabelsStr?: string
 ): { colors: string[]; sizes: string[]; sizeLabel: string } => {
@@ -216,6 +216,38 @@ const singleColorMap: Record<string, string> = {
   purple: "#7C3AED",
   teal: "#0D9488",
   cyan: "#06B6D4",
+  flu: "#CCFF00",
+  clear: "#F1F5F9",
+  smoke: "#4B5563",
+  "dark smoke": "#1F2937",
+  "light smoke": "#94A3B8",
+  titanium: "#64748B",
+  chrome: "#E2E8F0",
+  "iridium silver": "#C0C0C0",
+  "iridium blue": "#3B82F6",
+  "iridium gold": "#F59E0B",
+  "iridium red": "#EF4444",
+  "iridium green": "#10B981",
+  "iridium multi colour": "linear-gradient(135deg, #EF4444, #F59E0B, #10B981, #3B82F6, #8B5CF6)",
+  "iridium rainbow": "linear-gradient(135deg, #EF4444, #F59E0B, #10B981, #3B82F6, #8B5CF6)",
+  rainbow: "linear-gradient(135deg, #EF4444, #F59E0B, #10B981, #3B82F6, #8B5CF6)",
+};
+
+export const isValidCssSwatch = (val?: string): boolean => {
+  if (!val || typeof val !== "string") return false;
+  const trimmed = val.trim();
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("/") ||
+    trimmed.includes(".jpg") ||
+    trimmed.includes(".png") ||
+    trimmed.includes(".jpeg") ||
+    trimmed.includes(".webp")
+  ) {
+    return false;
+  }
+  return true;
 };
 
 export const parseColorToBackground = (colorName: string): string => {
@@ -528,6 +560,11 @@ const mapProductToPDP = (
   const isJunkVariantVal = (val?: string) =>
     Boolean(val && ["standard", "default", "none", "n/a", "na", "-", "--"].includes(val.trim().toLowerCase()));
 
+  const hasColor = (set: Set<string>, candidate: string) => {
+    const normCand = normalizeColorKey(candidate);
+    return Array.from(set).some((c) => normalizeColorKey(c) === normCand);
+  };
+
   if (rawVariants && rawVariants.length > 0) {
     rawVariants.forEach((variant: any) => {
       if (variant.attributes) {
@@ -536,7 +573,7 @@ const mapProductToPDP = (
           const v = String(value).trim();
           if (k === 'sku' || !v || isJunkVariantVal(v)) return;
           if (k.includes('color') || k.includes('colour')) {
-            colorSet.add(v);
+            if (!hasColor(colorSet, v)) colorSet.add(v);
           } else {
             sizeSet.add(v);
             if (k === 'eu_size_for_boots' && sizeLabel === "SIZE") {
@@ -551,15 +588,10 @@ const mapProductToPDP = (
   } else {
     // Fallback to parsing the legacy Magento string
     const parsed = parseVariations(product.configurableVariations, (product as any).configurableVariationLabels);
-    parsed.colors.forEach(c => { if (c && !isJunkVariantVal(c)) colorSet.add(c); });
+    parsed.colors.forEach(c => { if (c && !isJunkVariantVal(c) && !hasColor(colorSet, c)) colorSet.add(c); });
     parsed.sizes.forEach(s => { if (s && !isJunkVariantVal(s)) sizeSet.add(s); });
     sizeLabel = parsed.sizeLabel || "SIZE";
   }
-
-  const hasColor = (set: Set<string>, candidate: string) => {
-    const normCand = normalizeColorKey(candidate);
-    return Array.from(set).some((c) => normalizeColorKey(c) === normCand);
-  };
 
   // Add colors from colorImages map if any exist that weren't in variants
   if (product.colorImages) {
@@ -635,7 +667,7 @@ const mapProductToPDP = (
     ? deduplicateProductImages(rawGalleryImages, colorNames, product.name)
     : [{ url: "/no-image.svg", altText: "Placeholder" }];
 
-  const mappedColors = colorNames.length > 0
+  const rawMappedColors = colorNames.length > 0
     ? colorNames.map(name => {
         let imgUrl: string | undefined = undefined;
         if (product.colorImages) {
@@ -673,13 +705,34 @@ const mapProductToPDP = (
             swatchBg = `linear-gradient(135deg, ${stops})`;
           }
         }
+        const finalBg = (swatchBg && isValidCssSwatch(swatchBg)) ? swatchBg : parseColorToBackground(name);
         return {
           name,
-          background: swatchBg || parseColorToBackground(name),
+          background: finalBg,
           imageUrl: imgUrl,
         };
       })
     : []; // Hide color selector entirely if no colors are found instead of guessing 'Standard'
+
+  // Deduplicate colors so no two identical names or exact visuals render twice
+  const mappedColors = (() => {
+    if (rawMappedColors.length === 0) return [];
+    const seenNames = new Set<string>();
+    const seenVisuals = new Set<string>();
+    const result: typeof rawMappedColors = [];
+
+    for (const c of rawMappedColors) {
+      const norm = normalizeColorKey(c.name);
+      const visualKey = `${c.background}::${c.imageUrl || ""}`;
+      if (seenNames.has(norm) || (c.imageUrl && seenVisuals.has(visualKey))) {
+        continue;
+      }
+      seenNames.add(norm);
+      if (c.imageUrl) seenVisuals.add(visualKey);
+      result.push(c);
+    }
+    return result;
+  })();
 
   const avgRating = reviews && reviews.length > 0 
     ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 

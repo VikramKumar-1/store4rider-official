@@ -75,6 +75,7 @@ export interface PushToShiprocketPayload {
   length?: number;
   breadth?: number;
   height?: number;
+  autoAssignAwb?: boolean;
 }
 
 export function usePushToShiprocket() {

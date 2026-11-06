@@ -94,8 +94,11 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
         ],
       },
       {
-        group: "Hydration & Other Luggage",
+        group: "Specialty & Rider Luggage",
         items: [
+          { label: "Crash Bar Bags", href: "/motorcycle-bags-bike-luggage/crash-bar-bags" },
+          { label: "Thigh Bags", href: "/motorcycle-bags-bike-luggage/thigh-bags" },
+          { label: "Helmet Bags", href: "/motorcycle-bags-bike-luggage/helmet-bags" },
           { label: "Hydration Bags", href: "/motorcycle-bags-bike-luggage/hydration-bag" },
           { label: "Other Luggage", href: "/motorcycle-bags-bike-luggage/motorcycle-other-luggage" },
         ],

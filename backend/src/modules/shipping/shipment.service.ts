@@ -28,6 +28,7 @@ export class ShipmentService {
       length?: number;
       breadth?: number;
       height?: number;
+      autoAssignAwb?: boolean;
     },
     warehouseIdLegacy?: string
   ): Promise<any> {
@@ -35,7 +36,15 @@ export class ShipmentService {
       ? { orderId: orderIdOrParams, warehouseId: warehouseIdLegacy }
       : orderIdOrParams;
 
-    const { orderId, warehouseId, weightKg, length: customL, breadth: customB, height: customH } = opts;
+    const { 
+      orderId, 
+      warehouseId, 
+      weightKg, 
+      length: customL, 
+      breadth: customB, 
+      height: customH,
+      autoAssignAwb = false // Default to false: sends to Shiprocket dashboard for manual courier selection
+    } = opts;
     const order = await OrderModel.findById(orderId);
     if (!order) {
       throw new NotFoundError("Order");
@@ -57,8 +66,18 @@ export class ShipmentService {
     } else {
     try {
       const productIds = order.items.map((i: any) => i.productId);
-      const products = await ProductModel.find({ _id: { $in: productIds } }).select("weight").lean().exec();
-      const weightMap = new Map(products.map((p: any) => [String(p._id), p.weight || 0.5]));
+      const products = await ProductModel.find({ _id: { $in: productIds } }).select("weight weightUnit").lean().exec();
+      const weightMap = new Map(products.map((p: any) => {
+        const rawW = Number(p.weight) || 0.5;
+        const u = String(p.weightUnit || "kg").toLowerCase();
+        let inKg = rawW;
+        if (u === "g" || u === "ml") {
+          inKg = rawW / 1000;
+        } else if (u === "l") {
+          inKg = rawW; // 1 Litre approx 1 Kg
+        }
+        return [String(p._id), Math.max(0.05, inKg)];
+      }));
 
       for (const item of order.items) {
         const itemWeight = weightMap.get(String(item.productId)) || 0.5;
@@ -113,6 +132,7 @@ export class ShipmentService {
       height: finalHeight,
       weight: Number(totalWeight.toFixed(2)),
       warehouseId: targetWarehouse ? String(targetWarehouse._id) : undefined,
+      autoAssignAwb: Boolean(autoAssignAwb),
     };
 
     const providerInstance = ShippingProviderFactory.create("shiprocket");
@@ -127,12 +147,13 @@ export class ShipmentService {
         provider: "shiprocket",
         shipmentType: "forward",
         status: result.awb ? "AWB_ASSIGNED" : "SHIPMENT_CREATED",
+        providerOrderId: result.providerOrderId,
         providerShipmentId: result.shipmentId,
         shipmentId: result.shipmentId,
         awb: result.awb,
         courierName: result.courierName,
         labelUrl: result.labelUrl,
-        providerStatus: result.awb ? "AWB Generated" : "Dispatched via Shiprocket",
+        providerStatus: result.awb ? "AWB Generated" : "Order Created in Shiprocket Dashboard (Pending Courier Selection)",
         totalWeight: totalWeight,
         customerShippingCharge: order.pricing?.shipping || 0,
         codFee: order.paymentMethod === "cod" ? (order.pricing?.codAmountToCollect || 0) : 0,
@@ -144,12 +165,13 @@ export class ShipmentService {
         shipment.warehouseId = String(targetWarehouse._id);
       }
       shipment.status = result.awb ? "AWB_ASSIGNED" : "SHIPMENT_CREATED";
+      if (result.providerOrderId) shipment.providerOrderId = result.providerOrderId;
       shipment.providerShipmentId = result.shipmentId;
       shipment.shipmentId = result.shipmentId;
       shipment.awb = result.awb;
       shipment.courierName = result.courierName;
       shipment.labelUrl = result.labelUrl;
-      shipment.providerStatus = result.awb ? "AWB Generated" : "Dispatched via Shiprocket";
+      shipment.providerStatus = result.awb ? "AWB Generated" : "Order Created in Shiprocket Dashboard (Pending Courier Selection)";
     }
     await shipment.save();
 
@@ -164,12 +186,12 @@ export class ShipmentService {
     order.notes.push({
       text: result.awb
         ? `Dispatched via Shiprocket (${result.courierName || "Shiprocket"}). AWB: ${result.awb}`
-        : `Dispatched via Shiprocket (Shipment ID: ${result.shipmentId})`,
+        : `Pushed to Shiprocket Dashboard (Shipment ID: ${result.shipmentId}). Admin can select courier in Shiprocket.`,
       author: "admin",
       timestamp: new Date(),
     });
     if (order.status === "confirmed" || order.status === "processing" || order.status === "pending_payment") {
-      order.status = "packed";
+      order.status = result.awb ? "packed" : "processing";
     }
     await order.save();
 
@@ -180,7 +202,7 @@ export class ShipmentService {
       shipment,
       message: result.awb
         ? `Order dispatched and AWB ${result.awb} assigned via Shiprocket`
-        : "Order successfully dispatched via Shiprocket",
+        : `Order pushed to Shiprocket Dashboard (Shipment ID: ${result.shipmentId}). You can select courier inside Shiprocket.`,
     };
   }
 
@@ -242,22 +264,35 @@ export class ShipmentService {
     const providerInstance = ShippingProviderFactory.create(provider);
     const result = await providerInstance.createShipment(input);
 
-    const shipment = new ShipmentModel({
-      orderId: String(order._id),
-      provider,
-      shipmentType: "forward",
-      status: result.awb ? "AWB_ASSIGNED" : "SHIPMENT_CREATED",
-      providerShipmentId: result.shipmentId,
-      awb: result.awb,
-      warehouseId,
-      courierName: result.courierName || provider,
-      labelUrl: result.labelUrl,
-      providerStatus: `Dispatched via ${provider} from ${warehouse.name}`,
-      totalWeight: weightKg,
-      customerShippingCharge: order.pricing.shipping,
-      codFee: order.paymentMethod === "cod" ? order.pricing.codAmountToCollect : 0,
-      idempotencyKey: `direct_${provider}_${order._id}`,
-    });
+    let shipment = await ShipmentModel.findOne({ orderId });
+    if (!shipment) {
+      shipment = new ShipmentModel({
+        orderId: String(order._id),
+        provider,
+        shipmentType: "forward",
+        status: result.awb ? "AWB_ASSIGNED" : "SHIPMENT_CREATED",
+        providerShipmentId: result.shipmentId,
+        awb: result.awb,
+        warehouseId,
+        courierName: result.courierName || provider,
+        labelUrl: result.labelUrl,
+        providerStatus: `Dispatched via ${provider} from ${warehouse.name}`,
+        totalWeight: weightKg,
+        customerShippingCharge: order.pricing?.shipping || 0,
+        codFee: order.paymentMethod === "cod" ? (order.pricing?.codAmountToCollect || 0) : 0,
+        idempotencyKey: `direct_${provider}_${order._id}_${Date.now()}`,
+      });
+    } else {
+      shipment.provider = provider;
+      shipment.warehouseId = warehouseId;
+      shipment.status = result.awb ? "AWB_ASSIGNED" : "SHIPMENT_CREATED";
+      shipment.providerShipmentId = result.shipmentId;
+      shipment.awb = result.awb;
+      shipment.courierName = result.courierName || provider;
+      shipment.labelUrl = result.labelUrl;
+      shipment.providerStatus = `Dispatched via ${provider} from ${warehouse.name}`;
+      shipment.totalWeight = weightKg;
+    }
     await shipment.save();
 
     // Transition Order to shipped if AWB assigned
@@ -267,6 +302,9 @@ export class ShipmentService {
       order.status = "packed";
     }
     order.warehouseId = warehouseId;
+    if (!order.notes) {
+      order.notes = [];
+    }
     order.notes.push({
       text: `Dispatched directly via ${provider.toUpperCase()} from ${warehouse.name} (AWB: ${result.awb || "Pending"})`,
       author: "admin",
@@ -367,7 +405,48 @@ export class ShipmentService {
     }
 
     if (!shipment.awb) {
-      throw new AppError("No AWB assigned to this shipment yet", 400);
+      if (shipment.provider === "shiprocket" && (shipment.providerOrderId || shipment.providerShipmentId || shipment.shipmentId)) {
+        const orderIdToQuery = shipment.providerOrderId || shipment.providerShipmentId || shipment.shipmentId;
+        const { ShiprocketProvider } = await import("../../core/shipping/ShiprocketProvider");
+        const srProvider = new ShiprocketProvider();
+        try {
+          const orderDetails = await srProvider.getOrderDetails(orderIdToQuery!);
+          const firstShipment = orderDetails?.shipments?.[0];
+          const foundAwb = firstShipment?.awb || orderDetails?.awb_code;
+          const foundCourier = firstShipment?.courier || orderDetails?.courier_name;
+
+          if (foundAwb) {
+            shipment.awb = foundAwb;
+            shipment.courierName = foundCourier || "Shiprocket";
+            shipment.status = "AWB_ASSIGNED";
+            shipment.providerStatus = "AWB Assigned in Shiprocket Dashboard";
+            shipment.trackingUrl = `https://shiprocket.co/tracking/${foundAwb}`;
+            await shipment.save();
+
+            const order = await OrderModel.findById(shipment.orderId);
+            if (order) {
+              order.status = "packed";
+              if (!order.notes) order.notes = [];
+              order.notes.push({
+                text: `AWB ${foundAwb} synced from Shiprocket (${shipment.courierName})`,
+                author: "admin",
+                timestamp: new Date(),
+              });
+              await order.save();
+            }
+          } else {
+            return {
+              ...shipment.toObject(),
+              message: "Order is in Shiprocket Dashboard, but AWB has not been assigned yet. Please assign courier inside Shiprocket.",
+            };
+          }
+        } catch (srErr: any) {
+          logger.warn(`Failed to check Shiprocket order status: ${srErr.message}`);
+          throw new AppError("No AWB assigned yet. Please assign a courier in Shiprocket first.", 400);
+        }
+      } else {
+        throw new AppError("No AWB assigned to this shipment yet", 400);
+      }
     }
 
     let activeProvider = shipment.provider;
