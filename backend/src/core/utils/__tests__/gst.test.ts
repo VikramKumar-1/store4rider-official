@@ -493,6 +493,64 @@ describe('GST Compliance & Calculation Suite', () => {
       expect(createdOrderPayload.customerGstin).toBe('27AABCS9876F1Z2');
       expect(createdOrderPayload.businessName).toBe('Maharashtra Moto Works');
     });
+
+    it('should throw ValidationError if customerGstin has invalid format', async () => {
+      const { SettingRepository } = await import('../../../modules/settings/setting.repository');
+      vi.mocked(SettingRepository.getSettings).mockResolvedValue({
+        gstPricingMode: 'inclusive',
+        taxRate: 18,
+        freeShippingThreshold: 5000,
+        shippingCost: 0,
+      } as any);
+
+      const { CartService } = await import('../../../modules/cart/cart.service');
+      vi.mocked(CartService.getCart).mockResolvedValue(mockCart as any);
+      vi.mocked(ProductRepository.findById).mockResolvedValue(mockProduct as any);
+
+      await expect(OrderService.createOrder('user_1', {
+        shippingAddress: {
+          fullName: 'Vikram Joshi',
+          phone: '9876543210',
+          addressLine1: 'MIDC Phase 2',
+          city: 'Pune',
+          state: 'Maharashtra',
+          pincode: '411001',
+          country: 'India',
+        },
+        paymentMethod: 'payu',
+        customerGstin: 'INVALID_123',
+        businessName: 'Maharashtra Moto Works',
+      })).rejects.toThrow('Invalid 15-digit GSTIN format');
+    });
+
+    it('should throw ValidationError if customerGstin is provided without businessName', async () => {
+      const { SettingRepository } = await import('../../../modules/settings/setting.repository');
+      vi.mocked(SettingRepository.getSettings).mockResolvedValue({
+        gstPricingMode: 'inclusive',
+        taxRate: 18,
+        freeShippingThreshold: 5000,
+        shippingCost: 0,
+      } as any);
+
+      const { CartService } = await import('../../../modules/cart/cart.service');
+      vi.mocked(CartService.getCart).mockResolvedValue(mockCart as any);
+      vi.mocked(ProductRepository.findById).mockResolvedValue(mockProduct as any);
+
+      await expect(OrderService.createOrder('user_1', {
+        shippingAddress: {
+          fullName: 'Vikram Joshi',
+          phone: '9876543210',
+          addressLine1: 'MIDC Phase 2',
+          city: 'Pune',
+          state: 'Maharashtra',
+          pincode: '411001',
+          country: 'India',
+        },
+        paymentMethod: 'payu',
+        customerGstin: '27AABCS9876F1Z2',
+        businessName: '',
+      })).rejects.toThrow('Company / Business Name is required when providing a GSTIN');
+    });
   });
 
   describe('4. Critical GST Edge Cases', () => {

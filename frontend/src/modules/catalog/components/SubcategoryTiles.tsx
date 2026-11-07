@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Folder } from "lucide-react";
+import { Shield } from "lucide-react";
 
 export interface SubcategoryItem {
   id?: string;
@@ -146,6 +146,81 @@ function resolveCategoryHref(item: SubcategoryItem, currentPathname: string): st
   return `/products?category=${slug}`;
 }
 
+const BRAND_LOGOS: Record<string, string> = {
+  rynox: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/new-rynox-logo-black.png",
+  ls2: "/brands/ls2.svg",
+  axor: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/axor-logo_bw_100x51.png",
+  smk: "/brands/smk.svg",
+  agv: "/brands/agv.svg",
+  alpinestars: "/brands/alpinestars.svg",
+  bluarmor: "/brands/bluarmor.svg",
+  dsg: "/brands/dsg.svg",
+  hjc: "/brands/hjc.svg",
+  mt: "/brands/mt.svg",
+  shima: "/brands/shima.svg",
+  raida: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Raida.png",
+  furygan: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Furygan.png",
+  mototech: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/MotoTech.png",
+  scala: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/scala.png",
+  invictus: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Invictus.png",
+  "lone-ranger": "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Lone-Ranger.png",
+  "fly-racing": "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Flyracing-logo_1_.png",
+  forma: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Forma.png",
+  falco: "https://www.store4riders.com/media/codazon_cache/brand/120x120/Background.png",
+  "safe-tech": "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Safe-tech.jpg",
+  "sas-tec": "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/SAS-TEC-Logo-.jpg",
+  maddog: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/maddog-logo-2.png",
+  parani: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/PARANI-LOGO.png",
+  "moto-fusion": "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/mf.png",
+  motospunk: "/brands/motospunk.svg",
+  quipco: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Quipco.jpg",
+  shoerella: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Shoerella-logo.jpg",
+  motul: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Motul-logo.png",
+  "k-n": "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/K_N-Logo.png",
+  bmc: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/BMC_Air_filter_logo.png",
+  ngk: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/NGK.png",
+  rolon: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/rolon.jpg",
+  "barrel-exhaust": "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Barrel-Exhaust.png",
+  "moto-torque": "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/MOTO-TORQUE-LOGO.jpg",
+  "pro-spec": "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Pro-Spec-logo.png",
+  "race-dynamics": "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/RaceDynamics_Logohi-res_Primary.png",
+  carberry: "https://s3.ap-south-2.amazonaws.com/store4riders/brand-logos/Carberry.png",
+};
+
+/**
+ * Resolves the display image for a category card:
+ * 1. Admin uploaded image on category (highest priority)
+ * 2. Brand logo if category matches a known brand
+ * 3. Relevant category apparel fallback image from public store assets
+ */
+function resolveItemImage(item: SubcategoryItem): string | null {
+  const directImage = item.image || item.imageUrl || item.thumbnailUrl || item.bannerImage;
+  if (directImage && directImage.trim() !== "") {
+    return directImage.trim();
+  }
+
+  const slug = (item.slug || "").toLowerCase();
+  const name = (item.name || "").toLowerCase();
+
+  for (const [brandKey, logoUrl] of Object.entries(BRAND_LOGOS)) {
+    if (slug.includes(brandKey) || name.includes(brandKey.replace(/-/g, " "))) {
+      return logoUrl;
+    }
+  }
+
+  if (slug.includes("glove") || name.includes("glove")) {
+    return "/glovescat.jpg";
+  }
+  if (slug.includes("helmet") || name.includes("helmet") || slug.includes("visor") || name.includes("visor")) {
+    return "/helmetcat.jpg";
+  }
+  if (slug.includes("jacket") || name.includes("jacket") || slug.includes("suit") || name.includes("suit")) {
+    return "/jacketcat.jpg";
+  }
+
+  return null;
+}
+
 export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
   categorySlug = "",
   categoryName = "",
@@ -157,7 +232,7 @@ export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
     return null;
   }
 
-  // Render up to 5 featured / sibling cards as requested for mobile hero section
+  // Render up to 12 featured cards for mobile hero section
   const displayItems = subcategories.slice(0, 12);
   const count = displayItems.length;
   const gridLayoutClass =
@@ -178,7 +253,7 @@ export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
       <div className={`grid ${gridLayoutClass} mx-auto w-full`}>
         {displayItems.map((item, index) => {
           const href = resolveCategoryHref(item, pathname);
-          const rawImage = item.image || item.imageUrl || item.thumbnailUrl || item.bannerImage;
+          const resolvedImage = resolveItemImage(item);
 
           return (
             <Link
@@ -187,21 +262,18 @@ export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
               className="group flex flex-col items-center select-none text-center min-w-0 w-full"
             >
               {/* Tile Image Card */}
-              <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-[#f5f5f5] border border-slate-200/80 shadow-2xs transition-all duration-300 group-hover:scale-105 group-hover:shadow-md group-hover:border-slate-300 will-change-transform flex items-center justify-center">
-                {rawImage ? (
+              <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-[#f5f5f5] border border-slate-200/80 shadow-2xs transition-all duration-300 group-hover:scale-105 group-hover:shadow-md group-hover:border-slate-300 will-change-transform flex items-center justify-center p-1.5 sm:p-2">
+                {resolvedImage ? (
                   <Image
-                    src={rawImage}
+                    src={resolvedImage}
                     alt={item.name}
                     fill
                     className={`object-contain ${count >= 4 ? "p-1.5 min-[380px]:p-2" : "p-2"} mix-blend-multiply transition-transform duration-500 group-hover:scale-110`}
                     sizes={count === 5 ? "(max-width: 768px) 20vw, 160px" : count === 4 ? "(max-width: 768px) 25vw, 160px" : "(max-width: 768px) 33vw, 160px"}
                   />
                 ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-slate-400 bg-gradient-to-b from-slate-50 to-slate-100">
-                    <Folder size={count === 5 ? 20 : 28} className="text-slate-300 mb-0.5 sm:mb-1 transition-transform group-hover:scale-110" />
-                    <span className="text-[8px] font-semibold text-slate-400 tracking-tight leading-tight">
-                      {item.name}
-                    </span>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-slate-400 bg-gradient-to-b from-slate-50 to-slate-100/80">
+                    <Shield size={count === 5 ? 22 : 28} className="text-slate-300 transition-transform group-hover:scale-110" />
                   </div>
                 )}
 
@@ -215,7 +287,7 @@ export const SubcategoryTiles: React.FC<SubcategoryTilesProps> = ({
                 )}
               </div>
 
-              {/* Category Name Label below Tile */}
+              {/* Authoritative Category Name Label below Tile (Rendered once cleanly) */}
               <span className={`mt-1.5 sm:mt-2 ${count === 5 ? "text-[9px] min-[380px]:text-[10px]" : count === 4 ? "text-[9.5px] min-[380px]:text-[10.5px]" : "text-[10px] min-[375px]:text-[11px]"} sm:text-xs font-bold text-slate-900 text-center leading-tight line-clamp-2 w-full group-hover:text-brand transition-colors`}>
                 {item.name}
               </span>

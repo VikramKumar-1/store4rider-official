@@ -27,25 +27,6 @@ import { contactRouter } from "./modules/contact/contact.route";
 import { blogRouter } from "./modules/blog/blog.route";
 
 export async function centralRouter(req: NextRequest, routePath: string[]) {
-  if (routePath.join("/") === "debug-images") {
-    const { ProductModel } = await import("./modules/product/product.model");
-    
-    // Check how many products have 'full-face-helmets' in categorySlugs
-    const fullFaceProducts = await ProductModel.find({ categorySlugs: "full-face-helmets" }).select("sku name categorySlugs").lean().exec();
-    const otherProducts = await ProductModel.find({ categorySlugs: "full-face-helmet" }).select("sku name categorySlugs").lean().exec();
-    
-    // Look for Axor helmet to see its exact categorySlugs
-    const axorProduct = await ProductModel.findOne({ name: /axor.*hunter/i }).select("sku name magentoCategories categorySlugs").lean().exec();
-
-    return NextResponse.json({
-      success: true,
-      fullFaceHelmetsPluralCount: fullFaceProducts.length,
-      fullFaceHelmetSingularCount: otherProducts.length,
-      axorProduct: axorProduct,
-      first5: fullFaceProducts.slice(0, 5)
-    });
-  }
-
   const [module, ...rest] = routePath;
   
   switch (module) {

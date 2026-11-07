@@ -6,6 +6,7 @@ import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { useProductFormContext } from "../ProductFormContext";
 import { SizeChartUploader } from "../../SizeChartUploader";
 import { useCategoryTree } from "@/core/hooks/useCategories";
+import { stripHtml } from "@/core/utils/cleanRichContent";
 
 export function ProductSeoTab() {
   const {
@@ -59,15 +60,17 @@ export function ProductSeoTab() {
 
       {/* Short Description */}
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">
-          Short Description (Summary beside Buy button)
-        </label>
-        <textarea
-          rows={2}
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-bold text-slate-800">
+            Short Description (Rich Text WYSIWYG &amp; HTML)
+          </label>
+          <span className="text-xs text-slate-400">Summary beside Buy button (bullet points &amp; key highlights)</span>
+        </div>
+        <RichTextEditor
           value={shortDescription}
-          onChange={(e) => setShortDescription(e.target.value)}
-          placeholder="Brief 2-3 line overview of key selling points..."
-          className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          onChange={setShortDescription}
+          placeholder="Brief 2-3 line overview or bullet points of key selling highlights beside Buy button..."
+          minHeight="180px"
         />
       </div>
 
@@ -159,7 +162,7 @@ export function ProductSeoTab() {
           </h5>
           <p className="text-xs text-slate-600 line-clamp-2">
             {metaDescription ||
-              shortDescription ||
+              stripHtml(shortDescription) ||
               "No meta description set yet. Search engines will generate a snippet from your description."}
           </p>
         </div>

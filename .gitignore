@@ -103,8 +103,29 @@ migrate*.js
 scratch/
 backend/scratch/
 
-# Backend temporary .cjs / .ts scripts
-backend/*.cjs
+# Root-level one-off maintenance & debug scripts
+/*.js
+/*.mjs
+/*.cjs
+!ecosystem.config.cjs
+
+# Backend temporary .cjs / .ts scripts & data migration tools
+*.cjs
+**/*.cjs
+backend/*.js
+!backend/next.config.js
+backend/scripts/
+backend/src/scripts/
+backend/src/scrape-to-db.ts
+backup-data/*.cjs
+backup-data/*.json
+backup-data/.*
+low-res-images.json
+audit-failures.json
 backend/clear.ts
 backend/temp-*.cjs
 powershell.exe
+
+# All log files
+*.log
+**/*.log

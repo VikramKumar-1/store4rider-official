@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 
 export async function loginDocs(formData: FormData) {
   const password = formData.get("password");
-  const validPass = process.env.DOCS_PASS || "supersecret123";
+  const validPass = process.env.DOCS_PASS;
+
+  if (!validPass) {
+    return { error: "DOCS_PASS is not configured on the server. Access Denied." };
+  }
 
   if (password === validPass) {
     // Set a secure HTTP-only cookie that lasts for 7 days

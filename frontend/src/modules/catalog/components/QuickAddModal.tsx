@@ -347,6 +347,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
         slug: product.rawSlug || product.productUrl.replace(/^\//, "").split("?")[0],
         selectedColor: hasColor ? selectedColor : undefined,
         selectedSize: hasSize ? selectedSize : undefined,
+        isFreeShipping: Boolean((product as any).isFreeShipping),
       } as any,
     });
 

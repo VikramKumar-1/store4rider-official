@@ -141,8 +141,12 @@ export function resolveFuzzySearchTerms(rawQuery: string): {
   isCorrected: boolean;
   correctedQuery: string;
 } {
-  const rawTerms = rawQuery
+  const clean = (rawQuery || "")
+    .replace(/[\0\$\{\}\[\]\<\>\\]/g, "")
     .trim()
+    .slice(0, 100);
+
+  const rawTerms = clean
     .replace(/[-_]/g, " ")
     .split(/\s+/)
     .filter(Boolean);

@@ -25,6 +25,7 @@ export interface IStoreCategoryNode {
   specDefinitions?: any[];
   faqs?: any[];
   heroCategoryIds?: string[];
+  heroCategories?: any[];
   includeInMenu?: boolean;
   menuGroup?: string;
   menuLabel?: string;
@@ -324,6 +325,15 @@ export function getStoreNavbarCategoryTree(dbCategories: any[] = []): IStoreCate
       specDefinitions: dbDoc?.specDefinitions || [],
       faqs: dbDoc?.faqs || [],
       heroCategoryIds: dbDoc?.heroCategoryIds || [],
+      heroCategories: (dbDoc?.heroCategories || []).map((hc: any) => {
+        const hcSlug = String(hc.slug || "").toLowerCase().trim();
+        const dbMatch = dbBySlug.get(hcSlug) || (hc._id ? dbById.get(String(hc._id)) : null);
+        return {
+          ...hc,
+          image: hc.image || dbMatch?.image || "",
+          bannerImage: hc.bannerImage || dbMatch?.bannerImage || "",
+        };
+      }),
       includeInMenu: dbDoc?.includeInMenu !== false,
       menuGroup: dbDoc?.menuGroup || node.groupName || "",
       menuLabel: dbDoc?.menuLabel || "",

@@ -10,7 +10,8 @@ export class SearchRepository {
    * 3. Fuzzy/Typo-tolerant match
    */
   static async findMatchingRedirect(rawQuery: string): Promise<ISearchRedirect | null> {
-    const clean = rawQuery.trim().toLowerCase();
+    if (!rawQuery || typeof rawQuery !== "string") return null;
+    const clean = rawQuery.replace(/[\0\$\{\}\[\]\<\>\\]/g, "").trim().toLowerCase().slice(0, 120);
     if (!clean) return null;
 
     // 1. Exact Match on primary term or defined synonyms (Fast indexed lookup)
@@ -77,14 +78,18 @@ export class SearchRepository {
    */
   static async listRedirects(page = 1, limit = 20, search?: string) {
     const query: any = {};
-    if (search && search.trim()) {
-      const regex = new RegExp(search.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&"), "i");
-      query.$or = [
-        { searchTerm: regex },
-        { redirectUrl: regex },
-        { targetTitle: regex },
-        { synonyms: regex },
-      ];
+    if (search && typeof search === "string" && search.trim()) {
+      const sanitized = search.replace(/[\0\$\{\}\[\]\<\>\\]/g, "").trim().slice(0, 100);
+      if (sanitized) {
+        const escaped = sanitized.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+        const regex = new RegExp(escaped, "i");
+        query.$or = [
+          { searchTerm: regex },
+          { redirectUrl: regex },
+          { targetTitle: regex },
+          { synonyms: regex },
+        ];
+      }
     }
 
     const skip = (page - 1) * limit;

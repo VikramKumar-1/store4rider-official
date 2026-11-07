@@ -30,6 +30,16 @@ export class OrderService {
     const { shippingAddressId, shippingAddress, guestEmail, paymentMethod, couponCode, idempotencyKey, customerGstin, businessName } = input;
     const sanitizedGstin = customerGstin ? String(customerGstin).trim().toUpperCase() : undefined;
     const sanitizedBusinessName = businessName ? String(businessName).trim() : undefined;
+
+    if (sanitizedGstin) {
+      const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+      if (!gstinRegex.test(sanitizedGstin)) {
+        throw new ValidationError("Invalid 15-digit GSTIN format (e.g. 27AAPCS1234F1Z5)");
+      }
+      if (!sanitizedBusinessName) {
+        throw new ValidationError("Company / Business Name is required when providing a GSTIN");
+      }
+    }
     
     if (idempotencyKey) {
       const existingOrder = await OrderRepository.findByIdempotencyKey(idempotencyKey);
@@ -193,6 +203,12 @@ export class OrderService {
           || "";
       }
 
+      const rawShipCost = product.attributes instanceof Map
+        ? product.attributes.get("ship_cost")
+        : (product.attributes as any)?.ship_cost;
+      const itemShipCost = Number(rawShipCost) || (product as any).shippingFee || 0;
+      const isItemFreeShipping = itemShipCost > 0 ? false : Boolean(product.isFreeShipping);
+
       orderItems.push({
         productId: String(product._id),
         variantId: item.variantId,
@@ -204,7 +220,8 @@ export class OrderService {
         taxAmount: itemTax,
         hsnCode: itemHsnCode,
         allowBackorders: product.allowBackorders,
-        isFreeShipping: Boolean(product.isFreeShipping),
+        isFreeShipping: isItemFreeShipping,
+        shippingFee: itemShipCost > 0 ? itemShipCost : 0,
         image: itemImage,
         slug: product.slug || "",
       });
@@ -233,7 +250,15 @@ export class OrderService {
 
     const isInclusive = settings.gstPricingMode !== "exclusive";
     const allFreeShipping = orderItems.length > 0 && orderItems.every((item: any) => item.isFreeShipping);
-    const shipping = (allFreeShipping || (discountedSubtotal >= freeShippingThreshold)) ? 0 : (discountedSubtotal > 0 ? shippingCost : 0);
+    const qualifiesForFreeShipping = allFreeShipping || (freeShippingThreshold > 0 && discountedSubtotal >= freeShippingThreshold);
+
+    // Calculate maximum heavy freight item surcharge if applicable
+    const maxItemShippingSurcharge = orderItems.reduce((max: number, item: any) => Math.max(max, item.shippingFee || 0), 0);
+    const applicableStandardShipping = Math.max(shippingCost, maxItemShippingSurcharge);
+
+    const shipping = qualifiesForFreeShipping
+      ? (maxItemShippingSurcharge > 0 ? maxItemShippingSurcharge : 0)
+      : (discountedSubtotal > 0 ? applicableStandardShipping : 0);
     const totalAmount = Math.round((isInclusive
       ? discountedSubtotal + shipping
       : discountedSubtotal + totalTax + shipping) * 100) / 100;

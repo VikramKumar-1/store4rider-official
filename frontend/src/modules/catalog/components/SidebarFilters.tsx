@@ -406,8 +406,12 @@ export function SidebarFilters({ isFetching = false }: { isFetching?: boolean })
           const isGenderForbidden = isProtectionCat || isNonApparelCat;
           const isPriceAndBrandOnlyCat = ['chain-care', 'chain-lube', 'oils-lube', 'cleaner', 'spare', 'sprocket', 'brake', 'gadget', 'phone', 'holder', 'cover', 'light', 'filter', 'clamp', 'mount', 'harness', 'flasher'].some(kw => catLower.includes(kw));
 
+          const isBikeAccessoryCat = ['accessor', 'auxiliary', 'light', 'filter', 'clamp', 'mount', 'harness', 'switch', 'flasher', 'cover', 'off-beat', 'rally-tower', 'performance-part', 'chain-care'].some(kw => catLower.includes(kw));
+          const isSpareCat = ['spare', 'sprocket', 'radiator', 'brake', 'air-filter', 'spark-plug', 'chain-sprocket'].some(kw => catLower.includes(kw));
+          const isBikeSpecificCat = catLower.includes('exhaust') || isBikeAccessoryCat || isSpareCat;
+
           const baseConfig = aggregations?.filterConfig || (
-            catLower.includes('exhaust')
+            isBikeSpecificCat
               ? [
                   { code: "category", label: "Category" },
                   { code: "price", label: "Price" },
@@ -432,11 +436,17 @@ export function SidebarFilters({ isFetching = false }: { isFetching?: boolean })
             return true;
           });
 
+          if (isBikeSpecificCat && !fullConfig.some(c => c.code === 'motorcycle_model')) {
+            const priceIdx = fullConfig.findIndex(c => c.code === 'price');
+            const insertIdx = priceIdx >= 0 ? priceIdx + 1 : 0;
+            fullConfig.splice(insertIdx, 0, { code: 'motorcycle_model', label: 'Motorcycle Model' });
+          }
+
           DYNAMIC_FILTERS.forEach((df: any) => {
             if (df.code === 'certification') return; // Hide certification filter
             if (df.code === 'gender' && isGenderForbidden) return; // Hide gender if category is not gender-eligible
             if (df.code === 'helmet_type' && !catLower.includes('helmet')) return; // Hide helmet type if not helmet
-            if (isPriceAndBrandOnlyCat) return; // Hide dynamic attrs for consumables/spares/gadgets
+            if (isPriceAndBrandOnlyCat && df.code !== 'motorcycle_model') return; // Hide dynamic attrs for consumables/spares/gadgets except motorcycle_model
             if (isProtectionCat && (df.code === 'gender' || df.code === 'size' || df.code === 'material' || df.code === 'riding_style')) return;
             if (!fullConfig.find(c => c.code === df.code)) {
               fullConfig.push({ code: df.code, label: df.label });
@@ -625,7 +635,7 @@ export function SidebarFilters({ isFetching = false }: { isFetching?: boolean })
             const activeValues = Array.from(new Set(paramValue ? paramValue.split(",").map((v) => v.trim()) : []));
             
             return (
-              <AccordionSection key={dynamicFilter.code} title={dynamicFilter.label} defaultOpen={false}>
+              <AccordionSection key={dynamicFilter.code} title={dynamicFilter.label} defaultOpen={activeValues.length > 0 || (isBikeSpecificCat && dynamicFilter.code === 'motorcycle_model')}>
                 <div className="flex flex-col gap-2 max-h-72 overflow-y-auto scrollbar-thin pr-2">
                   {dynamicFilter.values.map((val: any) => {
                     const active = isParamActive(dynamicFilter.code, val.name, activeValues);
@@ -636,11 +646,14 @@ export function SidebarFilters({ isFetching = false }: { isFetching?: boolean })
                           key={val.name}
                           type="button"
                           onClick={() => handleSingleSelectFilter(dynamicFilter.code, val.name)}
-                          className="flex items-center justify-between text-left group py-1 transition-colors w-full"
+                          className="flex items-center justify-between text-left group py-1 transition-colors w-full cursor-pointer"
                         >
-                          <span className={`text-[14px] transition-colors ${active ? "text-banner font-bold" : "text-neutral-700 group-hover:text-banner"}`}>
-                            {val.name}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {active && <span className="w-1.5 h-1.5 rounded-full bg-banner shrink-0" />}
+                            <span className={`text-[14px] transition-colors ${active ? "text-banner font-bold" : "text-neutral-700 group-hover:text-banner"}`}>
+                              {val.name}
+                            </span>
+                          </div>
                           <span className="text-[11px] text-neutral-400">
                             ({val.count})
                           </span>

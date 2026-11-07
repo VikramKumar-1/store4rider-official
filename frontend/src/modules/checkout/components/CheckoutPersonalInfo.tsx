@@ -160,8 +160,11 @@ export const CheckoutPersonalInfo = ({
                   placeholder="e.g. Acme Motors Pvt Ltd"
                   value={formData.businessName || ""}
                   onChange={handleInputChange}
-                  className="w-full border border-neutral-300 bg-white rounded-none px-3.5 py-2.5 text-sm text-neutral-900 focus:border-banner focus:outline-none transition-colors"
+                  className={`w-full border ${fieldErrors?.businessName ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-banner'} bg-white rounded-none px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none transition-colors`}
                 />
+                {fieldErrors?.businessName && (
+                  <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.businessName}</span>
+                )}
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -181,8 +184,11 @@ export const CheckoutPersonalInfo = ({
                       target: { name: "customerGstin", value: e.target.value.toUpperCase() }
                     } as any);
                   }}
-                  className="w-full border border-neutral-300 bg-white rounded-none px-3.5 py-2.5 text-sm text-neutral-900 font-mono uppercase tracking-wider focus:border-banner focus:outline-none transition-colors"
+                  className={`w-full border ${fieldErrors?.customerGstin ? 'border-red-500 ring-1 ring-red-500' : 'border-neutral-300 focus:border-banner'} bg-white rounded-none px-3.5 py-2.5 text-sm text-neutral-900 font-mono uppercase tracking-wider focus:outline-none transition-colors`}
                 />
+                {fieldErrors?.customerGstin && (
+                  <span className="text-red-500 text-xs font-semibold animate-in fade-in zoom-in-95 duration-200">{fieldErrors.customerGstin}</span>
+                )}
               </div>
             </div>
           )}

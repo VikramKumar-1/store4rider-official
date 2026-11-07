@@ -40,15 +40,16 @@ const STOREFRONT_CANONICAL_CATEGORIES = [
 
 export class SearchService {
   static async suggest(query: string) {
+    const cleanQuery = (query || "").replace(/[\0\$\{\}\[\]\<\>\\]/g, "").trim().slice(0, 100);
     let productHits: any[] = [];
-    const { terms, correctedTerms, isCorrected, correctedQuery } = resolveFuzzySearchTerms(query);
+    const { terms, correctedTerms, isCorrected, correctedQuery } = resolveFuzzySearchTerms(cleanQuery);
     const effectiveTerms = correctedTerms.length > 0 ? correctedTerms : terms;
-    const effectiveQuery = isCorrected ? correctedQuery : query.trim();
+    const effectiveQuery = isCorrected ? correctedQuery : cleanQuery;
 
     // 0. Check for Search Term Redirect (Magento-style)
     let redirectMatch: { url: string; title: string; type: string } | null = null;
     try {
-      const redirect = await SearchRepository.findMatchingRedirect(query);
+      const redirect = await SearchRepository.findMatchingRedirect(cleanQuery);
       if (redirect) {
         redirectMatch = {
           url: redirect.redirectUrl,

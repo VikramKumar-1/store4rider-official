@@ -252,7 +252,7 @@ export const OrderItemGalleryModal: React.FC<OrderItemGalleryModalProps> = ({
 
                 {product?.shortDescription && (
                   <div 
-                    className="text-neutral-800 font-medium leading-relaxed bg-white p-2.5 rounded-lg border border-neutral-200/60"
+                    className="text-neutral-800 font-medium leading-relaxed bg-white p-2.5 rounded-lg border border-neutral-200/60 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4"
                     dangerouslySetInnerHTML={{ __html: product.shortDescription }}
                   />
                 )}

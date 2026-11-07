@@ -306,7 +306,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
             <div
               ref={descRef}
               onClick={(e) => handleRichTextClick(e, router)}
-              className={`text-neutral-600 text-[13px] md:text-[14px] leading-relaxed font-sans [&_a]:text-blue-600 [&_a]:underline hover:[&_a]:text-blue-800 [&_a]:font-medium ${isDescExpanded ? "" : "line-clamp-3"}`}
+              className={`text-neutral-600 text-[13px] md:text-[14px] leading-relaxed font-sans [&_a]:text-blue-600 [&_a]:underline hover:[&_a]:text-blue-800 [&_a]:font-medium [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 ${isDescExpanded ? "" : "line-clamp-3"}`}
               dangerouslySetInnerHTML={{ __html: cleanRichContent(shortDescription) }}
             />
             <div className="flex items-center justify-between w-full mt-1">

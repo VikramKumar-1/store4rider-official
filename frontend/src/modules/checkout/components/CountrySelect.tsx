@@ -47,7 +47,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({ value, onChange })
   return (
     <div className="relative w-full" ref={dropdownRef}>
       <div
-        className="w-full border border-neutral-300 hover:border-banner focus-within:border-banner focus-within:ring-1 focus-within:ring-banner rounded-none px-4 py-3 text-sm text-neutral-900 bg-white cursor-pointer flex items-center justify-between transition-all shadow-sm"
+        className="w-full border border-slate-200/90 hover:border-banner focus-within:border-banner focus-within:ring-4 focus-within:ring-banner/10 rounded-xl px-4 py-3 text-sm text-neutral-900 bg-slate-50/80 hover:bg-white cursor-pointer flex items-center justify-between transition-all shadow-[inset_0_2px_4px_rgba(15,23,42,0.03)]"
         onClick={() => setIsOpen(!isOpen)}
       >
         <div className="flex items-center gap-3">

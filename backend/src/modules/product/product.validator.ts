@@ -31,7 +31,10 @@ export class ProductValidator {
     const category = searchParams.get("category");
     const categoryId = searchParams.get("categoryId");
     const brand = searchParams.get("brand");
-    const search = searchParams.get("search") || searchParams.get("q");
+    const rawSearch = searchParams.get("search") || searchParams.get("q");
+    const search = rawSearch && typeof rawSearch === "string"
+      ? rawSearch.replace(/[\0\$\{\}\[\]\<\>\\]/g, "").trim().slice(0, 100)
+      : undefined;
     
     const scope = searchParams.get("scope");
     const isAdmin = scope === "admin";
@@ -498,7 +501,9 @@ export class ProductValidator {
           { "attributes.bike_compatibility": { $in: exactRegexes } },
           { "attributes.bike_compatibility": { $in: wordRegexes } },
           { "variants.attributes.motorcycle_model": { $in: exactRegexes } },
-          { "variants.attributes.bike_compatibility": { $in: exactRegexes } }
+          { "variants.attributes.motorcycle_model": { $in: wordRegexes } },
+          { "variants.attributes.bike_compatibility": { $in: exactRegexes } },
+          { "variants.attributes.bike_compatibility": { $in: wordRegexes } }
         ]
       });
 
@@ -522,6 +527,19 @@ export class ProductValidator {
                   ]
                 }
               }
+            },
+            {
+              $and: [
+                {
+                  $or: [
+                    { "attributes.motorcycle_model": { $in: exactRegexes } },
+                    { "attributes.motorcycle_model": { $in: wordRegexes } },
+                    { "attributes.bike_compatibility": { $in: exactRegexes } },
+                    { "attributes.bike_compatibility": { $in: wordRegexes } }
+                  ]
+                },
+                { "variants.stock": { $gt: 0 } }
+              ]
             },
             {
               $and: [

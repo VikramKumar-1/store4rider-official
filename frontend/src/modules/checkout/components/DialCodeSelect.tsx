@@ -46,7 +46,7 @@ export const DialCodeSelect: React.FC<DialCodeSelectProps> = ({ value, onChange 
   return (
     <div className="relative shrink-0 w-[125px]" ref={dropdownRef}>
       <div
-        className="w-full h-full border border-neutral-300 hover:border-banner focus-within:border-banner rounded-none px-3 py-3 text-base md:text-sm text-neutral-900 bg-white cursor-pointer flex items-center justify-between transition-all"
+        className="w-full h-full border border-slate-200/90 hover:border-banner focus-within:border-banner rounded-l-xl px-3 py-3 text-base md:text-sm text-neutral-900 bg-slate-50/80 hover:bg-white cursor-pointer flex items-center justify-between transition-all shadow-[inset_0_2px_4px_rgba(15,23,42,0.03)]"
         onClick={() => setIsOpen(!isOpen)}
       >
         <div className="flex items-center gap-2 overflow-hidden">

@@ -10,10 +10,13 @@ export class SettingRepository {
     let settings = await SettingModel.findOne();
     if (!settings) {
       settings = await SettingModel.create({
-        enabledGateways: ["upi", "payu", "ccavenue", "snapmint", "cod"]
+        enabledGateways: ["payu", "ccavenue", "snapmint", "cod"]
       });
     } else if (!settings.enabledGateways) {
-      settings.enabledGateways = ["upi", "payu", "ccavenue", "snapmint", "cod"];
+      settings.enabledGateways = ["payu", "ccavenue", "snapmint", "cod"];
+      await settings.save();
+    } else if (settings.enabledGateways.some((g: string) => g === "upi" || g === "gpay")) {
+      settings.enabledGateways = settings.enabledGateways.filter((g: string) => g !== "upi" && g !== "gpay");
       await settings.save();
     }
     if (settings.codPartialPaymentEnabled === undefined) {

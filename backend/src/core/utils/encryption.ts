@@ -1,9 +1,16 @@
 import crypto from "crypto";
 
-const getMasterKey = () => {
-  // 32-byte key required for AES-256
-  const key = process.env.ENCRYPTION_KEY || "e8b2f9a7c4d16309f8e4a2b1c3d5f70a"; 
-  return Buffer.from(key, "utf-8").slice(0, 32);
+const getMasterKey = (): Buffer => {
+  // Derive a strong 32-byte key using SHA-256 from environment secret
+  const key = process.env.ENCRYPTION_KEY || process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
+  if (!key) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("ENCRYPTION_KEY or JWT_ACCESS_SECRET environment variable is required");
+    }
+    // Safe deterministic key derived at runtime for local testing only
+    return crypto.createHash("sha256").update("s4r-local-dev-fallback-key").digest();
+  }
+  return crypto.createHash("sha256").update(key).digest();
 };
 
 export const encrypt = (text: string | undefined | null): string => {

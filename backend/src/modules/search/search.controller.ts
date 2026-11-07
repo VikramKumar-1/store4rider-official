@@ -27,13 +27,18 @@ export class SearchController {
    */
   static async checkRedirect(req: Request) {
     const url = new URL(req.url);
-    const q = url.searchParams.get("q") || url.searchParams.get("query");
+    const rawQ = url.searchParams.get("q") || url.searchParams.get("query");
 
-    if (!q || !q.trim()) {
+    if (!rawQ || !rawQ.trim()) {
       return ApiResponse.success({ hasRedirect: false }, "No query provided", 200);
     }
 
-    const data = await SearchService.resolveRedirect(q);
+    const validated = SearchValidator.redirectCheckQuery.safeParse({ q: rawQ });
+    if (!validated.success || !validated.data.q) {
+      return ApiResponse.success({ hasRedirect: false }, "Invalid query", 200);
+    }
+
+    const data = await SearchService.resolveRedirect(validated.data.q);
     return ApiResponse.success(data, "Redirect resolved successfully", 200);
   }
 

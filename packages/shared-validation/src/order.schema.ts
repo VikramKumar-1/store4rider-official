@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+
 export const createOrderSchema = z.object({
   shippingAddressId: z.string().optional(),
   shippingAddress: z.object({
@@ -22,11 +24,26 @@ export const createOrderSchema = z.object({
     quantity: z.number().min(1),
   })).optional(),
   idempotencyKey: z.string().nullable().optional(),
-  customerGstin: z.string().nullable().optional(),
+  customerGstin: z
+    .string()
+    .nullable()
+    .optional()
+    .refine(
+      (val) => !val || val.trim() === "" || GSTIN_REGEX.test(val.trim().toUpperCase()),
+      { message: "Invalid 15-digit GSTIN format (e.g. 27AAPCS1234F1Z5)" }
+    ),
   businessName: z.string().nullable().optional(),
 }).refine(data => data.shippingAddressId || data.shippingAddress, {
   message: "Either shippingAddressId or shippingAddress is required",
   path: ["shippingAddressId"]
+}).refine(data => {
+  if (data.customerGstin && data.customerGstin.trim() !== "") {
+    return Boolean(data.businessName && data.businessName.trim() !== "");
+  }
+  return true;
+}, {
+  message: "Company / Business Name is required when providing a GSTIN",
+  path: ["businessName"]
 });
 
 export const verifyPaymentSchema = z.object({

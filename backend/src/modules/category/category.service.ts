@@ -12,7 +12,7 @@ const CACHE_KEY = "category_tree_v2";
  * Highlights:
  * - Operates completely independent of HTTP context.
  * - Auto-caches the category tree in Redis for 1 hour.
- * - Auto-invalidates the cache whenever a new category is created.
+ * - Auto-invalidates the cache whenever a category is created, updated or deleted.
  */
 export class CategoryService {
   
@@ -102,6 +102,24 @@ export class CategoryService {
         if (cat) break;
       }
     }
+
+    if (cat) {
+      const heroCategoryIds = (cat as any).heroCategoryIds;
+      if (Array.isArray(heroCategoryIds) && heroCategoryIds.length > 0) {
+        const all = await CategoryRepository.findAll();
+        const idMap = new Map<string, any>();
+        all.forEach(c => {
+          idMap.set(String(c._id || (c as any).id), c);
+          if (c.slug) idMap.set(c.slug, c);
+        });
+        (cat as any).heroCategories = heroCategoryIds
+          .map((targetId: string) => idMap.get(targetId))
+          .filter(Boolean);
+      } else {
+        (cat as any).heroCategories = [];
+      }
+    }
+
     return cat;
   }
 
@@ -130,20 +148,12 @@ export class CategoryService {
 
           const children = buildChildren(id, new Set(curVisited));
 
-          // Resolve hero section category cards
+          // Resolve hero section category cards (strictly admin-assigned only, zero automatic fallback)
           let heroCategories: any[] = [];
           if (Array.isArray(c.heroCategoryIds) && c.heroCategoryIds.length > 0) {
             heroCategories = c.heroCategoryIds
               .map((targetId: string) => idMap.get(targetId))
               .filter(Boolean);
-          } else if (children.length > 0) {
-            heroCategories = children;
-          } else if (c.parentId) {
-            // Sibling categories sharing the same parent (e.g. Modular -> Full Face, Open Face)
-            heroCategories = categories.filter(other => 
-              String(other.parentId) === String(c.parentId) && 
-              String(other._id || other.id) !== id
-            );
           }
 
           return {

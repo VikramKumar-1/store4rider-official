@@ -572,7 +572,7 @@ export class ProductService {
       return Object.entries(obj).map(([k, v]) => `${k}:${serializeFilter(v)}`).sort().join(";");
     };
 
-    const cacheKey = `aggs_v28_${categorySlug || 'all'}_${serializeFilter(rawActiveFilters || {})}`;
+    const cacheKey = `aggs_v29_${categorySlug || 'all'}_${serializeFilter(rawActiveFilters || {})}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -658,20 +658,23 @@ export class ProductService {
       */
     }
     
-    if (rawActiveFilters?.search) {
-      const tokens = rawActiveFilters.search.trim().split(/\s+/).filter(Boolean);
-      baseFilters.$and = baseFilters.$and || [];
-      for (const token of tokens) {
-        const escaped = token.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-        const tokenRegex = new RegExp(escaped, "i");
-        baseFilters.$and.push({
-          $or: [
-            { name: { $regex: tokenRegex } },
-            { brand: { $regex: tokenRegex } },
-            { sku: { $regex: tokenRegex } },
-            { magentoCategories: { $regex: tokenRegex } },
-          ],
-        });
+    if (rawActiveFilters?.search && typeof rawActiveFilters.search === "string") {
+      const sanitized = rawActiveFilters.search.replace(/[\0\$\{\}\[\]\<\>\\]/g, "").trim().slice(0, 100);
+      if (sanitized) {
+        const tokens = sanitized.split(/\s+/).filter(Boolean);
+        baseFilters.$and = baseFilters.$and || [];
+        for (const token of tokens) {
+          const escaped = token.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const tokenRegex = new RegExp(escaped, "i");
+          baseFilters.$and.push({
+            $or: [
+              { name: { $regex: tokenRegex } },
+              { brand: { $regex: tokenRegex } },
+              { sku: { $regex: tokenRegex } },
+              { magentoCategories: { $regex: tokenRegex } },
+            ],
+          });
+        }
       }
     }
 
@@ -737,12 +740,14 @@ export class ProductService {
       const getDynamicAttrLocal = (obj: any, keywords: string[]) => {
         if (!obj || typeof obj !== 'object') return undefined;
         const key = Object.keys(obj).find(k => {
-          const lowerK = k.toLowerCase();
-          if (lowerK.includes('size_chart') || lowerK.includes('sizechart')) return false;
-          return keywords.some(kw => lowerK.includes(kw));
+          const lowerK = k.toLowerCase().replace(/[\s\-_]/g, '');
+          if (lowerK.includes('sizechart') || lowerK.includes('size_chart')) return false;
+          return keywords.some(kw => lowerK.includes(kw.replace(/[\s\-_]/g, '')));
         });
         return key ? obj[key] : undefined;
       };
+
+      const MODEL_KEYWORDS = ['motorcycle_model', 'bike_compatibility', 'compatible_models', 'bike_model'];
 
       if (p.variants && p.variants.length > 0) {
         p.variants.forEach((v: any) => {
@@ -751,7 +756,7 @@ export class ProductService {
             if (vCol) availableColors.add(vCol.toLowerCase());
             const vSiz = getDynamicAttrLocal(v.attributes, ['size', 'eu_size', 'eu_size_for_boots']);
             if (vSiz) availableSizes.add(vSiz.toLowerCase());
-            const vMod = getDynamicAttrLocal(v.attributes, ['motorcycle_model', 'bike_compatibility']);
+            const vMod = getDynamicAttrLocal(v.attributes, MODEL_KEYWORDS);
             if (vMod) {
               vMod.split(',').forEach((s: string) => availableModels.add(s.trim().toLowerCase()));
             }
@@ -769,7 +774,7 @@ export class ProductService {
               if (kl === 'size' || kl === 'eu_size' || kl === 'eu_size_for_boots' || (kl.includes('size') && !kl.includes('chart'))) {
                 availableSizes.add(v.trim().toLowerCase());
               }
-              if (kl === 'motorcycle_model' || kl === 'bike_compatibility') {
+              if (kl === 'motorcycle_model' || kl === 'bike_compatibility' || kl === 'compatible_models' || kl === 'bike_model') {
                 v.trim().split(',').forEach((s: string) => availableModels.add(s.trim().toLowerCase()));
               }
             }
@@ -782,7 +787,7 @@ export class ProductService {
       }
 
       if (p.attributes && typeof p.attributes === 'object') {
-        const topMod = getDynamicAttrLocal(p.attributes, ['motorcycle_model', 'bike_compatibility']);
+        const topMod = getDynamicAttrLocal(p.attributes, MODEL_KEYWORDS);
         if (topMod) {
           topMod.split(',').forEach((s: string) => availableModels.add(s.trim().toLowerCase()));
         }
@@ -908,7 +913,7 @@ export class ProductService {
 
           if (attrName === 'motorcycle_model') {
             if (p.attributes && typeof p.attributes === 'object') {
-              const topMod = getDynamicAttrLocal(p.attributes, ['motorcycle_model', 'bike_compatibility']);
+              const topMod = getDynamicAttrLocal(p.attributes, MODEL_KEYWORDS);
               if (topMod) {
                 topMod.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((s: string) => cleanVals.push(s));
               }
@@ -916,7 +921,7 @@ export class ProductService {
             if (p.variants && p.variants.length > 0) {
               p.variants.forEach((v: any) => {
                 if (v.stock > 0 || p.allowBackorders) {
-                  const vMod = getDynamicAttrLocal(v.attributes, ['motorcycle_model', 'bike_compatibility']);
+                  const vMod = getDynamicAttrLocal(v.attributes, MODEL_KEYWORDS);
                   if (vMod) {
                     vMod.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((s: string) => cleanVals.push(s));
                   }
@@ -930,7 +935,7 @@ export class ProductService {
                   const [k, v] = attr.split("=");
                   if (k && v) {
                     const kl = k.trim().toLowerCase();
-                    if (kl === 'motorcycle_model' || kl === 'bike_compatibility') {
+                    if (kl === 'motorcycle_model' || kl === 'bike_compatibility' || kl === 'compatible_models' || kl === 'bike_model') {
                       v.trim().split(',').map((s: string) => s.trim()).filter(Boolean).forEach((s: string) => cleanVals.push(s));
                     }
                   }
@@ -1017,6 +1022,11 @@ export class ProductService {
     const isBikeCover = cat.includes('cover');
     const isOffBeat = cat.includes('off-beat');
 
+    // Accessories & Spares detection (including all subcategories)
+    const isAccessory = ['accessor', 'auxiliary', 'light', 'filter', 'clamp', 'mount', 'harness', 'switch', 'flasher', 'cover', 'off-beat', 'rally-tower', 'performance-part', 'chain-care'].some(kw => cat.includes(kw));
+    const isSpareCategory = ['spare', 'sprocket', 'radiator', 'brake', 'air-filter', 'spark-plug', 'chain-sprocket'].some(kw => cat.includes(kw));
+    const isBikeModelEligible = isExhaust || isAccessory || isSpareCategory || isSpare || isLightAccessory || isBikeCover || isOffBeat;
+
     // Wearable items: Size is valid for clothing, footwear, gloves (NEVER protection/guards)
     const isClothingWearable = (isApparel || isFootwear || isGlove) && !isProtection;
     // Helmet: Size + Color valid, but NOT Gender
@@ -1037,14 +1047,18 @@ export class ProductService {
     const hasCategoryContext = cat.length > 0;
 
     for (const [attrName, valMap] of dynamicAttrsMap.entries()) {
-      // Skip all dynamic attributes for categories that are price and brand only (except exhausts)
-      if (hasCategoryContext && isPriceAndBrandOnly && !isExhaust) {
+      // Allow motorcycle_model for exhausts, motorcycle accessories & spares categories and their subcategories
+      if (attrName === 'motorcycle_model') {
+        if (hasCategoryContext && !isBikeModelEligible) continue;
+        dynamicAttributesResponse[attrName] = Array.from(valMap.entries())
+          .map(([name, set]) => ({ name, count: set.size }))
+          .sort((a, b) => b.count - a.count);
         continue;
       }
 
-      // Skip motorcycle_model for non-bike categories
-      if (attrName === 'motorcycle_model') {
-        if (hasCategoryContext && !isExhaust) continue;
+      // Skip all other dynamic attributes for categories that are price and brand only (except exhausts)
+      if (hasCategoryContext && isPriceAndBrandOnly && !isExhaust) {
+        continue;
       }
 
       // Skip helmet_type for non-helmet categories
@@ -1099,7 +1113,12 @@ export class ProductService {
       const { CategoryModel } = await import("../category/category.model");
       const categoryDoc = await CategoryModel.findOne({ slug: categorySlug }).lean().exec() as any;
       if (categoryDoc && Array.isArray(categoryDoc.filterConfig) && categoryDoc.filterConfig.length > 0) {
-        result.filterConfig = categoryDoc.filterConfig;
+        result.filterConfig = [...categoryDoc.filterConfig];
+        if (isBikeModelEligible && !result.filterConfig.some((c: any) => c.code === 'motorcycle_model')) {
+          const priceIdx = result.filterConfig.findIndex((c: any) => c.code === 'price');
+          const insertIdx = priceIdx >= 0 ? priceIdx + 1 : 0;
+          result.filterConfig.splice(insertIdx, 0, { code: 'motorcycle_model', label: 'Motorcycle Model' });
+        }
       }
     }
 

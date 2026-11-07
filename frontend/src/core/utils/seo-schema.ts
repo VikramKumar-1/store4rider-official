@@ -16,6 +16,7 @@ export interface SchemaFaqItem {
 
 export interface SchemaShippingOption {
   freeShippingThreshold?: number;
+  shippingCost?: number;
   currency?: string;
   handlingDaysMin?: number;
   handlingDaysMax?: number;
@@ -280,7 +281,11 @@ export function buildProductSchema(
         "@type": "OfferShippingDetails",
         shippingRate: {
           "@type": "MonetaryAmount",
-          value: product.isFreeShipping || price >= (shippingOpts?.freeShippingThreshold ?? 999) ? 0 : 99,
+          value: (() => {
+            const threshold = shippingOpts?.freeShippingThreshold != null ? Number(shippingOpts.freeShippingThreshold) : 0;
+            const qualifiesFree = Boolean(product.isFreeShipping) || (threshold > 0 && price >= threshold);
+            return qualifiesFree ? 0 : (shippingOpts?.shippingCost != null ? Number(shippingOpts.shippingCost) : 0);
+          })(),
           currency: shippingOpts?.currency || "INR",
         },
         shippingDestination: [

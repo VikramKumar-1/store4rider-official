@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useCategoryTree, useCreateCategory, useUpdateCategory, useDeleteCategory, ICategoryTree } from "@/core/hooks/useCategories";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -151,6 +151,58 @@ export const AdminCategories = () => {
     return getUnmappedLegacyCategories(tree, authoritativeMenuTree);
   }, [tree, authoritativeMenuTree]);
 
+  // 4. Comprehensive Catalog Categories (combining Storefront Navbar items, full tree nodes, and unmapped legacy categories)
+  const allCatalogCategories = useMemo(() => {
+    const list: (any & { depth?: number })[] = [];
+    const seen = new Set<string>();
+
+    // 1. Canonical menu categories with depth
+    canonicalMenuCategories.forEach((cat) => {
+      const key = String(cat._id || cat.id || cat.slug);
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push(cat);
+      }
+    });
+
+    // 2. Full tree traversal for all subcategories
+    const traverse = (nodes: any[], depth = 0) => {
+      if (!Array.isArray(nodes)) return;
+      for (const node of nodes) {
+        const key = String(node._id || node.id || node.slug);
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push({ ...node, depth: typeof node.depth === "number" ? node.depth : depth });
+        }
+        if (Array.isArray(node.children) && node.children.length > 0) {
+          traverse(node.children, depth + 1);
+        }
+      }
+    };
+    traverse(tree);
+
+    // 3. Unmapped legacy categories
+    unmappedLegacyCategories.forEach((cat) => {
+      const key = String(cat._id || cat.id || cat.slug);
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push(cat);
+      }
+    });
+
+    return list;
+  }, [canonicalMenuCategories, tree, unmappedLegacyCategories]);
+
+  const getCategoryByIdOrSlug = useCallback((idOrSlug: string) => {
+    if (!idOrSlug) return null;
+    const clean = String(idOrSlug).trim().toLowerCase();
+    return allCatalogCategories.find((c: any) => 
+      String(c._id) === idOrSlug ||
+      String(c.id) === idOrSlug ||
+      String(c.slug).trim().toLowerCase() === clean
+    ) || null;
+  }, [allCatalogCategories]);
+
   const activeCategoriesSource = categoryViewTab === "menu" ? canonicalMenuCategories : unmappedLegacyCategories;
 
   const filteredCategoriesList = useMemo(() => {
@@ -259,17 +311,32 @@ export const AdminCategories = () => {
     ];
   }, [canonicalMenuCategories, editingCategory]);
 
-  const heroCandidateOptions: Option[] = useMemo(() => 
-    canonicalMenuCategories
-      .filter(c => c._id !== editingCategory?._id && !selectedHeroCategoryIds.includes(c._id))
-      .map(c => ({
-        label: `${c.depth > 0 ? "— ".repeat(c.depth) : ""}${c.name}`,
-        value: c._id,
-        description: `/${c.slug}`,
-        badge: c.depth === 0 ? "Root" : `Level ${c.depth}`,
-      })),
-    [canonicalMenuCategories, editingCategory, selectedHeroCategoryIds]
-  );
+  const heroCandidateOptions: Option[] = useMemo(() => {
+    const currentId = editingCategory?._id ? String(editingCategory._id) : "";
+    const currentSlug = editingCategory?.slug ? String(editingCategory.slug).toLowerCase().trim() : "";
+
+    return allCatalogCategories
+      .filter((c) => {
+        const cId = String(c._id || c.id || "");
+        const cSlug = String(c.slug || "").toLowerCase().trim();
+        // Exclude current category being edited
+        if (cId && cId === currentId) return false;
+        if (cSlug && cSlug === currentSlug) return false;
+        // Exclude already selected
+        if (selectedHeroCategoryIds.includes(cId) || selectedHeroCategoryIds.includes(cSlug)) return false;
+        return true;
+      })
+      .map((c) => {
+        const val = c._id ? String(c._id) : c.slug;
+        const depth = typeof c.depth === "number" ? c.depth : 0;
+        return {
+          label: `${depth > 0 ? "— ".repeat(depth) : ""}${c.name}`,
+          value: val,
+          description: `/${c.slug}`,
+          badge: depth === 0 ? "Root" : `Level ${depth}`,
+        };
+      });
+  }, [allCatalogCategories, editingCategory, selectedHeroCategoryIds]);
 
   const attributeSetOptions: Option[] = useMemo(() => [
     { label: "-- Auto-Detect from Category Name --", value: "", description: "Auto-detects blueprint based on category name" },
@@ -531,10 +598,10 @@ export const AdminCategories = () => {
     };
     if (!payload.parentId) delete payload.parentId;
 
-    const isValidMongoId = editingCategory?._id && /^[0-9a-fA-F]{24}$/.test(editingCategory._id);
-    if (editingCategory && isValidMongoId) {
+    const targetId = editingCategory?._id || editingCategory?.slug;
+    if (editingCategory && targetId) {
       updateCategory.mutate(
-        { id: editingCategory._id, data: payload },
+        { id: targetId, data: payload },
         {
           onSuccess: () => setIsModalOpen(false),
         }
@@ -669,6 +736,12 @@ export const AdminCategories = () => {
                 {category.specDefinitions && category.specDefinitions.length > 0 && (
                   <span className="text-[10px] text-slate-400 bg-slate-100 px-1 py-0.2 rounded">
                     {category.specDefinitions.length} Specs
+                  </span>
+                )}
+                {category.heroCategoryIds && category.heroCategoryIds.length > 0 && (
+                  <span className="text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded font-medium flex items-center gap-1">
+                    <Layers size={10} className="text-indigo-600" />
+                    {category.heroCategoryIds.length} Hero Cards
                   </span>
                 )}
               </div>
@@ -1496,20 +1569,23 @@ export const AdminCategories = () => {
             {selectedHeroCategoryIds.length > 0 ? (
               <div className="space-y-1.5 pt-1">
                 {selectedHeroCategoryIds.map((id, index) => {
-                  const targetCat = canonicalMenuCategories.find((c: any) => c._id === id || c.id === id);
-                  if (!targetCat) return null;
+                  const targetCat = getCategoryByIdOrSlug(id);
+                  const displayName = targetCat?.name || id;
+                  const displaySlug = targetCat?.slug || id;
+                  const displayImage = targetCat?.image || (targetCat as any)?.imageUrl;
+
                   return (
                     <div 
-                      key={id}
+                      key={id || index}
                       className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 shadow-2xs"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-black flex items-center justify-center shrink-0">
                           {index + 1}
                         </span>
-                        {targetCat.image ? (
+                        {displayImage ? (
                           <div className="relative w-7 h-7 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                            <Image src={targetCat.image} alt={targetCat.name} fill sizes="28px" className="object-contain p-0.5" />
+                            <Image src={displayImage} alt={displayName} fill sizes="28px" className="object-contain p-0.5" />
                           </div>
                         ) : (
                           <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
@@ -1517,18 +1593,18 @@ export const AdminCategories = () => {
                           </div>
                         )}
                         <div className="min-w-0">
-                          <span className="text-xs font-semibold text-slate-800 truncate block">{targetCat.name}</span>
-                          <span className="text-[10px] text-slate-400 font-mono block truncate">/{targetCat.slug}</span>
+                          <span className="text-xs font-semibold text-slate-800 truncate block">{displayName}</span>
+                          <span className="text-[10px] text-slate-400 font-mono block truncate">/{displaySlug}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        {targetCat.image ? (
+                        {displayImage ? (
                           <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-medium hidden sm:inline">
                             ✓ Photo ready
                           </span>
                         ) : (
                           <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-medium hidden sm:inline">
-                            ⚠️ No photo (edit /{targetCat.slug})
+                            ⚠️ No photo (edit /{displaySlug})
                           </span>
                         )}
                         <button
@@ -1546,7 +1622,7 @@ export const AdminCategories = () => {
               </div>
             ) : (
               <p className="text-[11px] text-slate-400 italic">
-                No custom cards selected. System will automatically display direct subcategories from the catalog tree.
+                No custom cards selected. Hero showcase will stay hidden until you add up to 5 categories above.
               </p>
             )}
           </div>

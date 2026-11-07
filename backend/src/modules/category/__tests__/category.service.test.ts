@@ -61,6 +61,20 @@ describe('CategoryService — Comprehensive Unit Tests', () => {
       expect(tree[0].heroCategories[0].name).toBe('Full Face');
       expect(tree[0].heroCategories[1].name).toBe('Modular');
     });
+
+    it('should NOT populate heroCategories if heroCategoryIds is not defined or empty', async () => {
+      const mockCategories = [
+        { _id: 'root_helmets', name: 'Helmets', slug: 'helmets' },
+        { _id: 'sub_ff', name: 'Full Face', slug: 'full-face', parentId: 'root_helmets', image: 'ff.webp' },
+        { _id: 'sub_mod', name: 'Modular', slug: 'modular', parentId: 'root_helmets', image: 'mod.webp' },
+      ];
+
+      vi.mocked(redis.getCache).mockResolvedValue(null);
+      vi.mocked(CategoryRepository.findAll).mockResolvedValue(mockCategories as any);
+
+      const tree = await CategoryService.getCategoryTree();
+      expect(tree[0].heroCategories).toEqual([]);
+    });
   });
 
   describe('2. Slug Resolution & Aliases', () => {

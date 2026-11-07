@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/core/api/client";
 import { toast } from "sonner";
 import Button from "@/components/ui/Button";
@@ -33,6 +34,7 @@ interface IShippingSettings {
 }
 
 export function AdminShippingSettings() {
+  const queryClient = useQueryClient();
   const [settings, setSettings] = useState<IShippingSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -61,6 +63,9 @@ export function AdminShippingSettings() {
       setSaving(true);
       const { _id, __v, createdAt, updatedAt, id, ...payload } = settings as any;
       await apiClient.put("/admin/settings", payload);
+      await queryClient.invalidateQueries({ queryKey: ["publicSettings"] });
+      await queryClient.invalidateQueries({ queryKey: ["product"] });
+      await queryClient.refetchQueries({ queryKey: ["publicSettings"] });
       toast.success("Shipping & Delivery settings saved successfully!");
     } catch (err: any) {
       const msg = err.response?.data?.message || err.response?.data?.error || "Failed to save settings";
@@ -171,11 +176,13 @@ export function AdminShippingSettings() {
                     })
                   }
                   className="w-full bg-white border border-slate-300 rounded-md pl-7 pr-3 py-2 text-sm text-slate-900 font-semibold focus:outline-none focus:border-brand shadow-2xs"
-                  placeholder="e.g. 999"
+                  placeholder="0 to disable"
                 />
               </div>
               <p className="text-[11px] text-slate-500 mt-1">
-                Orders with cart subtotal ≥ ₹{settings.freeShippingThreshold} get Free Delivery automatically.
+                {settings.freeShippingThreshold > 0
+                  ? `Orders with cart subtotal ≥ ₹${settings.freeShippingThreshold} get Free Delivery automatically.`
+                  : "Free delivery by cart value is currently disabled (set > 0 to enable)."}
               </p>
             </div>
           </div>

@@ -113,7 +113,7 @@ export function AdminPaymentSettings() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Enabled Gateways</label>
             <div className="flex flex-wrap gap-4">
-              {["upi", "payu", "ccavenue", "snapmint", "cod"].map((gw) => (
+              {["payu", "ccavenue", "snapmint", "cod"].map((gw) => (
                 <label key={gw} className="inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"

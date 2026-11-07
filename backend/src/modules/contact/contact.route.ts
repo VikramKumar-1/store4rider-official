@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ContactController } from "./contact.controller";
 import { checkRateLimit } from "../../core/middlewares/rateLimiter";
+import { extractUserFromAuth } from "../../core/middlewares/auth";
+import { UserService } from "../user/user.service";
+import { ForbiddenError } from "../../core/errors/AppError";
+
+const ALLOWED_STAFF_ROLES = [
+  "super_admin",
+  "admin",
+  "customer_care",
+  "customer_support",
+  "order_manager",
+];
 
 /**
  * @swagger
@@ -73,29 +84,38 @@ export async function contactRouter(
     return await ContactController.submit(req);
   }
 
-  // GET /contact/admin/stats
-  if (method === "GET" && pathLen === 2 && routePath[0] === "admin" && routePath[1] === "stats") {
-    return await ContactController.adminGetStats(req);
-  }
+  // Enforce staff/admin authorization for all /contact/admin routes
+  if (pathLen > 0 && routePath[0] === "admin") {
+    const userId = extractUserFromAuth(req);
+    const role = await UserService.getRole(userId);
+    if (!ALLOWED_STAFF_ROLES.includes(role)) {
+      throw new ForbiddenError("Staff access required");
+    }
 
-  // GET /contact/admin (Paginated list)
-  if (method === "GET" && pathLen === 1 && routePath[0] === "admin") {
-    return await ContactController.adminGetAll(req);
-  }
+    // GET /contact/admin/stats
+    if (method === "GET" && pathLen === 2 && routePath[1] === "stats") {
+      return await ContactController.adminGetStats(req);
+    }
 
-  // GET /contact/admin/:id
-  if (method === "GET" && pathLen === 2 && routePath[0] === "admin") {
-    return await ContactController.adminGetById(req, routePath[1]);
-  }
+    // GET /contact/admin (Paginated list)
+    if (method === "GET" && pathLen === 1) {
+      return await ContactController.adminGetAll(req);
+    }
 
-  // PUT /contact/admin/:id/status
-  if (method === "PUT" && pathLen === 3 && routePath[0] === "admin" && routePath[2] === "status") {
-    return await ContactController.adminUpdateStatus(req, routePath[1]);
-  }
+    // GET /contact/admin/:id
+    if (method === "GET" && pathLen === 2) {
+      return await ContactController.adminGetById(req, routePath[1]);
+    }
 
-  // POST /contact/admin/:id/notes
-  if (method === "POST" && pathLen === 3 && routePath[0] === "admin" && routePath[2] === "notes") {
-    return await ContactController.adminAddNote(req, routePath[1]);
+    // PUT /contact/admin/:id/status
+    if (method === "PUT" && pathLen === 3 && routePath[2] === "status") {
+      return await ContactController.adminUpdateStatus(req, routePath[1]);
+    }
+
+    // POST /contact/admin/:id/notes (Support / Chat thread reply)
+    if (method === "POST" && pathLen === 3 && routePath[2] === "notes") {
+      return await ContactController.adminAddNote(req, routePath[1]);
+    }
   }
 
   return null;

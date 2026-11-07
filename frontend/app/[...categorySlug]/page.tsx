@@ -9,6 +9,7 @@ import {
   buildBreadcrumbSchema,
   buildCollectionSchema,
   buildFAQSchema,
+  cleanText,
 } from "@/core/utils/seo-schema";
 
 const rawApiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
@@ -36,7 +37,7 @@ async function getCategoryNode(categorySlug: string) {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
     const treeUrl = baseUrl.includes("/v1") ? `${baseUrl}/categories/tree` : `${baseUrl}/v1/categories/tree`;
-    const res = await fetch(treeUrl, { next: { revalidate: 60 }, signal: AbortSignal.timeout(8000) });
+    const res = await fetch(treeUrl, { cache: "no-store", signal: AbortSignal.timeout(8000) });
     if (res.ok) {
       const data = await res.json();
       const findCategory = (nodes: any[]): any => {
@@ -84,7 +85,7 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
       const title = product.metaTitle?.trim() || `${product.name} | Store4Riders`;
       const cleanDescription =
         product.metaDescription?.trim() ||
-        product.shortDescription?.trim() ||
+        cleanText(product.shortDescription) ||
         `Buy ${product.name} at Store4Riders. Certified motorcycle riding gear with best prices & express delivery.`;
       const keywords = product.metaKeywords
         ? product.metaKeywords

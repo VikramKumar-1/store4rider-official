@@ -211,7 +211,8 @@ export class CartService {
       }
     }
 
-    const shipping = subtotal > 0 && subtotal < freeShippingThreshold ? shippingCost : 0;
+    const qualifiesForFreeShipping = freeShippingThreshold > 0 && subtotal >= freeShippingThreshold;
+    const shipping = qualifiesForFreeShipping ? 0 : (subtotal > 0 ? shippingCost : 0);
     const total = isInclusive
       ? subtotal + shipping
       : subtotal + totalTax + shipping;

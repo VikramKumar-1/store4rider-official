@@ -18,6 +18,7 @@ import { normalizeColorKey } from "./components/ProductDetailPageModule";
 import { detectImageColor, getPreferredInStockColor, isUtilityOrInfographicImage } from "@/core/utils/mediaUrlHelper";
 import { ProductInfo } from "./components/ProductInfo";
 import { StickyFooterBar } from "./components/StickyFooterBar";
+import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 
 // Lazy-load below-fold components — don't block initial page render
 const CompleteKitSlider = dynamic(() => import("./components/CompleteKitSlider").then(m => ({ default: m.CompleteKitSlider })), { ssr: false });
@@ -92,6 +93,7 @@ const resolveProductInitialSize = (product: any, color: string): string => {
 export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: publicSettings } = usePublicSettings();
   const colorQuery = searchParams.get("color");
   const [selectedColor, setSelectedColor] = useState<string>(() => resolveProductInitialColor(product, colorQuery));
   const [selectedSize, setSelectedSize] = useState<string>(() => resolveProductInitialSize(product, resolveProductInitialColor(product, colorQuery)));
@@ -238,6 +240,10 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
       }).format(activePrice)
     : product.priceFormatted;
 
+  // Real-time Free Shipping evaluation strictly based on Admin Settings and active variant price
+  const adminFreeThreshold = publicSettings?.freeShippingThreshold != null ? Number(publicSettings.freeShippingThreshold) : 0;
+  const isFreeShipping = Boolean(product.isFreeShipping) || (adminFreeThreshold > 0 && activePrice >= adminFreeThreshold);
+
   const handleAddToCart = (color: string, size: string) => {
     const hasColor = Boolean(product.colors && product.colors.length > 0 && color);
     const hasSize = Boolean(product.sizes && product.sizes.length > 0 && size);
@@ -316,6 +322,9 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
         slug: product.slug,
         selectedColor: hasColor ? color : undefined,
         selectedSize: hasSize ? size : undefined,
+        isFreeShipping: isFreeShipping,
+        shippingFee: (product as any).shippingFee || Number(product.attributes?.ship_cost || (product.attributes instanceof Map ? product.attributes.get("ship_cost") : 0)) || undefined,
+        weight: product.weight,
       } as any,
     });
   };
@@ -391,7 +400,7 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
               disabledColors={disabledColors}
               disabledSizes={disabledSizes}
               sizeChart={product.sizeChart}
-              isFreeShipping={product.isFreeShipping ?? false} // From DB
+              isFreeShipping={isFreeShipping}
               onColorChange={setSelectedColor}
               onSizeChange={setSelectedSize}
             />

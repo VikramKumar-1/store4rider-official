@@ -50,6 +50,22 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
   
   const searchQuery = (searchParams.get("search") || searchParams.get("q") || "").trim();
 
+  // Strictly filter hero cards: ONLY display if admin explicitly assigned heroCategoryIds
+  const assignedHeroCards = React.useMemo(() => {
+    if (!Array.isArray(categoryNode?.heroCategoryIds) || categoryNode.heroCategoryIds.length === 0) {
+      return [];
+    }
+    const rawCards = Array.isArray(categoryNode?.heroCategories) ? categoryNode.heroCategories : [];
+    const allowedIdSet = new Set(
+      categoryNode.heroCategoryIds.map((id: any) => String(id).toLowerCase().trim())
+    );
+    return rawCards.filter((card: any) => {
+      const id = String(card._id || card.id || "").toLowerCase().trim();
+      const slug = String(card.slug || "").toLowerCase().trim();
+      return (id && allowedIdSet.has(id)) || (slug && allowedIdSet.has(slug));
+    });
+  }, [categoryNode]);
+
   let pageTitle = searchQuery
     ? `RESULTS FOR "${searchQuery.toUpperCase()}"`
     : (categoryParam ? categoryParam.replace(/-/g, " ").toUpperCase() 
@@ -133,14 +149,16 @@ const CatalogContent: React.FC<{ products: any[]; totalCount?: number; isLoading
         </div>
 
         
-        {/* 3. Subcategory Tiles / Hero Showcase Cards (Mobile Only as per design) */}
-        <div className="block lg:hidden">
-          <SubcategoryTiles 
-            categoryName={pageTitle} 
-            categorySlug={categoryParam || ""} 
-            subcategories={categoryNode?.heroCategories || categoryNode?.children || []} 
-          />
-        </div>
+        {/* 3. Subcategory Tiles / Hero Showcase Cards (Mobile Only as per design, strictly admin-assigned only) */}
+        {assignedHeroCards.length > 0 && (
+          <div className="block lg:hidden">
+            <SubcategoryTiles 
+              categoryName={pageTitle} 
+              categorySlug={categoryParam || ""} 
+              subcategories={assignedHeroCards} 
+            />
+          </div>
+        )}
 
         {/* --- CLIENT LAYOUT REQUIREMENT: TWO ACCORDIONS AT TOP --- */}
         {categoryNode?.topAccordions && categoryNode.topAccordions.length > 0 && (

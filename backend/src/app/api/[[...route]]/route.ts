@@ -27,27 +27,6 @@ const handleRequest = async (
     return applyHeaders(res, req);
   }
 
-  if (req.nextUrl.pathname.includes('/check-stock')) {
-    await connectToDatabase();
-    const mongoose = require('mongoose');
-    const db = mongoose.connection.db;
-    const product = await db.collection("products").findOne({ name: /Rynox H2Go Pro 3/i });
-    return NextResponse.json({ 
-      found: !!product,
-      sku: product?.sku, 
-      basePrice: product?.basePrice,
-      qty: product?.qty, 
-      allowBackorders: product?.allowBackorders,
-      variants: product?.variants?.map((v:any) => ({sku: v.sku, stock: v.stock, price: v.price}))
-    });
-  }
-
-  if (req.nextUrl.pathname.includes('/clear-cache')) {
-    const { deleteCache } = require('@/core/cache/redis');
-    await deleteCache('product_slug_v2_rynox-h2go-pro-3-rain-jacket');
-    return NextResponse.json({ success: true, message: "Cache cleared" });
-  }
-
   try {
     await connectToDatabase();
     
@@ -73,7 +52,7 @@ const handleRequest = async (
     let res = await centralRouter(req, routePath);
     
     if (!res) {
-      res = NextResponse.json({ error: "Route not found", debug_routePath: routePath, debug_originalRoute: resolvedParams?.route }, { status: 404 });
+      res = NextResponse.json({ error: "Route not found" }, { status: 404 });
     }
 
     return applyHeaders(res, req);

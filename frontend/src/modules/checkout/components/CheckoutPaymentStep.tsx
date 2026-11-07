@@ -4,7 +4,6 @@ import { PaymentMethodType } from "@store4riders/shared-types";
 import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 import { toast } from "sonner";
 import { apiClient } from "@/core/api/client";
-import { GooglePayWebButton } from "./GooglePayWebButton";
 
 interface CheckoutPaymentStepProps {
   generatedOrderNumber: string;
@@ -40,9 +39,9 @@ export const CheckoutPaymentStep = ({
 
   const baseGateways = settings?.enabledGateways && settings.enabledGateways.length > 0
     ? settings.enabledGateways
-    : ["upi", "payu", "ccavenue", "snapmint", "cod"];
+    : ["payu", "ccavenue", "snapmint", "cod"];
     
-  const availableGateways = baseGateways.filter(g => g !== "cod" || isCodAvailable);
+  const availableGateways = baseGateways.filter(g => (g !== "cod" || isCodAvailable) && g !== "upi" && g !== "gpay");
 
   const isSnapmintIneligible = snapmintMin > 0 && total !== undefined && total < snapmintMin;
 
@@ -98,555 +97,431 @@ export const CheckoutPaymentStep = ({
     ? `₹${Number(settings?.codPartialPaymentValue || 0).toLocaleString("en-IN")}`
     : `${settings?.codPartialPaymentValue ?? 10}%`;
 
-  const advanceAmount = total !== undefined && total > 0
-    ? settings?.codPartialPaymentType === "fixed"
-      ? Math.min(total, Number(settings?.codPartialPaymentValue || 0))
-      : Math.round((total * Number(settings?.codPartialPaymentValue || 10)) / 100)
-    : 0;
-
-  const balanceDue = total !== undefined && total > 0
-    ? Math.max(0, total - advanceAmount)
-    : 0;
-
-  const handleSelectGateway = (gw: PaymentMethodType) => {
-    if (gw === "snapmint" && isSnapmintIneligible) {
-      toast.error(
-        `Snapmint EMI requires a minimum order of ₹${snapmintMin.toLocaleString("en-IN")} (Current total: ₹${Number(total).toLocaleString("en-IN")})`
-      );
-      return;
+  const advanceAmount = React.useMemo(() => {
+    if (!isCodWithAdvance || total === undefined || total <= 0) return 0;
+    if (settings?.codPartialPaymentType === "fixed") {
+      return Math.min(Number(settings?.codPartialPaymentValue || 0), total);
     }
-    setPaymentOption(gw);
+    const pct = Number(settings?.codPartialPaymentValue || 10);
+    return Math.round((total * pct) / 100);
+  }, [isCodWithAdvance, total, settings?.codPartialPaymentType, settings?.codPartialPaymentValue]);
+
+  const balanceDue = React.useMemo(() => {
+    if (total === undefined) return 0;
+    return Math.max(0, total - advanceAmount);
+  }, [total, advanceAmount]);
+
+  const handleSelectGateway = (method: PaymentMethodType) => {
+    if (method === "snapmint" && isSnapmintIneligible) return;
+    setPaymentOption(method);
   };
 
   return (
-    <div className="flex flex-col gap-4 animate-in fade-in duration-300">
+    <div className="flex flex-col gap-6 animate-in fade-in duration-300">
       
-      {/* Alert banner if redirected back after cancel/incomplete payment */}
+      {/* Failure & Cancellation Diagnostic Banners */}
       {(isFailedParam || isCancelledParam) && (
         <>
-          {isVerifiedSuccess ? (
-            <div className="bg-emerald-50 border border-emerald-300 rounded-lg p-4 flex items-center gap-3 shadow-xs animate-in fade-in">
-              <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center text-lg font-bold shrink-0">
-                ✓
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-bold text-emerald-950">Payment Verified with Bank!</span>
-                <p className="text-xs text-emerald-800">Your order has been confirmed successfully. Redirecting to your confirmation receipt...</p>
-              </div>
+          {isCancelledParam && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 leading-relaxed shadow-xs">
+              <span className="font-bold">Payment was cancelled at the gateway.</span> No funds were captured. You can re-attempt payment with any preferred method below.
             </div>
-          ) : (
-            <div className="bg-amber-50/80 border border-amber-300/80 rounded-lg p-4 flex flex-col gap-3 shadow-xs animate-in fade-in">
+          )}
+
+          {isFailedParam && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-900 space-y-3 shadow-xs">
               <div className="flex items-start gap-2.5">
-                <span className="text-xl shrink-0 leading-none mt-0.5">ℹ️</span>
-                <div className="flex flex-col gap-1 w-full">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span className="text-xs font-bold text-amber-950 uppercase tracking-wide">
-                      {isCancelledParam ? "Payment Cancelled" : "Payment Incomplete or Cancelled"}
-                    </span>
-                    {generatedOrderNumber && (
-                      <span className="text-[11px] font-mono font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded border border-amber-300">
-                        Ref: {generatedOrderNumber}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-amber-900 leading-relaxed font-sans">
-                    {isCancelledParam
-                      ? "You cancelled the payment transaction. "
-                      : "Your previous payment attempt was cancelled or could not be completed. "}
-                    Don&apos;t worry, <strong>all your items are still safely in your cart</strong>. You can simply retry or select another payment method below.
+                <svg className="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div className="space-y-1">
+                  <span className="font-bold text-sm block text-red-950">Payment Unsuccessful or Bank Declined</span>
+                  <p className="text-neutral-700 leading-normal">
+                    The bank did not authorize this transaction. Your cart has been safely preserved. Please choose another payment method or re-try below.
                   </p>
                 </div>
               </div>
 
-              {/* Action row */}
-              <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-amber-200/70">
+              {/* Bank Reconciliation Helper Accordion */}
+              <div className="pt-2 border-t border-red-200/80">
                 <button
                   type="button"
-                  onClick={() => setShowDebitedHelp((prev) => !prev)}
-                  className="text-xs font-medium text-amber-900 hover:text-amber-950 underline underline-offset-2 flex items-center gap-1 cursor-pointer"
+                  onClick={() => setShowDebitedHelp(!showDebitedHelp)}
+                  className="text-xs font-bold text-banner hover:text-orange-700 flex items-center gap-1 cursor-pointer transition-colors"
                 >
-                  <span>{showDebitedHelp ? "▲ Hide bank reconciliation" : "▼ Was money debited from your bank/UPI?"}</span>
+                  <span>{showDebitedHelp ? "▼ Hide bank reconciliation" : "▶ Was money debited from your bank/UPI?"}</span>
                 </button>
 
-                <a
-                  href={`https://wa.me/918789494263?text=${encodeURIComponent(`Hi Store4Riders, my payment was cancelled/incomplete for Order Ref ${generatedOrderNumber}. Please assist.`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded transition-colors flex items-center gap-1 ml-auto shadow-2xs"
-                >
-                  <span>💬 Need Help? WhatsApp Support</span>
-                </a>
-              </div>
-
-              {/* Collapsible section ONLY if money was debited / user requested reconciliation */}
-              {showDebitedHelp && (
-                <div className="flex flex-col gap-3 pt-2 mt-1 border-t border-amber-200/70 animate-in fade-in">
-                  <div className="p-3 bg-white rounded-lg border border-amber-200 flex flex-col gap-2">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900">
-                      <span className="text-sm">💸</span>
-                      <span>If money was debited from your bank / UPI:</span>
-                    </div>
-                    <p className="text-[11px] text-neutral-600 leading-relaxed">
-                      UPI apps (GPay, PhonePe, Paytm) or bank networks sometimes take 1–2 minutes to settle. Click below to verify live status with your bank.
+                {showDebitedHelp && (
+                  <div className="mt-2.5 p-3.5 bg-white border border-red-200 rounded-xl space-y-2 text-neutral-800 animate-in fade-in duration-150">
+                    <p className="text-[11px] leading-relaxed">
+                      <strong>If money was debited from your bank / UPI:</strong>
                     </p>
-                    <button
-                      type="button"
-                      onClick={handleCheckStatus}
-                      disabled={isCheckingStatus}
-                      className="self-start bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-60 cursor-pointer"
-                    >
-                      <span className={isCheckingStatus ? "animate-spin inline-block" : ""}>🔄</span>
-                      <span>{isCheckingStatus ? "Checking Live Bank Status..." : "Re-Check Bank Status"}</span>
-                    </button>
+                    <p className="text-[11px] text-neutral-600 leading-relaxed">
+                      UPI apps (GPay, PhonePe, Paytm) or bank networks sometimes take 1-2 minutes to settle. Click below to verify live status with your bank.
+                    </p>
+                    <div className="pt-1 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCheckStatus}
+                        disabled={isCheckingStatus}
+                        className="px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                      >
+                        {isCheckingStatus ? (
+                          <>
+                            <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Checking with bank...</span>
+                          </>
+                        ) : (
+                          <span>Re-check payment status with Bank</span>
+                        )}
+                      </button>
+                    </div>
 
                     {statusMessage && (
-                      <div className="p-2.5 mt-1 bg-amber-50/70 border border-amber-200 rounded text-xs text-neutral-800 font-medium">
+                      <div className="mt-2 p-2 bg-neutral-50 border border-neutral-200 rounded text-[11px] text-neutral-800 font-mono">
                         {statusMessage}
                       </div>
                     )}
                   </div>
-
-                  {/* Real RBI Timeline Breakdown */}
-                  <div className="bg-white/90 border border-amber-200 rounded p-3 text-[11px] text-neutral-700 flex flex-col gap-1.5">
-                    <span className="font-bold text-neutral-900 flex items-center gap-1">
-                      <span>🏛️</span> RBI Mandated Auto-Reversal Timelines (If Money Debited):
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-[11px]">
-                      <div className="bg-amber-50/50 p-2 rounded border border-amber-100 flex flex-col">
-                        <span className="font-bold text-neutral-900">⚡ UPI / GPay / PhonePe</span>
-                        <span className="text-neutral-600">Reversal within <strong>24 to 48 Hours</strong></span>
-                      </div>
-                      <div className="bg-amber-50/50 p-2 rounded border border-amber-100 flex flex-col">
-                        <span className="font-bold text-neutral-900">💳 Debit / Credit Cards</span>
-                        <span className="text-neutral-600">Reversal within <strong>3 to 5 Working Days</strong></span>
-                      </div>
-                      <div className="bg-amber-50/50 p-2 rounded border border-amber-100 flex flex-col">
-                        <span className="font-bold text-neutral-900">🏦 NetBanking</span>
-                        <span className="text-neutral-600">Reversal within <strong>2 to 4 Working Days</strong></span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] text-neutral-500 italic mt-0.5">
-                      *As per RBI Circular DPSS.CO.PD No.629/02.01.014/2019-20, banks automatically credit back uncaptured funds without manual claims.
-                    </span>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </>
       )}
 
-      {/* Heading */}
-      <div className="flex flex-col gap-1">
-        <h2 className="font-sans font-bold text-lg md:text-xl text-neutral-900 tracking-tight uppercase">
-          PAYMENT METHOD
-        </h2>
-        <p className="text-xs text-neutral-500 leading-relaxed font-sans max-w-lg">
-          Please select your preferred payment method below. All online transactions are secure and encrypted.
-        </p>
-      </div>
+      {/* Main Payment Container (Clay Card) */}
+      <div className="bg-white rounded-3xl p-5 sm:p-7 shadow-[0_12px_32px_-6px_rgba(15,23,42,0.05),0_4px_16px_-2px_rgba(15,23,42,0.02),inset_0_1.5px_0_rgba(255,255,255,1),inset_0_-2px_4px_rgba(0,0,0,0.015)] border border-slate-100/90 ring-1 ring-slate-900/[0.02] flex flex-col gap-5">
+        
+        {/* Heading */}
+        <div className="flex flex-col gap-1 pb-3 border-b border-slate-100">
+          <h2 className="font-sans font-bold text-lg md:text-xl text-neutral-900 tracking-tight uppercase flex items-center gap-2.5">
+            <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800 text-white text-xs font-black shadow-[0_4px_10px_rgba(0,0,0,0.25),inset_0_1px_1px_rgba(255,255,255,0.3)] flex items-center justify-center">2</span>
+            <span>PAYMENT METHOD</span>
+          </h2>
+          <p className="text-xs text-neutral-500 leading-relaxed font-sans max-w-lg mt-0.5">
+            Please select your preferred payment method below. All online transactions are secure and encrypted.
+          </p>
+        </div>
 
-      {/* Delivery Summary with Edit Button */}
-      {shippingAddressSummary && (
-        <div className="flex items-center justify-between p-3.5 bg-neutral-50 border border-neutral-200">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">DELIVERING TO</span>
-            <span className="text-xs text-neutral-800 font-medium line-clamp-1">{shippingAddressSummary}</span>
+        {/* Delivery Summary with Edit Button */}
+        {shippingAddressSummary && (
+          <div className="flex items-center justify-between p-4 bg-slate-50/80 border border-slate-200/80 rounded-2xl shadow-[inset_0_2px_4px_rgba(15,23,42,0.02)]">
+            <div className="flex flex-col gap-0.5 min-w-0 pr-3">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">DELIVERING TO</span>
+              <span className="text-xs text-slate-800 font-semibold line-clamp-1">{shippingAddressSummary}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCurrentStep(1)}
+              className="bg-white hover:bg-orange-50/60 border border-slate-200 hover:border-banner/50 text-banner font-bold text-xs uppercase px-3.5 py-1.5 rounded-xl shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,1)] transition-all active:translate-y-0.5 shrink-0"
+            >
+              Edit
+            </button>
           </div>
+        )}
+
+        {/* Payment Method Gateways */}
+        <div className="flex flex-col gap-3.5 pt-1">
+          {isLoading ? (
+            <div className="p-6 border border-slate-200/80 rounded-2xl animate-pulse bg-slate-50/60 h-28" />
+          ) : (
+            availableGateways.map((method) => {
+              // 1. PayU
+              if (method === "payu") {
+                const isSelected = paymentOption === "payu";
+                return (
+                  <label
+                    key="payu"
+                    onClick={() => handleSelectGateway("payu")}
+                    className={`relative flex flex-col p-4 sm:p-5 rounded-2xl transition-all duration-300 overflow-hidden cursor-pointer ${
+                      isSelected
+                        ? "border-2 border-banner bg-gradient-to-br from-[#fff7f4] via-white to-white shadow-[0_14px_30px_-6px_rgba(255,84,41,0.18),inset_0_1.5px_0_rgba(255,255,255,1),inset_0_-2px_4px_rgba(255,84,41,0.04)] -translate-y-0.5"
+                        : "border border-slate-200/80 bg-white hover:bg-slate-50/50 shadow-[0_4px_14px_-2px_rgba(0,0,0,0.04),inset_0_1.5px_0_rgba(255,255,255,1)] hover:shadow-[0_8px_22px_-4px_rgba(0,0,0,0.07)] hover:-translate-y-0.5"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 mt-0.5 ${isSelected ? 'border-banner bg-banner shadow-[0_2px_6px_rgba(255,84,41,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)]' : 'border-slate-300 bg-slate-50 shadow-inner'}`}>
+                        {isSelected && <div className="w-2 h-2 rounded-full bg-white shadow-xs" />}
+                      </div>
+
+                      <div className="flex flex-col w-full">
+                        <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-sans font-bold">PayUMoney - Bajaj EMI, Credit Cards, Net Banking & More</span>
+                          </div>
+                          <div className="flex items-center ml-auto gap-1.5 shrink-0">
+                            <Image src="/icons/payment/payu.svg" alt="PayU" width={40} height={20} className="object-contain h-5 w-auto" priority loading="eager" unoptimized />
+                            <Image src="/icons/payment/upi.svg" alt="UPI" width={30} height={16} className="object-contain h-4 w-auto" priority loading="eager" unoptimized />
+                          </div>
+                        </div>
+                        <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
+                          Google Pay, PhonePe, Paytm, Visa, Mastercard, RuPay, NetBanking & Bajaj Finserv EMI
+                        </span>
+
+                        {/* Logo Strip */}
+                        <div className="flex items-center gap-2 mt-3 flex-wrap">
+                          <div className="bg-white border border-slate-200/80 rounded-xl px-2 py-0.5 flex items-center justify-center h-7 w-[46px] shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,1)]">
+                            <Image src="/icons/payment/gpay.svg" alt="GPay" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                          </div>
+                          <div className="bg-white border border-slate-200/80 rounded-xl px-2 py-0.5 flex items-center justify-center h-7 w-[46px] shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,1)]">
+                            <Image src="/icons/payment/phonepe.svg" alt="PhonePe" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                          </div>
+                          <div className="bg-white border border-slate-200/80 rounded-xl px-2 py-0.5 flex items-center justify-center h-7 w-[46px] shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,1)]">
+                            <Image src="/icons/payment/paytm.svg" alt="Paytm" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                          </div>
+                          <div className="bg-white border border-slate-200/80 rounded-xl px-2 py-0.5 flex items-center justify-center h-7 w-[46px] shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,1)]">
+                            <Image src="/icons/payment/visa.svg" alt="VISA" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                          </div>
+                          <div className="bg-white border border-slate-200/80 rounded-xl px-2 py-0.5 flex items-center justify-center h-7 w-[46px] shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,1)]">
+                            <Image src="/icons/payment/mastercard.svg" alt="Mastercard" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                          </div>
+                          <div className="bg-white border border-slate-200/80 rounded-xl px-2 py-0.5 flex items-center justify-center h-7 w-[46px] shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,1)]">
+                            <Image src="/icons/payment/rupay.svg" alt="RuPay" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                );
+              }
+
+              // 2. CCAvenue
+              if (method === "ccavenue") {
+                const isSelected = paymentOption === "ccavenue";
+                return (
+                  <label
+                    key="ccavenue"
+                    onClick={() => handleSelectGateway("ccavenue")}
+                    className={`relative flex flex-col p-4 sm:p-5 rounded-2xl transition-all duration-300 overflow-hidden cursor-pointer ${
+                      isSelected
+                        ? "border-2 border-banner bg-gradient-to-br from-[#fff7f4] via-white to-white shadow-[0_14px_30px_-6px_rgba(255,84,41,0.18),inset_0_1.5px_0_rgba(255,255,255,1),inset_0_-2px_4px_rgba(255,84,41,0.04)] -translate-y-0.5"
+                        : "border border-slate-200/80 bg-white hover:bg-slate-50/50 shadow-[0_4px_14px_-2px_rgba(0,0,0,0.04),inset_0_1.5px_0_rgba(255,255,255,1)] hover:shadow-[0_8px_22px_-4px_rgba(0,0,0,0.07)] hover:-translate-y-0.5"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 mt-0.5 ${isSelected ? 'border-banner bg-banner shadow-[0_2px_6px_rgba(255,84,41,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)]' : 'border-slate-300 bg-slate-50 shadow-inner'}`}>
+                        {isSelected && <div className="w-2 h-2 rounded-full bg-white shadow-xs" />}
+                      </div>
+
+                      <div className="flex flex-col w-full">
+                        <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-sans font-bold">CCAvenue</span>
+                            <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200/80 shadow-2xs">
+                              50+ Banks
+                            </span>
+                          </div>
+                          <div className="shrink-0 flex items-center gap-1.5">
+                            <div className="flex items-center bg-[#8f0d14] px-3 py-1 rounded-xl shadow-[0_2px_6px_rgba(143,13,20,0.35),inset_0_1px_1px_rgba(255,255,255,0.3)] h-6">
+                              <span className="text-white font-black text-[11px] tracking-tight">CCAvenue</span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
+                          Credit Cards, Debit Cards, NetBanking (All Major Indian Banks) & Wallets
+                        </span>
+                      </div>
+                    </div>
+                  </label>
+                );
+              }
+
+              // 3. Snapmint
+              if (method === "snapmint") {
+                const isSelected = paymentOption === "snapmint";
+                return (
+                  <label
+                    key="snapmint"
+                    onClick={() => handleSelectGateway("snapmint")}
+                    className={`relative flex flex-col p-4 sm:p-5 rounded-2xl transition-all duration-300 overflow-hidden ${
+                      isSnapmintIneligible
+                        ? "border border-slate-200 bg-slate-50/70 opacity-80 cursor-not-allowed"
+                        : isSelected
+                        ? "border-2 border-banner bg-gradient-to-br from-[#fff7f4] via-white to-white shadow-[0_14px_30px_-6px_rgba(255,84,41,0.18),inset_0_1.5px_0_rgba(255,255,255,1),inset_0_-2px_4px_rgba(255,84,41,0.04)] -translate-y-0.5 cursor-pointer"
+                        : "border border-slate-200/80 bg-white hover:bg-slate-50/50 shadow-[0_4px_14px_-2px_rgba(0,0,0,0.04),inset_0_1.5px_0_rgba(255,255,255,1)] hover:shadow-[0_8px_22px_-4px_rgba(0,0,0,0.07)] hover:-translate-y-0.5 cursor-pointer"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 mt-0.5 ${
+                        isSnapmintIneligible
+                          ? 'border-slate-300 bg-slate-200'
+                          : isSelected 
+                          ? 'border-banner bg-banner shadow-[0_2px_6px_rgba(255,84,41,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)]' 
+                          : 'border-slate-300 bg-slate-50 shadow-inner'
+                      }`}>
+                        {isSelected && !isSnapmintIneligible && <div className="w-2 h-2 rounded-full bg-white shadow-xs" />}
+                      </div>
+
+                      <div className="flex flex-col w-full">
+                        <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-sans font-bold">Snapmint - EMI without Credit Card</span>
+                            {snapmintMin > 0 && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-amber-50 text-amber-900 border border-amber-300/80 px-2.5 py-0.5 rounded-full shadow-2xs tracking-wide uppercase">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                                Min. Order ₹{snapmintMin.toLocaleString("en-IN")}
+                              </span>
+                            )}
+                          </div>
+                          <div className="shrink-0 scale-95 origin-right">
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <div className="flex items-center bg-[#004851] px-2.5 py-1 rounded-xl shadow-[0_2px_6px_rgba(0,72,81,0.35),inset_0_1px_1px_rgba(255,255,255,0.3)] h-7">
+                                <span className="text-[#00e396] font-bold text-xs tracking-tight">snap</span>
+                                <span className="text-white font-bold text-xs tracking-tight">mint</span>
+                              </div>
+                              <span className="text-[10px] font-extrabold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 shadow-2xs">0% Interest</span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
+                          Buy now, pay in easy monthly installments without credit card
+                        </span>
+
+                        {/* Snapmint Ineligible notice */}
+                        {isSnapmintIneligible && (
+                          <div className="mt-3 flex items-start gap-2.5 p-3.5 bg-amber-50/90 border border-amber-200/80 text-amber-900 rounded-2xl text-xs leading-relaxed shadow-[inset_0_1px_2px_rgba(245,158,11,0.05)]">
+                            <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <div>
+                              <span className="font-bold">Order value ₹{Number(total).toLocaleString("en-IN")} is below Snapmint&apos;s minimum limit (₹{snapmintMin.toLocaleString("en-IN")}).</span>{" "}
+                              <span className="text-neutral-700">Add <strong>₹{(snapmintMin - total).toLocaleString('en-IN')}</strong> more to your cart to unlock 0% EMI with Snapmint.</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </label>
+                );
+              }
+
+              // 4. Cash on Delivery (COD)
+              if (method === "cod") {
+                const isSelected = paymentOption === "cod";
+                return (
+                  <label
+                    key="cod"
+                    onClick={() => handleSelectGateway("cod")}
+                    className={`relative flex flex-col p-4 sm:p-5 rounded-2xl transition-all duration-300 overflow-hidden cursor-pointer ${
+                      isSelected
+                        ? "border-2 border-banner bg-gradient-to-br from-[#fff7f4] via-white to-white shadow-[0_14px_30px_-6px_rgba(255,84,41,0.18),inset_0_1.5px_0_rgba(255,255,255,1),inset_0_-2px_4px_rgba(255,84,41,0.04)] -translate-y-0.5"
+                        : "border border-slate-200/80 bg-white hover:bg-slate-50/50 shadow-[0_4px_14px_-2px_rgba(0,0,0,0.04),inset_0_1.5px_0_rgba(255,255,255,1)] hover:shadow-[0_8px_22px_-4px_rgba(0,0,0,0.07)] hover:-translate-y-0.5"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 mt-0.5 ${isSelected ? 'border-banner bg-banner shadow-[0_2px_6px_rgba(255,84,41,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)]' : 'border-slate-300 bg-slate-50 shadow-inner'}`}>
+                        {isSelected && <div className="w-2 h-2 rounded-full bg-white shadow-xs" />}
+                      </div>
+
+                      <div className="flex flex-col w-full">
+                        <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-sans font-bold">Cash on Delivery | COD</span>
+                            {isCodWithAdvance && (
+                              <span className="text-[10px] font-bold bg-[#EBF4FF] text-[#2874F0] border border-[#C7D9FF] px-2.5 py-0.5 rounded-full tracking-wide shadow-2xs">
+                                {codAdvanceText} Advance
+                              </span>
+                            )}
+                          </div>
+                          <div className="shrink-0 scale-95 origin-right">
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <div className="flex items-center gap-1 bg-neutral-900 text-white px-2.5 py-1 rounded-xl shadow-[0_2px_6px_rgba(0,0,0,0.25),inset_0_1px_1px_rgba(255,255,255,0.25)] h-7">
+                                <svg className="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="2" y="6" width="20" height="12" rx="2" />
+                                  <circle cx="12" cy="12" r="2" />
+                                  <path d="M6 12h.01M18 12h.01" />
+                                </svg>
+                                <span className="font-extrabold text-[11px] tracking-wider uppercase">COD</span>
+                              </div>
+                              <span className="text-[10px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200/80 shadow-2xs">Doorstep</span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
+                          Pay in cash or UPI when package is delivered at your doorstep
+                        </span>
+
+                        {/* Advance Payment Banner */}
+                        {isCodWithAdvance && (
+                          <div className="mt-3 flex items-center justify-between gap-3 px-3.5 py-2.5 bg-[#F0F5FF] border border-[#D0E1FD] rounded-2xl text-xs text-[#172337] shadow-[inset_0_1px_2px_rgba(40,116,240,0.04)]">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <svg className="w-4 h-4 text-[#2874F0] shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
+                              </svg>
+                              <p className="text-[12px] leading-snug text-[#1E293B]">
+                                for <strong className="font-bold text-[#2874F0]">{codAdvanceText} advance payment</strong> you will be directed to <strong className="font-bold text-neutral-900">Payu Payment Gateway</strong>
+                              </p>
+                            </div>
+                            <div className="shrink-0 hidden sm:flex items-center bg-white px-2 py-0.5 border border-[#D0E1FD] rounded-lg shadow-2xs h-5">
+                              <Image src="/icons/payment/payu.svg" alt="PayU" width={30} height={14} className="object-contain h-3.5 w-auto" priority loading="eager" unoptimized />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* COD Advance payment live breakdown (when selected) */}
+                        {isCodWithAdvance && isSelected && total !== undefined && total > 0 && advanceAmount > 0 && (
+                          <div className="mt-3 p-3.5 bg-slate-50/80 border border-slate-200/80 rounded-2xl text-xs text-neutral-800 flex flex-wrap items-center justify-between gap-3 shadow-[inset_0_2px_4px_rgba(15,23,42,0.02)] animate-in fade-in duration-200">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-xl bg-[#F0F5FF] border border-[#D0E1FD] flex items-center justify-center shrink-0 shadow-2xs">
+                                <svg className="w-4 h-4 text-[#2874F0]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="2" y="5" width="20" height="14" rx="2" />
+                                  <line x1="2" y1="10" x2="22" y2="10" />
+                                </svg>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] text-neutral-500 uppercase font-semibold">Advance via PayU</span>
+                                <strong className="text-banner font-black text-sm">₹{advanceAmount.toLocaleString("en-IN")}</strong>
+                              </div>
+                            </div>
+
+                            <div className="text-slate-300 font-light text-base hidden sm:block">→</div>
+
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0 shadow-2xs">
+                                <svg className="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M6 3h12" />
+                                  <path d="M6 8h12" />
+                                  <path d="m6 13 8.5 8" />
+                                  <path d="M6 13h3" />
+                                  <path d="M9 13c6.667 0 6.667-10 0-10" />
+                                </svg>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] text-neutral-500 uppercase font-semibold">Balance on Delivery</span>
+                                <strong className="text-emerald-700 font-black text-sm">₹{balanceDue.toLocaleString("en-IN")}</strong>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </label>
+                );
+              }
+
+              return null;
+            })
+          )}
+        </div>
+
+        {/* Desktop Back Navigation */}
+        <div className="hidden lg:flex items-center justify-start pt-2">
           <button
             type="button"
             onClick={() => setCurrentStep(1)}
-            className="text-xs font-bold text-banner hover:text-orange-600 uppercase tracking-wider px-2 py-1 shrink-0"
+            className="border border-slate-200 hover:border-slate-800 bg-white text-slate-700 hover:text-slate-900 text-xs uppercase font-bold px-6 py-3.5 rounded-xl transition-all flex items-center gap-2 shadow-[0_2px_6px_rgba(0,0,0,0.03),inset_0_1px_0_rgba(255,255,255,1)] active:translate-y-0.5 cursor-pointer"
           >
-            Edit
+            ← Back to Shipping Details
           </button>
         </div>
-      )}
-
-      {/* Payment Method Gateways — Authentic live site headings */}
-      <div className="flex flex-col gap-2.5 pt-1">
-        {isLoading ? (
-          <div className="p-4 border border-neutral-200 animate-pulse bg-neutral-50 h-24" />
-        ) : (
-          availableGateways.map((method) => {
-            // 0. Direct UPI / Google Pay
-            if (method === "upi" || method === "gpay") {
-              const isSelected = paymentOption === "upi";
-              return (
-                <label
-                  key="upi"
-                  onClick={() => handleSelectGateway("upi")}
-                  className={`relative flex flex-col p-3.5 border rounded-none transition-all overflow-hidden cursor-pointer ${
-                    isSelected
-                      ? "border-banner bg-orange-50/20 ring-1 ring-banner"
-                      : "border-neutral-300 hover:border-neutral-400 bg-white"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="paymentOption"
-                      checked={isSelected}
-                      onChange={() => handleSelectGateway("upi")}
-                      className="accent-orange-600 w-4 h-4 mt-0.5 shrink-0 cursor-pointer"
-                    />
-                    <div className="flex flex-col w-full">
-                      <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span>Google Pay (Direct UPI)</span>
-                        </div>
-                        <div className="flex items-center ml-auto gap-2 shrink-0">
-                          <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={42} height={22} className="object-contain h-5 w-auto" priority loading="eager" unoptimized />
-                          <Image src="/icons/payment/upi.svg" alt="UPI" width={30} height={16} className="object-contain h-4 w-auto" priority loading="eager" unoptimized />
-                        </div>
-                      </div>
-                      <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
-                        Instant payment via Google Pay or scan official Store4Riders GPay QR code
-                      </span>
-
-                      {/* Google Pay Verification Strip */}
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="bg-white border border-neutral-200 rounded px-2 py-0.5 flex items-center justify-center h-7">
-                          <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={44} height={24} className="object-contain w-auto h-5" priority loading="eager" unoptimized />
-                        </div>
-                        <span className="text-[11px] text-neutral-600 font-medium font-mono">
-                          Merchant: 9834999284@okbizaxis
-                        </span>
-                      </div>
-
-                      {/* Google Pay Direct UPI Action Card */}
-                      {isSelected && (
-                        <div className="mt-3 pt-3 border-t border-neutral-200 flex flex-col gap-2.5" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-between text-xs text-neutral-700 bg-neutral-50 p-2.5 rounded border border-neutral-200">
-                            <span className="font-medium text-neutral-600">Merchant UPI VPA:</span>
-                            <span className="font-mono font-bold text-neutral-900 bg-white px-2 py-0.5 rounded border border-neutral-200">
-                              9834999284@okbizaxis
-                            </span>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={handleAgreeToPay}
-                            disabled={isProcessing}
-                            className="w-full bg-[#1a73e8] hover:bg-[#1557b0] text-white font-extrabold text-xs uppercase py-3 px-4 rounded shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-50"
-                          >
-                            <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={36} height={20} className="object-contain h-5 w-auto brightness-0 invert" />
-                            <span>{isProcessing ? "INITIALIZING GOOGLE PAY..." : `PAY VIA GOOGLE PAY UPI (₹${Number(total || 0).toLocaleString("en-IN")})`}</span>
-                          </button>
-
-                          <span className="text-[11px] text-neutral-500 text-center font-sans">
-                            Instant UPI transfer via Google Pay. Direct settlement to Store4Riders Axis Bank account.
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </label>
-              );
-            }
-
-            // 1. PayU (Live site title: PayUMoney - Bajaj EMI, Credit Cards, Net Banking & More)
-            if (method === "payu") {
-              const isSelected = paymentOption === "payu";
-              return (
-                <label
-                  key="payu"
-                  onClick={() => handleSelectGateway("payu")}
-                  className={`relative flex flex-col p-3.5 border rounded-none transition-all overflow-hidden cursor-pointer ${
-                    isSelected
-                      ? "border-banner bg-orange-50/20 ring-1 ring-banner"
-                      : "border-neutral-300 hover:border-neutral-400 bg-white"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="paymentOption"
-                      checked={isSelected}
-                      onChange={() => handleSelectGateway("payu")}
-                      className="accent-orange-600 w-4 h-4 mt-0.5 shrink-0 cursor-pointer"
-                    />
-                    <div className="flex flex-col w-full">
-                      <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span>PayUMoney - Bajaj EMI, Credit Cards, Net Banking & More</span>
-                        </div>
-                        <div className="flex items-center ml-auto gap-1 shrink-0">
-                          <Image src="/icons/payment/payu.svg" alt="PayU" width={40} height={20} className="object-contain h-5 w-auto" priority loading="eager" unoptimized />
-                          <Image src="/icons/payment/upi.svg" alt="UPI" width={30} height={16} className="object-contain h-4 w-auto" priority loading="eager" unoptimized />
-                        </div>
-                      </div>
-                      <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
-                        Google Pay, PhonePe, Paytm, Visa, Mastercard, RuPay, NetBanking & Bajaj Finserv EMI
-                      </span>
-
-                      {/* Logo Strip */}
-                      <div className="flex items-center gap-2 mt-2 flex-wrap opacity-90">
-                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-                          <Image src="/icons/payment/gpay.svg" alt="GPay" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-                        </div>
-                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-                          <Image src="/icons/payment/phonepe.svg" alt="PhonePe" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-                        </div>
-                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-                          <Image src="/icons/payment/paytm.svg" alt="Paytm" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-                        </div>
-                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-                          <Image src="/icons/payment/visa.svg" alt="VISA" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-                        </div>
-                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-                          <Image src="/icons/payment/mastercard.svg" alt="Mastercard" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-                        </div>
-                        <div className="bg-white border border-neutral-200 rounded px-1.5 py-0.5 flex items-center justify-center h-7 w-[46px]">
-                          <Image src="/icons/payment/rupay.svg" alt="RuPay" width={40} height={24} className="object-contain w-full h-full" priority loading="eager" unoptimized />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </label>
-              );
-            }
-
-            // 2. CCAvenue (Live site title: CCAvenue)
-            if (method === "ccavenue") {
-              const isSelected = paymentOption === "ccavenue";
-              return (
-                <label
-                  key="ccavenue"
-                  onClick={() => handleSelectGateway("ccavenue")}
-                  className={`relative flex flex-col p-3.5 border rounded-none transition-all overflow-hidden cursor-pointer ${
-                    isSelected
-                      ? "border-banner bg-orange-50/20 ring-1 ring-banner"
-                      : "border-neutral-300 hover:border-neutral-400 bg-white"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="paymentOption"
-                      checked={isSelected}
-                      onChange={() => handleSelectGateway("ccavenue")}
-                      className="accent-orange-600 w-4 h-4 mt-0.5 shrink-0 cursor-pointer"
-                    />
-                    <div className="flex flex-col w-full">
-                      <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span>CCAvenue</span>
-                          <span className="text-[9px] font-bold bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded border border-neutral-200">
-                            50+ Banks
-                          </span>
-                        </div>
-                        <div className="shrink-0 flex items-center gap-1.5">
-                          <div className="flex items-center bg-[#8f0d14] px-2.5 py-1 rounded shadow-2xs h-6">
-                            <span className="text-white font-black text-[11px] tracking-tight">CCAvenue</span>
-                          </div>
-                        </div>
-                      </div>
-                      <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
-                        Credit Cards, Debit Cards, NetBanking (All Major Indian Banks) & Wallets
-                      </span>
-                    </div>
-                  </div>
-                </label>
-              );
-            }
-
-            // 3. Snapmint (Live site title: Snapmint - EMI without Credit Card)
-            if (method === "snapmint") {
-              const isSelected = paymentOption === "snapmint";
-              return (
-                <label
-                  key="snapmint"
-                  onClick={() => handleSelectGateway("snapmint")}
-                  className={`relative flex flex-col p-3.5 border rounded-none transition-all overflow-hidden ${
-                    isSnapmintIneligible
-                      ? "border-neutral-200 bg-neutral-50/70 opacity-80 cursor-not-allowed"
-                      : isSelected
-                      ? "border-banner bg-orange-50/20 ring-1 ring-banner cursor-pointer"
-                      : "border-neutral-300 hover:border-neutral-400 bg-white cursor-pointer"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="paymentOption"
-                      disabled={isSnapmintIneligible}
-                      checked={isSelected}
-                      onChange={() => handleSelectGateway("snapmint")}
-                      className={`accent-orange-600 w-4 h-4 mt-0.5 shrink-0 ${
-                        isSnapmintIneligible ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-                      }`}
-                    />
-                    <div className="flex flex-col w-full">
-                      <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span>Snapmint - EMI without Credit Card</span>
-                          {snapmintMin > 0 && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-amber-50 text-amber-900 border border-amber-300 px-2 py-0.5 rounded shadow-2xs tracking-wide uppercase">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                              Min. Order ₹{snapmintMin.toLocaleString("en-IN")}
-                            </span>
-                          )}
-                        </div>
-                        <div className="shrink-0 scale-90 origin-right">
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <div className="flex items-center bg-[#004851] px-2.5 py-1 rounded shadow-xs h-7">
-                              <span className="text-[#00e396] font-bold text-xs tracking-tight">snap</span>
-                              <span className="text-white font-bold text-xs tracking-tight">mint</span>
-                            </div>
-                            <span className="text-[9px] font-extrabold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200">0% Interest</span>
-                          </div>
-                        </div>
-                      </div>
-                      <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
-                        Buy now, pay in easy monthly installments without credit card
-                      </span>
-
-                      {/* Snapmint Ineligible notice */}
-                      {isSnapmintIneligible && (
-                        <div className="mt-2.5 flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 text-amber-900 rounded text-xs leading-relaxed">
-                          <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                          </svg>
-                          <div>
-                            <span className="font-bold">Order value ₹{Number(total).toLocaleString("en-IN")} is below Snapmint&apos;s minimum limit (₹{snapmintMin.toLocaleString("en-IN")}).</span>{" "}
-                            <span className="text-neutral-700">Add <strong>₹{(snapmintMin - total).toLocaleString('en-IN')}</strong> more to your cart to unlock 0% EMI with Snapmint.</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </label>
-              );
-            }
-
-            // 4. Cash on Delivery (Live site title: Cash on Delivery | COD)
-            if (method === "cod") {
-              const isSelected = paymentOption === "cod";
-              return (
-                <label
-                  key="cod"
-                  onClick={() => handleSelectGateway("cod")}
-                  className={`relative flex flex-col p-3.5 border rounded-none transition-all overflow-hidden cursor-pointer ${
-                    isSelected
-                      ? "border-banner bg-orange-50/20 ring-1 ring-banner"
-                      : "border-neutral-300 hover:border-neutral-400 bg-white"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="paymentOption"
-                      checked={isSelected}
-                      onChange={() => handleSelectGateway("cod")}
-                      className="accent-orange-600 w-4 h-4 mt-0.5 shrink-0 cursor-pointer"
-                    />
-                    <div className="flex flex-col w-full">
-                      <div className="font-bold text-sm text-neutral-900 w-full flex items-center justify-between">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span>Cash on Delivery | COD</span>
-                          {isCodWithAdvance && (
-                            <span className="text-[10px] font-bold bg-[#EBF4FF] text-[#2874F0] border border-[#C7D9FF] px-2 py-0.5 rounded tracking-wide">
-                              {codAdvanceText} Advance
-                            </span>
-                          )}
-                        </div>
-                        <div className="shrink-0 scale-90 origin-right">
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <div className="flex items-center gap-1 bg-neutral-900 text-white px-2.5 py-1 rounded shadow-xs h-7">
-                              <svg className="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="2" y="6" width="20" height="12" rx="2" />
-                                <circle cx="12" cy="12" r="2" />
-                                <path d="M6 12h.01M18 12h.01" />
-                              </svg>
-                              <span className="font-extrabold text-[11px] tracking-wider uppercase">COD</span>
-                            </div>
-                            <span className="text-[9px] font-medium bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded border border-neutral-200">Doorstep</span>
-                          </div>
-                        </div>
-                      </div>
-                      <span className="text-[11px] text-neutral-500 mt-0.5 pr-2">
-                        Pay in cash or UPI when package is delivered at your doorstep
-                      </span>
-
-                      {/* Advance Payment Banner */}
-                      {isCodWithAdvance && (
-                        <div className="mt-2.5 flex items-center justify-between gap-2.5 px-3 py-2 bg-[#F0F5FF] border border-[#D0E1FD] rounded text-xs text-[#172337]">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <svg className="w-4 h-4 text-[#2874F0] shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
-                            </svg>
-                            <p className="text-[12px] leading-snug text-[#1E293B]">
-                              for <strong className="font-bold text-[#2874F0]">{codAdvanceText} advance payment</strong> you will be directed to <strong className="font-bold text-neutral-900">Payu Payment Gateway</strong>
-                            </p>
-                          </div>
-                          <div className="shrink-0 hidden sm:flex items-center bg-white px-1.5 py-0.5 border border-[#D0E1FD] rounded shadow-2xs h-5">
-                            <Image src="/icons/payment/payu.svg" alt="PayU" width={30} height={14} className="object-contain h-3.5 w-auto" priority loading="eager" unoptimized />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* COD Advance payment live breakdown (when selected) */}
-                      {isCodWithAdvance && isSelected && total !== undefined && total > 0 && advanceAmount > 0 && (
-                        <div className="mt-2.5 p-3 bg-neutral-50/80 border border-neutral-200 rounded text-xs text-neutral-800 flex flex-wrap items-center justify-between gap-3 shadow-2xs animate-in fade-in duration-200">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded bg-[#F0F5FF] border border-[#D0E1FD] flex items-center justify-center shrink-0">
-                              <svg className="w-3.5 h-3.5 text-[#2874F0]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="2" y="5" width="20" height="14" rx="2" />
-                                <line x1="2" y1="10" x2="22" y2="10" />
-                              </svg>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-[10px] text-neutral-500 uppercase font-semibold">Advance via PayU</span>
-                              <strong className="text-banner font-black text-sm">₹{advanceAmount.toLocaleString("en-IN")}</strong>
-                            </div>
-                          </div>
-
-                          <div className="text-neutral-300 font-light text-base hidden sm:block">→</div>
-
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
-                              <svg className="w-3.5 h-3.5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M6 3h12" />
-                                <path d="M6 8h12" />
-                                <path d="m6 13 8.5 8" />
-                                <path d="M6 13h3" />
-                                <path d="M9 13c6.667 0 6.667-10 0-10" />
-                              </svg>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-[10px] text-neutral-500 uppercase font-semibold">Balance on Delivery</span>
-                              <strong className="text-emerald-700 font-black text-sm">₹{balanceDue.toLocaleString("en-IN")}</strong>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </label>
-              );
-            }
-
-            return null;
-          })
-        )}
-      </div>
-
-      {/* Desktop Back Navigation */}
-      <div className="hidden lg:flex items-center justify-start pt-2">
-        <button
-          type="button"
-          onClick={() => setCurrentStep(1)}
-          className="border border-neutral-300 hover:border-neutral-900 text-neutral-700 hover:text-neutral-900 text-xs uppercase font-bold px-5 py-3 transition-colors flex items-center gap-1.5"
-        >
-          ← Back to Shipping Details
-        </button>
       </div>
 
       {/* Mobile Fixed Sticky Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 bg-white border-t border-neutral-200 z-[60] flex flex-col gap-2.5 shadow-[0_-8px_16px_-6px_rgba(0,0,0,0.15)] lg:hidden">
+      <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 bg-white/95 backdrop-blur-md border-t border-slate-200/80 z-[60] flex flex-col gap-2.5 shadow-[0_-10px_30px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,1)] lg:hidden">
         {paymentOption === "cod" && Boolean(settings?.codPartialPaymentEnabled) && (settings?.codPartialPaymentValue || 0) > 0 && (
-          <div className="w-full text-xs text-[#172337] bg-[#F0F5FF] border border-[#D0E1FD] px-3 py-2 rounded flex items-center justify-between gap-2 shadow-2xs leading-snug">
+          <div className="w-full text-xs text-[#172337] bg-[#F0F5FF] border border-[#D0E1FD] px-3.5 py-2.5 rounded-2xl flex items-center justify-between gap-2 shadow-2xs leading-snug">
             <div className="flex items-center gap-2 min-w-0">
               <svg className="w-4 h-4 text-[#2874F0] shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
@@ -655,7 +530,7 @@ export const CheckoutPaymentStep = ({
                 for <strong className="font-bold text-[#2874F0]">{codAdvanceText} advance payment</strong> you will be directed to <strong className="font-bold text-neutral-900">Payu Payment Gateway</strong>
               </span>
             </div>
-            <div className="shrink-0 flex items-center bg-white px-1.5 py-0.5 border border-[#D0E1FD] rounded shadow-2xs h-4.5">
+            <div className="shrink-0 flex items-center bg-white px-2 py-0.5 border border-[#D0E1FD] rounded shadow-2xs h-5">
               <Image src="/icons/payment/payu.svg" alt="PayU" width={26} height={12} className="object-contain h-3 w-auto" priority loading="eager" unoptimized />
             </div>
           </div>
@@ -664,7 +539,7 @@ export const CheckoutPaymentStep = ({
           {/* Mobile Total Display */}
           <div className="flex flex-col min-w-0">
             <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Total</span>
-            <span className="text-lg font-black text-banner leading-none line-clamp-1">
+            <span className="text-xl font-black text-banner leading-none line-clamp-1">
               {total !== undefined ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(total) : "₹0.00"}
             </span>
           </div>
@@ -674,20 +549,9 @@ export const CheckoutPaymentStep = ({
             type="button"
             onClick={handleAgreeToPay}
             disabled={isProcessing || !paymentOption}
-            className={`flex-1 ${
-              paymentOption === "upi" ? "bg-[#1a73e8] hover:bg-[#1557b0]" : "bg-banner hover:bg-orange-600"
-            } text-white font-bold tracking-wider text-xs uppercase py-3.5 px-6 rounded-none shadow-md transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer`}
+            className="flex-1 bg-gradient-to-r from-banner to-[#ea4719] hover:from-[#f04f25] hover:to-[#d83c12] text-white font-black tracking-wider text-xs uppercase py-3.5 px-6 rounded-xl shadow-[0_8px_20px_-4px_rgba(255,84,41,0.45),inset_0_1.5px_1px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.15)] transition-all active:translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
           >
-            {isProcessing ? (
-              "PROCESSING..."
-            ) : paymentOption === "upi" ? (
-              <>
-                <Image src="/icons/payment/gpay.svg" alt="Google Pay" width={32} height={18} className="object-contain h-4 w-auto brightness-0 invert" />
-                <span>PAY VIA GOOGLE PAY</span>
-              </>
-            ) : (
-              "PLACE ORDER"
-            )}
+            {isProcessing ? "PROCESSING..." : "PLACE ORDER"}
           </button>
         </div>
       </div>

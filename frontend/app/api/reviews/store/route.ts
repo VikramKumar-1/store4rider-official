@@ -57,13 +57,19 @@ export async function POST(req: Request) {
     const baseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
     const syncUrl = baseUrl.includes("/v1") ? `${baseUrl}/reviews/store/sync` : `${baseUrl}/v1/reviews/store/sync`;
 
+    const authHeader = req.headers.get("authorization");
+    const cookieHeader = req.headers.get("cookie");
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (authHeader) headers["authorization"] = authHeader;
+    if (cookieHeader) headers["cookie"] = cookieHeader;
+
     const response = await fetch(syncUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
-        apiKey: body.apiKey || process.env.SERPAPI_KEY,
+        ...(body.apiKey ? { apiKey: body.apiKey } : {}),
         pages: body.pages,
       }),
     });

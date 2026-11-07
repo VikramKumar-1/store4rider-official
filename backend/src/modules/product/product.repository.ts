@@ -17,6 +17,8 @@
 import { ProductModel } from "./product.model";
 import { IProduct } from "@store4riders/shared-types";
 
+const escapeRegex = (str: string) => (str || "").replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+
 export class ProductRepository {
   /**
    * Retrieves a paginated list of products.
@@ -182,9 +184,9 @@ export class ProductRepository {
         $and: [
           {
             $or: [
-              { magentoCategories: { $regex: keyword, $options: "i" } },
-              { name: { $regex: keyword, $options: "i" } },
-              { tags: { $in: [new RegExp(keyword, "i")] } },
+              { magentoCategories: { $regex: escapeRegex(keyword), $options: "i" } },
+              { name: { $regex: escapeRegex(keyword), $options: "i" } },
+              { tags: { $in: [new RegExp(escapeRegex(keyword), "i")] } },
             ],
           },
         ],

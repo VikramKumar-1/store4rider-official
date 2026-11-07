@@ -161,6 +161,37 @@ describe('Product Filter & Query Validation Suite', () => {
     });
   });
 
+  describe('6. Motorcycle Model Filtering', () => {
+    it('should correctly parse and build motorcycle_model query condition for accessories & spares', () => {
+      const req = createMockReq('http://localhost/api/products?category=brake-pads&motorcycle_model=KTM%20Duke%20125');
+      const result = ProductValidator.validateListQuery(req);
+
+      const andConditions = (result.filters as any).$and;
+      expect(andConditions).toBeDefined();
+
+      const modelCondition = andConditions.find((cond: any) => {
+        return cond.$or && cond.$or.some((sub: any) => sub['attributes.motorcycle_model'] || sub['attributes.bike_compatibility']);
+      });
+
+      expect(modelCondition).toBeDefined();
+      expect(modelCondition.$or.length).toBeGreaterThanOrEqual(4);
+    });
+
+    it('should handle comma-separated motorcycle models', () => {
+      const req = createMockReq('http://localhost/api/products?category=motorcycle-accessories-online&motorcycle_model=KTM%20Duke%20125,Yamaha%20R15');
+      const result = ProductValidator.validateListQuery(req);
+
+      const andConditions = (result.filters as any).$and;
+      expect(andConditions).toBeDefined();
+
+      const modelCondition = andConditions.find((cond: any) => {
+        return cond.$or && cond.$or.some((sub: any) => sub['attributes.motorcycle_model']);
+      });
+
+      expect(modelCondition).toBeDefined();
+    });
+  });
+
   describe('5. Sorting Variations', () => {
     it('should parse sort=price-desc correctly', () => {
       const req = createMockReq('http://localhost/api/products?sort=price-desc');

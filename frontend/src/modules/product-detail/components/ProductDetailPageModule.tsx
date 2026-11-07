@@ -9,6 +9,7 @@ import { PDPData, KitProduct } from "@/modules/product-detail/types/product-deta
 import { useRecentViewsStore } from "@/stores/useRecentViewsStore";
 import { useStoreReviews } from "@/core/hooks/useStoreReviews";
 import { useUIStore } from "@/stores/useUIStore";
+import { usePublicSettings } from "@/core/hooks/usePaymentSettings";
 
 /**
  * Helper: Strip HTML tags for clean plain text.
@@ -428,7 +429,8 @@ const mapProductToPDP = (
   upSellProducts: KitProduct[],
   crossSellProducts: KitProduct[],
   reviews: any[],
-  storeReviews: any[]
+  storeReviews: any[],
+  settings?: any
 ): PDPData => {
   // Only show real related products from database that actually have a price
   const finalKitProducts = (kitProducts || []).filter(
@@ -769,11 +771,23 @@ const mapProductToPDP = (
 
 
 
-  // Determine free shipping eligibility
-  const hasShippingCharge = (product as any).shippingFee > 0 || (product as any).shipping_charge > 0 || (product as any).shippingCost > 0;
+  // Determine free shipping eligibility strictly based on Admin Settings and Product attributes
+  const rawShipCost = product.attributes instanceof Map
+    ? product.attributes.get("ship_cost")
+    : (product.attributes as any)?.ship_cost;
+  const numShipCost = Number(rawShipCost) || 0;
+  const hasShippingCharge = (product as any).shippingFee > 0 || (product as any).shipping_charge > 0 || (product as any).shippingCost > 0 || numShipCost > 0;
+  
+  const adminFreeThreshold = settings?.freeShippingThreshold ? Number(settings.freeShippingThreshold) : 0;
+
+  // Free shipping applies if:
+  // 1) Product has explicit isFreeShipping: true (and no heavy item surcharge)
+  // OR
+  // 2) Admin configured freeShippingThreshold (> 0) AND displayPrice >= adminFreeThreshold
+  // If admin has not configured a threshold (or set to 0), it is not automatically free.
   const isFreeShipping = hasShippingCharge 
     ? false 
-    : ((product as any).isFreeShipping ?? (product as any).free_shipping ?? (displayPrice >= 999));
+    : (Boolean(product.isFreeShipping) || (adminFreeThreshold > 0 && displayPrice >= adminFreeThreshold));
 
   const rawBrand = product.brand || (product.attributes && ((product.attributes as any).brand || (product.attributes as any).Brand)) || "";
   const brand = typeof rawBrand === "string" ? rawBrand.trim() : "";
@@ -855,6 +869,7 @@ export const ProductDetailPageModule = ({ slug: propSlug, initialProduct }: Prod
   // with the main product data, and these sections fill in when ready.
   const upsellSkus = product?.upsellSkus || [];
   const productId = product?._id || "";
+  const { data: settings } = usePublicSettings();
 
   // Smart recommendations (Kit, Upsell & Cross-sell)
   const { data: kitProducts } = useProductKit(slug);
@@ -942,9 +957,10 @@ export const ProductDetailPageModule = ({ slug: propSlug, initialProduct }: Prod
       (upsellProducts || []).map(mapToKitProduct),
       (crossSellProducts || []).map(mapToKitProduct),
       mappedReviews,
-      storeReviewsData?.pages.flatMap((p) => p.data) || []
+      storeReviewsData?.pages.flatMap((p) => p.data) || [],
+      settings
     );
-  }, [product, kitProducts, upsellProducts, crossSellProducts, mappedReviews, storeReviewsData]);
+  }, [product, kitProducts, upsellProducts, crossSellProducts, mappedReviews, storeReviewsData, settings]);
 
   // Show a lightweight skeleton instead of a blocking full-page spinner
   if (isLoading) {
