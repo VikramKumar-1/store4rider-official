@@ -6,7 +6,8 @@ import { ApiResponse } from "../../core/response/ApiResponse";
 
 export class BrandController {
   static async getAll(req: NextRequest) {
-    const brands = await BrandService.getAllBrands();
+    const includeInactive = req.nextUrl.searchParams.get("includeInactive") === "true";
+    const brands = await BrandService.getAllBrands(includeInactive);
     return ApiResponse.success(brands, "Brands fetched successfully");
   }
 

@@ -23,6 +23,8 @@ export const createCategorySchema = z.object({
   videoUrl: z.string().optional().or(z.literal("")),
   includeInMenu: z.boolean().optional().default(true),
   menuGroup: z.string().optional().or(z.literal("")),
+  menuLabel: z.string().optional().or(z.literal("")),
+  menuNavSection: z.string().optional().or(z.literal("")),
   heroCategoryIds: z.array(z.string()).optional().default([]),
   badge: z.string().optional().or(z.literal("")),
   badgeColor: z.string().optional().or(z.literal("")),

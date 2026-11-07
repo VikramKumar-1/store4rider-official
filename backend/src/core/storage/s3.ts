@@ -36,6 +36,7 @@ export const getPresignedUrl = async (fileName: string, fileType: string): Promi
     Bucket: BUCKET,
     Key: `uploads/${Date.now()}-${fileName}`,
     ContentType: fileType,
+    CacheControl: "public, max-age=31536000, immutable",
   });
 
   return getSignedUrl(s3Client, command, { expiresIn: 3600 });
@@ -63,10 +64,12 @@ export const uploadBufferToS3 = async (
         Key: s3Key,
         Body: buffer,
         ContentType: contentType,
+        CacheControl: "public, max-age=31536000, immutable",
       });
 
       await s3Client.send(command);
-      return `https://${BUCKET}.s3.${REGION}.amazonaws.com/${s3Key}`;
+      const cdnBase = process.env.CDN_URL?.trim() || process.env.NEXT_PUBLIC_CDN_URL?.trim() || "https://d2zuvpvc0pfkya.cloudfront.net";
+      return `${cdnBase}/${s3Key}`;
     } catch (err: any) {
       logger.warn({ err: err.message }, "S3 direct upload failed; saving to self-hosted local public storage");
     }

@@ -289,8 +289,9 @@ export const NAVBAR_TO_DB_SLUG_MAP: Record<string, string> = {
   "modular-helmets-flip-up-helmets": "modular-flip-up",
   "open-face-helmets": "open-face",
   "half-face-helmets": "open-face",
-  "off-road-helmets": "off-road-motocross-gear",
-  "off-road-motocross": "off-road-motocross-gear",
+  "off-road-helmets": "off-road-helmets",
+  "off-road-motocross": "off-road-motocross-riding-gear",
+  "off-road-motocross-riding-gear": "off-road-motocross-riding-gear",
   "off-road-riding-boots": "off-road-riding-boots",
   "off-road-boots": "off-road-riding-boots",
   "riding-jacket": "riding-jackets",
@@ -827,6 +828,8 @@ export function resolveCanonicalCategorySlugs(product: {
     resolved.delete('open-face-helmets');
     resolved.delete('riding-gear');
     resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
   }
 
   if (isActualHelmet) {
@@ -834,6 +837,8 @@ export function resolveCanonicalCategorySlugs(product: {
     resolved.delete('helmet-accessories');
     resolved.delete('riding-gear');
     resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
   }
 
   if (isGoggles) {
@@ -862,6 +867,8 @@ export function resolveCanonicalCategorySlugs(product: {
     resolved.delete('bike-phone-holders');
     resolved.delete('riding-gear');
     resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
   }
 
   if (isPhoneHolder) {
@@ -872,6 +879,8 @@ export function resolveCanonicalCategorySlugs(product: {
     resolved.delete('bluetooth-intercoms');
     resolved.delete('riding-gear');
     resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
   }
 
   if (isTopBox) {
@@ -891,6 +900,9 @@ export function resolveCanonicalCategorySlugs(product: {
     resolved.add('motorcycle-accessories-online');
     resolved.delete('protectors-armour');
     resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
   }
 
   if (isRiderArmour) {
@@ -914,6 +926,8 @@ export function resolveCanonicalCategorySlugs(product: {
     resolved.add('motorcycle-bags-bike-luggage');
     resolved.delete('riding-gear');
     resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
   }
 
   if (isChainCare) {
@@ -922,12 +936,17 @@ export function resolveCanonicalCategorySlugs(product: {
     resolved.delete('riding-gear');
     resolved.delete('touring-gear');
     resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
     resolved.delete('spares');
   }
 
   if (isRallyTower) {
     resolved.add('rally-tower');
     resolved.add('motorcycle-accessories-online');
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
   }
 
   if (isCrashBarBag) {
@@ -955,6 +974,8 @@ export function resolveCanonicalCategorySlugs(product: {
     resolved.delete('off-road-helmets');
     resolved.delete('riding-gear');
     resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
   }
 
   // 3. Strict Helmet Subtype Resolution
@@ -966,6 +987,8 @@ export function resolveCanonicalCategorySlugs(product: {
     resolved.delete('off-road-helmets');
     resolved.delete('riding-gear');
     resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
   } else if (isOpenFaceHelmet) {
     resolved.add('open-face-helmets');
     resolved.add('motorcycle-helmets');
@@ -974,6 +997,8 @@ export function resolveCanonicalCategorySlugs(product: {
     resolved.delete('off-road-helmets');
     resolved.delete('riding-gear');
     resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
   } else if (isOffRoadHelmet) {
     resolved.add('off-road-helmets');
     resolved.add('motorcycle-helmets');
@@ -981,6 +1006,9 @@ export function resolveCanonicalCategorySlugs(product: {
     resolved.delete('modular-helmets');
     resolved.delete('open-face-helmets');
     resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
   } else if (isFullFaceHelmet) {
     resolved.add('full-face-helmets');
     resolved.add('motorcycle-helmets');
@@ -989,6 +1017,8 @@ export function resolveCanonicalCategorySlugs(product: {
     resolved.delete('off-road-helmets');
     resolved.delete('riding-gear');
     resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
   }
 
   // 4. Strict Luggage Subtype Resolution
@@ -1016,6 +1046,8 @@ export function resolveCanonicalCategorySlugs(product: {
     resolved.add('motorcycle-bags-bike-luggage');
     resolved.delete('riding-gear');
     resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
     resolved.delete('saddle-bags-bikes');
     resolved.delete('motorcycle-tail-bags');
     resolved.delete('tank-bags-bikes');
@@ -1057,6 +1089,8 @@ export function resolveCanonicalCategorySlugs(product: {
   if (isLuggageItem) {
     resolved.delete('riding-gear');
     resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
     resolved.delete('riding-jackets');
     resolved.delete('riding-jackets-bike-jackets');
     resolved.delete('riding-gloves');
@@ -1076,6 +1110,16 @@ export function resolveCanonicalCategorySlugs(product: {
   if (/helmet/i.test(n) && !isHelmetAccessory && !isBalaclava) {
     resolved.delete('riding-gear');
     resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
+  }
+
+  // 8. Bandanas / Buffs / Face coverings must NEVER be in Riding Gear
+  if (/\b(bandana|buff|face\s*covering)\b/i.test(n)) {
+    resolved.delete('riding-gear');
+    resolved.delete('touring-gear');
+    resolved.delete('off-road-motocross-riding-gear');
+    resolved.delete('off-road-motocross');
   }
 
   // Boot sub-classification for products with motorcycle-riding-boots

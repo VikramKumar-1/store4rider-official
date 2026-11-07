@@ -65,7 +65,7 @@ export const UpSellProducts: React.FC<{ products: KitProduct[]; title?: string }
           <Link 
             key={product.id} 
             href={product.productUrl}
-            className="shrink-0 w-[170px] sm:w-[200px] md:w-[240px] block group cursor-pointer transform-gpu"
+            className="shrink-0 w-[190px] sm:w-[225px] md:w-[265px] block group cursor-pointer transform-gpu"
           >
             {/* Image Box */}
             <div className="relative aspect-square w-full bg-[#f4f4f4] rounded-xl overflow-hidden mb-3 border border-neutral-200/70 group-hover:border-neutral-300 transition-colors">

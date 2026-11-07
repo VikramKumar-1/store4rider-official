@@ -45,7 +45,7 @@ const Thumbnail = React.memo(
         type="button"
         suppressHydrationWarning
         onClick={onClick}
-        className={`relative w-20 sm:w-24 aspect-square shrink-0 border-2 rounded-sm overflow-hidden bg-[#f4f4f4] transition-all duration-150 cursor-pointer ${
+        className={`relative w-24 sm:w-28 md:w-32 aspect-square shrink-0 border-2 rounded-md overflow-hidden bg-[#f4f4f4] transition-all duration-150 cursor-pointer shadow-2xs ${
           isActive ? "border-brand ring-2 ring-brand/30" : "border-neutral-200 hover:border-neutral-300"
         }`}
       >
@@ -119,17 +119,42 @@ export const ProductGallery: React.FC<{
         return imgColor && normalizeForCompare(imgColor) !== normSelected;
       });
 
+      // Priority primary image for selected color:
+      // Priority: activeVariantImageUrl -> colorImages[selectedColor] -> colors[selectedColor].imageUrl
+      const preferredVariantImg = normalizeExternalImageUrl(
+        activeVariantImageUrl ||
+        (colorImages && Object.entries(colorImages).find(([k]) => normalizeForCompare(k) === normSelected)?.[1]) ||
+        colors?.find((c) => normalizeForCompare(c.name) === normSelected)?.imageUrl
+      );
+
+      if (preferredVariantImg && preferredVariantImg !== FALLBACK_IMAGE) {
+        const existingIdx = matchingColorImages.findIndex(
+          (img) => normalizeExternalImageUrl(img.url) === preferredVariantImg
+        );
+        if (existingIdx > 0) {
+          const [promoted] = matchingColorImages.splice(existingIdx, 1);
+          matchingColorImages.unshift(promoted);
+        } else if (existingIdx === -1) {
+          matchingColorImages.unshift({
+            url: preferredVariantImg,
+            altText: `${productTitle || "Product"} - ${selectedColor}`,
+            detectedColor: selectedColor,
+            angle: 1,
+          });
+        }
+      }
+
       if (matchingColorImages.length > 0 || otherColorImages.length > 0) {
         return [...matchingColorImages, ...commonImages, ...otherColorImages];
       }
     }
 
     return images;
-  }, [images, selectedColor, knownColorNames]);
+  }, [images, selectedColor, knownColorNames, activeVariantImageUrl, colorImages, colors, productTitle]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [mainSrc, setMainSrc] = useState(
-    normalizeExternalImageUrl(activeVariantImageUrl || displayedImages?.[0]?.url || images?.[0]?.url) || FALLBACK_IMAGE
+    () => normalizeExternalImageUrl(displayedImages?.[0]?.url || activeVariantImageUrl || images?.[0]?.url) || FALLBACK_IMAGE
   );
   const [isVideoActive, setIsVideoActive] = useState(false);
   const [isIframeLoading, setIsIframeLoading] = useState(true);
@@ -400,7 +425,7 @@ export const ProductGallery: React.FC<{
               type="button"
               suppressHydrationWarning
               onClick={handleVideoClick}
-              className={`relative w-20 sm:w-24 aspect-square shrink-0 border-2 rounded-sm overflow-hidden bg-slate-900 transition-all duration-150 flex flex-col items-center justify-center group cursor-pointer ${
+              className={`relative w-24 sm:w-28 md:w-32 aspect-square shrink-0 border-2 rounded-md overflow-hidden bg-slate-900 transition-all duration-150 flex flex-col items-center justify-center group cursor-pointer shadow-2xs ${
                 isVideoActive
                   ? "border-brand ring-2 ring-brand/40"
                   : "border-neutral-200 hover:border-neutral-400"

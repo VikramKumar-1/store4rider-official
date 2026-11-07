@@ -99,22 +99,22 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     <>
       <div className="flex flex-col gap-1.5">
         {/* Header: Brand (Left) & Rating (Right) */}
-        <div className="flex items-center justify-between gap-3 min-h-[24px]">
+        <div className="flex items-center justify-between gap-3 min-h-[20px]">
           {brand ? (
             brandSlug ? (
               <Link
                 href={`/brands/${brandSlug}`}
-                className="inline-flex items-center gap-1.5 group text-xs md:text-sm font-black uppercase tracking-wider text-neutral-500 hover:text-brand transition-colors"
+                className="inline-flex items-center gap-1.5 group text-[11px] md:text-xs font-black uppercase tracking-wider text-neutral-500 hover:text-brand transition-colors"
                 title={`Explore ${brand} collection`}
               >
-                <span className="text-[10px] md:text-xs font-semibold text-neutral-400 normal-case tracking-normal">Brand:</span>
+                <span className="text-[10px] font-semibold text-neutral-400 normal-case tracking-normal">Brand:</span>
                 <span className="text-[#ab1509] group-hover:underline underline-offset-2 font-black">
                   {brand}
                 </span>
               </Link>
             ) : (
-              <div className="inline-flex items-center gap-1.5 text-xs md:text-sm font-black uppercase tracking-wider text-neutral-500">
-                <span className="text-[10px] md:text-xs font-semibold text-neutral-400 normal-case tracking-normal">Brand:</span>
+              <div className="inline-flex items-center gap-1.5 text-[11px] md:text-xs font-black uppercase tracking-wider text-neutral-500">
+                <span className="text-[10px] font-semibold text-neutral-400 normal-case tracking-normal">Brand:</span>
                 <span className="text-neutral-900 font-black">{brand}</span>
               </div>
             )
@@ -151,7 +151,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
         {/* Title (Max 3 lines, shows full on hover) */}
         <h1
           title={name}
-          className="font-heading font-semibold text-[19px] sm:text-[22px] md:text-2xl uppercase tracking-tight text-neutral-900 leading-[1.3] line-clamp-3 cursor-help"
+          className="font-heading font-semibold text-[17px] sm:text-[19px] md:text-[20px] uppercase tracking-tight text-neutral-900 leading-snug line-clamp-3 cursor-help"
         >
           {name}
         </h1>
@@ -159,15 +159,15 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
         {/* Pricing (Side by Side) */}
         <div className="flex items-center justify-between w-full mt-0.5">
           <div className="flex items-baseline gap-2">
-            <span className="font-sans font-extrabold text-brand text-xl">
+            <span className="font-sans font-extrabold text-brand text-lg md:text-xl">
               {priceFormatted}
             </span>
             {originalPriceFormatted && discountBadge && (
               <>
-                <span className="text-neutral-400 line-through text-sm font-medium">
+                <span className="text-neutral-400 line-through text-xs md:text-sm font-medium">
                   {originalPriceFormatted}
                 </span>
-                <span className="bg-orange-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm relative -top-0.5">
+                <span className="bg-orange-600 text-white text-[8.5px] font-bold px-1.5 py-0.5 rounded-sm relative -top-0.5">
                   {discountBadge} OFF
                 </span>
               </>
@@ -209,14 +209,14 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
                   }
                 });
             }}
-            className={`flex items-center justify-center w-9 h-9 rounded-full transition-all active:scale-95 border ${isWishlisted
+            className={`flex items-center justify-center w-8 h-8 rounded-full transition-all active:scale-95 border ${isWishlisted
                 ? "text-red-500 bg-red-50 border-red-200 shadow-sm"
                 : "text-neutral-400 bg-neutral-50 border-neutral-200 hover:text-brand hover:bg-red-50 hover:border-red-200"
               }`}
             title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill={isWishlisted ? "currentColor" : "none"} viewBox="0 0 24 24" strokeWidth={isWishlisted ? 0 : 2} stroke="currentColor" className="w-5 h-5">
+            <svg xmlns="http://www.w3.org/2000/svg" fill={isWishlisted ? "currentColor" : "none"} viewBox="0 0 24 24" strokeWidth={isWishlisted ? 0 : 2} stroke="currentColor" className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
             </svg>
           </button>
@@ -265,24 +265,24 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
         </div>
 
         {/* Trust Badges - Clean Horizontal List (DESKTOP ONLY) */}
-        <div className="hidden md:flex flex-wrap items-center gap-5 w-full my-4">
+        <div className="hidden md:flex flex-wrap items-center gap-4 w-full my-2.5">
           {/* 1. 100% genuine products */}
           <div className="flex items-center gap-1.5">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-[18px] h-[18px] text-blue-600 shrink-0">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-blue-600 shrink-0">
               <path d="m23 12-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.69 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68L23 12zm-13 5-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" />
             </svg>
-            <span className="text-[13px] font-bold text-[#374151]">
+            <span className="text-xs font-bold text-[#374151]">
               100% Genuine
             </span>
           </div>
 
           {/* 2. COD & EMI available */}
           <div className="flex items-center gap-1.5">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-[18px] h-[18px] text-orange-500 shrink-0">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-orange-500 shrink-0">
               <path d="M4.5 3.75a3 3 0 0 0-3 3v.75h21v-.75a3 3 0 0 0-3-3h-15Z" />
               <path fillRule="evenodd" d="M22.5 9.75h-21v7.5a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3v-7.5Zm-18 3.75a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75Zm.75 2.25a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3Z" clipRule="evenodd" />
             </svg>
-            <span className="text-[13px] font-bold text-[#374151]">
+            <span className="text-xs font-bold text-[#374151]">
               COD & EMI Available
             </span>
           </div>
@@ -290,10 +290,10 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
           {/* 3. Free shipping */}
           {isFreeShipping && (
             <div className="flex items-center gap-1.5">
-              <svg viewBox="0 0 256 256" fill="currentColor" className="w-[18px] h-[18px] text-emerald-600 shrink-0">
+              <svg viewBox="0 0 256 256" fill="currentColor" className="w-4 h-4 text-emerald-600 shrink-0">
                 <path d="M244.8,111.37l-25-35.75A15.91,15.91,0,0,0,206.67,69.5H176V56a16,16,0,0,0-16-16H24A16,16,0,0,0,8,56V184a16,16,0,0,0,16,16H42.79a32,32,0,1,0,58.42,0h53.58a32,32,0,1,0,58.42,0H232a16,16,0,0,0,16-16V117.8A16,16,0,0,0,244.8,111.37ZM72,216a16,16,0,1,1,16-16A16,16,0,0,1,72,216Zm112,0a16,16,0,1,1,16-16A16,16,0,0,1,184,216Zm48-32H213.21a32,32,0,1,0-58.42,0H176V85.5h30.67l25.33,36.19Z" />
               </svg>
-              <span className="text-[13px] font-bold text-[#374151]">
+              <span className="text-xs font-bold text-[#374151]">
                 Free shipping
               </span>
             </div>
@@ -302,20 +302,20 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
 
         {/* Short Description (Collapsible) */}
         {shortDescription && (
-          <div className="mt-2 relative">
+          <div className="mt-1 relative">
             <div
               ref={descRef}
               onClick={(e) => handleRichTextClick(e, router)}
-              className={`text-neutral-700 text-[15px] md:text-[16px] leading-[1.65] font-sans [&_a]:text-blue-600 [&_a]:underline hover:[&_a]:text-blue-800 [&_a]:font-medium ${isDescExpanded ? "" : "line-clamp-3"}`}
+              className={`text-neutral-600 text-[13px] md:text-[14px] leading-relaxed font-sans [&_a]:text-blue-600 [&_a]:underline hover:[&_a]:text-blue-800 [&_a]:font-medium ${isDescExpanded ? "" : "line-clamp-3"}`}
               dangerouslySetInnerHTML={{ __html: cleanRichContent(shortDescription) }}
             />
-            <div className="flex items-center justify-between w-full mt-1.5">
+            <div className="flex items-center justify-between w-full mt-1">
               {showReadMore ? (
                 <button
                   type="button"
                   suppressHydrationWarning
                   onClick={() => setIsDescExpanded(!isDescExpanded)}
-                  className="text-[11px] font-extrabold text-[#ab1509] hover:text-[#8a1107] uppercase tracking-wider hover:underline transition-all flex items-center gap-1 py-0.5 cursor-pointer text-left"
+                  className="text-[10px] font-extrabold text-[#ab1509] hover:text-[#8a1107] uppercase tracking-wider hover:underline transition-all flex items-center gap-1 py-0.5 cursor-pointer text-left"
                 >
                   {isDescExpanded ? "READ LESS" : "READ MORE"}
                 </button>
@@ -326,7 +326,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
                 type="button"
                 suppressHydrationWarning
                 onClick={handleScrollToDetailedDescription}
-                className="text-[11px] font-extrabold text-[#ab1509] hover:text-[#8a1107] uppercase tracking-wider hover:underline transition-all flex items-center gap-1 py-0.5 cursor-pointer text-right ml-auto"
+                className="text-[10px] font-extrabold text-[#ab1509] hover:text-[#8a1107] uppercase tracking-wider hover:underline transition-all flex items-center gap-1 py-0.5 cursor-pointer text-right ml-auto"
               >
                 Detailed Description
               </button>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DEFAULT_NAV_ITEMS } from "../nav.constants";
+import { DEFAULT_NAV_ITEMS, NAV_SUBMENU_SECTIONS } from "../nav.constants";
 
 describe("Navbar & Submenu Navigation Integrity Suite", () => {
   it("should have all primary navigation items defined with valid labels and hrefs", () => {
@@ -99,6 +99,19 @@ describe("Navbar & Submenu Navigation Integrity Suite", () => {
         const exhaustSubItem = group.items.find((sub) => sub.label.toLowerCase() === "exhausts");
         expect(exhaustSubItem).toBeUndefined();
       });
+    });
+  });
+
+  it("should provide valid NAV_SUBMENU_SECTIONS mapping correctly to existing navbar items", () => {
+    expect(NAV_SUBMENU_SECTIONS.length).toBeGreaterThanOrEqual(10);
+
+    const validParentIds = new Set(DEFAULT_NAV_ITEMS.map((item) => item.id));
+
+    NAV_SUBMENU_SECTIONS.forEach((section) => {
+      expect(section.value).toContain(":");
+      expect(validParentIds.has(section.parentNavId)).toBe(true);
+      expect(section.label.trim()).toBeTruthy();
+      expect(section.groupName.trim()).toBeTruthy();
     });
   });
 });

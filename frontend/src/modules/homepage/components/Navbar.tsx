@@ -119,7 +119,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const isLight = theme === "light" || isScrolled;
   
   const { data: dbBrands } = useBrands();
-
   // Preserves strict DEFAULT_NAV_ITEMS structure, overlaying Popular badges dynamically only when configured in DB
   const activeNavItems = useMemo(() => {
     const baseItems = navItems || DEFAULT_NAV_ITEMS;

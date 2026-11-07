@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config({ path: './.env' });
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://japamic979_db_user:d3X5fxfCo5wBPeCr@store4riders.fg8q7zs.mongodb.net/store4riders";
+const MONGODB_URI = process.env.MONGODB_URI;
 
 const BRANDS_TO_CHECK = [
   "agv", "hjc", "ls2", "mt", "axor", "axxis", "smk", "vemar", "vega", 

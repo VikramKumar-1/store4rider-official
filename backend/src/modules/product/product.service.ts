@@ -435,9 +435,9 @@ export class ProductService {
     return product;
   }
 
-  static async getProductsBySkus(skus: string[]): Promise<IProduct[]> {
+  static async getProductsBySkus(skus: string[], inStockOnly = true): Promise<IProduct[]> {
     if (!skus || skus.length === 0) return [];
-    const cacheKey = `products_skus_v4_${skus.slice().sort().join("_")}`;
+    const cacheKey = `products_skus_v5_${inStockOnly ? "in_" : ""}${skus.slice().sort().join("_")}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -447,7 +447,7 @@ export class ProductService {
       .map(s => s.trim())
       .filter(Boolean);
 
-    const items = await ProductRepository.findBySkus(cleanSkus);
+    const items = await ProductRepository.findBySkus(cleanSkus, inStockOnly);
     await setCache(cacheKey, items, PRODUCT_DETAIL_TTL);
     return items;
   }
@@ -459,7 +459,7 @@ export class ProductService {
    * No smart matching, no upsellSkus fallback.
    */
   static async getKitRecommendations(slugOrId: string): Promise<IProduct[]> {
-    const cacheKey = `product_kit_v4_${slugOrId}`;
+    const cacheKey = `product_kit_v5_${slugOrId}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -474,7 +474,7 @@ export class ProductService {
 
     let kitProducts: IProduct[] = [];
 
-    // Strictly Admin DB Truth: Only return products explicitly configured in relatedSkus
+    // Strictly Admin DB Truth: Only return in-stock products explicitly configured in relatedSkus
     if (product.relatedSkus && product.relatedSkus.length > 0) {
       const cleanSkus = product.relatedSkus
         .join(",")
@@ -482,7 +482,7 @@ export class ProductService {
         .map(s => s.trim())
         .filter(Boolean);
       if (cleanSkus.length > 0) {
-        kitProducts = await ProductRepository.findBySkus(cleanSkus);
+        kitProducts = await ProductRepository.findBySkus(cleanSkus, true);
       }
     }
 
@@ -496,7 +496,7 @@ export class ProductService {
    * 2. If fewer than 6 items, recommends alternative products from the same category or brand.
    */
   static async getUpsellRecommendations(slugOrId: string): Promise<IProduct[]> {
-    const cacheKey = `product_upsell_v4_${slugOrId}`;
+    const cacheKey = `product_upsell_v5_${slugOrId}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -511,7 +511,7 @@ export class ProductService {
 
     let upsellProducts: IProduct[] = [];
 
-    // Strictly Admin DB Truth: Only return products explicitly configured in upsellSkus
+    // Strictly Admin DB Truth: Only return in-stock products explicitly configured in upsellSkus
     if (product.upsellSkus && product.upsellSkus.length > 0) {
       const cleanSkus = product.upsellSkus
         .join(",")
@@ -519,7 +519,7 @@ export class ProductService {
         .map(s => s.trim())
         .filter(Boolean);
       if (cleanSkus.length > 0) {
-        upsellProducts = await ProductRepository.findBySkus(cleanSkus);
+        upsellProducts = await ProductRepository.findBySkus(cleanSkus, true);
       }
     }
 
@@ -533,7 +533,7 @@ export class ProductService {
    * 2. If fewer than 6 items, recommends essential rider accessories & maintenance care products.
    */
   static async getCrossSellRecommendations(slugOrId: string): Promise<IProduct[]> {
-    const cacheKey = `product_crosssell_v3_${slugOrId}`;
+    const cacheKey = `product_crosssell_v4_${slugOrId}`;
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
@@ -548,7 +548,7 @@ export class ProductService {
 
     let crossSellProducts: IProduct[] = [];
 
-    // Strictly Admin DB Truth: Only return products explicitly configured in crosssellSkus
+    // Strictly Admin DB Truth: Only return in-stock products explicitly configured in crosssellSkus
     if (product.crosssellSkus && product.crosssellSkus.length > 0) {
       const cleanSkus = product.crosssellSkus
         .join(",")
@@ -556,7 +556,7 @@ export class ProductService {
         .map(s => s.trim())
         .filter(Boolean);
       if (cleanSkus.length > 0) {
-        crossSellProducts = await ProductRepository.findBySkus(cleanSkus);
+        crossSellProducts = await ProductRepository.findBySkus(cleanSkus, true);
       }
     }
 
@@ -1446,9 +1446,13 @@ export class ProductService {
     if (slug) {
       await deleteCache(`product_slug_${slug}`);
       await deleteCache(`product_slug_v2_${slug}`);
+      await deleteCache(`product_slug_v4_${slug}`);
       await deleteCache(`product_kit_v4_${slug}`);
+      await deleteCache(`product_kit_v5_${slug}`);
       await deleteCache(`product_upsell_v4_${slug}`);
+      await deleteCache(`product_upsell_v5_${slug}`);
       await deleteCache(`product_crosssell_v3_${slug}`);
+      await deleteCache(`product_crosssell_v4_${slug}`);
     }
     await clearProductCaches();
   }

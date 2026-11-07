@@ -252,9 +252,16 @@ export function getCategoryRegexRule(categorySlug: string): any {
   } else if (cleanSlug.includes("off-road-motocross") || (cleanSlug.includes("off-road") && !cleanSlug.includes("helmet") && !cleanSlug.includes("boot"))) {
     // Discipline page: requires product to be actual gear, not just tagged 'off-road'
     regexRule = {
-      $or: [
-        { name: /\b(off\s*road|motocross|dirt|mx)\b.*\b(helmet|boot|jacket|glove|pants?|gear|jersey|kit|guard|protector)\b|\b(helmet|boot|jacket|glove|pants?|gear|jersey|kit|guard|protector)\b.*\b(off\s*road|motocross|dirt|mx)\b/i },
-        { magentoCategories: /off.*road|motocross/i }
+      $and: [
+        {
+          $or: [
+            { name: /\b(off\s*road|motocross|dirt|mx)\b.*\b(jacket|glove|pants?|gear|jersey|kit|guard|protector|goggle|armour|armor|boot)\b|\b(jacket|glove|pants?|gear|jersey|kit|guard|protector|goggle|armour|armor|boot)\b.*\b(off\s*road|motocross|dirt|mx)\b/i },
+            { magentoCategories: /off.*road.*riding.*gear|motocross.*riding.*gear/i }
+          ]
+        },
+        {
+          name: { $not: /\b(helmets?|tail\s*bag|tank\s*bag|saddle\s*bag|backpacks?|hydration|bladder|bungee|cargo\s*net|panniers?|top\s*box|top\s*case|chain\s*(lube|clean|cleaner|paste|wax)|bike\s*cleaner|mobile\s*holder|phone\s*mount|phone\s*holder|bluetooth|intercom|communicator|auxiliary\s*light|fog\s*light|flasher|bandana|buff|face\s*covering|balaclava|tower|stand|paddock|tyre\s*repair|exhaust|bike\s*cover)\b/i }
+        }
       ]
     };
   } else if (cleanSlug.includes("riding-gear")) {

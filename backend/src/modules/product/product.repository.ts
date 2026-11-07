@@ -92,12 +92,20 @@ export class ProductRepository {
     };
 
     if (inStockOnly) {
+      query.status = { $nin: ["draft", "archived"] };
+      query.visibility = { $nin: ["1", "Not Visible Individually"] };
       query.$and = [
         {
           $or: [
-            { stockStatus: { $ne: 0 } },
             { allowBackorders: true },
             { "variants.stock": { $gt: 0 } },
+            {
+              $and: [
+                { "variants.0": { $exists: false } },
+                { stockStatus: { $ne: 0 } },
+                { qty: { $gt: 0 } },
+              ],
+            },
           ],
         },
       ];
@@ -111,6 +119,14 @@ export class ProductRepository {
     // Collect all parent products (visible products with variants)
     const parentVariantSkus = new Set<string>();
     for (const p of rawProducts) {
+      if (inStockOnly) {
+        const hasStock = Boolean(
+          p.allowBackorders === true ||
+          (Array.isArray(p.variants) && p.variants.some((v: any) => (Number(v.stock) || 0) > 0)) ||
+          (!p.variants?.length && p.stockStatus !== 0 && (Number((p as any).qty) || 0) > 0)
+        );
+        if (!hasStock) continue;
+      }
       const isHidden = p.visibility === "1" || p.visibility === "Not Visible Individually";
       if (!isHidden && Array.isArray(p.variants) && p.variants.length > 0) {
         p.variants.forEach((v) => {
@@ -149,12 +165,28 @@ export class ProductRepository {
     for (const keyword of categoryKeywords) {
       const product = await ProductModel.findOne({
         _id: { $nin: Array.from(seenIds) },
-        status: { $ne: "archived" },
+        status: { $nin: ["draft", "archived"] },
+        visibility: { $nin: ["1", "Not Visible Individually"] },
         "images.0": { $exists: true },
         $or: [
-          { magentoCategories: { $regex: keyword, $options: "i" } },
-          { name: { $regex: keyword, $options: "i" } },
-          { tags: { $in: [new RegExp(keyword, "i")] } },
+          { allowBackorders: true },
+          { "variants.stock": { $gt: 0 } },
+          {
+            $and: [
+              { "variants.0": { $exists: false } },
+              { stockStatus: { $ne: 0 } },
+              { qty: { $gt: 0 } },
+            ],
+          },
+        ],
+        $and: [
+          {
+            $or: [
+              { magentoCategories: { $regex: keyword, $options: "i" } },
+              { name: { $regex: keyword, $options: "i" } },
+              { tags: { $in: [new RegExp(keyword, "i")] } },
+            ],
+          },
         ],
       })
       .select("name slug sku basePrice specialPrice images magentoCategories brand")

@@ -2,8 +2,9 @@ import { BrandModel } from "./brand.model";
 import { IBrand } from "@store4riders/shared-types";
 
 export class BrandRepository {
-  static async findAll(): Promise<IBrand[]> {
-    return BrandModel.find({ isActive: { $ne: false } })
+  static async findAll(includeInactive: boolean = false): Promise<IBrand[]> {
+    const filter = includeInactive ? {} : { isActive: { $ne: false } };
+    return BrandModel.find(filter)
       .collation({ locale: "en", strength: 2 })
       .sort({ name: 1 })
       .lean()

@@ -3,11 +3,12 @@ import { apiClient } from "../api/client";
 import { IBrand, IBrandsPageConfig } from "@store4riders/shared-types";
 import { toast } from "sonner";
 
-export function useBrands() {
+export function useBrands(includeInactive?: boolean) {
   return useQuery({
-    queryKey: ["brands"],
+    queryKey: ["brands", Boolean(includeInactive)],
     queryFn: async () => {
-      const response = await apiClient.get("/brands");
+      const url = includeInactive ? "/brands?includeInactive=true" : "/brands";
+      const response = await apiClient.get(url);
       return response.data.data as IBrand[];
     },
   });

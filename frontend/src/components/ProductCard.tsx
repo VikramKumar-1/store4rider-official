@@ -16,7 +16,7 @@ import { useWishlist } from "@/core/hooks/useWishlist";
 
 import { parseColorToBackground } from "@/modules/product-detail/components/ProductDetailPageModule";
 import { QuickAddModal } from "@/modules/catalog/components/QuickAddModal";
-import { getProductThumbnailUrl, getProductCandidateImages } from "@/core/utils/mediaUrlHelper";
+import { getProductThumbnailUrl, getPreferredInStockColor, getProductCandidateImages } from "@/core/utils/mediaUrlHelper";
 
 interface ProductCardProps {
   product: any;
@@ -93,7 +93,9 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
 
   const searchParams = useSearchParams();
   const activeColorParam = searchParams?.get("colour") || searchParams?.get("color");
-  const preferredColor = activeColorParam ? activeColorParam.split(",")[0]?.trim() : undefined;
+  const preferredColor = activeColorParam 
+    ? activeColorParam.split(",")[0]?.trim() 
+    : getPreferredInStockColor(product) || undefined;
 
   const imageUrl = getProductThumbnailUrl(product, preferredColor);
 
@@ -184,7 +186,7 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
   const uniqueColors = Array.from(colorNamesMap.values()).slice(0, 4);
 
   return (
-    <Link href={`/${product.slug || product.id}`}>
+    <Link href={`/${product.slug || product.id}${preferredColor ? `?color=${encodeURIComponent(preferredColor)}` : ''}`}>
       <div
         className="group relative flex flex-col rounded-2xl bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-slate-200 overflow-hidden h-full"
       >
@@ -343,7 +345,7 @@ const ProductCard = ({ product, showBuyNow = false }: ProductCardProps) => {
             priceFormatted: formatPrice(price),
             imageUrl,
             rating: 4.9,
-            productUrl: `/${product.slug || product.id || product._id}`,
+            productUrl: `/${product.slug || product.id || product._id}${preferredColor ? `?color=${encodeURIComponent(preferredColor)}` : ""}`,
             rawSlug: product.slug,
             rawProduct: product,
             colors: uniqueColors.map((c) => ({ name: c })),

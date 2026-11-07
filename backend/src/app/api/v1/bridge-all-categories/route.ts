@@ -11,7 +11,8 @@ export async function GET(req: NextRequest) {
       "modular-helmets": ["modular-helmets", "flip-up-helmets", "smk-glide-modular-helmet"],
       "open-face-helmets": ["open-face-helmets", "half-face-helmets", "open-face"],
       "half-face-helmets": ["half-face-helmets", "open-face", "open-face-helmets"],
-      "off-road-motocross": ["off-road-helmets", "motocross-helmet", "off-road-motocross-riding-gear", "off-road"],
+      "off-road-helmets": ["off-road-helmets", "motocross-helmet", "off-road-helmets-motocross-helmet"],
+      "off-road-motocross": ["off-road-motocross-riding-gear", "off-road-motocross"],
       
       // Riding Gear
       "riding-jackets": ["riding-jackets", "riding-jacket", "motorcycle-jackets", "riding-jackets-bike-jackets", "riding-jackets-motorcycle-jackets"],

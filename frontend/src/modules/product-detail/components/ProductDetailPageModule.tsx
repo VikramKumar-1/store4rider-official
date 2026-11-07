@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { Suspense, useEffect, useMemo } from "react";
 import { useProductBySlug, useProductKit, useProductUpsell, useProductCrossSell, useProductReviews, IBackendProduct } from "@/core/hooks/useProducts";
 import { ProductDetailModule } from "@/modules/product-detail";
-import { normalizeExternalImageUrl, deduplicateProductImages } from "@/core/utils/mediaUrlHelper";
+import { normalizeExternalImageUrl, deduplicateProductImages, getProductThumbnailUrl, getPreferredInStockColor, isUtilityOrInfographicImage } from "@/core/utils/mediaUrlHelper";
 import { PDPData, KitProduct } from "@/modules/product-detail/types/product-detail.types";
 import { useRecentViewsStore } from "@/stores/useRecentViewsStore";
 import { useStoreReviews } from "@/core/hooks/useStoreReviews";
@@ -335,13 +335,17 @@ const mapToKitProduct = (p: IBackendProduct): KitProduct => {
   if (effectivePrice === 0 && p.specialPrice && p.specialPrice > 0) effectivePrice = p.specialPrice;
   const price = (p.specialPrice && p.specialPrice > 0 && effectivePrice > 0 && p.specialPrice < effectivePrice)
     ? p.specialPrice : effectivePrice;
+  const preferredColor = getPreferredInStockColor(p);
+  const imageUrl = getProductThumbnailUrl(p, preferredColor || undefined);
+  const productUrl = preferredColor ? `/${p.slug}?color=${encodeURIComponent(preferredColor)}` : `/${p.slug}`;
+
   return {
     id: p._id,
     name: p.name,
     category: catName.toUpperCase(),
     priceFormatted: price > 0 ? formatINR(price) : "Contact for Price",
-    imageUrl: p.images?.[0]?.url || "/no-image.svg",
-    productUrl: `/${p.slug}`,
+    imageUrl,
+    productUrl,
   };
 };
 
@@ -620,13 +624,32 @@ const mapProductToPDP = (
 
   // 1. Collect all images for the product
   const rawGalleryImages: any[] = [];
+
+  // Ensure genuine product thumbnail is included as the primary candidate
+  const prodThumb = (product as any).thumbnail;
+  if (
+    prodThumb &&
+    typeof prodThumb === "string" &&
+    prodThumb !== "/no-image.svg" &&
+    !isUtilityOrInfographicImage(prodThumb)
+  ) {
+    const cleanThumb = normalizeExternalImageUrl(prodThumb);
+    rawGalleryImages.push({
+      url: cleanThumb,
+      altText: product.name,
+    });
+  }
+
   if (product.images?.length > 0) {
     product.images.forEach((img) => {
       if (img?.url && img.url !== "/no-image.svg") {
-        rawGalleryImages.push({
-          url: normalizeExternalImageUrl(img.url),
-          altText: img.altText || product.name,
-        });
+        const cleanUrl = normalizeExternalImageUrl(img.url);
+        if (!rawGalleryImages.some((existing) => existing.url === cleanUrl)) {
+          rawGalleryImages.push({
+            url: cleanUrl,
+            altText: img.altText || product.name,
+          });
+        }
       }
     });
   }
@@ -681,8 +704,14 @@ const mapProductToPDP = (
             return vc && normalizeColorKey(String(vc)) === normalizeColorKey(name) && rv.imageUrl;
           });
           if (v) imgUrl = v.imageUrl;
-        if (imgUrl) imgUrl = normalizeExternalImageUrl(imgUrl);
         }
+        if (!imgUrl) {
+          const matched = getProductThumbnailUrl(product, name);
+          if (matched && matched !== "/no-image.svg") {
+            imgUrl = matched;
+          }
+        }
+        if (imgUrl) imgUrl = normalizeExternalImageUrl(imgUrl);
         const swatchMap = (product as any).colorSwatches
           ? ((product as any).colorSwatches instanceof Map
               ? Object.fromEntries((product as any).colorSwatches)
@@ -843,6 +872,14 @@ export const ProductDetailPageModule = ({ slug: propSlug, initialProduct }: Prod
 
   useEffect(() => {
     if (product) {
+      // Do not add out-of-stock products to recently viewed
+      const hasStock = Boolean(
+        product.allowBackorders === true ||
+        (Array.isArray(product.variants) && product.variants.some((v: any) => (Number(v.stock) || 0) > 0)) ||
+        (!product.variants?.length && product.stockStatus !== 0 && (Number((product as any).qty) || 0) > 0)
+      );
+      if (!hasStock) return;
+
       let base = product.basePrice || 0;
       let special = product.specialPrice;
 
@@ -868,14 +905,18 @@ export const ProductDetailPageModule = ({ slug: propSlug, initialProduct }: Prod
       const hasDiscount = special && special > 0 && base > 0 && special < base;
       const finalPrice = (hasDiscount ? special : base) || 0;
 
+      const preferredColor = getPreferredInStockColor(product);
+      const imageUrl = getProductThumbnailUrl(product, preferredColor || undefined);
+      const productUrl = preferredColor ? `/${product.slug}?color=${encodeURIComponent(preferredColor)}` : `/${product.slug}`;
+
       addRecentView({
         id: product._id,
         name: product.name,
         category: extractCategoryName(product),
         priceFormatted: finalPrice > 0 ? formatINR(finalPrice) : "Contact for Price",
-        imageUrl: product.images?.[0]?.url || "/no-image.svg",
+        imageUrl,
         rating: 4.95,
-        productUrl: `/${product.slug}`,
+        productUrl,
       });
     }
   }, [product, addRecentView]);

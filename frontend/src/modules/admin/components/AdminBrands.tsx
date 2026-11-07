@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { Plus, Edit2, Trash2, Upload, X, Check, Image as ImageIcon, ExternalLink, Globe, Download, HelpCircle } from "lucide-react";
+import { Plus, Edit2, Trash2, Upload, X, Check, Image as ImageIcon, ExternalLink, Globe, Download, HelpCircle, Search } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
@@ -42,11 +42,13 @@ type BrandFormValues = {
 };
 
 export function AdminBrands() {
-  const { data: brands = [], isLoading } = useBrands();
+  const { data: brands = [], isLoading } = useBrands(true);
   const createBrand = useCreateBrand();
   const updateBrand = useUpdateBrand();
   const deleteBrand = useDeleteBrand();
 
+  const [brandSearch, setBrandSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<IBrand | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -245,6 +247,18 @@ export function AdminBrands() {
     }
   };
 
+  const filteredBrands = brands.filter((brand) => {
+    const q = brandSearch.toLowerCase().trim();
+    const matchesSearch = !q || brand.name.toLowerCase().includes(q) || brand.slug.toLowerCase().includes(q);
+    const matchesStatus =
+      statusFilter === "all"
+        ? true
+        : statusFilter === "active"
+        ? brand.isActive !== false
+        : brand.isActive === false;
+    return matchesSearch && matchesStatus;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -306,7 +320,59 @@ export function AdminBrands() {
         </Button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        {/* Search & Status Filter Bar */}
+        <div className="p-3.5 sm:p-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between flex-wrap gap-3">
+          <div className="relative flex-1 min-w-[260px]">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={brandSearch}
+              onChange={(e) => setBrandSearch(e.target.value)}
+              placeholder="Search brand by name or slug (e.g. 'MT', 'LS2', 'Axor', 'Rynox')..."
+              className="w-full pl-9 pr-8 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand shadow-2xs font-medium"
+            />
+            {brandSearch && (
+              <button
+                type="button"
+                onClick={() => setBrandSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setStatusFilter("all")}
+                className={`px-2.5 py-1 rounded-md transition-all ${statusFilter === "all" ? "bg-slate-800 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+              >
+                All ({brands.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("active")}
+                className={`px-2.5 py-1 rounded-md transition-all ${statusFilter === "active" ? "bg-emerald-600 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+              >
+                Active ({brands.filter(b => b.isActive !== false).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("inactive")}
+                className={`px-2.5 py-1 rounded-md transition-all ${statusFilter === "inactive" ? "bg-amber-600 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"}`}
+              >
+                Inactive ({brands.filter(b => b.isActive === false).length})
+              </button>
+            </div>
+            <span className="text-xs text-slate-500 font-medium ml-2">
+              Showing <span className="font-bold text-slate-800">{filteredBrands.length}</span> brands
+            </span>
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="p-8 text-center text-slate-500 flex flex-col items-center">
             <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -324,7 +390,14 @@ export function AdminBrands() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {brands.map((brand) => (
+              {filteredBrands.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500">
+                    No brands match your search criteria.
+                  </td>
+                </tr>
+              ) : (
+                filteredBrands.map((brand) => (
                 <tr key={brand._id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-3">
@@ -418,14 +491,7 @@ export function AdminBrands() {
                     </div>
                   </td>
                 </tr>
-              ))}
-              {brands.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
-                    No brands found. Add your first brand to get started.
-                  </td>
-                </tr>
-              )}
+              )))}
             </tbody>
           </table>
         )}

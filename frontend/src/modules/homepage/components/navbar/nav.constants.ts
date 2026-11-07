@@ -255,3 +255,27 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
     ],
   },
 ];
+
+export interface INavSubmenuSectionOption {
+  value: string;
+  label: string;
+  parentNavId: string;
+  parentLabel: string;
+  groupName: string;
+}
+
+export const NAV_SUBMENU_SECTIONS: INavSubmenuSectionOption[] = [
+  { value: "helmets:Types", label: "Helmets → Types", parentNavId: "helmets", parentLabel: "Helmets", groupName: "Types" },
+  { value: "helmets:Accessories & Care", label: "Helmets → Accessories & Care", parentNavId: "helmets", parentLabel: "Helmets", groupName: "Accessories & Care" },
+  { value: "riding-gear:Riding Gloves", label: "Riding Gear → Riding Gloves", parentNavId: "riding-gear", parentLabel: "Riding Gear", groupName: "Riding Gloves" },
+  { value: "riding-gear:Riding Jackets", label: "Riding Gear → Riding Jackets", parentNavId: "riding-gear", parentLabel: "Riding Gear", groupName: "Riding Jackets" },
+  { value: "riding-gear:Riding Pants", label: "Riding Gear → Riding Pants", parentNavId: "riding-gear", parentLabel: "Riding Gear", groupName: "Riding Pants" },
+  { value: "riding-gear:Riding Boots", label: "Riding Gear → Riding Boots", parentNavId: "riding-gear", parentLabel: "Riding Gear", groupName: "Riding Boots" },
+  { value: "riding-gear:Specialized Gear", label: "Riding Gear → Specialized Gear", parentNavId: "riding-gear", parentLabel: "Riding Gear", groupName: "Specialized Gear" },
+  { value: "luggage:Touring Bags & Boxes", label: "Luggage → Touring Bags & Boxes", parentNavId: "luggage", parentLabel: "Luggage", groupName: "Touring Bags & Boxes" },
+  { value: "luggage:Specialty & Rider Luggage", label: "Luggage → Specialty & Rider Luggage", parentNavId: "luggage", parentLabel: "Luggage", groupName: "Specialty & Rider Luggage" },
+  { value: "accessories:Auxiliary Lights & Mounts", label: "Bike Accessories → Auxiliary Lights & Mounts", parentNavId: "accessories", parentLabel: "Bike Accessories", groupName: "Auxiliary Lights & Mounts" },
+  { value: "accessories:Protection, Performance & Care", label: "Bike Accessories → Protection, Performance & Care", parentNavId: "accessories", parentLabel: "Bike Accessories", groupName: "Protection, Performance & Care" },
+  { value: "spares:Spares & Parts", label: "Bike Spares → Spares & Parts", parentNavId: "spares", parentLabel: "Bike Spares", groupName: "Spares & Parts" },
+  { value: "gadgets:Gadgets", label: "Gadgets → Phone Holders & Communicators", parentNavId: "gadgets", parentLabel: "Gadgets", groupName: "Gadgets" },
+];

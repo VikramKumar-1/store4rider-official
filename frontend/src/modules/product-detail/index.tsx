@@ -15,26 +15,89 @@ import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { ProductDetailProps } from "./types/product-detail.types";
 import { ProductGallery } from "./components/ProductGallery";
 import { normalizeColorKey } from "./components/ProductDetailPageModule";
-import { detectImageColor } from "@/core/utils/mediaUrlHelper";
+import { detectImageColor, getPreferredInStockColor, isUtilityOrInfographicImage } from "@/core/utils/mediaUrlHelper";
 import { ProductInfo } from "./components/ProductInfo";
 import { StickyFooterBar } from "./components/StickyFooterBar";
 
-// Lazy-load below-fold components ÔÇö don't block initial page render
+// Lazy-load below-fold components — don't block initial page render
 const CompleteKitSlider = dynamic(() => import("./components/CompleteKitSlider").then(m => ({ default: m.CompleteKitSlider })), { ssr: false });
 const StoreReviews = dynamic(() => import("./components/StoreReviews").then(m => ({ default: m.StoreReviews })), { ssr: false });
 const DetailAndReviews = dynamic(() => import("./components/DetailAndReviews").then(m => ({ default: m.DetailAndReviews })), { ssr: false });
 const CustomerReviews = dynamic(() => import("./components/DetailAndReviews").then(m => ({ default: m.CustomerReviews })), { ssr: false });
 const UpSellProducts = dynamic(() => import("./components/UpSellProducts").then(m => ({ default: m.UpSellProducts })), { ssr: false });
 
+const resolveProductInitialColor = (product: any, colorQuery?: string | null): string => {
+  if (colorQuery && product.colors?.length > 0) {
+    const normQuery = normalizeColorKey(colorQuery);
+    const exactMatch = product.colors.find((c: any) => normalizeColorKey(c.name) === normQuery);
+    if (exactMatch) return exactMatch.name;
+    const partialMatch = product.colors.find((c: any) => {
+      const normC = normalizeColorKey(c.name);
+      return normC.includes(normQuery) || normQuery.includes(normC);
+    });
+    if (partialMatch) return partialMatch.name;
+  }
+
+  if (product.colors?.length > 0) {
+    const inStockColorName = getPreferredInStockColor(product);
+    if (inStockColorName) {
+      const normStock = normalizeColorKey(inStockColorName);
+      const match = product.colors.find((c: any) => {
+        const normC = normalizeColorKey(c.name);
+        return normC === normStock || normC.includes(normStock) || normStock.includes(normC);
+      });
+      if (match) return match.name;
+    }
+
+    if (product.images?.length > 0) {
+      const knownNames = product.colors.map((c: any) => c.name);
+      const genuineImg = product.images.find((img: any) => !isUtilityOrInfographicImage(img)) || product.images[0];
+      const detected = genuineImg?.detectedColor || detectImageColor(genuineImg, knownNames);
+      if (detected) {
+        const normDet = normalizeColorKey(detected);
+        const match = product.colors.find((c: any) => {
+          const normC = normalizeColorKey(c.name);
+          return normC === normDet || normC.includes(normDet) || normDet.includes(normC);
+        });
+        if (match) return match.name;
+      }
+    }
+    if (product.colors[0]) return product.colors[0].name;
+  }
+  return "";
+};
+
+const resolveProductInitialSize = (product: any, color: string): string => {
+  if (!product.sizes || product.sizes.length === 0) return "";
+  if (product.rawVariants && product.rawVariants.length > 0) {
+    const colorVariants = product.rawVariants.filter((v: any) => {
+      const attrs = v.attributes || {};
+      const vColor = attrs.color || attrs.colour || "";
+      return !color || !vColor || normalizeColorKey(vColor) === normalizeColorKey(color);
+    });
+    const inStockVar = colorVariants.find((v: any) => (Number(v.stock) || 0) > 0);
+    if (inStockVar) {
+      const vSize = inStockVar.attributes?.size || inStockVar.attributes?.eu_size_for_boots;
+      if (vSize && product.sizes.includes(vSize)) return vSize;
+    }
+    if (colorVariants.length > 0) {
+      const firstVar = colorVariants[0];
+      const vSize = firstVar.attributes?.size || firstVar.attributes?.eu_size_for_boots;
+      if (vSize && product.sizes.includes(vSize)) return vSize;
+    }
+  }
+  return product.sizes[0] || "";
+};
+
 export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) => {
-  const [selectedColor, setSelectedColor] = useState(product.colors?.[0]?.name || "");
-  const [selectedSize, setSelectedSize] = useState(product.sizes?.[0] || "");
-  const [availableSizes, setAvailableSizes] = useState<string[]>(product.sizes || []);
-  const addItem = useCartStore((state) => state.addItem);
-  const recentViews = useRecentViewsStore((state) => state.items);
   const router = useRouter();
   const searchParams = useSearchParams();
   const colorQuery = searchParams.get("color");
+  const [selectedColor, setSelectedColor] = useState<string>(() => resolveProductInitialColor(product, colorQuery));
+  const [selectedSize, setSelectedSize] = useState<string>(() => resolveProductInitialSize(product, resolveProductInitialColor(product, colorQuery)));
+  const [availableSizes, setAvailableSizes] = useState<string[]>(product.sizes || []);
+  const addItem = useCartStore((state) => state.addItem);
+  const recentViews = useRecentViewsStore((state) => state.items);
   const setCurrentProductName = useUIStore((state) => state.setCurrentProductName);
 
   // Sync current product name into global UI store for WhatsApp & sticky widgets
@@ -47,46 +110,11 @@ export const ProductDetailModule: React.FC<ProductDetailProps> = ({ product }) =
     };
   }, [product?.name, setCurrentProductName]);
 
-  // Reset defaults when product changes (e.g. navigating via related products)
+  // Sync defaults when product or color query changes
   useEffect(() => {
-    let initialColor = "";
-    
-    if (colorQuery && product.colors?.length > 0) {
-      const exactMatch = product.colors.find((c: any) => c.name.toLowerCase() === colorQuery.toLowerCase());
-      if (exactMatch) {
-        initialColor = exactMatch.name;
-      } else {
-        const partialMatch = product.colors.find((c: any) => 
-          c.name.toLowerCase().includes(colorQuery.toLowerCase()) || 
-          colorQuery.toLowerCase().includes(c.name.toLowerCase())
-        );
-        if (partialMatch) {
-          initialColor = partialMatch.name;
-        }
-      }
-    }
-    
-    if (!initialColor && product.colors?.length > 0) {
-      initialColor = product.colors[0].name;
-    }
-
-    setSelectedColor(initialColor);
-    
-    if (product.sizes?.length > 0) {
-      setSelectedSize(product.sizes[0]);
-    } else {
-      setSelectedSize("");
-    }
-
-    // If page was loaded with a ?color= query parameter, clean the address bar
-    // so the user sees the canonical clean slug without sticky ?color= query strings,
-    // exactly matching legacy products (e.g. smk-gullwing-kresto-gloss-modular-helmet).
-    if (colorQuery && typeof window !== "undefined" && window.location.search.includes("color=")) {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("color");
-      const cleanPath = url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : "") + url.hash;
-      window.history.replaceState(null, "", cleanPath);
-    }
+    const targetColor = resolveProductInitialColor(product, colorQuery);
+    setSelectedColor(targetColor);
+    setSelectedSize(resolveProductInitialSize(product, targetColor));
   }, [product.slug, colorQuery]);
 
   // Calculate disabled colors based on variant stock

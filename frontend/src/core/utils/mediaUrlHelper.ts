@@ -63,6 +63,12 @@ export function normalizeExternalImageUrl(rawUrl?: string | null): string {
     url = url.replace("http://", "https://");
   }
 
+  // 6. Append cache-busting version query parameter to CloudFront URLs
+  // This guarantees all client browsers instantly discard stale low-res thumbnails from local disk cache
+  if (url.includes("d2zuvpvc0pfkya.cloudfront.net") && !url.includes("?v=") && !url.includes("&v=")) {
+    url = `${url}?v=2`;
+  }
+
   return url;
 }
 
@@ -140,6 +146,44 @@ export function normalizeForCompare(str?: string | null): string {
 }
 
 /**
+ * Detects whether an image is a common utility graphic, safety certification,
+ * size chart, warranty badge, or technical specification sheet rather than a product photo.
+ * Ensures these utility images never leak as product card thumbnails or variant colors.
+ */
+export function isUtilityOrInfographicImage(
+  img?: { url?: string; altText?: string } | string | null
+): boolean {
+  if (!img) return false;
+  const url = typeof img === "string" ? img : img.url || "";
+  const alt = typeof img === "string" ? "" : img.altText || "";
+  const text = `${url} ${alt}`.toLowerCase();
+
+  const utilityPatterns = [
+    /\bsafety\b/,
+    /\bcertif(?:ied|ication|icate)?\b/,
+    /\bece[-_\s]?(?:22[-_\.]?0[56])?\b/,
+    /\b(?:dot|snell|isi)[-_\s]?(?:certified|mark|approved)?\b/,
+    /\bce[-_\s]?level\b/,
+    /\bimpact[-_\s]?protection\b/,
+    /\bwarranty\b/,
+    /\bguarantee\b/,
+    /\bsize[-_\s]?(?:chart|guide)\b/,
+    /\bsizing\b/,
+    /\bdimension(?:s)?\b/,
+    /\bspec(?:ification|s)?\b/,
+    /\bfeature(?:s)?\b/,
+    /\binfographic\b/,
+    /\banatomy\b/,
+    /\bdiagram\b/,
+    /\bwash[-_\s]?care\b/,
+    /\bcare[-_\s]?instruction\b/,
+    /\bhow[-_\s]?to[-_\s]?measure\b/,
+  ];
+
+  return utilityPatterns.some((pattern) => pattern.test(text));
+}
+
+/**
  * Detects which known color an image belongs to based on altText or URL tokens.
  * Accurately parses altText formats: 'Product - Color', 'Product-Color', 'Product- Color', etc.
  */
@@ -148,6 +192,9 @@ export function detectImageColor(
   knownColors: string[]
 ): string | null {
   if (!img || !knownColors || knownColors.length === 0) return null;
+  // Safety certifications, size charts, warranty, and utility graphics NEVER represent a color variant
+  if (isUtilityOrInfographicImage(img)) return null;
+
   const alt = (img.altText || "").toLowerCase();
   const url = (img.url || "").toLowerCase();
 
@@ -214,12 +261,16 @@ export function deduplicateProductImages(
     if (!img || !img.url || img.url === "/no-image.svg") continue;
     const cleanUrl = normalizeExternalImageUrl(img.url);
     const filename = cleanUrl.split("/").pop() || "";
-    const color = img.detectedColor || detectImageColor(img, knownColors);
+    const isUtility = isUtilityOrInfographicImage(img);
+    const color = isUtility ? null : (img.detectedColor || detectImageColor(img, knownColors));
     const angle = img.angle !== undefined ? img.angle : extractAngleNumber(filename);
 
     let key: string;
     if (color) {
       key = `${color.toLowerCase()}-angle-${angle}`;
+    } else if (isUtility) {
+      const baseFn = filename.replace(/\.[^/.]+$/, "");
+      key = `utility-${baseFn}`;
     } else {
       const baseFn = filename.replace(/\.[^/.]+$/, "").replace(/(?:[-_])\d+(?:_\d+|_)?$/, "");
       key = `common-${baseFn}-angle-${angle}`;
@@ -241,6 +292,11 @@ export function deduplicateProductImages(
   result.sort((a, b) => {
     if (a.detectedColor && b.detectedColor) {
       if (a.detectedColor !== b.detectedColor) {
+        const idxA = knownColors.findIndex((c) => normalizeForCompare(c) === normalizeForCompare(a.detectedColor));
+        const idxB = knownColors.findIndex((c) => normalizeForCompare(c) === normalizeForCompare(b.detectedColor));
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
         return a.detectedColor.localeCompare(b.detectedColor);
       }
       return a.angle - b.angle;
@@ -334,17 +390,94 @@ export function getCartItemImage(item: any, fallback: string = "/no-image.svg"):
 }
 
 /**
+ * Determines the preferred in-stock color for a product:
+ * If the default thumbnail's color is out of stock (stock === 0),
+ * finds and returns the first variant color that is actually in stock.
+ */
+export function getPreferredInStockColor(product: any): string | null {
+  if (!product) return null;
+  const variants = Array.isArray(product.variants) && product.variants.length > 0
+    ? product.variants
+    : (Array.isArray(product.rawVariants) && product.rawVariants.length > 0 ? product.rawVariants : []);
+
+  // Collect total stock per color
+  const colorStockMap = new Map<string, number>();
+  if (variants.length > 0) {
+    for (const v of variants) {
+      if (!v) continue;
+      const attrs = v.attributes instanceof Map ? Object.fromEntries(v.attributes) : (v.attributes || {});
+      const col = attrs.color || attrs.colour || v.color || v.colour;
+      if (col && typeof col === "string") {
+        const cName = col.trim();
+        const current = colorStockMap.get(cName) || 0;
+        colorStockMap.set(cName, current + (Number(v.stock) || 0));
+      }
+    }
+  }
+
+  // If no variants with color attributes, check product.colors or product.colorImages
+  if (colorStockMap.size === 0) {
+    if (Array.isArray(product.colors) && product.colors.length > 0) {
+      for (const c of product.colors) {
+        const name = typeof c === "string" ? c : c?.name;
+        if (name && typeof name === "string") colorStockMap.set(name.trim(), 1);
+      }
+    } else if (product.colorImages) {
+      const cMap = product.colorImages instanceof Map ? Object.fromEntries(product.colorImages) : product.colorImages;
+      for (const k of Object.keys(cMap)) {
+        if (k) colorStockMap.set(k.trim(), 1);
+      }
+    }
+  }
+
+  if (colorStockMap.size === 0) return null;
+
+  // Check which color the primary thumbnail or image represents
+  const knownColors = Array.from(colorStockMap.keys());
+  const images = Array.isArray(product.images) ? product.images : [];
+  const primaryImg = (
+    (product.thumbnail && !isUtilityOrInfographicImage(product.thumbnail) ? product.thumbnail : null) ||
+    images.find((img: any) => !isUtilityOrInfographicImage(img)) ||
+    images[0]
+  );
+  const primaryImgObj = typeof primaryImg === "string" ? { url: primaryImg } : primaryImg;
+  const primaryColor = primaryImgObj ? detectImageColor(primaryImgObj, knownColors) : null;
+
+  // If backorders are allowed, prefer primary color if valid, otherwise first known color
+  if (product.allowBackorders) {
+    return primaryColor || knownColors[0] || null;
+  }
+
+  // If primary color has stock > 0, keep it
+  if (primaryColor && (colorStockMap.get(primaryColor) || 0) > 0) {
+    return primaryColor;
+  }
+
+  // Otherwise, find the first color with stock > 0
+  for (const [col, stock] of colorStockMap.entries()) {
+    if (stock > 0) {
+      return col;
+    }
+  }
+
+  // Fallback: if all colors have 0 stock, return primaryColor (matching the card photo)
+  // or the first known color, rather than null (which breaks color sync between card and PDP)
+  return primaryColor || knownColors[0] || null;
+}
+
+/**
  * Resolves the primary thumbnail/display image for any product across catalog,
  * homepage, search, admin, and cart.
  *
  * Priority:
  * 1. If preferredColor is supplied, finds matching image from colorImages, variants, or images
- * 2. product.thumbnail (explicit thumbnail)
- * 3. product.images[0].url (first valid gallery image)
- * 4. product.image (legacy image field)
- * 5. First image from product.colorImages map
- * 6. First variant image from product.variants
- * 7. Fallback: fallback string (defaults to "/no-image.svg")
+ * 2. If no preferredColor, checks for preferred in-stock color so out-of-stock items aren't featured
+ * 3. product.thumbnail (explicit thumbnail)
+ * 4. product.images[0].url (first valid gallery image)
+ * 5. product.image (legacy image field)
+ * 6. First image from product.colorImages map
+ * 7. First variant image from product.variants
+ * 8. Fallback: fallback string (defaults to "/no-image.svg")
  */
 export function getProductThumbnailUrl(
   product: any,
@@ -352,6 +485,14 @@ export function getProductThumbnailUrl(
   fallback: string = "/no-image.svg"
 ): string {
   if (!product) return fallback;
+
+  // Automatically prefer in-stock color if no specific color filter was requested
+  if (!preferredColor) {
+    const inStockColor = getPreferredInStockColor(product);
+    if (inStockColor) {
+      preferredColor = inStockColor;
+    }
+  }
 
   // 1. If preferredColor is specified, try to match it first
   if (preferredColor) {
@@ -372,22 +513,27 @@ export function getProductThumbnailUrl(
     }
 
     // 1b. Check variants
-    if (Array.isArray(product.variants) && product.variants.length > 0) {
-      const matchedVariant = product.variants.find((v: any) => {
+    const variantsList = Array.isArray(product.variants) && product.variants.length > 0
+      ? product.variants
+      : (Array.isArray(product.rawVariants) && product.rawVariants.length > 0 ? product.rawVariants : []);
+
+    if (variantsList.length > 0) {
+      const matchedVariant = variantsList.find((v: any) => {
         const vAttrs = v?.attributes instanceof Map ? Object.fromEntries(v.attributes) : (v?.attributes || {});
-        const vColor = (vAttrs.color || vAttrs.colour || "").trim().toLowerCase();
+        const vColor = (vAttrs.color || vAttrs.colour || v?.color || v?.colour || "").trim().toLowerCase();
         return vColor && (vColor === normColor || vColor.includes(normColor) || normColor.includes(vColor));
       });
       const vUrl = matchedVariant?.imageUrl || matchedVariant?.images?.[0]?.url;
-      if (vUrl && vUrl !== fallback) {
+      if (vUrl && vUrl !== fallback && !isUtilityOrInfographicImage(vUrl)) {
         const clean = normalizeExternalImageUrl(vUrl);
         if (clean) return clean;
       }
     }
 
-    // 1c. Check images altText or url
+    // 1c. Check images altText or url (strictly skipping utility images)
     if (Array.isArray(product.images) && product.images.length > 0) {
       const matchedImg = product.images.find((img: any) => {
+        if (isUtilityOrInfographicImage(img)) return false;
         const alt = (img?.altText || "").toLowerCase();
         const url = (typeof img === "string" ? img : img?.url || "").toLowerCase();
         return alt.includes(normColor) || url.includes(normColor.replace(/\s+/g, "-"));
@@ -400,25 +546,36 @@ export function getProductThumbnailUrl(
     }
   }
 
-  // 2. Explicit thumbnail
-  if (product.thumbnail && typeof product.thumbnail === "string" && product.thumbnail !== fallback) {
+  // 2. Explicit thumbnail (if genuine product photo)
+  if (
+    product.thumbnail &&
+    typeof product.thumbnail === "string" &&
+    product.thumbnail !== fallback &&
+    !isUtilityOrInfographicImage(product.thumbnail)
+  ) {
     const clean = normalizeExternalImageUrl(product.thumbnail);
     if (clean) return clean;
   }
 
-  // 3. First valid gallery image
+  // 3. First genuine product gallery image (skipping utility/safety graphics)
   if (Array.isArray(product.images) && product.images.length > 0) {
-    for (const img of product.images) {
-      const u = typeof img === "string" ? img : img?.url;
-      if (u && u !== fallback) {
-        const clean = normalizeExternalImageUrl(u);
-        if (clean) return clean;
-      }
+    const genuinePhoto = product.images.find(
+      (img: any) => !isUtilityOrInfographicImage(img) && (typeof img === "string" ? img : img?.url) !== fallback
+    );
+    if (genuinePhoto) {
+      const u = typeof genuinePhoto === "string" ? genuinePhoto : genuinePhoto.url;
+      const clean = normalizeExternalImageUrl(u);
+      if (clean) return clean;
     }
   }
 
-  // 4. Explicit image field
-  if (product.image && typeof product.image === "string" && product.image !== fallback) {
+  // 4. Explicit image field (if genuine product photo)
+  if (
+    product.image &&
+    typeof product.image === "string" &&
+    product.image !== fallback &&
+    !isUtilityOrInfographicImage(product.image)
+  ) {
     const clean = normalizeExternalImageUrl(product.image);
     if (clean) return clean;
   }
@@ -429,7 +586,7 @@ export function getProductThumbnailUrl(
       ? Object.fromEntries(product.colorImages)
       : product.colorImages;
     for (const val of Object.values(cMap)) {
-      if (typeof val === "string" && val && val !== fallback) {
+      if (typeof val === "string" && val && val !== fallback && !isUtilityOrInfographicImage(val)) {
         const clean = normalizeExternalImageUrl(val);
         if (clean) return clean;
       }
@@ -437,11 +594,26 @@ export function getProductThumbnailUrl(
   }
 
   // 6. Variants imageUrl (first available)
-  if (Array.isArray(product.variants) && product.variants.length > 0) {
-    for (const v of product.variants) {
+  const variantsPool = Array.isArray(product.variants) && product.variants.length > 0
+    ? product.variants
+    : (Array.isArray(product.rawVariants) && product.rawVariants.length > 0 ? product.rawVariants : []);
+
+  if (variantsPool.length > 0) {
+    for (const v of variantsPool) {
       const vUrl = v?.imageUrl || v?.images?.[0]?.url;
-      if (vUrl && vUrl !== fallback) {
+      if (vUrl && vUrl !== fallback && !isUtilityOrInfographicImage(vUrl)) {
         const clean = normalizeExternalImageUrl(vUrl);
+        if (clean) return clean;
+      }
+    }
+  }
+
+  // 7. Last resort fallback to any gallery image (even utility if that's literally all that exists)
+  if (Array.isArray(product.images) && product.images.length > 0) {
+    for (const img of product.images) {
+      const u = typeof img === "string" ? img : img?.url;
+      if (u && u !== fallback) {
+        const clean = normalizeExternalImageUrl(u);
         if (clean) return clean;
       }
     }
@@ -490,7 +662,10 @@ export function getProductCandidateImages(product: any): string[] {
     });
   }
 
-  return candidates;
+  // Prioritize genuine product photos before utility/infographic graphics
+  const nonUtility = candidates.filter((u) => !isUtilityOrInfographicImage(u));
+  const utility = candidates.filter((u) => isUtilityOrInfographicImage(u));
+  return [...nonUtility, ...utility];
 }
 
 export const S3_MEDIA_BASE = "https://store4riders.s3.ap-south-2.amazonaws.com";

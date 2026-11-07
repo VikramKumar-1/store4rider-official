@@ -7,7 +7,7 @@ import { useBrand } from "@/core/hooks/useBrands";
 import { CatalogModule } from "@/modules/catalog";
 import { CatalogProduct } from "@/modules/catalog/types/catalog.types";
 import { inferRichColorFromUrl, isValidCssSwatch, parseColorToBackground } from "@/modules/product-detail/components/ProductDetailPageModule";
-import { getProductThumbnailUrl, normalizeExternalImageUrl } from "@/core/utils/mediaUrlHelper";
+import { getProductThumbnailUrl, getPreferredInStockColor, normalizeExternalImageUrl } from "@/core/utils/mediaUrlHelper";
 
 export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNode?: any }) => {
   const searchParams = useSearchParams();
@@ -151,14 +151,22 @@ export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNod
       category: cleanCat,
       priceFormatted,
       imageUrl: (() => {
-        const preferredColor = activeColorParam ? activeColorParam.split(",")[0]?.trim() : undefined;
+        const preferredColor = activeColorParam 
+          ? activeColorParam.split(",")[0]?.trim() 
+          : getPreferredInStockColor(p) || undefined;
         return getProductThumbnailUrl(p, preferredColor);
       })(),
       rating: 4.9,
       isFeatured: Boolean(p.isFeatured),
       showFeaturedBadge: Boolean(p.isFeatured && ((p as any).showFeaturedBadge || p.attributes?.show_featured_badge === "true" || p.attributes?.showFeaturedBadge === "true")),
-      productUrl: `/${p.slug}${activeColorParam ? `?color=${encodeURIComponent(activeColorParam.split(',')[0].trim())}` : ''}`,
+      productUrl: (() => {
+        const targetColor = activeColorParam 
+          ? activeColorParam.split(',')[0].trim() 
+          : getPreferredInStockColor(p);
+        return `/${p.slug}${targetColor ? `?color=${encodeURIComponent(targetColor)}` : ''}`;
+      })(),
       rawSlug: p.slug,
+      rawProduct: p,
       colors: (() => {
         const colorNames = new Set<string>();
         if (p.variants && Array.isArray(p.variants)) {
@@ -300,7 +308,6 @@ export const ProductsPageModule = ({ initialCategoryNode }: { initialCategoryNod
 
         return uniqueSwatches;
       })(),
-      rawProduct: p,
     };
   });
 

@@ -53,24 +53,32 @@ describe.skipIf(!shouldRunLiveDbTests)(
               name: 'Barj Jacket',
               variants: [{ id: 'v-barj-1', sku: 'BARJ-S-Black', price: 1000, stock: 5 }],
               visibility: 'Catalog, Search',
+              qty: 5,
+              stockStatus: 1,
             },
             {
               sku: 'AASBG',
               name: 'Aasbg Bag',
               variants: [{ id: 'v-aasbg-1', sku: 'AASBG-XL-Black/Flu. Green', price: 1000, stock: 5 }],
               visibility: 'Catalog, Search',
+              qty: 5,
+              stockStatus: 1,
             },
             {
               sku: 'S4R-PROD-UPLO-763',
               name: 'S4R Upload Product',
               variants: [],
               visibility: 'Catalog, Search',
+              qty: 10,
+              stockStatus: 1,
             },
             {
               sku: 'AATGFFH-S-Black/Blue',
               name: 'Standalone Child Variant',
               variants: [],
               visibility: 'Catalog, Search',
+              qty: 10,
+              stockStatus: 1,
             },
           ];
 
@@ -90,7 +98,22 @@ describe.skipIf(!shouldRunLiveDbTests)(
                 status: 'published',
                 visibility: item.visibility,
                 variants: item.variants,
+                qty: item.qty ?? 10,
+                stockStatus: item.stockStatus ?? 1,
               });
+            } else {
+              await ProductModel.updateOne(
+                { _id: (exists as any)._id },
+                {
+                  $set: {
+                    status: 'published',
+                    visibility: item.visibility,
+                    stockStatus: item.stockStatus ?? 1,
+                    qty: item.qty ?? 10,
+                    ...(item.variants && item.variants.length > 0 ? { variants: item.variants } : {}),
+                  },
+                }
+              );
             }
           }
         }

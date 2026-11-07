@@ -10,6 +10,8 @@ import {
   getProductCandidateImages,
   resolveMagentoMediaUrls,
   S3_MEDIA_BASE,
+  isUtilityOrInfographicImage,
+  getPreferredInStockColor,
 } from "../mediaUrlHelper";
 
 describe("mediaUrlHelper - Enterprise Gallery & Color Swapping", () => {
@@ -296,6 +298,103 @@ describe("mediaUrlHelper - Enterprise Gallery & Color Swapping", () => {
         "https://store4riders.s3.ap-south-2.amazonaws.com/img2.jpg",
         "https://store4riders.s3.ap-south-2.amazonaws.com/v1.jpg"
       ]);
+    });
+
+    it("skips safety certs and size charts when picking card thumbnail", () => {
+      const productWithCertFirst = {
+        name: "Axor Apex Helmet",
+        images: [
+          {
+            url: "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/a/x/axor-ece-dot-safety-certification.jpg",
+            altText: "ECE 22.06 & DOT Certified Helmet - Matte Black EPS",
+          },
+          {
+            url: "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/a/x/axor-apex-helmet-photo-1.jpg",
+            altText: "Axor Apex Helmet - Matte Black",
+          },
+        ],
+      };
+      // Must NOT select the safety certification graphic
+      const url = getProductThumbnailUrl(productWithCertFirst);
+      expect(url).toBe("https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/a/x/axor-apex-helmet-photo-1.jpg");
+    });
+  });
+
+  describe("isUtilityOrInfographicImage - Anti-Leak Protection", () => {
+    it("correctly identifies safety badges, certifications, size charts and infographics", () => {
+      expect(isUtilityOrInfographicImage({ url: "/catalog/product/helmet-ece-22-06.jpg", altText: "Safety Cert" })).toBe(true);
+      expect(isUtilityOrInfographicImage({ url: "/catalog/product/rynox-size-chart.jpg", altText: "Size Guide" })).toBe(true);
+      expect(isUtilityOrInfographicImage({ url: "/catalog/product/warranty-badge.png", altText: "1 Year Warranty" })).toBe(true);
+      expect(isUtilityOrInfographicImage({ url: "/catalog/product/features-diagram.jpg", altText: "Helmet Anatomy Features" })).toBe(true);
+      expect(isUtilityOrInfographicImage({ url: "/catalog/product/dot-certified-isi.jpg", altText: "ISI Mark" })).toBe(true);
+      expect(isUtilityOrInfographicImage({ url: "/catalog/product/wash-care-guide.jpg", altText: "Care instructions" })).toBe(true);
+    });
+
+    it("does not false-positive on real product images", () => {
+      expect(isUtilityOrInfographicImage({ url: "/catalog/product/axor-apex-hunter-black-red_1.jpg", altText: "Axor Apex Hunter - Black/Red" })).toBe(false);
+      expect(isUtilityOrInfographicImage({ url: "/catalog/product/rynox-stealth-evo-3-jacket-black.jpg", altText: "Rynox Stealth Evo 3 Jacket" })).toBe(false);
+      expect(isUtilityOrInfographicImage({ url: "/catalog/product/bobo-bm4-jaw-grip.jpg", altText: "BOBO BM4 Pro Jaw-Grip Motorcycle Mobile Mount" })).toBe(false);
+    });
+
+    it("prevents safety images from being detected as color variants even if text mentions color", () => {
+      const certImg = {
+        url: "https://store4riders.s3.ap-south-2.amazonaws.com/catalog/product/ece-safety-certification.jpg",
+        altText: "ECE 22.06 Certified Helmet - Black/Red Inner Cushion",
+      };
+      // Even though alt text has 'Black/Red', detectImageColor must return null because it's a certification image!
+      expect(detectImageColor(certImg, colors)).toBeNull();
+    });
+  });
+
+  describe("getPreferredInStockColor - Exact Card and PDP Image Synchronization", () => {
+    it("returns primary color matching thumbnail when all variants are out of stock (so card and PDP match)", () => {
+      const product = {
+        name: "Forma Ice Pro Boots",
+        thumbnail: "https://store4riders.s3.ap-south-2.amazonaws.com/ice-pro-fl.yellow-1.jpg",
+        images: [
+          { url: "https://store4riders.s3.ap-south-2.amazonaws.com/ice-pro-fl.yellow-1.jpg", altText: "Forma Ice Pro - Flu. Yellow" },
+          { url: "https://store4riders.s3.ap-south-2.amazonaws.com/ice-pro-black-1.jpg", altText: "Forma Ice Pro - Black" }
+        ],
+        variants: [
+          { sku: "YL-40", stock: 0, attributes: { color: "Flu. Yellow" } },
+          { sku: "BK-40", stock: 0, attributes: { color: "Black" } }
+        ]
+      };
+      // Primary image represents Flu. Yellow. Even with 0 stock, must return Flu. Yellow so card and PDP show same boot
+      expect(getPreferredInStockColor(product)).toBe("Flu. Yellow");
+    });
+
+    it("returns in-stock color when primary color is out of stock", () => {
+      const product = {
+        name: "BB Xplorer Jacket",
+        thumbnail: "https://store4riders.s3.ap-south-2.amazonaws.com/jacket-orange.jpg",
+        images: [
+          { url: "https://store4riders.s3.ap-south-2.amazonaws.com/jacket-orange.jpg", altText: "BB Xplorer - Orange" },
+          { url: "https://store4riders.s3.ap-south-2.amazonaws.com/jacket-red.jpg", altText: "BB Xplorer - Red" }
+        ],
+        variants: [
+          { sku: "OR-M", stock: 0, attributes: { color: "Orange" } },
+          { sku: "RD-M", stock: 5, attributes: { color: "Red" } }
+        ]
+      };
+      expect(getPreferredInStockColor(product)).toBe("Red");
+    });
+
+    it("returns primary color when backorders are allowed", () => {
+      const product = {
+        name: "Riding Jacket",
+        allowBackorders: true,
+        thumbnail: "https://store4riders.s3.ap-south-2.amazonaws.com/jacket-black.jpg",
+        images: [
+          { url: "https://store4riders.s3.ap-south-2.amazonaws.com/jacket-black.jpg", altText: "Jacket - Black" },
+          { url: "https://store4riders.s3.ap-south-2.amazonaws.com/jacket-grey.jpg", altText: "Jacket - Grey" }
+        ],
+        variants: [
+          { sku: "BK", stock: 0, attributes: { color: "Black" } },
+          { sku: "GR", stock: 0, attributes: { color: "Grey" } }
+        ]
+      };
+      expect(getPreferredInStockColor(product)).toBe("Black");
     });
   });
 });

@@ -23,6 +23,8 @@ export interface ICategory {
   filterConfig?: ICategoryFilterConfig[];
   includeInMenu?: boolean;
   menuGroup?: string;
+  menuLabel?: string;
+  menuNavSection?: string;
   heroCategoryIds?: string[];
   heroCategories?: any[];
   badge?: string;

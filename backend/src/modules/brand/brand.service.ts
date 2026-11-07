@@ -4,8 +4,8 @@ import { IBrand } from "@store4riders/shared-types";
 import { NotFoundError } from "../../core/errors/AppError";
 
 export class BrandService {
-  static async getAllBrands() {
-    return await BrandRepository.findAll();
+  static async getAllBrands(includeInactive: boolean = false) {
+    return await BrandRepository.findAll(includeInactive);
   }
 
   static async getBrandById(idOrSlug: string) {

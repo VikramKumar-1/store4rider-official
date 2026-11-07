@@ -17,7 +17,7 @@ import { useStoreReviews } from "@/core/hooks/useStoreReviews";
 import { useUIStore } from "@/stores/useUIStore";
 import { usePublicHomepageConfig } from "@/core/hooks/useHomepage";
 import { useProducts } from "@/core/hooks/useProducts";
-import { getProductThumbnailUrl } from "@/core/utils/mediaUrlHelper";
+import { getProductThumbnailUrl, getPreferredInStockColor } from "@/core/utils/mediaUrlHelper";
 
 /**
  * HomepageModule Component
@@ -65,13 +65,17 @@ export const HomepageModule: React.FC<{
         const displayPrice = (p.specialPrice && p.specialPrice > 0 && effectivePrice > 0 && p.specialPrice < effectivePrice)
           ? p.specialPrice : effectivePrice;
 
+        const preferredColor = getPreferredInStockColor(p);
+        const imageUrl = getProductThumbnailUrl(p, preferredColor || undefined);
+        const ctaUrl = preferredColor ? `/${p.slug || p._id}?color=${encodeURIComponent(preferredColor)}` : `/${p.slug || p._id}`;
+
         return {
           id: p._id || `feat-${idx}`,
           title: p.name,
           priceFormatted: `₹ ${Math.round(displayPrice)?.toLocaleString('en-IN') || '0'}`,
-          imageUrl: getProductThumbnailUrl(p),
+          imageUrl,
           ctaText: "SHOP NOW",
-          ctaUrl: `/${p.slug || p._id}`,
+          ctaUrl,
         };
       });
 
@@ -218,14 +222,20 @@ export const HomepageModule: React.FC<{
         const displayPrice = (p.specialPrice && p.specialPrice > 0 && effectivePrice > 0 && p.specialPrice < effectivePrice)
           ? p.specialPrice : effectivePrice;
 
+        const preferredColor = getPreferredInStockColor(p);
+        const imageUrl = getProductThumbnailUrl(p, preferredColor || undefined);
+        const productUrl = preferredColor
+          ? `/${p.slug || p._id}?color=${encodeURIComponent(preferredColor)}`
+          : `/${p.slug || p._id}`;
+
         return {
           id: p._id || p.id || `grid-${idx}`,
           category: p.displayCategory || "RIDING GEAR",
           name: p.name,
           priceFormatted: `₹ ${Math.round(displayPrice)?.toLocaleString('en-IN') || '0'}`,
-          imageUrl: getProductThumbnailUrl(p),
+          imageUrl,
           rating: 4.8,
-          productUrl: `/${p.slug || p._id}`
+          productUrl
         };
       })
     : [];
@@ -286,16 +296,18 @@ export const HomepageModule: React.FC<{
           ? p.specialPrice : effectivePrice;
         const catParts = (p.magentoCategories || "").split(",")[0].split("/");
         const catName = catParts.filter((c: string) => !c.toLowerCase().includes("root")).pop()?.trim() || "TOURING GEAR";
+        const preferredColor = getPreferredInStockColor(p);
+        const imageUrl = getProductThumbnailUrl(p, preferredColor || undefined);
+        const productUrl = preferredColor ? `/${p.slug || p._id}?color=${encodeURIComponent(preferredColor)}` : `/${p.slug || p._id}`;
+
         return {
           id: p._id || p.id || `tour-${idx}`,
           category: catName.toUpperCase(),
           name: p.name,
           priceFormatted: `₹ ${Math.round(displayPrice)?.toLocaleString('en-IN') || '0'}`,
-          imageUrl: (p.images && p.images.length > 0 && p.images[0].url) 
-            ? p.images[0].url 
-            : "/no-image.svg",
+          imageUrl,
           rating: 4.8,
-          productUrl: `/${p.slug || p._id}`
+          productUrl,
         };
       })
     : [];
@@ -464,13 +476,17 @@ export const HomepageModule: React.FC<{
       const displayPrice = (p.specialPrice && p.specialPrice > 0 && effectivePrice > 0 && p.specialPrice < effectivePrice)
         ? p.specialPrice : effectivePrice;
 
+      const preferredColor = getPreferredInStockColor(p);
+      const imageUrl = getProductThumbnailUrl(p, preferredColor || undefined);
+      const productUrl = preferredColor ? `/${p.slug || p._id}?color=${encodeURIComponent(preferredColor)}` : `/${p.slug || p._id}`;
+
       return {
         id: p._id || p.id || `fav-${idx}`,
         name: p.name,
         brand: p.brand || "STORE4RIDERS",
         priceFormatted: `₹ ${Math.round(displayPrice)?.toLocaleString('en-IN') || '0'}`,
-        imageUrl: (p.images && p.images.length > 0 && p.images[0].url) ? p.images[0].url : undefined,
-        productUrl: `/${p.slug || p._id}`,
+        imageUrl,
+        productUrl,
       };
     });
   }, [backendProductsList]);

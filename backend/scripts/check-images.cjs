@@ -1,6 +1,7 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const mongoose = require('mongoose');
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://store4riders:vikram@cluster0.zoxp7.mongodb.net/store4riders?retryWrites=true&w=majority";
+const MONGODB_URI = process.env.MONGODB_URI;
 
 async function run() {
   await mongoose.connect(MONGODB_URI);

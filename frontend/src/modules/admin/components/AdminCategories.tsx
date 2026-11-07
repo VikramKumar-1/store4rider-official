@@ -8,7 +8,7 @@ import Modal from "@/components/ui/Modal";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit2, Trash2, Search, Folder, FolderOpen, FolderPlus, FolderTree, Package, Image as ImageIcon, Upload, HelpCircle, Compass, Eye, EyeOff, Layers, X, Sliders, FileText, Table as TableIcon, List } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, Folder, FolderOpen, FolderPlus, FolderTree, Package, Image as ImageIcon, Upload, HelpCircle, Compass, Eye, EyeOff, Layers, X, Sliders, FileText, Table as TableIcon, List, ChevronRight, ChevronDown, ChevronsUpDown, Check, Copy, Filter } from "lucide-react";
 import Link from "next/link";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { SearchableSelect, Option } from "@/components/ui/SearchableSelect";
@@ -19,7 +19,13 @@ import { compressImageToWebP, uploadImageToS3 } from "@/core/utils/imageCompress
 import { ISpecFieldDefinition } from "@store4riders/shared-types";
 import { CATEGORY_SPEC_DEFINITIONS } from "./product-form/product-specs.constants";
 import { SizeChartUploader } from "./SizeChartUploader";
-import { isLegacyNonMenuCategory } from "@/core/utils/navCategories";
+import {
+  isLegacyNonMenuCategory,
+  getStoreNavbarCategoryTree,
+  getUnmappedLegacyCategories,
+  IStoreCategoryNode,
+} from "@/core/utils/navCategories";
+import { NAV_SUBMENU_SECTIONS } from "@/modules/homepage/components/navbar/nav.constants";
 
 const categoryFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -34,6 +40,8 @@ const categoryFormSchema = z.object({
   videoUrl: z.string().optional().or(z.literal("")),
   includeInMenu: z.boolean().default(true),
   menuGroup: z.string().optional().or(z.literal("")),
+  menuLabel: z.string().optional().or(z.literal("")),
+  menuNavSection: z.string().optional().or(z.literal("")),
   badge: z.string().optional().or(z.literal("")),
   badgeColor: z.string().optional().or(z.literal("")),
   attributeSetCode: z.string().optional().or(z.literal("")),
@@ -53,8 +61,8 @@ export const AdminCategories = () => {
 
   const [categoryViewTab, setCategoryViewTab] = useState<"menu" | "all">("menu");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<ICategoryTree | null>(null);
-  const [parentForNewSubcategory, setParentForNewSubcategory] = useState<ICategoryTree | null>(null);
+  const [editingCategory, setEditingCategory] = useState<(IStoreCategoryNode | ICategoryTree) | null>(null);
+  const [parentForNewSubcategory, setParentForNewSubcategory] = useState<(IStoreCategoryNode | ICategoryTree) | null>(null);
   const [faqs, setFaqs] = useState<Array<{ question: string; answer: string }>>([]);
   const [faqRichModes, setFaqRichModes] = useState<Record<number, boolean>>({});
   const [faqPreviews, setFaqPreviews] = useState<Record<number, boolean>>({});
@@ -68,10 +76,65 @@ export const AdminCategories = () => {
   const [newSpecPlaceholder, setNewSpecPlaceholder] = useState("");
   const [newSpecPresets, setNewSpecPresets] = useState("");
   const [chipInputMap, setChipInputMap] = useState<Record<number, string>>({});
+  const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(new Set());
+  const [activeRootFilter, setActiveRootFilter] = useState<string>("all");
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
-  const flatCategories = useMemo(() => {
-    const flatten = (nodes: ICategoryTree[], depth = 0): (ICategoryTree & { depth: number })[] => {
-      let result: (ICategoryTree & { depth: number })[] = [];
+  const copySlug = (slug: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(`/${slug}`);
+      setCopiedSlug(slug);
+      toast.success(`Copied /${slug} to clipboard`);
+      setTimeout(() => setCopiedSlug(null), 2000);
+    }
+  };
+
+  const toggleCollapse = (nodeKey: string) => {
+    setCollapsedNodeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodeKey)) {
+        next.delete(nodeKey);
+      } else {
+        next.add(nodeKey);
+      }
+      return next;
+    });
+  };
+
+  const expandAll = () => {
+    setCollapsedNodeIds(new Set());
+  };
+
+  // Helper to count all recursive descendants
+  const countDescendants = (node: IStoreCategoryNode): number => {
+    if (!node.children || node.children.length === 0) return 0;
+    return node.children.reduce((acc, child) => acc + 1 + countDescendants(child), 0);
+  };
+
+  // 1. Authoritative Storefront Navbar Tree strictly derived from DEFAULT_NAV_ITEMS
+  // with DB data (images, SEO metadata, blueprints, real ObjectIds) merged in.
+  const authoritativeMenuTree = useMemo(() => {
+    return getStoreNavbarCategoryTree(tree);
+  }, [tree]);
+
+  const collapseAll = () => {
+    const allCollapsible = new Set<string>();
+    const collect = (nodes: IStoreCategoryNode[]) => {
+      nodes.forEach((n) => {
+        if (n.children && n.children.length > 0) {
+          allCollapsible.add(String(n._id || n.id || n.slug));
+          collect(n.children);
+        }
+      });
+    };
+    collect(authoritativeMenuTree);
+    setCollapsedNodeIds(allCollapsible);
+  };
+
+  // 2. Authoritative Flat List of Storefront Menu & Submenu items with proper depth
+  const canonicalMenuCategories = useMemo(() => {
+    const flatten = (nodes: IStoreCategoryNode[], depth = 0): (IStoreCategoryNode & { depth: number })[] => {
+      let result: (IStoreCategoryNode & { depth: number })[] = [];
       for (const node of nodes) {
         result.push({ ...node, depth });
         if (node.children && node.children.length > 0) {
@@ -80,19 +143,15 @@ export const AdminCategories = () => {
       }
       return result;
     };
-    return flatten(tree);
-  }, [tree]);
+    return flatten(authoritativeMenuTree);
+  }, [authoritativeMenuTree]);
 
-  const canonicalMenuCategories = useMemo(() => {
-    return flatCategories.filter((cat) => {
-      // Must not be a legacy non-menu slug and must not be explicitly hidden
-      if (isLegacyNonMenuCategory(cat.slug)) return false;
-      if (cat.includeInMenu === false) return false;
-      return true;
-    });
-  }, [flatCategories]);
+  // 3. Unmapped legacy categories isolated from the main storefront menu
+  const unmappedLegacyCategories = useMemo(() => {
+    return getUnmappedLegacyCategories(tree, authoritativeMenuTree);
+  }, [tree, authoritativeMenuTree]);
 
-  const activeCategoriesSource = categoryViewTab === "menu" ? canonicalMenuCategories : flatCategories;
+  const activeCategoriesSource = categoryViewTab === "menu" ? canonicalMenuCategories : unmappedLegacyCategories;
 
   const filteredCategoriesList = useMemo(() => {
     if (!categorySearch.trim()) return activeCategoriesSource;
@@ -105,6 +164,62 @@ export const AdminCategories = () => {
     );
   }, [activeCategoriesSource, categorySearch]);
 
+  // Root department filters for fast navigation
+  const rootDepartments = useMemo(() => {
+    return [
+      { id: "all", name: "All Departments", count: canonicalMenuCategories.length },
+      ...authoritativeMenuTree.map((node) => ({
+        id: String(node._id || node.id || node.slug),
+        name: node.name,
+        count: 1 + (node.children ? countDescendants(node) : 0),
+      })),
+    ];
+  }, [authoritativeMenuTree, canonicalMenuCategories.length]);
+
+  // Hierarchical filtered tree for the "menu" tab
+  const filteredTree = useMemo(() => {
+    let baseNodes = authoritativeMenuTree;
+    if (activeRootFilter !== "all") {
+      baseNodes = baseNodes.filter((n) => String(n._id || n.id || n.slug) === activeRootFilter);
+    }
+    if (!categorySearch.trim()) return baseNodes;
+
+    const q = categorySearch.toLowerCase().trim();
+    const filterNodes = (nodes: IStoreCategoryNode[]): IStoreCategoryNode[] => {
+      const res: IStoreCategoryNode[] = [];
+      for (const node of nodes) {
+        const matchesSelf =
+          node.name.toLowerCase().includes(q) ||
+          node.slug.toLowerCase().includes(q) ||
+          (node.menuGroup && node.menuGroup.toLowerCase().includes(q));
+
+        const matchedChildren = node.children && node.children.length > 0 ? filterNodes(node.children) : [];
+
+        if (matchesSelf || matchedChildren.length > 0) {
+          res.push({
+            ...node,
+            children: matchedChildren.length > 0 ? matchedChildren : node.children,
+          });
+        }
+      }
+      return res;
+    };
+
+    return filterNodes(baseNodes);
+  }, [authoritativeMenuTree, activeRootFilter, categorySearch]);
+
+  // Filtered unmapped categories for the "all" tab
+  const filteredUnmapped = useMemo(() => {
+    if (!categorySearch.trim()) return unmappedLegacyCategories;
+    const q = categorySearch.toLowerCase().trim();
+    return unmappedLegacyCategories.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.slug.toLowerCase().includes(q) ||
+        (c.menuGroup && c.menuGroup.toLowerCase().includes(q))
+    );
+  }, [unmappedLegacyCategories, categorySearch]);
+
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<CategoryFormValues>({
     resolver: zodResolver(categoryFormSchema),
   });
@@ -115,11 +230,15 @@ export const AdminCategories = () => {
     // Collect all descendant IDs of the editing category to prevent circular hierarchy
     const descendantIds = new Set<string>();
     if (editingCategory) {
-      descendantIds.add(editingCategory._id);
-      const addDescendants = (cat: ICategoryTree) => {
+      if (editingCategory._id) descendantIds.add(String(editingCategory._id));
+      if ((editingCategory as any).id) descendantIds.add(String((editingCategory as any).id));
+      if (editingCategory.slug) descendantIds.add(String(editingCategory.slug));
+      const addDescendants = (cat: any) => {
         if (cat.children && cat.children.length > 0) {
-          cat.children.forEach(child => {
-            descendantIds.add(child._id);
+          cat.children.forEach((child: any) => {
+            if (child._id) descendantIds.add(String(child._id));
+            if (child.id) descendantIds.add(String(child.id));
+            if (child.slug) descendantIds.add(String(child.slug));
             addDescendants(child);
           });
         }
@@ -130,10 +249,10 @@ export const AdminCategories = () => {
     return [
       { label: "None (Top Level Category)", value: "", description: "Root Category (No Parent)" },
       ...canonicalMenuCategories
-        .filter(c => !descendantIds.has(c._id))
+        .filter(c => !descendantIds.has(String(c._id)) && !descendantIds.has(String(c.id)) && !descendantIds.has(String(c.slug)))
         .map(c => ({
           label: `${c.depth > 0 ? "— ".repeat(c.depth) : ""}${c.name}`,
-          value: c._id,
+          value: c._id || c.slug,
           description: `/${c.slug}`,
           badge: c.depth === 0 ? "Root" : `Level ${c.depth}`,
         }))
@@ -254,7 +373,10 @@ export const AdminCategories = () => {
     }
   };
 
-  const openModal = (category?: ICategoryTree, parentCategory?: ICategoryTree) => {
+  const openModal = (
+    category?: IStoreCategoryNode | ICategoryTree,
+    parentCategory?: IStoreCategoryNode | ICategoryTree
+  ) => {
     setShowAddSpecRow(false);
     setNewSpecLabel("");
     setNewSpecKey("");
@@ -288,6 +410,8 @@ export const AdminCategories = () => {
         videoUrl: category.videoUrl || "",
         includeInMenu: category.includeInMenu !== false,
         menuGroup: category.menuGroup || "",
+        menuLabel: (category as any).menuLabel || "",
+        menuNavSection: (category as any).menuNavSection || "",
         badge: category.badge || "",
         badgeColor: category.badgeColor || "",
         attributeSetCode: (category as any).attributeSetCode || "",
@@ -315,7 +439,7 @@ export const AdminCategories = () => {
       reset({
         name: "",
         slug: "",
-        parentId: parentCategory._id,
+        parentId: parentCategory._id || (parentCategory as any).id || parentCategory.slug || "",
         description: "",
         image: "",
         bannerImage: "",
@@ -325,6 +449,8 @@ export const AdminCategories = () => {
         videoUrl: "",
         includeInMenu: true,
         menuGroup: parentCategory.menuGroup || "",
+        menuLabel: "",
+        menuNavSection: (parentCategory as any).menuNavSection || "",
         badge: "",
         badgeColor: "",
         attributeSetCode: (parentCategory as any).attributeSetCode || "",
@@ -357,6 +483,8 @@ export const AdminCategories = () => {
         videoUrl: "",
         includeInMenu: true,
         menuGroup: "",
+        menuLabel: "",
+        menuNavSection: "",
         badge: "",
         badgeColor: "",
         attributeSetCode: "",
@@ -403,7 +531,8 @@ export const AdminCategories = () => {
     };
     if (!payload.parentId) delete payload.parentId;
 
-    if (editingCategory) {
+    const isValidMongoId = editingCategory?._id && /^[0-9a-fA-F]{24}$/.test(editingCategory._id);
+    if (editingCategory && isValidMongoId) {
       updateCategory.mutate(
         { id: editingCategory._id, data: payload },
         {
@@ -411,16 +540,239 @@ export const AdminCategories = () => {
         }
       );
     } else {
-      createCategory.mutate(payload, {
-        onSuccess: () => setIsModalOpen(false),
-      });
+      createCategory.mutate(
+        { ...payload, slug: editingCategory?.slug || payload.slug },
+        {
+          onSuccess: () => setIsModalOpen(false),
+        }
+      );
     }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this category? All subcategories might lose their parent.")) {
+  const handleDelete = (category: any) => {
+    const id = category._id || category.id;
+    const isValidMongoId = id && /^[0-9a-fA-F]{24}$/.test(id);
+    if (!isValidMongoId) {
+      toast.info("This is a core storefront navigation item and cannot be deleted from the database.");
+      return;
+    }
+    if (confirm(`Are you sure you want to delete "${category.name}"? All subcategories might lose their parent.`)) {
       deleteCategory.mutate(id);
     }
+  };
+
+  const renderCategoryNode = (category: IStoreCategoryNode, depth = 0): React.ReactNode => {
+    const nodeKey = String(category._id || category.id || category.slug);
+    const hasChildren = Boolean(category.children && category.children.length > 0);
+    const isSearching = Boolean(categorySearch.trim());
+    const isCollapsed = !isSearching && collapsedNodeIds.has(nodeKey);
+    const isCopied = copiedSlug === category.slug;
+
+    return (
+      <div key={nodeKey} className="group/row">
+        <div 
+          className={`grid grid-cols-12 gap-4 px-5 py-3 items-center border-b border-slate-100 hover:bg-slate-50/70 transition-colors ${
+            depth === 0 ? "bg-slate-50/40" : "bg-white"
+          }`}
+        >
+          {/* Column 1: Category Name & Indentation */}
+          <div 
+            className="col-span-12 sm:col-span-6 lg:col-span-5 flex items-center gap-2.5 min-w-0"
+            style={{ paddingLeft: `${depth * 1.5}rem` }}
+          >
+            {/* Expand / Collapse Chevron */}
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={() => toggleCollapse(nodeKey)}
+                className="w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0 cursor-pointer"
+                title={isCollapsed ? "Expand subcategories" : "Collapse subcategories"}
+              >
+                <ChevronRight
+                  size={14}
+                  className={`transition-transform duration-150 ${!isCollapsed ? "rotate-90 text-slate-700" : ""}`}
+                />
+              </button>
+            ) : (
+              <span className="w-5 shrink-0" />
+            )}
+
+            {/* Thumbnail / Clean Icon */}
+            {category.image ? (
+              <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200 shadow-2xs">
+                <Image src={category.image} alt={category.name} fill sizes="32px" className="object-cover" />
+              </div>
+            ) : depth === 0 ? (
+              <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0">
+                <FolderOpen className="w-4 h-4" />
+              </div>
+            ) : hasChildren ? (
+              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                <Folder className="w-4 h-4" />
+              </div>
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center shrink-0">
+                <Folder className="w-4 h-4" />
+              </div>
+            )}
+
+            {/* Name & Subtle Slug */}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span
+                  onClick={hasChildren ? () => toggleCollapse(nodeKey) : undefined}
+                  className={`truncate ${hasChildren ? "cursor-pointer hover:text-slate-900" : ""} ${
+                    depth === 0
+                      ? "font-bold text-sm text-slate-900"
+                      : depth === 1
+                      ? "font-semibold text-xs text-slate-800"
+                      : "font-medium text-xs text-slate-700"
+                  }`}
+                >
+                  {category.name}
+                </span>
+
+                {(category as any).isCustom && (
+                  <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-medium shrink-0">
+                    Custom
+                  </span>
+                )}
+
+                {category.badge && (
+                  <span className={`text-[9px] text-white px-1.5 py-0.2 rounded font-bold uppercase shrink-0 ${category.badgeColor || "bg-brand"}`}>
+                    {category.badge}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                <button
+                  type="button"
+                  onClick={() => copySlug(category.slug)}
+                  className="font-mono text-[11px] text-slate-400 hover:text-slate-700 flex items-center gap-1 cursor-pointer transition-colors"
+                  title="Copy slug"
+                >
+                  {isCopied ? <Check size={10} className="text-emerald-600" /> : <Copy size={10} className="opacity-60 hover:opacity-100" />}
+                  <span>/{category.slug}</span>
+                </button>
+
+                {category.metaTitle && (
+                  <span className="text-[10px] text-slate-400 bg-slate-100 px-1 py-0.2 rounded" title={`SEO: ${category.metaTitle}`}>
+                    SEO
+                  </span>
+                )}
+                {category.faqs && category.faqs.length > 0 && (
+                  <span className="text-[10px] text-slate-400 bg-slate-100 px-1 py-0.2 rounded">
+                    {category.faqs.length} FAQs
+                  </span>
+                )}
+                {category.specDefinitions && category.specDefinitions.length > 0 && (
+                  <span className="text-[10px] text-slate-400 bg-slate-100 px-1 py-0.2 rounded">
+                    {category.specDefinitions.length} Specs
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Column 2: Level */}
+          <div className="hidden sm:block sm:col-span-3 lg:col-span-2">
+            {depth === 0 ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-900 text-white">
+                Department
+              </span>
+            ) : depth === 1 ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-slate-600 bg-slate-100">
+                Category (L1)
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-slate-500">
+                Subcategory (L2)
+              </span>
+            )}
+          </div>
+
+          {/* Column 3: Subcategories Count */}
+          <div className="hidden lg:block lg:col-span-2">
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={() => toggleCollapse(nodeKey)}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200/80 px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+              >
+                <span>{category.children!.length} subcategories</span>
+                <ChevronDown
+                  size={12}
+                  className={`text-slate-500 transition-transform duration-150 ${isCollapsed ? "-rotate-90" : ""}`}
+                />
+              </button>
+            ) : (
+              <span className="text-xs text-slate-300 font-mono pl-3">—</span>
+            )}
+          </div>
+
+          {/* Column 4: Storefront Menu Status */}
+          <div className="hidden sm:block sm:col-span-3 lg:col-span-2">
+            {category.includeInMenu !== false ? (
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                In Menu
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                Hidden
+              </span>
+            )}
+          </div>
+
+          {/* Column 5: Actions */}
+          <div className="col-span-12 sm:col-span-12 lg:col-span-1 flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => openModal(undefined, category)}
+              className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
+              title={`Add subcategory under "${category.name}"`}
+            >
+              <FolderPlus size={15} />
+            </button>
+
+            <Link
+              href={`/admin/products?category=${encodeURIComponent(category.slug || category._id)}`}
+              className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
+              title={`View products in "${category.name}"`}
+            >
+              <Package size={15} />
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => openModal(category)}
+              className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
+              title="Edit Category"
+            >
+              <Edit2 size={15} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleDelete(category)}
+              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+              title="Delete Category"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        </div>
+
+        {/* Children Rows */}
+        {hasChildren && !isCollapsed && (
+          <div className="relative">
+            {category.children!.map((child) => renderCategoryNode(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -429,7 +781,7 @@ export const AdminCategories = () => {
         <div>
           <h1 className="text-2xl font-black text-slate-900">Manage Categories</h1>
           <p className="text-slate-500 text-sm mt-1">
-            Organize hierarchy, subcategory cards (5-card mobile view), banner & SEO FAQs.
+            Organize hierarchy, subcategory cards (5-card mobile view), banner &amp; SEO FAQs.
           </p>
         </div>
         <Button onClick={() => openModal()} className="flex items-center gap-2">
@@ -439,43 +791,75 @@ export const AdminCategories = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {/* View Tabs: Storefront Menu vs All Categories */}
-        <div className="flex items-center gap-2 border-b border-slate-200 px-4 pt-3 bg-white">
+        <div className="flex items-center gap-6 border-b border-slate-200 px-6 pt-3 bg-white">
           <button
             type="button"
             onClick={() => setCategoryViewTab("menu")}
-            className={`pb-2.5 px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            className={`pb-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
               categoryViewTab === "menu"
-                ? "border-brand text-brand"
+                ? "border-slate-900 text-slate-900"
                 : "border-transparent text-slate-500 hover:text-slate-800"
             }`}
           >
             <FolderTree className="w-3.5 h-3.5" />
-            <span>Storefront Menu &amp; Submenus ({canonicalMenuCategories.length})</span>
+            <span>Storefront Menu ({canonicalMenuCategories.length})</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setCategoryViewTab("all")}
-            className={`pb-2.5 px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
-              categoryViewTab === "all"
-                ? "border-brand text-brand"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>All Categories (Catalog + Legacy) ({flatCategories.length})</span>
-          </button>
+          {unmappedLegacyCategories.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setCategoryViewTab("all")}
+              className={`pb-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+                categoryViewTab === "all"
+                  ? "border-slate-900 text-slate-900"
+                  : "border-transparent text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Unmapped Legacy Categories ({unmappedLegacyCategories.length})</span>
+            </button>
+          )}
         </div>
 
-        {/* Category & Submenu Quick Filter Bar */}
-        <div className="p-3.5 sm:p-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[260px]">
+        {/* Department Filter Segmented Bar (Storefront Menu view) */}
+        {categoryViewTab === "menu" && (
+          <div className="px-5 py-3 border-b border-slate-200 bg-slate-50/50 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+            {rootDepartments.map((dept) => {
+              const isActive = activeRootFilter === dept.id;
+              return (
+                <button
+                  key={dept.id}
+                  type="button"
+                  onClick={() => setActiveRootFilter(dept.id)}
+                  className={`px-3 py-1.5 text-xs rounded-lg transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                    isActive
+                      ? "bg-slate-900 text-white font-semibold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-medium"
+                  }`}
+                >
+                  <span>{dept.name}</span>
+                  <span
+                    className={`text-[11px] ${
+                      isActive ? "text-slate-300" : "text-slate-400"
+                    }`}
+                  >
+                    {dept.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Search & Actions Bar */}
+        <div className="p-4 border-b border-slate-200 bg-white flex items-center justify-between flex-wrap gap-3">
+          <div className="relative flex-1 min-w-[260px] max-w-md">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={categorySearch}
               onChange={(e) => setCategorySearch(e.target.value)}
-              placeholder="Search any parent category or submenu by name, slug, group (e.g. 'full face', 'gloves', 'bags')..."
-              className="w-full pl-9 pr-8 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand shadow-2xs font-medium"
+              placeholder="Search categories (e.g. 'full face', 'gloves', 'axor')..."
+              className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 transition-colors placeholder:text-slate-400"
             />
             {categorySearch && (
               <button
@@ -487,128 +871,81 @@ export const AdminCategories = () => {
               </button>
             )}
           </div>
-          <div className="text-xs text-slate-500 font-medium">
-            Showing <span className="font-bold text-slate-800">{filteredCategoriesList.length}</span> of {activeCategoriesSource.length} categories &amp; submenus
+
+          <div className="flex items-center gap-3">
+            {categoryViewTab === "menu" && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={expandAll}
+                  className="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors cursor-pointer flex items-center gap-1.5"
+                  title="Expand all categories and subcategories"
+                >
+                  <ChevronsUpDown size={13} className="text-slate-400" />
+                  <span>Expand All</span>
+                </button>
+                <span className="text-slate-300">|</span>
+                <button
+                  type="button"
+                  onClick={collapseAll}
+                  className="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
+                  title="Collapse all categories to root departments"
+                >
+                  Collapse All
+                </button>
+              </div>
+            )}
+
+            <div className="text-xs text-slate-500 font-medium">
+              {categoryViewTab === "menu" ? (
+                <>
+                  <span className="font-semibold text-slate-800">
+                    {activeRootFilter === "all" && !categorySearch.trim()
+                      ? canonicalMenuCategories.length
+                      : filteredTree.length}
+                  </span>{" "}
+                  {activeRootFilter === "all" && !categorySearch.trim() ? "items" : "shown"}
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-slate-800">{filteredUnmapped.length}</span> unmapped
+                </>
+              )}
+            </div>
           </div>
+        </div>
+
+        {/* Table Column Headers */}
+        <div className="grid grid-cols-12 gap-4 px-5 py-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider items-center">
+          <div className="col-span-12 sm:col-span-6 lg:col-span-5">Category Name</div>
+          <div className="hidden sm:block sm:col-span-3 lg:col-span-2">Level</div>
+          <div className="hidden lg:block lg:col-span-2">Subcategories</div>
+          <div className="hidden sm:block sm:col-span-3 lg:col-span-2">Storefront Menu</div>
+          <div className="hidden lg:block lg:col-span-1 text-right">Actions</div>
         </div>
 
         {isLoading ? (
           <div className="p-8 text-center text-slate-500">Loading categories...</div>
-        ) : filteredCategoriesList.length === 0 ? (
-          <div className="p-8 text-center text-slate-500">
-            {categorySearch ? `No categories or submenus match "${categorySearch}".` : "No categories found. Create your first category."}
-          </div>
+        ) : categoryViewTab === "menu" ? (
+          filteredTree.length === 0 ? (
+            <div className="p-8 text-center text-slate-500">
+              {categorySearch ? `No categories match "${categorySearch}".` : "No categories found in this department."}
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {filteredTree.map((node) => renderCategoryNode(node, 0))}
+            </div>
+          )
         ) : (
-          <div className="divide-y divide-slate-100">
-            {filteredCategoriesList.map((category) => (
-              <div 
-                key={category._id} 
-                className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
-                style={{ paddingLeft: `${Math.max(1, category.depth * 2)}rem` }}
-              >
-                <div className="flex items-center gap-3">
-                  {category.image ? (
-                    <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200 shadow-2xs">
-                      <Image src={category.image} alt={category.name} fill sizes="40px" className="object-cover" />
-                    </div>
-                  ) : category.children && category.children.length > 0 ? (
-                    <FolderOpen className="text-brand w-5 h-5 shrink-0" />
-                  ) : (
-                    <Folder className="text-slate-400 w-5 h-5 shrink-0" />
-                  )}
-                  <div>
-                    <h3 className="font-bold text-slate-900 flex items-center gap-2 flex-wrap">
-                      <span>{category.name}</span>
-                      {category.depth > 0 && (
-                        <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded font-medium">
-                          Submenu (L{category.depth})
-                        </span>
-                      )}
-                      {category.children && category.children.length > 0 && (
-                        <span className="text-[10px] bg-slate-100 text-slate-700 border border-slate-200 px-1.5 py-0.5 rounded font-semibold">
-                          {category.children.length} {category.children.length === 1 ? "subcat" : "subcats"}
-                        </span>
-                      )}
-                      {category.includeInMenu === false ? (
-                        <span className="text-[10px] bg-slate-100 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
-                          <EyeOff size={10} /> Hidden from Menu
-                        </span>
-                      ) : (
-                        <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
-                          <Eye size={10} /> In Menu
-                        </span>
-                      )}
-                      {category.image && (
-                        <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded font-medium">
-                          Thumbnail
-                        </span>
-                      )}
-                      {category.heroCategoryIds && category.heroCategoryIds.length > 0 && (
-                        <span className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded font-medium">
-                          {category.heroCategoryIds.length} Hero Cards
-                        </span>
-                      )}
-                      {category.badge && (
-                        <span className={`text-[9px] text-white px-1.5 py-0.5 rounded font-bold uppercase ${category.badgeColor || "bg-brand"}`}>
-                          {category.badge}
-                        </span>
-                      )}
-                    </h3>
-                    <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5 flex-wrap">
-                      <span className="font-mono">/{category.slug}</span>
-                      {category.menuGroup && (
-                        <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px]">
-                          Group: {category.menuGroup}
-                        </span>
-                      )}
-                      {category.metaTitle && (
-                        <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">SEO</span>
-                      )}
-                      {category.faqs && category.faqs.length > 0 && (
-                        <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                          {category.faqs.length} FAQs
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <button 
-                    onClick={() => openModal(undefined, category)} 
-                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-brand bg-white hover:bg-brand/5 rounded-lg shadow-2xs border border-slate-200 transition-colors cursor-pointer"
-                    title={`Add subcategory / submenu under "${category.name}"`}
-                  >
-                    <FolderPlus size={13} className="text-brand" />
-                    <span className="hidden sm:inline">+ Submenu</span>
-                  </button>
-
-                  <Link
-                    href={`/admin/products?category=${encodeURIComponent(category.slug || category._id)}`}
-                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-brand bg-white hover:bg-slate-50 rounded-lg shadow-2xs border border-slate-200 transition-colors cursor-pointer"
-                    title={`View products in "${category.name}"`}
-                  >
-                    <Package size={13} className="text-slate-500" />
-                    <span className="hidden sm:inline">Products</span>
-                  </Link>
-
-                  <button 
-                    onClick={() => openModal(category)} 
-                    className="p-1.5 text-slate-400 hover:text-brand transition-colors bg-white rounded-lg shadow-2xs border border-slate-200 cursor-pointer"
-                    title="Edit Category"
-                  >
-                    <Edit2 size={13} />
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(category._id)} 
-                    className="p-1.5 text-slate-400 hover:text-red-500 transition-colors bg-white rounded-lg shadow-2xs border border-slate-200 cursor-pointer"
-                    title="Delete Category"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+          filteredUnmapped.length === 0 ? (
+            <div className="p-8 text-center text-slate-500">
+              {categorySearch ? `No unmapped categories match "${categorySearch}".` : "No unmapped legacy categories found."}
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {filteredUnmapped.map((category) => renderCategoryNode(category as any, category.depth || 0))}
+            </div>
+          )
         )}
       </div>
 
@@ -974,53 +1311,90 @@ export const AdminCategories = () => {
             <div>
               <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider text-slate-600">
                 <Compass size={14} className="text-brand" />
-                Storefront Navigation & Submenu Settings
+                Storefront Navigation &amp; Submenu Settings
               </label>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Control whether this category appears in the header mega menu and define its column grouping.
+                Control whether this category appears in the header navigation submenu, choose its exact section, and define its display label.
               </p>
             </div>
 
-            <div className="flex items-center gap-2 pt-0.5">
+            <div className="p-2.5 bg-white rounded-lg border border-slate-200 flex items-start gap-2.5">
               <input
                 type="checkbox"
                 id="includeInMenu"
                 {...register("includeInMenu")}
-                className="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand cursor-pointer"
+                className="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand cursor-pointer mt-0.5"
               />
-              <label htmlFor="includeInMenu" className="text-xs font-semibold text-slate-800 cursor-pointer select-none">
-                Show in Navigation Submenu / Megamenu
-              </label>
+              <div className="flex-1">
+                <label htmlFor="includeInMenu" className="text-xs font-bold text-slate-800 cursor-pointer select-none">
+                  Show in Navigation Submenu / Megamenu
+                </label>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Uncheck to immediately hide this item from the Storefront Navigation Submenu without deleting the category.
+                </p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-700">Submenu Group (Optional)</label>
-                <Input 
-                  {...register("menuGroup")} 
-                  placeholder="e.g. Types, Accessories" 
-                  className="text-xs"
-                />
+            {watch("includeInMenu") === false ? (
+              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 flex items-center gap-2">
+                <EyeOff size={14} className="text-amber-600 shrink-0" />
+                <span>This item is marked <strong>Hidden</strong> and will not appear in the Storefront Navigation Submenu.</span>
               </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-700">Badge Tag (Optional)</label>
-                <Input 
-                  {...register("badge")} 
-                  placeholder="e.g. NEW, HOT, SALE" 
-                  className="text-xs"
-                />
+            ) : (
+              <div className="space-y-3 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                      <span>Target Submenu Section</span>
+                      <span className="text-[10px] text-slate-400 font-normal">Which dropdown column?</span>
+                    </label>
+                    <SearchableSelect
+                      options={[
+                        { value: "", label: "-- Auto-Detect / Default Section --" },
+                        ...NAV_SUBMENU_SECTIONS.map((s) => ({ value: s.value, label: s.label })),
+                      ]}
+                      value={watch("menuNavSection") || ""}
+                      onChange={(val) => setValue("menuNavSection", val, { shouldDirty: true })}
+                      placeholder="-- Auto-Detect / Default Section --"
+                      className="w-full text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                      <span>Submenu Display Label (Optional)</span>
+                      <span className="text-[10px] text-slate-400 font-normal">Short label in menu</span>
+                    </label>
+                    <Input 
+                      {...register("menuLabel")} 
+                      placeholder={`Leave blank to use "${watch("name") || "Category Name"}"`}
+                      className="text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700">Badge Tag (Optional)</label>
+                    <Input 
+                      {...register("badge")} 
+                      placeholder="e.g. NEW, HOT, POPULAR" 
+                      className="text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700">Badge Color</label>
+                    <SearchableSelect
+                      options={badgeColorOptions}
+                      value={watch("badgeColor") || ""}
+                      onChange={(val) => setValue("badgeColor", val, { shouldDirty: true })}
+                      placeholder="Default (Red - Brand)"
+                      className="w-full text-xs"
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-700">Badge Color</label>
-                <SearchableSelect
-                  options={badgeColorOptions}
-                  value={watch("badgeColor") || ""}
-                  onChange={(val) => setValue("badgeColor", val, { shouldDirty: true })}
-                  placeholder="Default (Red - Brand)"
-                  className="w-full text-xs"
-                />
-              </div>
-            </div>
+            )}
           </div>
 
           {/* CATEGORY THUMBNAIL PHOTO (1:1 SQUARE) */}
@@ -1122,7 +1496,7 @@ export const AdminCategories = () => {
             {selectedHeroCategoryIds.length > 0 ? (
               <div className="space-y-1.5 pt-1">
                 {selectedHeroCategoryIds.map((id, index) => {
-                  const targetCat = flatCategories.find(c => c._id === id);
+                  const targetCat = canonicalMenuCategories.find((c: any) => c._id === id || c.id === id);
                   if (!targetCat) return null;
                   return (
                     <div 

@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import * as cheerio from 'cheerio';
 import { deleteCache } from './core/cache/redis.js';
 
-const MONGODB_URI = "mongodb+srv://japamic979_db_user:d3X5fxfCo5wBPeCr@store4riders.fg8q7zs.mongodb.net/store4riders";
+import 'dotenv/config';
+const MONGODB_URI = process.env.MONGODB_URI || "";
 
 const faqSchema = new mongoose.Schema({
   question: { type: String, required: true },

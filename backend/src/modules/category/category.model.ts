@@ -20,6 +20,8 @@ const categorySchema = new Schema<ICategory>(
     videoUrl: { type: String },
     includeInMenu: { type: Boolean, default: true },
     menuGroup: { type: String },
+    menuLabel: { type: String, default: "" },
+    menuNavSection: { type: String, default: "" },
     heroCategoryIds: [{ type: String }],
     badge: { type: String },
     badgeColor: { type: String },

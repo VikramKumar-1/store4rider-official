@@ -14,7 +14,7 @@ const ReviewCard: React.FC<{ review: ReviewData }> = ({ review }) => {
     <a 
       href={review.link || "#"} 
       target={review.link ? "_blank" : "_self"} 
-      className="group shrink-0 w-full md:w-[200px] border border-neutral-200/70 p-3 rounded-xl flex flex-col justify-between bg-white h-auto min-h-[110px] hover:border-neutral-300 relative cursor-pointer block no-underline hover:no-underline"
+      className="group shrink-0 w-full md:w-[170px] border border-neutral-200/70 p-2.5 rounded-lg flex flex-col justify-between bg-white h-auto min-h-[90px] hover:border-neutral-300 relative cursor-pointer block no-underline hover:no-underline"
       style={{ textDecoration: "none" }}
     >
       <div className="no-underline" style={{ textDecoration: "none" }}>
@@ -105,7 +105,7 @@ export const StoreReviews: React.FC<{ reviews?: ReviewData[]; hideHeader?: boole
     <div className="w-full relative flex flex-col">
       {/* Header with Google Badge and See All (Only when hideHeader is false) */}
       {!hideHeader ? (
-        <div className="flex items-center justify-between mb-4 pb-2 border-b border-neutral-200/60 flex-wrap gap-2">
+        <div className="flex items-center justify-between mb-2.5 pb-1.5 border-b border-neutral-200/60 flex-wrap gap-2">
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-[28px] h-[28px] rounded-full bg-neutral-50 border border-neutral-100 flex items-center justify-center shrink-0 shadow-sm">
               <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

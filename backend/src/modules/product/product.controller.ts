@@ -70,8 +70,9 @@ export class ProductController {
   static async getBySkus(req: NextRequest) {
     const url = new URL(req.url);
     const skusParam = url.searchParams.get('skus') || '';
+    const inStockOnly = url.searchParams.get('inStockOnly') !== 'false';
     const skus = skusParam.split(',').map(s => s.trim()).filter(Boolean);
-    const products = await ProductService.getProductsBySkus(skus);
+    const products = await ProductService.getProductsBySkus(skus, inStockOnly);
     return ApiResponse.success(products, 'Products fetched successfully');
   }
 

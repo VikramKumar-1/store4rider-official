@@ -182,8 +182,8 @@ export class ProductValidator {
       // Clean up Magento's messy tagging: Exclude cross-category contamination
       const excludeConditions: any[] = [];
       if (!isAdmin) {
-        if (cleanSlug === "riding-gear") {
-          excludeConditions.push({ name: { $not: /\b(helmets?|tail\s*bag|tank\s*bag|saddle\s*bag|backpacks?|hydration|bungee|cargo\s*net|panniers?|top\s*box|top\s*case|chain\s*(lube|clean|cleaner|paste|wax)|bike\s*cleaner|mobile\s*holder|phone\s*mount|phone\s*holder|bluetooth|intercom|communicator|auxiliary\s*light|fog\s*light|flasher)\b/i } });
+        if (cleanSlug === "riding-gear" || cleanSlug.includes("off-road-motocross") || cleanSlug.includes("touring-gear") || cleanSlug.includes("monsoon-gear")) {
+          excludeConditions.push({ name: { $not: /\b(helmets?|tail\s*bag|tank\s*bag|saddle\s*bag|backpacks?|hydration|bladder|bungee|cargo\s*net|panniers?|top\s*box|top\s*case|chain\s*(lube|clean|cleaner|paste|wax)|bike\s*cleaner|mobile\s*holder|phone\s*mount|phone\s*holder|bluetooth|intercom|communicator|auxiliary\s*light|fog\s*light|flasher|bandana|buff|face\s*covering|balaclava|tower|stand|paddock|tyre\s*repair|exhaust|bike\s*cover)\b/i } });
         } else if (cleanSlug === "motorcycle-bags-bike-luggage") {
           excludeConditions.push({ name: { $not: /\b(helmets?|jackets?|boots?|shoes?|gloves?|pants?|jeans?|trousers?|chain\s*(lube|clean|cleaner))\b/i } });
         } else if (cleanSlug.includes("full-face")) {

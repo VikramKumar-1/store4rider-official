@@ -1,7 +1,8 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const mongoose = require("mongoose");
 
 async function findTestProducts() {
-  await mongoose.connect("mongodb+srv://store4riders:Yv2k1Kk5xI3TjQ7D@s4r-cluster.j6zud.mongodb.net/store4riders?retryWrites=true&w=majority");
+  await mongoose.connect(process.env.MONGODB_URI);
   
   const Product = mongoose.models.Product || mongoose.model("Product", new mongoose.Schema({}, { strict: false }));
   
